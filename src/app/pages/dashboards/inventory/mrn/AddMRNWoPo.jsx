@@ -120,7 +120,7 @@ export default function AddMRNWoPo() {
       if (files.rupload2) form.append("rupload2", files.rupload2);
 
       // PHP logic: insertMRN.php
-      await axios.post("/inventory/mrn-wo-po-create", form);
+      await axios.post("/inventory/add-mrn-not", form);
 
       toast.success("MRN (Without PO) added successfully ✅");
       navigate("/dashboards/inventory/mrn");

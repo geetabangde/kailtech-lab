@@ -4350,6 +4350,26 @@ const protectedRoutes = {
                         ).default,
                       }),
                     },
+                    {
+                      path: "add-item/:id",
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/inventory/mrn/AddMRNItem"
+                          )
+                        ).default,
+                      }),
+                    },
+                    {
+                      path: "view-items/:id",
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/inventory/mrn/ViewMrnItems"
+                          )
+                        ).default,
+                      }),
+                    },
                   ],
                 },
                 {

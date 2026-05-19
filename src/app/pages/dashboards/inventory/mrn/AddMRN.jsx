@@ -40,7 +40,7 @@ export default function AddMRN() {
     const fetchPOs = async () => {
       try {
         // PHP logic: selectextrawhereupdate("purchase_order", "id,po_number,customer_id", "status=1 order by id desc")
-        const response = await axios.get("/inventory/get-purchase-order-list"); 
+        const response = await axios.get("/inventory/get-purchase-order"); 
         if (response.data.status) {
           setPurchaseOrders(response.data.data || []);
         }
@@ -58,7 +58,7 @@ export default function AddMRN() {
       const fetchDetails = async () => {
         try {
           setFetchingDetails(true);
-          const response = await axios.get("/inventory/get-customer-details-for-mrn", {
+          const response = await axios.get("/inventory/get-purchase-order-details", {
             params: { poid: formData.poid, type: formData.typeofrecieving },
           });
 
@@ -120,7 +120,7 @@ export default function AddMRN() {
       if (files.rupload2) form.append("rupload2", files.rupload2);
 
       // PHP logic: insertMRNwopo.php
-      await axios.post("/inventory/mrn-create", form);
+      await axios.post("/inventory/create-mrn", form);
 
       toast.success("MRN added successfully ✅");
       navigate("/dashboards/inventory/mrn");

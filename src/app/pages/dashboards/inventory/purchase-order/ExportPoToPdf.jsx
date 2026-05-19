@@ -31,58 +31,53 @@ export default function ExportPoToPdf() {
         setLoading(true);
         setError(null);
 
-        // Fetch purchase order data
-        // PHP: $purchase_order = $obj->selectextrawhere("purchase_order", "id=$po_id");
-        const poResponse = await axios.get(`/inventory/purchase-order/${poId}`);
-        if (!poResponse.data.status) {
-          throw new Error("Purchase Order not found");
+        // Fetch purchase order details from a single consolidated endpoint
+        const response = await axios.get(`/inventory/view-purchase-order/${poId}`);
+        if (!response.data.status || !response.data.data) {
+          throw new Error(response.data.message || "Purchase Order not found");
         }
-        const purchaseOrderData = poResponse.data.data;
 
-        // Fetch customer data
-        // PHP: $customer_id = $obj->selectfield("purchase_order", "customer_id", "id", $po_id);
-        // PHP: $customer = $obj->selectextrawhere("suppliers", "id='$customer_id'");
-        const customerResponse = await axios.get(`/master/suppliers/${purchaseOrderData.customer_id}`);
-        if (!customerResponse.data.status) {
-          throw new Error("Customer not found");
-        }
-        const customerData = customerResponse.data.data;
-
-        // Fetch purchase order items
-        // PHP: $po_item = $obj->selectextrawhere("purchase_order_item", "purchase_order_id=$po_id and status in (-1, 1)");
-        const itemsResponse = await axios.get(`/inventory/purchase-order-items/${poId}?status=-1,1`);
-        const items = itemsResponse.data.data || [];
+        const { purchase_order: purchaseOrderData, supplier_details: customerData, items = [], summary = {} } = response.data.data;
 
         // Fetch company data for branding
-        // PHP: $companyname, $companylogo, $companygstno, $companypanno
-        const companyResponse = await axios.get("/master/company-info");
-        const companyData = companyResponse.data.data || {};
+        let companyData = {};
+        try {
+          const companyResponse = await axios.get("/master/company-info");
+          if (companyResponse.data.status) {
+            companyData = companyResponse.data.data || {};
+          }
+        } catch (companyErr) {
+          console.warn("Failed to fetch company info, using fallbacks:", companyErr);
+        }
 
-        // Calculate tax combinations
-        // PHP: Complex tax calculation logic
+        // Calculate tax combinations matching legacy calculations
         const combineTax = {};
         items.forEach(item => {
           const taxRate = item.tax_rate || "0";
-          const taxRateFiltered = taxRate.replace(/[\s%]/g, "");
-          const taxableAmount = parseFloat(item.taxableamount) || 0;
-          const taxAmount = (taxableAmount * parseFloat(taxRateFiltered)) / 100;
+          const taxRateString = typeof taxRate === "string" ? taxRate : `${taxRate}%`;
+          const taxRateFiltered = taxRateString.replace(/[\s%]/g, "");
+          
+          // taxable amount is either directly available or derived
+          const price = parseFloat(item.price || item.list_price || 0);
+          const quantity = parseFloat(item.quantity || 0);
+          const taxableAmount = parseFloat(item.taxableamount || item.amount || (price * quantity) || 0);
+          
+          const taxAmount = (taxableAmount * parseFloat(taxRateFiltered || 0)) / 100;
 
-          if (combineTax[taxRate]) {
-            combineTax[taxRate] += taxAmount;
+          if (combineTax[taxRateString]) {
+            combineTax[taxRateString] += taxAmount;
           } else {
-            combineTax[taxRate] = taxAmount;
+            combineTax[taxRateString] = taxAmount;
           }
         });
 
-        // Add tax on additional charges
-        // PHP: $miscchrgs = $purchase_order_data["packaginchrgs"] + $purchase_order_data["freightchrgs"] + $purchase_order_data["insurancechrgs"] + $purchase_order_data["calibrationchrgs"] + $purchase_order_data["trainingchrgs"];
-        // PHP: $gstonchrgs = $miscchrgs * 18 / 100;
+        // Add tax on additional charges (GST 18%)
         const miscCharges = 
-          (parseFloat(purchaseOrderData.packaginchrgs) || 0) +
-          (parseFloat(purchaseOrderData.freightchrgs) || 0) +
-          (parseFloat(purchaseOrderData.insurancechrgs) || 0) +
-          (parseFloat(purchaseOrderData.calibrationchrgs) || 0) +
-          (parseFloat(purchaseOrderData.trainingchrgs) || 0);
+          (parseFloat(purchaseOrderData.packaginchrgs || purchaseOrderData.packing_charges || summary.packing_charges || 0) +
+          parseFloat(purchaseOrderData.freightchrgs || purchaseOrderData.freight_charges || summary.freight_charges || 0) +
+          parseFloat(purchaseOrderData.insurancechrgs || purchaseOrderData.insurance_charges || summary.insurance_charges || 0) +
+          parseFloat(purchaseOrderData.calibrationchrgs || purchaseOrderData.calibration_charges || summary.calibration_charges || 0) +
+          parseFloat(purchaseOrderData.trainingchrgs || purchaseOrderData.training_charges || summary.training_charges || 0));
         
         const gstOnCharges = (miscCharges * 18) / 100;
         if (combineTax["18%"]) {
@@ -92,24 +87,39 @@ export default function ExportPoToPdf() {
         }
 
         // Determine GST state logic
-        // PHP: $my_gst_code = $companygstno; $my_gst_code = substr($my_gst_code, 0, 2);
-        // PHP: $gst_no = $obj->selectfield("suppliers", "gstno", "id", $po_id); $gst_state_code = substr($gst_no, 0, 2);
         const companyGstCode = companyData.gstno ? companyData.gstno.substring(0, 2) : "";
-        const customerGstCode = customerData.gstno ? customerData.gstno.substring(0, 2) : "";
-        const isSameState = companyGstCode === customerGstCode;
-
-        // Get state code
-        // PHP: $statecode = sprintf("%02d", $customer_data['statecode']);
-        const stateCode = customerData.statecode ? String(customerData.statecode).padStart(2, "0") : "";
+        const customerGstCode = customerData.gst_number || customerData.gstno || "";
+        const customerGstStateCode = customerGstCode.substring(0, 2);
+        
+        // Same state logic if customer is in Madhya Pradesh (23) or matches company state code
+        const stateCode = customerData.gst_state_code || customerData.statecode || customerGstStateCode || "";
+        const isSameState = stateCode === "23" || (companyGstCode && stateCode === companyGstCode);
 
         setPdfData({
-          purchaseOrder: purchaseOrderData,
-          customer: customerData,
+          purchaseOrder: {
+            ...purchaseOrderData,
+            discount: purchaseOrderData.discount || summary.discount,
+            totalafterdisc: purchaseOrderData.totalafterdisc || summary.total_after_discount,
+            packaginchrgs: purchaseOrderData.packaginchrgs || purchaseOrderData.packing_charges || summary.packing_charges,
+            freightchrgs: purchaseOrderData.freightchrgs || purchaseOrderData.freight_charges || summary.freight_charges,
+            insurancechrgs: purchaseOrderData.insurancechrgs || purchaseOrderData.insurance_charges || summary.insurance_charges,
+            calibrationchrgs: purchaseOrderData.calibrationchrgs || purchaseOrderData.calibration_charges || summary.calibration_charges,
+            trainingchrgs: purchaseOrderData.trainingchrgs || purchaseOrderData.training_charges || summary.training_charges,
+            customdutychrgs: purchaseOrderData.customdutychrgs || purchaseOrderData.custom_duty_charges || summary.custom_duty_charges,
+            total_amount: purchaseOrderData.total_amount || summary.total_invoice_amount,
+            roundoff: purchaseOrderData.roundoff || summary.roundoff,
+            finaltotal: purchaseOrderData.finaltotal || summary.final_total
+          },
+          customer: {
+            ...customerData,
+            gstno: customerData.gst_number || customerData.gstno,
+            address: customerData.address || customerData.full_address
+          },
           items: items,
           company: companyData,
           combineTax,
           isSameState,
-          stateCode,
+          stateCode: stateCode ? String(stateCode).padStart(2, "0") : "",
           miscCharges,
           gstOnCharges
         });
@@ -317,18 +327,20 @@ export default function ExportPoToPdf() {
               <tr>
                 <td class="text-center">${index + 1}</td>
                 <td>
-                  ${purchaseOrder.ordertype === "PO" ? (item.category_name || '') : (item.itemname || '')}
+                  ${purchaseOrder.ordertype === "PO" 
+                    ? (item.material_name || item.category_name || item.itemname || '') 
+                    : (item.itemname || item.material_name || '')}
                   ${item.specification && item.specification.trim().toUpperCase() !== "NA" ? "<br>" + item.specification : ""}
                 </td>
                 <td class="text-center">${item.specification || ''}</td>
                 <td class="text-center">${item.hsn_code || ''}</td>
                 <td class="text-center">
                   ${purchaseOrder.ordertype === "PO" 
-                    ? `${item.quantity || ''} ${item.unit_name || ''}` 
+                    ? `${item.quantity || ''} ${item.unit_name || item.unit || ''}` 
                     : `${item.quantity || ''} No's`}
                 </td>
                 <td class="text-right" style="padding-right: 8px;">
-                  ${parseFloat(item.list_price || 0).toFixed(2)}
+                  ${parseFloat(item.price || item.list_price || 0).toFixed(2)}
                 </td>
               </tr>
             `).join('')}

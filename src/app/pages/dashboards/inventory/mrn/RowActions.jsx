@@ -9,14 +9,14 @@ import { Button } from "components/ui";
 
 export function RowActions({ row }) {
   const navigate = useNavigate();
-  const { id, status, rupload1, rupload2 } = row.original;
+  const { id, status, attachment1, attachment2 } = row.original;
 
   const handleActionClick = () => {
     // PHP: if ($row['status'] == 0) { Add MRN Item } else { View Mrn Items }
     if (status === 0 || status === "0") {
-      navigate(`add-item/${id}`);
+      navigate(`/dashboards/inventory/mrn/add-item/${id}`, { state: { mrn: row.original } });
     } else {
-      navigate(`view-items/${id}`);
+      navigate(`/dashboards/inventory/mrn/view-items/${id}`, { state: { mrn: row.original } });
     }
   };
 
@@ -31,10 +31,10 @@ export function RowActions({ row }) {
         {status === 0 || status === "0" ? "Add MRN Item" : "View Mrn Items"}
       </Button>
 
-      {rupload1 && (
+      {attachment1 && attachment1 !== "0" && attachment1 !== 0 && String(attachment1).trim() !== "" ? (
         <Button
           component="a"
-          href={rupload1}
+          href={attachment1}
           target="_blank"
           size="sm"
           color="warning"
@@ -42,11 +42,11 @@ export function RowActions({ row }) {
         >
           View Attachment1
         </Button>
-      )}
-      {rupload2 && (
+      ) : null}
+      {attachment2 && attachment2 !== "0" && attachment2 !== 0 && String(attachment2).trim() !== "" ? (
         <Button
           component="a"
-          href={rupload2}
+          href={attachment2}
           target="_blank"
           size="sm"
           color="warning"
@@ -54,7 +54,7 @@ export function RowActions({ row }) {
         >
           View Attachment2
         </Button>
-      )}
+      ) : null}
     </div>
   );
 }

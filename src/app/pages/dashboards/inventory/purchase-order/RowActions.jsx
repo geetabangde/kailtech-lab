@@ -27,6 +27,8 @@ export function RowActions({ row }) {
   const [rejectError, setRejectError] = useState(false);
   const navigate = useNavigate();
 
+  const id = row?.original?.id;
+
   const closeModal = () => {
     setRejectModalOpen(false);
   };

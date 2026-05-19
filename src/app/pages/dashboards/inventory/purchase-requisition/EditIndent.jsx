@@ -208,7 +208,7 @@ export default function EditIndent() {
                         <Info className="w-3 h-3" /> Status Restriction
                       </div>
                       <p className="text-[11px] text-orange-500 leading-relaxed">
-                        Editing is only allowed for indents in "Pending" status. Once approved, quantities can only be modified by the approver.
+                        Editing is only allowed for indents in &quot;Pending&quot; status. Once approved, quantities can only be modified by the approver.
                       </p>
                     </div>
                   </div>

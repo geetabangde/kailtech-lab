@@ -11,12 +11,12 @@ import {
 } from "@tanstack/react-table";
 import clsx from "clsx";
 import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import axios from "utils/axios";
 import { toast } from "sonner";
 
 // Local Imports
-import { Table, THead, TBody, Th, Tr, Td } from "components/ui";
+import { Table, THead, TBody, Th, Tr, Td, Button } from "components/ui";
 import { TableSortIcon } from "components/shared/table/TableSortIcon";
 import { Page } from "components/shared/Page";
 import { useLockScrollbar, useDidUpdate, useLocalStorage } from "hooks";
@@ -24,7 +24,7 @@ import { fuzzyFilter } from "utils/react-table/fuzzyFilter";
 import { useSkipper } from "utils/react-table/useSkipper";
 import { PaginationSection } from "components/shared/table/PaginationSection";
 import { useThemeContext } from "app/contexts/theme/context";
-import { columns } from "./columns";
+import { columns } from "../mrn/columns";
 import { getUserAgentBrowser } from "utils/dom/getUserAgentBrowser";
 
 // ----------------------------------------------------------------------
@@ -42,6 +42,7 @@ function usePermissions() {
 }
 
 export default function MrnChallan() {
+  const navigate = useNavigate();
   const { cardSkin } = useThemeContext();
   const permissions = usePermissions();
   const [searchParams] = useSearchParams();
@@ -76,7 +77,7 @@ export default function MrnChallan() {
       try {
         setLoading(true);
         // PHP: "ajax": "mrnchallandata.php?hakuna='.$id.'"
-        const response = await axios.get(`/inventory/mrn-challan-data?hakuna=${id}`);
+        const response = await axios.get(`/inventory/mrn-chalan-list?hakuna=${id}`);
 
         if (response.data.status && Array.isArray(response.data.data)) {
           setMrns(response.data.data);
@@ -206,20 +207,22 @@ export default function MrnChallan() {
                   <a class="btn btn-secondary mb-2 " href="addMaterialReceiptNote.php" >Add New MRN Wo PO</a>
                 */}
                 {permissions.includes(291) && (
-                  <>
-                    <button
-                      onClick={() => window.location.href = "/dashboards/inventory/purchase-order/add-material-receipt-note-wopo"}
-                      className="btn btn-primary mb-2"
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => navigate("/dashboards/inventory/mrn/add")}
+                      color="primary"
+                      className="h-9 text-xs px-3 font-semibold"
                     >
                       Add New MRN
-                    </button>
-                    <button
-                      onClick={() => window.location.href = "/dashboards/inventory/purchase-order/add-material-receipt-note"}
-                      className="btn btn-secondary mb-2"
+                    </Button>
+                    <Button
+                      onClick={() => navigate("/dashboards/inventory/mrn/add-wo-po")}
+                      color="secondary"
+                      className="h-9 text-xs px-3 font-semibold"
                     >
                       Add New MRN Wo PO
-                    </button>
-                  </>
+                    </Button>
+                  </div>
                 )}
               </div>
             </div>
