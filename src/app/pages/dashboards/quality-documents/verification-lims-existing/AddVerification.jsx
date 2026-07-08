@@ -122,7 +122,7 @@ export default function AddVerification() {
 
   return (
     <Page title="Add Document Verification Form">
-      <div className="px-(--margin-x) py-6 max-w-6xl mx-auto">
+      <div className="px-[var(--margin-x)] py-6 max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-3">
             <Button

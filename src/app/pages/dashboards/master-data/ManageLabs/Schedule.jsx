@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, Plus, CheckCircle, AlertCircle, Info } from 'lucide-react';
 import axios from 'axios';
 import { useNavigate } from 'react-router';
+import { JWT_HOST_API } from "configs/auth.config";
 
 // Toast Component
 function Toast({ message, type, onClose }) {
@@ -36,7 +37,7 @@ function Toast({ message, type, onClose }) {
 }
 
 // Base URL for the API
-const API_BASE_URL = 'https://lims.kailtech.in/api/master';
+const API_BASE_URL = `${JWT_HOST_API}/master`;
 
 // Static frequency options
 const FREQUENCY_OPTIONS = [

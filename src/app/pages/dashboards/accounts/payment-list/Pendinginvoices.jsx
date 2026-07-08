@@ -167,7 +167,7 @@ export default function PendingInvoices() {
 
   return (
     <Page title="Remaining Payment List">
-      <div className="transition-content px-(--margin-x) pb-8">
+      <div className="transition-content px-[var(--margin-x)] pb-8">
         {/* ── Header ── */}
         <div className="mb-5 flex items-center justify-between">
           <h2 className="dark:text-dark-50 text-xl font-semibold text-gray-800">

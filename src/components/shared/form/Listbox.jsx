@@ -94,14 +94,14 @@ const CustomListbox = forwardRef(
                 >
                   <ListboxOptions
                     anchor={{ to: "bottom end", gap: 8 }}
-                    className="absolute z-100 max-h-60 w-(--button-width) overflow-auto rounded-lg border border-gray-300 bg-white py-1 shadow-lg shadow-gray-200/50 outline-hidden focus-visible:outline-hidden dark:border-dark-500 dark:bg-dark-750 dark:shadow-none"
+                    className="absolute z-100 max-h-60 w-[var(--button-width)] overflow-auto rounded-lg border border-gray-300 bg-white py-1 shadow-lg shadow-gray-200/50 outline-none focus-visible:outline-none dark:border-dark-500 dark:bg-dark-750 dark:shadow-none"
                   >
                     {data.map((item, i) => (
                       <ListboxOption
                         key={i}
                         className={({ selected, focus }) =>
                           clsx(
-                            "relative cursor-pointer select-none py-2 pl-4 pr-10 outline-hidden transition-colors rtl:pl-10 rtl:pr-4",
+                            "relative cursor-pointer select-none py-2 pl-4 pr-10 outline-none transition-colors rtl:pl-10 rtl:pr-4",
                             focus &&
                               !selected &&
                               "bg-gray-100 dark:bg-dark-600",

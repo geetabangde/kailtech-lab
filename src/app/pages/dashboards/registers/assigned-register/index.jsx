@@ -13,6 +13,8 @@ import clsx from "clsx";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import axios from "utils/axios";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 // Local Imports
 import { Table, Card, THead, TBody, Th, Tr, Td } from "components/ui";
@@ -58,8 +60,8 @@ export default function AssignedRegister() {
     try {
       setLoading(true);
       setSearched(true);
-      // Adjust the endpoint to match your actual backend API route
-      const res = await axios.get("/registers/get-assigned-register", { params: filters });
+      // Fetch assigned register data from the correct backend API route
+      const res = await axios.get("/register/assigned-register", { params: filters });
       
       let rows = res.data?.data || [];
       
@@ -81,11 +83,37 @@ export default function AssignedRegister() {
           ...r,
           sr_no: r.sr_no || i + 1,
           lrn: r.lrn || r.LRN,
-          assigned_person: r.assigned_person || r.chemist,
-          assign_date: r.assign_date || r.allotmentdate,
-          start_date: r.start_date || r.startdate,
-          end_date: r.end_date || r.enddate,
-          tat: r.tat || r.tat_days,
+          assigned_person: r.chemist || r.assigned_person,
+          assign_date: r.allotmentdate || r.assign_date,
+          start_date: r.startdate || r.start_date,
+          end_date: r.enddate || r.end_date,
+          performance_timing: (() => {
+            const totalSeconds = r.totalSeconds !== undefined ? Number(r.totalSeconds) : 0;
+            const tatDays = r.tatDays !== undefined ? Number(r.tatDays) : 0;
+            const days = r.days !== undefined ? Number(r.days) : 0;
+            const text = r.performancetimeing || r.performance_timing || "-";
+
+            if (totalSeconds === 0) {
+              return text;
+            }
+            const color = tatDays >= days ? "#22c55e" : "#ef4444";
+            return `<div style="background-color: ${color}; color: white; padding: 4px 10px; border-radius: 6px; font-size: 13px; font-weight: 500; text-align: center; display: inline-block;">${text}</div>`;
+          })(),
+          performance_timing_assigned: (() => {
+            const tatDays = r.tatDays !== undefined ? Number(r.tatDays) : 0;
+            const allotmentTotalDays = r.allotmentTotalDays !== undefined ? Number(r.allotmentTotalDays) : 0;
+            const text = `${allotmentTotalDays} days`;
+
+            if (r.allotmentTotalDays === undefined || r.allotmentTotalDays === null) {
+              return r.performance_timing_assigned || "-";
+            }
+            const color = tatDays >= allotmentTotalDays ? "#22c55e" : "#ef4444";
+            return `<div style="background-color: ${color}; color: white; padding: 4px 10px; border-radius: 6px; font-size: 13px; font-weight: 500; text-align: center; display: inline-block;">${text}</div>`;
+          })(),
+          tat: (() => {
+            const val = r.tatDays ?? r.tat ?? r.tat_days;
+            return val !== undefined && val !== null ? `${val} Days` : "-";
+          })(),
         }));
       }
       
@@ -99,9 +127,8 @@ export default function AssignedRegister() {
 
   const fetchMetadata = async () => {
     try {
-      // Adjust the endpoint to match the chemist list API route
-      // Defaulting to /people/get-all-users if the specific endpoint isn't ready
-      const res = await axios.get("/people/get-all-users");
+      // Fetch lab users for the dropdown from the correct endpoint
+      const res = await axios.get("/register/get-lab-user");
       setChemists(res.data?.data || []);
     } catch (err) {
       console.error("Error fetching metadata:", err);
@@ -119,6 +146,101 @@ export default function AssignedRegister() {
   const handleSearch = (e) => {
     e?.preventDefault?.();
     fetchRegisterData();
+  };
+
+  const handleExportExcel = () => {
+    if (!tableData.length) return;
+    
+    const headers = [
+      "Sr No", "LRN", "Assigned Person", "Assign Date", 
+      "Start Date", "End Date", "Performance Timing", 
+      "Performance Timing on the base of Assigned date", "TAT"
+    ];
+    
+    const csvRows = [headers.join(",")];
+    
+    tableData.forEach(row => {
+      const cleanTiming = (row.performance_timing || "").replace(/<[^>]+>/g, "");
+      const cleanAssigned = (row.performance_timing_assigned || "").replace(/<[^>]+>/g, "");
+      
+      const values = [
+        row.sr_no || "",
+        row.lrn || "",
+        row.assigned_person || "",
+        row.assign_date || "",
+        row.start_date || "",
+        row.end_date || "",
+        `"${cleanTiming}"`,
+        `"${cleanAssigned}"`,
+        row.tat || ""
+      ];
+      
+      csvRows.push(values.join(","));
+    });
+    
+    const csvString = csvRows.join("\n");
+    const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `assigned_register_${new Date().toISOString().split("T")[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleExportPdf = () => {
+    if (!tableData.length) return;
+    const doc = new jsPDF("landscape");
+    
+    const tableColumn = [
+      "Sr No", "LRN", "Assigned Person", "Assign Date", 
+      "Start Date", "End Date", "Performance Timing", 
+      "Performance Timing (Assigned)", "TAT"
+    ];
+    const tableRows = [];
+
+    tableData.forEach(row => {
+      const cleanTiming = (row.performance_timing || "").replace(/<[^>]+>/g, "");
+      const cleanAssigned = (row.performance_timing_assigned || "").replace(/<[^>]+>/g, "");
+      
+      const rowData = [
+        row.sr_no || "",
+        row.lrn || "",
+        row.assigned_person || "",
+        row.assign_date || "",
+        row.start_date || "",
+        row.end_date || "",
+        cleanTiming,
+        cleanAssigned,
+        row.tat || ""
+      ];
+      tableRows.push(rowData);
+    });
+
+    doc.setFontSize(14);
+    doc.text("Assigned Register", 14, 15);
+    doc.setFontSize(10);
+    doc.text(`Date: ${new Date().toLocaleDateString()}`, 14, 22);
+    
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 28,
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [41, 128, 185], halign: 'center' },
+      columnStyles: {
+        0: { cellWidth: 10, halign: 'center' },
+        6: { cellWidth: 35 },
+        7: { cellWidth: 35 }
+      }
+    });
+
+    doc.save(`assigned_register_${new Date().toISOString().split("T")[0]}.pdf`);
+  };
+
+  const handlePrint = () => {
+    window.print();
   };
 
   const [tableSettings, setTableSettings] = useState({
@@ -204,6 +326,40 @@ export default function AssignedRegister() {
 
   return (
     <Page title="Assigned Register">
+      <style>
+        {`
+          .print-only {
+            display: none !important;
+          }
+          @media print {
+            .print-only {
+              display: block !important;
+            }
+            body * {
+              visibility: hidden;
+            }
+            .print-area, .print-area * {
+              visibility: visible;
+            }
+            .print-area {
+              position: absolute !important;
+              left: 0 !important;
+              top: 0 !important;
+              width: 100% !important;
+              margin: 0 !important;
+              padding: 0 !important;
+            }
+            .no-print, .no-print * {
+              display: none !important;
+              height: 0 !important;
+            }
+            @page {
+              size: landscape;
+              margin: 10mm;
+            }
+          }
+        `}
+      </style>
       <div className="transition-content w-full pb-5">
         <div
           className={clsx(
@@ -212,26 +368,42 @@ export default function AssignedRegister() {
             "fixed inset-0 z-61 bg-white pt-3 dark:bg-dark-900",
           )}
         >
-          <Toolbar
-            filters={filters}
-            onChange={handleFilterChange}
-            onSearch={handleSearch}
-            chemists={chemists}
-          />
+          <div className="no-print">
+            <Toolbar
+              filters={filters}
+              onChange={handleFilterChange}
+              onSearch={handleSearch}
+              chemists={chemists}
+              onExportPdf={handleExportPdf}
+              onExportExcel={handleExportExcel}
+              onPrint={handlePrint}
+            />
+          </div>
           <div
             className={clsx(
               "transition-content flex grow flex-col pt-3",
               tableSettings.enableFullScreen
                 ? "overflow-hidden"
-                : "px-(--margin-x)",
+                : "px-[var(--margin-x)]",
             )}
           >
             <Card
               className={clsx(
-                "relative flex grow flex-col",
+                "relative flex grow flex-col print-area",
                 tableSettings.enableFullScreen && "overflow-hidden",
               )}
             >
+              {/* Print Header */}
+              <div className="print-only mb-6 text-center">
+                <h2 className="text-2xl font-bold text-black uppercase tracking-wide">
+                  Kailtech Test & Research Centre Pvt. Ltd.
+                </h2>
+                <h3 className="text-xl font-semibold text-gray-800 mt-2">
+                  Assigned Register
+                </h3>
+                <hr className="mt-4 border-gray-400 border-2" />
+              </div>
+
               <div className="table-wrapper min-w-full grow overflow-x-auto">
                 <Table
                   hoverable
@@ -352,7 +524,7 @@ export default function AssignedRegister() {
               {table.getCoreRowModel().rows.length > 0 && (
                 <div
                   className={clsx(
-                    "px-4 pb-4 sm:px-5 sm:pt-4",
+                    "no-print px-4 pb-4 sm:px-5 sm:pt-4",
                     tableSettings.enableFullScreen &&
                     "bg-gray-50 dark:bg-dark-800",
                     !(

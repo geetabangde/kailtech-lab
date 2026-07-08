@@ -33,7 +33,7 @@ export function Toolbar({
   ];
 
   return (
-    <div className="px-(--margin-x) pt-4 pb-3">
+    <div className="px-[var(--margin-x)] pt-4 pb-3">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <h2 className="dark:text-dark-50 text-xl font-semibold text-gray-800">
           Testing Quotations

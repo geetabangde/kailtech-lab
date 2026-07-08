@@ -20,7 +20,7 @@ export function Toolbar({ table }) {
   const canAdd = permissions.includes(474);
 
   return (
-    <div className="table-toolbar px-(--margin-x) pt-4 pb-4">
+    <div className="table-toolbar px-[var(--margin-x)] pt-4 pb-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
         {/* Heading */}
         <div className="min-w-0">

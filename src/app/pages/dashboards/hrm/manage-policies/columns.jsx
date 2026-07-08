@@ -23,8 +23,8 @@ export const columns = [
   }),
 
   // ✅ Policy Number
-  columnHelper.accessor("policy_number", {
-    id: "policy_number",
+  columnHelper.accessor("policyno", {
+    id: "policyno",
     header: "Policy Number",
     cell: (info) => info.getValue(),
   }),

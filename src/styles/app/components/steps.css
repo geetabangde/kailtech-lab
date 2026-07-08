@@ -11,11 +11,11 @@
 }
 
 .steps .step .step-header {
-  @apply relative m-auto mb-2 flex h-(--size) w-(--size) shrink-0 items-center justify-center;
+  @apply relative m-auto mb-2 flex h-[var(--size)] w-[var(--size)] shrink-0 items-center justify-center;
 }
 
 .steps .step:not(:last-child) {
-  @apply before:relative before:top-[calc(var(--size)/2+var(--line)/2)] before:order-[-1] before:h-(--line) before:rounded-full before:content-[''] ltr:before:left-1/2 rtl:before:right-1/2;
+  @apply before:relative before:top-[calc(var(--size)/2+var(--line)/2)] before:order-[-1] before:h-[var(--line)] before:rounded-full before:content-[''] ltr:before:left-1/2 rtl:before:right-1/2;
 }
 
 .steps.line-space:not(.is-vertical) .step:not(:last-child) {
@@ -35,9 +35,9 @@
 }
 
 .steps.is-vertical .step:not(:last-child) {
-  @apply before:absolute before:inset-0 before:h-auto before:w-(--line) before:translate-x-[calc((var(--size)/2)-(var(--line)/2))] rtl:before:-translate-x-[calc((var(--size)/2)-(var(--line)/2))];
+  @apply before:absolute before:inset-0 before:h-auto before:w-[var(--line)] before:translate-x-[calc((var(--size)/2)-(var(--line)/2))] rtl:before:-translate-x-[calc((var(--size)/2)-(var(--line)/2))];
 }
 
 .steps.is-vertical.line-space .step:not(:last-child) {
-  @apply before:top-[calc(var(--size)+var(--space))] before:bottom-(--space);
+  @apply before:top-[calc(var(--size)+var(--space))] before:bottom-[var(--space)];
 }

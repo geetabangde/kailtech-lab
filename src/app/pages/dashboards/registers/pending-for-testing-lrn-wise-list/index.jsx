@@ -64,35 +64,10 @@ export default function PendingForTestingLrnWiseList() {
       if (filters.enddate) params.enddate = filters.enddate;
       if (filters.chemist) params.chemist = filters.chemist;
 
-      const res = await axios.get("/registers/get-pending-for-testing-lrn-wise", { params });
+      const res = await axios.get("/register/testing-lrn-list", { params });
 
-      let rows = res.data?.data || [];
-
-      // Handle legacy PHP DataTables response (array of arrays)
-      if (rows.length > 0 && Array.isArray(rows[0])) {
-        rows = rows.map((r) => ({
-          id: r[0],
-          product: r[1],
-          lrn: r[2],
-          brand_source: r[3],
-          grade_size: r[4],
-          chemist: r[5],
-          parameters: r[6],
-          // r[7] may be the action HTML — we handle it via RowActions instead
-        }));
-      } else {
-        rows = rows.map((r) => ({
-          ...r,
-          id: r.id,
-          product: r.product,
-          lrn: r.lrn || r.LRN,
-          brand_source: r.brand_source || r.brand || r.source,
-          grade_size: r.grade_size || r.grade || r.size,
-          chemist: r.chemist,
-          parameters: r.parameters,
-        }));
-      }
-
+      const rows = res.data?.data || [];
+      
       setTableData(rows);
     } catch (err) {
       console.error("Error fetching LRN-wise list:", err);
@@ -104,7 +79,7 @@ export default function PendingForTestingLrnWiseList() {
   // Fetch chemists from admin list (status=1) — mirrors PHP selectextrawhere("admin","status=1")
   const fetchChemists = async () => {
     try {
-      const res = await axios.get("/people/get-admin-users", { params: { status: 1 } });
+      const res = await axios.get("/register/get-lab-user");
       setChemists(res.data?.data || []);
     } catch (err) {
       console.error("Error fetching chemists:", err);
@@ -226,7 +201,7 @@ export default function PendingForTestingLrnWiseList() {
               "transition-content flex grow flex-col pt-3",
               tableSettings.enableFullScreen
                 ? "overflow-hidden"
-                : "px-(--margin-x)",
+                : "px-[var(--margin-x)]",
             )}
           >
             <Card

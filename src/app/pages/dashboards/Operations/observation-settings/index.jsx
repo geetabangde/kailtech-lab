@@ -86,12 +86,12 @@ export default function OrdersDatatableV1() {
   const [sorting, setSorting] = useState([]);
 
   const [columnVisibility, setColumnVisibility] = useLocalStorage(
-    "column-visibility-orders-1",
+    "column-visibility-observation-settings-index",
     {},
   );
 
   const [columnPinning, setColumnPinning] = useLocalStorage(
-    "column-pinning-orders-1",
+    "column-pinning-observation-settings-index",
     {},
   );
 
@@ -173,7 +173,7 @@ export default function OrdersDatatableV1() {
 
   return (
     <Page title="Observation Settings">
-      <div className="transition-content grid grid-cols-1 grid-rows-[auto_1fr] px-(--margin-x) py-4">
+      <div className="transition-content grid grid-cols-1 grid-rows-[auto_1fr] px-[var(--margin-x)] py-4">
 
 
         <div

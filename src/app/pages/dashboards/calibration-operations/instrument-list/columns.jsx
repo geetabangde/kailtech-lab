@@ -20,28 +20,36 @@ export const columns = [
   columnHelper.accessor("name", {
     id: "name",
     header: "Calibration Standard Name",
-    cell: (info) => (
-      <div className="whitespace-normal min-w-[200px] text-sm">
-        {info.getValue()}
-      </div>
-    ),
+    cell: (info) => {
+      const val = info.getValue();
+      const displayVal = typeof val === 'object' && val !== null ? (val.name || JSON.stringify(val)) : val;
+      return (
+        <div className="whitespace-normal min-w-[200px] text-sm">
+          {displayVal}
+        </div>
+      );
+    },
   }),
 
   // ✅ Description (from API)
   columnHelper.accessor("description", {
     id: "description",
     header: "Description",
-    cell: (info) => (
-      <div className="whitespace-normal min-w-[200px] text-sm">
-        {info.getValue()}
-      </div>
-    ),
+    cell: (info) => {
+      const val = info.getValue();
+      const displayVal = typeof val === 'object' && val !== null ? (val.name || JSON.stringify(val)) : val;
+      return (
+        <div className="whitespace-normal min-w-[200px] text-sm">
+          {displayVal}
+        </div>
+      );
+    },
   }),
 
   // ✅ Actions
   columnHelper.display({
     id: "actions",
-    header: ()  => <div className="text-center">Actions</div>,
+    header: () => <div className="text-center">Actions</div>,
     cell: RowActions,
   }),
 ];

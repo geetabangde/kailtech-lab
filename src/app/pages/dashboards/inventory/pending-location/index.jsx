@@ -21,6 +21,8 @@ import { fuzzyFilter } from "utils/react-table/fuzzyFilter";
 import { useSkipper } from "utils/react-table/useSkipper";
 import { columns } from "./columns";
 import { PaginationSection } from "components/shared/table/PaginationSection";
+import { TableLoadingRow } from "components/shared/table/TableLoadingRow";
+import { LocateInstrumentModal } from "./LocateInstrumentModal";
 
 // ----------------------------------------------------------------------
 
@@ -38,13 +40,16 @@ export default function PendingLocation() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const [isLocateModalOpen, setIsLocateModalOpen] = useState(false);
+  const [locateModalData, setLocateModalData] = useState([]);
+
   const [tableSettings, setTableSettings] = useState({
     enableFullScreen: false,
     enableRowDense: false,
   });
 
   const [globalFilter, setGlobalFilter] = useState("");
-  const [sorting, setSorting] = useState([{ id: "description", desc: false }]);
+  const [sorting, setSorting] = useState([{ id: "name", desc: false }]);
   const [columnVisibility, setColumnVisibility] = useLocalStorage(
     "column-visibility-pending-location",
     {},
@@ -62,9 +67,37 @@ export default function PendingLocation() {
   const fetchPendingLocation = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await axios.get("inventory/pending-location-data");
-      if (response.data.status && Array.isArray(response.data.data)) {
-        setOrders(response.data.data);
+      const response = await axios.get("inventory/pending-for-location");
+      if ((response.data.status === "true" || response.data.status === true) && Array.isArray(response.data.data)) {
+        const items = response.data.data;
+        
+        // Collect unique numeric unit IDs
+        const unitIdsToFetch = [...new Set(items.map(item => item.unit).filter(unit => /^\d+$/.test(String(unit))))];
+        
+        // Fetch the corresponding names for those numeric IDs concurrently
+        const unitMap = {};
+        await Promise.all(
+          unitIdsToFetch.map(async (id) => {
+            try {
+              const res = await axios.get(`master/get-unit-byid/${id}`);
+              if (res.data?.status === "true" && res.data?.data) {
+                unitMap[id] = res.data.data.name || res.data.data.description;
+              }
+            } catch (e) {
+              console.error(`Failed to fetch Unit for id ${id}`, e);
+            }
+          })
+        );
+
+        // Replace the numeric IDs with their actual names in the dataset
+        const updatedItems = items.map(item => {
+          if (/^\d+$/.test(String(item.unit)) && unitMap[item.unit]) {
+            return { ...item, unit: unitMap[item.unit] };
+          }
+          return item;
+        });
+
+        setOrders(updatedItems);
       } else {
         setOrders([]);
       }
@@ -81,15 +114,57 @@ export default function PendingLocation() {
 
   const handleLocateInstrument = async () => {
     const selectedRows = table.getSelectedRowModel().rows;
-    const ids = selectedRows.map(row => row.original.id);
+    const ids = selectedRows.map(row => row.original.locationid);
 
     if (ids.length === 0) {
       alert("Please select at least one item");
       return;
     }
 
-    // Modal logic placeholder as per the project's modal system
-    alert(`Locate instrument functionality for IDs: ${ids.join(', ')}`);
+    try {
+      setLoading(true);
+      const params = new URLSearchParams();
+      ids.forEach(id => params.append('id[]', id));
+      const response = await axios.get(`inventory/get-locate-instrument?${params.toString()}`);
+      
+      console.log("Locate API Response:", response.data);
+      if (response.data.status) {
+        const items = response.data.data;
+        
+        // Fetch actual unit names for any numeric unit IDs
+        const unitIdsToFetch = [...new Set(items.map((item) => item.unit).filter((u) => u && !isNaN(Number(u))))];
+        const uomMap = {};
+        
+        await Promise.all(
+          unitIdsToFetch.map(async (unitId) => {
+            try {
+              const uomResponse = await axios.get(`master/get-unit-byid/${unitId}`);
+              if (uomResponse.data?.status === "true" || uomResponse.data?.status === true) {
+                uomMap[unitId] = uomResponse.data.data.name;
+              }
+            } catch (e) {
+              console.error(`Failed to fetch unit ID ${unitId}`, e);
+            }
+          })
+        );
+
+        const finalData = items.map((item) => ({
+          ...item,
+          unit: uomMap[item.unit] || item.unit,
+        }));
+
+        setLocateModalData(finalData);
+        setIsLocateModalOpen(true);
+      } else {
+        alert(response.data.message || "Failed to fetch instruments for location.");
+      }
+    } catch (error) {
+      console.error("Error fetching locate instruments:", error);
+      const errorMsg = error.response?.data?.message || error.message || "An error occurred while fetching instruments for location.";
+      alert(errorMsg);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const table = useReactTable({
@@ -215,11 +290,7 @@ export default function PendingLocation() {
                 </THead>
                 <TBody>
                   {loading ? (
-                    <Tr>
-                      <Td colSpan={columns.length} className="h-24 text-center text-gray-500 italic">
-                        Loading pending items...
-                      </Td>
-                    </Tr>
+                    <TableLoadingRow colSpan={columns.length} />
                   ) : table.getRowModel().rows.length > 0 ? (
                     table.getRowModel().rows.map((row) => (
                       <Tr
@@ -256,6 +327,16 @@ export default function PendingLocation() {
           </Card>
         </div>
       </div>
+
+      <LocateInstrumentModal
+        isOpen={isLocateModalOpen}
+        onClose={() => setIsLocateModalOpen(false)}
+        instruments={locateModalData}
+        onSuccess={() => {
+          fetchPendingLocation();
+          table.resetRowSelection();
+        }}
+      />
     </Page>
   );
 }

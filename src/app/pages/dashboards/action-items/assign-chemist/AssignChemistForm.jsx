@@ -345,7 +345,7 @@ export default function AssignChemistDetail() {
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <Page title="Package Parameters Assignment">
-      <div className="transition-content w-full pb-8 px-(--margin-x)">
+      <div className="transition-content w-full pb-8 px-[var(--margin-x)]">
 
         {/* Header */}
         <div className="mb-4 flex items-center justify-between">

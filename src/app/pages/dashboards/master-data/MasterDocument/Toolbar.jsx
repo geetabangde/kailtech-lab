@@ -36,7 +36,7 @@ export function Toolbar({ table }) {
 
 
   return (
-    <div className="px-(--margin-x) space-y-4">
+    <div className="px-[var(--margin-x)] space-y-4">
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>

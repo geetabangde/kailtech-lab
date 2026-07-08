@@ -114,7 +114,7 @@ export function OrderStatusCell({ getValue, row, column, table }) {
         leaveFrom="opacity-100 translate-y-0"
         leaveTo="opacity-0 translate-y-2"
         anchor={{ to: "bottom start", gap: "8px" }}
-        className="max-h-60 z-100 w-40 overflow-auto rounded-lg border border-gray-300 bg-white py-1 text-xs-plus capitalize shadow-soft outline-hidden focus-visible:outline-hidden dark:border-dark-500 dark:bg-dark-750 dark:shadow-none"
+        className="max-h-60 z-100 w-40 overflow-auto rounded-lg border border-gray-300 bg-white py-1 text-xs-plus capitalize shadow-soft outline-none focus-visible:outline-none dark:border-dark-500 dark:bg-dark-750 dark:shadow-none"
       >
         {orderStatusOptions.map((item) => (
           <ListboxOption
@@ -122,7 +122,7 @@ export function OrderStatusCell({ getValue, row, column, table }) {
             value={item.value}
             className={({ focus }) =>
               clsx(
-                "relative flex cursor-pointer select-none items-center justify-between space-x-2 px-3 py-2 text-gray-800 outline-hidden transition-colors dark:text-dark-100 ",
+                "relative flex cursor-pointer select-none items-center justify-between space-x-2 px-3 py-2 text-gray-800 outline-none transition-colors dark:text-dark-100 ",
                 focus && "bg-gray-100 dark:bg-dark-600",
               )
             }

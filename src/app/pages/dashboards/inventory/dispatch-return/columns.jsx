@@ -11,25 +11,25 @@ export const columns = [
     cell: (info) => info.getValue(),
   }),
 
-  columnHelper.accessor("gatepass_no", {
+  columnHelper.accessor("gatpassnumber", {
     id: "gatepass_no",
     header: "Gatepass Number",
     cell: (info) => info.getValue() || "N/A",
   }),
 
-  columnHelper.accessor("purpose_name", {
+  columnHelper.accessor("dinpname", {
     id: "purpose_name",
     header: "Purpose",
-    cell: (info) => info.getValue(),
+    cell: (info) => info.getValue() || "N/A",
   }),
 
-  columnHelper.accessor("name", {
+  columnHelper.accessor("instname", {
     id: "name",
     header: "Name",
-    cell: (info) => info.getValue(),
+    cell: (info) => info.getValue() || "N/A",
   }),
 
-  columnHelper.accessor("challan_no", {
+  columnHelper.accessor("challanno", {
     id: "challan_no",
     header: "Challan No",
     cell: (info) => info.getValue() || "N/A",
@@ -41,10 +41,20 @@ export const columns = [
     cell: (info) => info.getValue() || "N/A",
   }),
 
-  columnHelper.accessor("return_on", {
+  columnHelper.accessor("returnon", {
     id: "return_on",
     header: "Return On",
-    cell: (info) => info.getValue() || "N/A",
+    cell: (info) => {
+      const val = info.getValue();
+      if (!val) return "N/A";
+      // Assuming val is like "2026-03-30 15:38:34"
+      const datePart = val.split(" ")[0];
+      const parts = datePart.split("-");
+      if (parts.length === 3) {
+        return `${parts[2]}-${parts[1]}-${parts[0]}`;
+      }
+      return val;
+    },
   }),
 
   columnHelper.display({

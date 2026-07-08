@@ -3,48 +3,34 @@ import { createColumnHelper } from "@tanstack/react-table";
 
 // Local Imports
 import { RowActions } from "./RowActions";
-import {
-    SelectCell,
-    SelectHeader,
-} from "components/shared/table/SelectCheckbox";
-import {
-    
-    CustomerCell,
-    
-    TotalCell,
-} from "./rows";
+// Removed rows imports since we'll use basic text cells
 
 // ----------------------------------------------------------------------
 
 const columnHelper = createColumnHelper();
 
 export const columns = [
-    columnHelper.display({
-        id: "select",
-        label: "Row Selection",
-        header: SelectHeader,
-        cell: SelectCell,
-    }),
-
-  // ✅ S No (index based)
-  columnHelper.accessor((_row, index) => index + 1, {
-    id: "s_no",
-    header: () => <div className="text-center">S NO</div>,
-    cell: (info) => info.row.index + 1,
+  columnHelper.accessor("id", {
+    id: "id",
+    header: () => <div className="text-center">ID</div>,
+    cell: (info) => info.getValue(),
     meta: { align: "center" },
   }),
 
-  columnHelper.accessor((row) => row.customer.name, {
-    id: "customer",
-    label: "Customer",
+  columnHelper.accessor("name", {
+    id: "name",
     header: "NAME",
-    cell: CustomerCell,
+    cell: (info) => info.getValue() || "—",
   }),
-  columnHelper.accessor((row) => row.total, {
-    id: "total",
-    label: "Total",
+  columnHelper.accessor("company", {
+    id: "company",
     header: "COMPANY",
-    cell: TotalCell,
+    cell: (info) => info.getValue() || "—",
+  }),
+  columnHelper.accessor("city", {
+    id: "city",
+    header: "CITY",
+    cell: (info) => info.getValue() || "—",
   }),
   columnHelper.display({
     id: "actions",

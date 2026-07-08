@@ -20,7 +20,7 @@ export const columns = [
   }),
 
   // ✅ Serial Number (ID)
-  columnHelper.accessor((_row, index) => index + 1, {
+  columnHelper.accessor("id", {
     id: "id",
     header: "ID",
     cell: (info) => info.row.index + 1,

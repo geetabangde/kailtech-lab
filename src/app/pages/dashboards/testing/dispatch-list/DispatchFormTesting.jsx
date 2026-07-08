@@ -146,7 +146,7 @@ export default function DispatchFormTesting() {
   // ── Render ───────────────────────────────────────────────────────────────
   return (
     <Page title="View Dispatch Form">
-      <div className="transition-content px-(--margin-x) pb-8">
+      <div className="transition-content px-[var(--margin-x)] pb-8">
         {/* Back Button */}
         <div className="mb-4">
           <button

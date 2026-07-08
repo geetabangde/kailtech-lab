@@ -149,7 +149,7 @@ export default function AddSpecificPrice() {
 
   return (
     <Page title="Add New Specific Price">
-      <div className="transition-content px-(--margin-x) pb-8">
+      <div className="transition-content px-[var(--margin-x)] pb-8">
         <div className="mb-5 flex items-center justify-between">
           <div>
             <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">

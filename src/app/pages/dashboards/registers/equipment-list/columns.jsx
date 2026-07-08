@@ -1,5 +1,6 @@
 // Import Dependencies
 import { createColumnHelper } from "@tanstack/react-table";
+import { Link } from "react-router-dom";
 
 const columnHelper = createColumnHelper();
 
@@ -96,18 +97,18 @@ export const columns = [
     header: "Action",
     cell: ({ row }) => (
       <div className="flex gap-2">
-        <a
-          href={`/dashboards/registers/equipment-history/${row.original.id}`}
-          className="btn btn-primary btn-sm"
+        <Link
+          to={`/dashboards/material-list/environment/view-equipment-history/${row.original.id}?labId=${row.original.labId || ""}`}
+          className="inline-flex items-center justify-center px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-semibold transition-colors shadow-xs"
         >
           View Equipment History
-        </a>
-        <a
-          href={`/dashboards/registers/logbook-equipment/${row.original.id}`}
-          className="btn btn-info btn-sm"
+        </Link>
+        <Link
+          to={`/dashboards/material-list/environment/log-book/${row.original.id}?labId=${row.original.labId || ""}`}
+          className="inline-flex items-center justify-center px-3 py-1 bg-cyan-500 hover:bg-cyan-600 text-white rounded text-xs font-semibold transition-colors shadow-xs"
         >
           Log Book
-        </a>
+        </Link>
       </div>
     ),
   }),

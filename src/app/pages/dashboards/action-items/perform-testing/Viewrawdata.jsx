@@ -114,7 +114,7 @@ export default function ViewRawData() {
 
   return (
     <Page title="View Raw Data">
-      <div className="transition-content w-full px-(--margin-x) pb-10">
+      <div className="transition-content w-full px-[var(--margin-x)] pb-10">
         {/* Header */}
         <div className="mb-5 flex items-center justify-between">
           <h2 className="dark:text-dark-100 text-lg font-semibold text-gray-800">

@@ -657,7 +657,7 @@ export default function AddFocTestingInvoice() {
   // ─────────────────────────────────────────────────────────────────────────
   return (
     <Page title="Add FOC Testing Invoice">
-      <div className="transition-content px-(--margin-x) pb-10">
+      <div className="transition-content px-[var(--margin-x)] pb-10">
         {/* Header */}
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-3">

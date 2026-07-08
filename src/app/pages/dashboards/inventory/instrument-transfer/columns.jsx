@@ -12,9 +12,9 @@ export const columns = [
     header: "Item Name",
     cell: (info) => info.getValue(),
   }),
-  columnHelper.accessor("from_location_name", {
+  columnHelper.accessor("instrumentLocation", {
     header: "From Location",
-    cell: (info) => info.getValue(),
+    cell: (info) => info.getValue() || "-",
   }),
   columnHelper.accessor("to_location", {
     header: "To Location",
@@ -22,9 +22,10 @@ export const columns = [
   }),
   columnHelper.accessor("batchno", {
     header: "Batch No.",
-    cell: (info) => info.getValue(),
+    cell: (info) => info.getValue() || "-",
   }),
-  columnHelper.accessor("qty_with_unit", {
+  columnHelper.accessor((row) => `${row.qty || ""} ${row.unitDescription || ""}`.trim(), {
+    id: "quantity",
     header: "Quantity",
     cell: (info) => info.getValue(),
   }),

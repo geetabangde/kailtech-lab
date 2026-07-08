@@ -207,7 +207,7 @@ export default function EditIntermediateCheck() {
   }
 
   return (
-    <div className="transition-content grid grid-cols-1 px-(--margin-x) py-4">
+    <div className="transition-content grid grid-cols-1 px-[var(--margin-x)] py-4">
       <div className="flex items-center justify-between space-x-4 mb-4">
         <div className="min-w-0 flex items-center gap-3">
           <h2 className="text-2xl font-medium tracking-wide text-gray-800 dark:text-dark-50">

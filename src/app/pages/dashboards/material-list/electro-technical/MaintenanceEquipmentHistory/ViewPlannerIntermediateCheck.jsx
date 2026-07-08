@@ -98,7 +98,7 @@ export default function ViewPlannerIntermediateCheck() {
   }
 
   return (
-    <div className="transition-content grid grid-cols-1 px-(--margin-x) py-4">
+    <div className="transition-content grid grid-cols-1 px-[var(--margin-x)] py-4">
       {/* Header */}
       <div className="flex items-center justify-between space-x-4 mb-6">
         <div className="min-w-0 flex items-center gap-3">

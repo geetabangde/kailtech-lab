@@ -10,6 +10,8 @@ export default function ExportCalibrationSchedule() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    console.log("ExportCalibrationSchedule mounted. URL search query:", location.search);
+    
     // Get query parameters from URL
     const params = new URLSearchParams(location.search);
     const exportData = {
@@ -18,8 +20,11 @@ export default function ExportCalibrationSchedule() {
       department: params.getAll('department') || []
     };
 
+    console.log("Parsed export data:", exportData);
+
     // Validate required parameters
     if (!exportData.startdate || !exportData.enddate) {
+      console.warn("Validation failed: missing startdate or enddate");
       alert('Please select start date and end date for export');
       navigate('/dashboards/registers/calibration-schedule-period');
       return;
@@ -32,24 +37,23 @@ export default function ExportCalibrationSchedule() {
     try {
       setLoading(true);
       
-      // Create form data for export request
-      const formData = new FormData();
-      formData.append('startdate', exportData.startdate);
-      formData.append('enddate', exportData.enddate);
+      // Build query parameters for GET request
+      const params = new URLSearchParams();
+      params.append('startdate', exportData.startdate);
+      params.append('enddate', exportData.enddate);
       
       // Handle multiple departments
       if (exportData.department && exportData.department.length > 0) {
         exportData.department.forEach(dept => {
-          formData.append('department[]', dept);
+          params.append('department[]', dept);
         });
       }
 
-      // Request PDF export from backend
-      const response = await axios.post('/registers/exportcalibrationschedule', formData, {
-        responseType: 'blob',
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
+      console.log("Requesting GET export from backend with params:", params.toString());
+
+      // Request PDF export from backend via GET
+      const response = await axios.get(`/registers/exportcalibrationschedule?${params.toString()}`, {
+        responseType: 'blob'
       });
 
       // Create download link for PDF

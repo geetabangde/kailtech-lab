@@ -10,6 +10,8 @@ export const useFetchLabs = () => {
 
   useEffect(() => {
     const fetchLabs = async () => {
+      if (!isAuthenticated) return; // Wait until authenticated
+      
       try {
         setLoading(true);
         

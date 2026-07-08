@@ -78,7 +78,7 @@ export default function TestingInvoiceList() {
   });
 
   const [globalFilter, setGlobalFilter] = useState("");
-  const [sorting, setSorting] = useState([{ id: "id", desc: true }]);
+  const [sorting, setSorting] = useState([{ id: "date", desc: true }]);
 
   const [columnVisibility, setColumnVisibility] = useLocalStorage(
     "col-vis-testing-invoice-list",
@@ -180,7 +180,7 @@ export default function TestingInvoiceList() {
               "transition-content flex grow flex-col pt-3",
               tableSettings.enableFullScreen
                 ? "overflow-hidden"
-                : "px-(--margin-x)",
+                : "px-[var(--margin-x)]",
             )}
           >
             <Card

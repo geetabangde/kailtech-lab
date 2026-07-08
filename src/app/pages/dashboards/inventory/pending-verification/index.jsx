@@ -20,6 +20,7 @@ import { fuzzyFilter } from "utils/react-table/fuzzyFilter";
 import { useSkipper } from "utils/react-table/useSkipper";
 import { columns } from "./columns";
 import { PaginationSection } from "components/shared/table/PaginationSection";
+import { TableLoadingRow } from "components/shared/table/TableLoadingRow";
 
 // ----------------------------------------------------------------------
 
@@ -61,7 +62,7 @@ export default function PendingVerification() {
   const fetchPendingVerification = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await axios.get("inventory/pending-verification-data");
+      const response = await axios.get("inventory/get-pending-verification");
       if (response.data.status && Array.isArray(response.data.data)) {
         setOrders(response.data.data);
       } else {
@@ -192,11 +193,7 @@ export default function PendingVerification() {
                 </THead>
                 <TBody>
                   {loading ? (
-                    <Tr>
-                      <Td colSpan={columns.length} className="h-24 text-center text-gray-500 italic">
-                        Loading verification items...
-                      </Td>
-                    </Tr>
+                    <TableLoadingRow colSpan={columns.length} />
                   ) : table.getRowModel().rows.length > 0 ? (
                     table.getRowModel().rows.map((row) => (
                       <Tr

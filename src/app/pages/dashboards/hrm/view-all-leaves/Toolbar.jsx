@@ -51,7 +51,7 @@ export function Toolbar({ table }) {
   ];
 
   return (
-    <div className="table-toolbar px-(--margin-x) pt-4">
+    <div className="table-toolbar px-[var(--margin-x)] pt-4">
       <div className="flex flex-col gap-4 mb-4">
         <div className="min-w-0">
           <h2 className="text-xl font-semibold tracking-wide text-gray-800 dark:text-dark-50">
@@ -67,7 +67,7 @@ export function Toolbar({ table }) {
               name="employee"
               value={filters.employee}
               onChange={handleChange}
-              className="w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-sm focus:border-primary-500 focus:outline-hidden focus:ring-primary-500 dark:border-dark-500 dark:bg-dark-700 dark:text-dark-100"
+              className="w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-sm focus:border-primary-500 focus:outline-none focus:ring-primary-500 dark:border-dark-500 dark:bg-dark-700 dark:text-dark-100"
             >
               <option value="">Select One</option>
               {employees.map(emp => (
@@ -82,7 +82,7 @@ export function Toolbar({ table }) {
               name="status"
               value={filters.status}
               onChange={handleChange}
-              className="w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-sm focus:border-primary-500 focus:outline-hidden focus:ring-primary-500 dark:border-dark-500 dark:bg-dark-700 dark:text-dark-100"
+              className="w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-sm focus:border-primary-500 focus:outline-none focus:ring-primary-500 dark:border-dark-500 dark:bg-dark-700 dark:text-dark-100"
             >
               {statusOptions.map(opt => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>

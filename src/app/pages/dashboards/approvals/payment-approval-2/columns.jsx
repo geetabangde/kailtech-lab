@@ -38,8 +38,8 @@ export const columns = [
   }),
 
   // Date — PHP: inwardentry.inwarddate formatted d/m/Y
-  columnHelper.accessor("date", {
-    id: "date",
+  columnHelper.accessor("inwarddate", {
+    id: "inwarddate",
     header: "Date",
     cell: (info) => info.getValue() ?? "—",
   }),
@@ -52,14 +52,14 @@ export const columns = [
   }),
 
   // Concern BD — PHP: concat(firstname,' ',lastname) from admin where id=inwardentry.bd
-  columnHelper.accessor("bdName", {
+  columnHelper.accessor("bd", {
     id: "bdName",
     header: "Concern BD",
     cell: (info) => info.getValue() ?? "—",
   }),
 
   // Products — PHP: group_concat(name) from crfinstrument{tablesuffix} where inwardid=id
-  columnHelper.accessor("products", {
+  columnHelper.accessor("trfproducts", {
     id: "products",
     header: "Products",
     cell: (info) => <MultiLine value={info.getValue()} />,

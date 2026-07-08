@@ -118,14 +118,19 @@ export default function AddProfessionalTax() {
       form.append("max", formData.max);
       form.append("tax", formData.tax);
 
-      await axios.post("/hrm/insert-professional-tax", form);
-
-      toast.success("Tax slab created successfully ✅", {
-        duration: 2000,
-        icon: "✅",
+      const res = await axios.post("/hrm/professional-tax-add", form, {
+        headers: { "Content-Type": "multipart/form-data" },
       });
 
-      navigate("/dashboards/hrm/professional-tax");
+      if (res.data.status === true || res.data.status === "true" || res.data.status === "success") {
+        toast.success(res.data.message || "Tax slab created successfully ✅", {
+          duration: 2000,
+          icon: "✅",
+        });
+        navigate("/dashboards/hrm/professional-tax");
+      } else {
+        toast.error(res.data.message || "Failed to create tax slab ❌");
+      }
     } catch (err) {
       console.error("Error creating tax slab:", err);
       toast.error(err?.response?.data?.message || "Failed to create tax slab ❌");

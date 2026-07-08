@@ -5,7 +5,7 @@ import { Button, Card } from "components/ui";
 import axios from "utils/axios";
 import { toast } from "sonner";
 import dayjs from "dayjs";
-import { ArrowLeft, Printer } from "lucide-react";
+import {  Printer } from "lucide-react";
 
 import logo from "assets/krtc.jpg";
 
@@ -80,13 +80,15 @@ export default function ViewTQuotation() {
 
     return (
         <Page title={`View Testing Quotation - ${quote.quotationno || id}`}>
-            <div className="transition-content px-(--margin-x) pb-12">
+            <div className="transition-content px-[var(--margin-x)] pb-12">
                 
                 {/* Actions Header */}
                 <div className="mb-6 flex items-center justify-between no-print">
                     <div className="flex items-center gap-3">
-                        <Link to="/dashboards/sales/testing-quotations" className="rounded-full p-1.5 hover:bg-gray-100">
-                            <ArrowLeft size={20} className="text-gray-600" />
+                        <Link to="/dashboards/sales/testing-quotations" className="rounded-full p-1.5">
+                         <Button variant="outline" className="flex items-center gap-2 border-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700">
+                                &lt;&lt; Back to List
+                            </Button>  
                         </Link>
                         <h1 className="text-xl font-semibold text-gray-800">View Quotation</h1>
                     </div>

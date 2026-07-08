@@ -1,5 +1,5 @@
 .filepond--credits {
-  @apply /* hidden*/ text-tiny! font-light! opacity-[.1]!;
+  @apply /* hidden*/ !text-tiny !font-light !opacity-[.1];
 }
 
 .fp-grid .filepond--item {
@@ -7,11 +7,11 @@
 }
 
 .fp-bordered .filepond--panel-root {
-  @apply dark:border-dark-450! border-2 border-dashed border-gray-300! bg-transparent!;
+  @apply dark:!border-dark-450 border-2 border-dashed !border-gray-300 !bg-transparent;
 }
 
 .fp-filled .filepond--panel-root {
-  @apply bg-gray-150/80! dark:bg-dark-500/[.85]!;
+  @apply !bg-gray-150 !opacity-80 dark:!bg-dark-500 dark:!opacity-[.85];
 }
 
 .filepond--drop-label label {

@@ -4,7 +4,7 @@ import { Page } from "components/shared/Page";
 import { Card, Button } from "components/ui";
 import axios from "utils/axios";
 import dayjs from "dayjs";
-import { ArrowLeft, Printer } from "lucide-react";
+import { Printer } from "lucide-react";
 
 export default function ViewTQuotationParameterWise() {
     const { id } = useParams();
@@ -97,13 +97,15 @@ export default function ViewTQuotationParameterWise() {
 
     return (
         <Page title={`View Testing Quotation (Parameter Wise) - ${quotation?.quotationno || id}`}>
-            <div className="transition-content px-(--margin-x) pb-12">
+            <div className="transition-content px-[var(--margin-x)] pb-12">
 
                 {/* Actions Header */}
                 <div className="mb-6 flex items-center justify-between no-print">
                     <div className="flex items-center gap-3">
-                        <Link to="/dashboards/sales/testing-quotations" className="rounded-full p-1.5 hover:bg-gray-100">
-                            <ArrowLeft size={20} className="text-gray-600" />
+                        <Link to="/dashboards/sales/testing-quotations" className="rounded-full p-1.5">
+                        <Button variant="outline" className="flex items-center gap-2 border-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700">
+                                &lt;&lt; Back to List
+                            </Button>  
                         </Link>
                         <h1 className="text-xl font-semibold text-gray-800">View Quotation (Parameter Wise)</h1>
                     </div>

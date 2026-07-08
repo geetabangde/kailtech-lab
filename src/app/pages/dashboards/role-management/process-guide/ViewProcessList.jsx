@@ -10,7 +10,7 @@ export default function ViewProcessList() {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
     const [processInfo, setProcessInfo] = useState(null);
-    const [permissionsList, setPermissionsList] = useState([]);
+    const [allPermissions, setAllPermissions] = useState([]);
     const [fetchingPermissions, setFetchingPermissions] = useState(false);
 
     const userPermissions = useMemo(() => 
@@ -39,16 +39,24 @@ export default function ViewProcessList() {
             setFetchingPermissions(true);
             const response = await axios.get("rolemanagment/get-permissions");
             if (response.data && (response.data.status === true || response.data.status === "true" || response.data.success === true)) {
-                const allPermissions = response.data.data;
-                const filtered = allPermissions.filter(p => String(p.module) === String(id));
-                setPermissionsList(filtered);
+                setAllPermissions(response.data.data || []);
             }
         } catch (err) {
             console.error("Error fetching permissions:", err);
         } finally {
             setFetchingPermissions(false);
         }
-    }, [id]);
+    }, []);
+
+    const permissionsList = useMemo(() => {
+        if (!processInfo || !allPermissions.length) return [];
+        return allPermissions.filter(p => {
+            const matchesId = String(p.module) === String(id) || String(p.module_id) === String(id);
+            const matchesName = p.module_name && processInfo.name && 
+                p.module_name.trim().toLowerCase() === processInfo.name.trim().toLowerCase();
+            return matchesId || matchesName;
+        });
+    }, [processInfo, allPermissions, id]);
 
     useEffect(() => {
         if (!userPermissions.includes(166)) {

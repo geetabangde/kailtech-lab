@@ -14,7 +14,7 @@ export function StatusCell({ row }) {
   };
 
   const isReturnable = row.original.basis === "Returnable";
-  const isReturned = row.original.returned_count > 0; // Assuming the API returns returned_count
+  const isReturned = row.original.count > 0;
 
   return (
     <div className="flex flex-col gap-1">
@@ -39,8 +39,8 @@ export function DateCell({ getValue }) {
 }
 
 export function CustomerCell({ row }) {
-  const customerName = row.original.customer_name || "N/A";
-  const customerAddress = row.original.customer_address || "";
+  const customerName = row.original.customername || "N/A";
+  const customerAddress = row.original.customeraddress || "";
 
   return (
     <div className="flex flex-col">
@@ -58,18 +58,18 @@ export function CustomerCell({ row }) {
 
 export function ConcernPersonCell({ row }) {
   const {
-    concern_person,
-    concern_person_designation,
-    concern_person_email,
-    concern_person_phone
+    concernperson,
+    concernpersondesignation,
+    concernpersonemail,
+    concernpersonphone
   } = row.original;
 
   return (
     <div className="flex flex-col text-xs space-y-0.5">
-      <span className="font-medium text-gray-800 dark:text-dark-100">{concern_person}</span>
-      {concern_person_designation && <span className="text-gray-500">{concern_person_designation}</span>}
-      {concern_person_email && <span className="text-gray-500 italic">{concern_person_email}</span>}
-      {concern_person_phone && <span className="text-gray-500 font-mono">{concern_person_phone}</span>}
+      <span className="font-medium text-gray-800 dark:text-dark-100">{concernperson}</span>
+      {concernpersondesignation && <span className="text-gray-500">{concernpersondesignation}</span>}
+      {concernpersonemail && <span className="text-gray-500 italic">{concernpersonemail}</span>}
+      {concernpersonphone && <span className="text-gray-500 font-mono">{concernpersonphone}</span>}
     </div>
   );
 }

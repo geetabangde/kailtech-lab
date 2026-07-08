@@ -23,6 +23,7 @@ import { fuzzyFilter } from "utils/react-table/fuzzyFilter";
 import { useSkipper } from "utils/react-table/useSkipper";
 import { columns } from "./columns";
 import { PaginationSection } from "components/shared/table/PaginationSection";
+import { TableLoadingRow } from "components/shared/table/TableLoadingRow";
 
 // ----------------------------------------------------------------------
 
@@ -69,7 +70,7 @@ export default function DispatchReturnRecord() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`inventory/dispatch-return-record-data`, {
+      const response = await axios.get(`inventory/dispatch-return-record`, {
         params: { hakuna }
       });
 
@@ -145,21 +146,7 @@ export default function DispatchReturnRecord() {
     );
   }
 
-  if (loading) {
-    return (
-      <Page title="View Dispatch Record">
-        <div className="flex h-[60vh] items-center justify-center text-gray-600">
-          <div className="flex items-center gap-2">
-            <svg className="animate-spin h-6 w-6 text-primary-600" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 000 8v4a8 8 0 01-8-8z"></path>
-            </svg>
-            <span className="text-lg font-medium">Loading Records...</span>
-          </div>
-        </div>
-      </Page>
-    );
-  }
+  
 
   return (
     <Page title="View Dispatch Record">
@@ -195,10 +182,10 @@ export default function DispatchReturnRecord() {
                     component={Link}
                     to="/dashboards/inventory/dispatch-return/return-instrument"
                     color="info"
-                    variant="solid"
+                    variant="filled"
                     className="!bg-blue-600 !text-white hover:!bg-blue-700 whitespace-nowrap font-bold shadow-sm"
                   >
-                    + Dispatch Return
+                    Dispatch Return
                   </Button>
                 )}
               </div>
@@ -243,7 +230,9 @@ export default function DispatchReturnRecord() {
                   ))}
                 </THead>
                 <TBody>
-                  {table.getRowModel().rows.length > 0 ? (
+                  {loading ? (
+                    <TableLoadingRow colSpan={columns.length} />
+                  ) : table.getRowModel().rows.length > 0 ? (
                     table.getRowModel().rows.map((row) => (
                       <Tr
                         key={row.id}

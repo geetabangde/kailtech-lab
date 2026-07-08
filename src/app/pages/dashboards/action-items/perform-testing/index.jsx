@@ -21,7 +21,7 @@ import ReactSelect from "react-select";
 import { Table, Card, THead, TBody, Th, Tr, Td } from "components/ui";
 import { TableSortIcon } from "components/shared/table/TableSortIcon";
 import { Page } from "components/shared/Page";
-import { useLockScrollbar, useDidUpdate, useLocalStorage, useDebounceValue } from "hooks";
+import { useLockScrollbar, useDidUpdate, useLocalStorage } from "hooks";
 import { fuzzyFilter } from "utils/react-table/fuzzyFilter";
 import { useSkipper } from "utils/react-table/useSkipper";
 import { Toolbar } from "./Toolbar";
@@ -190,7 +190,6 @@ export default function PerformTest() {
   const [endDate, setEndDate] = useState("");
   const [department, setDepartment] = useState("");
   const [globalFilter, setGlobalFilter] = useState("");
-  const [debouncedSearch] = useDebounceValue(globalFilter, 500);
 
   // ── Table setup ──────────────────────────
   const [tableSettings] = useState({
@@ -242,7 +241,7 @@ export default function PerformTest() {
       if (startDate) params.startdate = startDate;
       if (endDate) params.enddate = endDate;
       if (department) params.department = department;
-      if (debouncedSearch) params.search = debouncedSearch;
+      if (globalFilter) params.search = globalFilter;
 
       const res = await axios.get("/actionitem/get-perform-testing", { params });
       const d = res.data?.data ?? res.data?.Data ?? res.data ?? [];
@@ -253,7 +252,7 @@ export default function PerformTest() {
     } finally {
       setLoading(false);
     }
-  }, [startDate, endDate, department, debouncedSearch]);
+  }, [startDate, endDate, department, globalFilter]);
 
   useEffect(() => {
     fetchProducts();
@@ -292,7 +291,7 @@ export default function PerformTest() {
     getFilteredRowModel: getFilteredRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
     getFacetedMinMaxValues: getFacetedMinMaxValues(),
-    globalFilterFn: fuzzyFilter,
+    globalFilterFn: "includesString",
     onSortingChange: setSorting,
     getSortedRowModel: getSortedRowModel(),
 
@@ -369,7 +368,7 @@ export default function PerformTest() {
               "transition-content flex grow flex-col pt-3",
               tableSettings.enableFullScreen
                 ? "overflow-hidden"
-                : "px-(--margin-x)"
+                : "px-[var(--margin-x)]"
             )}
           >
             {/* ── Filters ───────────────────────────────────────────────────── */}

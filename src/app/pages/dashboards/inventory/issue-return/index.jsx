@@ -21,6 +21,8 @@ import { fuzzyFilter } from "utils/react-table/fuzzyFilter";
 import { useSkipper } from "utils/react-table/useSkipper";
 import { columns } from "./columns";
 import { PaginationSection } from "components/shared/table/PaginationSection";
+import { TableLoadingRow } from "components/shared/table/TableLoadingRow";
+import { TableConfig } from "./TableConfig";
 
 // ----------------------------------------------------------------------
 
@@ -31,6 +33,58 @@ function usePermissions() {
   } catch {
     return p?.split(",").map(Number) || [];
   }
+}
+
+function getResponseArray(payload, keys) {
+  for (const key of keys) {
+    const value = payload?.[key] ?? payload?.data?.[key];
+    if (Array.isArray(value)) return value;
+  }
+
+  return [];
+}
+
+const createdByCache = new Map();
+
+async function enrichReturnByNames(rows) {
+  const returnByIds = [
+    ...new Set(
+      rows
+        .filter((row) => Number(row.status) === 1 && row.returnby)
+        .map((row) => String(row.returnby)),
+    ),
+  ];
+
+  await Promise.all(
+    returnByIds.map(async (id) => {
+      if (createdByCache.has(id)) return;
+
+      try {
+        const response = await axios.get(`/get-created-by/${id}`);
+        createdByCache.set(id, response.data || null);
+      } catch (err) {
+        console.error(`Error fetching return by user ${id}:`, err);
+        createdByCache.set(id, null);
+      }
+    }),
+  );
+
+  return rows.map((row) => {
+    const returnByUser = row.returnby ? createdByCache.get(String(row.returnby)) : null;
+
+    return {
+      ...row,
+      returnby_name:
+        row.returnby_name ||
+        row.returnbyname ||
+        returnByUser?.name ||
+        "",
+      returnby_employee_id:
+        row.returnby_employee_id ||
+        returnByUser?.employee_id ||
+        "",
+    };
+  });
 }
 
 export default function IssueReturn() {
@@ -44,6 +98,35 @@ export default function IssueReturn() {
     enableFullScreen: false,
     enableRowDense: false,
   });
+
+  const fetchCustomers = useCallback(async () => {
+    try {
+      const response = await axios.get("/people/get-all-customers");
+      const payload = response.data || {};
+      if (payload.data && Array.isArray(payload.data)) {
+        setCustomers(payload.data);
+      }
+    } catch (err) {
+      console.error("Error fetching customers:", err);
+    }
+  }, []);
+
+  const fetchDepartments = useCallback(async () => {
+    try {
+      const response = await axios.get("/master/list-lab");
+      const payload = response.data || {};
+      if (payload.data && Array.isArray(payload.data)) {
+        setDepartments(payload.data);
+      }
+    } catch (err) {
+      console.error("Error fetching departments:", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchCustomers();
+    fetchDepartments();
+  }, [fetchCustomers, fetchDepartments]);
 
   // Filter States
   const [filters, setFilters] = useState({
@@ -73,26 +156,26 @@ export default function IssueReturn() {
     pageSize: 25,
   });
 
-  const fetchInitialData = useCallback(async () => {
-    try {
-      const response = await axios.get("inventory/get-issue-return-initial-data");
-      if (response.data.status) {
-        setCustomers(response.data.customers || []);
-        setDepartments(response.data.departments || []);
-      }
-    } catch (err) {
-      console.error("Error fetching initial data:", err);
-    }
-  }, []);
-
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await axios.get("inventory/issue-return-data", {
+      const response = await axios.get("/inventory/get-issued-item", {
         params: filters
       });
-      if (response.data.status && Array.isArray(response.data.data)) {
-        setData(response.data.data);
+
+      const payload = response.data || {};
+      const hasExplicitFailure = payload.status === false || payload.status === "false" || payload.success === false;
+      const issuedItems = Array.isArray(payload)
+        ? payload
+        : Array.isArray(payload.data)
+        ? payload.data
+        : getResponseArray(payload, ["issued_items", "issuedItems", "items", "records", "list", "data"]);
+
+      // Departments are fetched independently in fetchDepartments
+
+      if (!hasExplicitFailure && Array.isArray(issuedItems)) {
+        const rowsWithReturnByNames = await enrichReturnByNames(issuedItems);
+        setData(rowsWithReturnByNames);
       } else {
         setData([]);
       }
@@ -102,10 +185,6 @@ export default function IssueReturn() {
       setLoading(false);
     }
   }, [filters]);
-
-  useEffect(() => {
-    fetchInitialData();
-  }, [fetchInitialData]);
 
   useEffect(() => {
     fetchData();
@@ -120,6 +199,7 @@ export default function IssueReturn() {
       columnVisibility,
       columnPinning,
       pagination,
+      tableSettings,
     },
     meta: {
       updateData: (rowIndex, columnId, value) => {
@@ -171,7 +251,7 @@ export default function IssueReturn() {
   // Permission Check (PHP: 174)
   if (!permissions.includes(174)) {
     return (
-      <Page title="Issued ITem List">
+      <Page title="Issued Item List">
         <div className="flex h-60 items-center justify-center rounded-xl border border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20">
           <p className="text-sm font-medium text-red-600 dark:text-red-400">
             Access Denied - Permission 174 required
@@ -182,7 +262,7 @@ export default function IssueReturn() {
   }
 
   return (
-    <Page title="Issued ITem List">
+    <Page title="Issued Item List">
       <div className="transition-content w-full pb-5 space-y-6">
         {/* Filters Card */}
         <Card className="p-4 sm:p-5 border-none shadow-soft dark:bg-dark-700">
@@ -191,9 +271,9 @@ export default function IssueReturn() {
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Customer</label>
               <Select
                 name="customer"
-                value={customers.find(c => c.id === filters.var3) ? { value: filters.var3, label: customers.find(c => c.id === filters.var3).name } : null}
-                options={customers.map(c => ({ value: c.id, label: c.name }))}
-                onChange={(val) => setFilters({ ...filters, var3: val.value })}
+                value={String(filters.var3)}
+                options={customers.map(c => ({ value: String(c.id), label: c.name.replace('M/s,', '').trim() }))}
+                onChange={(val) => setFilters({ ...filters, var3: val || "" })}
                 placeholder="Select Customer"
               />
             </div>
@@ -202,9 +282,9 @@ export default function IssueReturn() {
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Department</label>
               <Select
                 name="department"
-                value={{ value: filters.department, label: filters.department === "all" ? "All" : departments.find(d => d.id === filters.department)?.name }}
-                options={[{ value: "all", label: "All" }, ...departments.map(d => ({ value: d.id, label: d.name }))]}
-                onChange={(val) => setFilters({ ...filters, department: val.value })}
+                value={String(filters.department)}
+                options={[{ value: "all", label: "All" }, ...departments.map(d => ({ value: String(d.id), label: d.name }))]}
+                onChange={(val) => setFilters({ ...filters, department: val || "all" })}
               />
             </div>
 
@@ -212,7 +292,7 @@ export default function IssueReturn() {
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Search in</label>
               <Select
                 name="searchIn"
-                value={{ value: filters.var1, label: filters.var1 === "All" ? "All" : filters.var1 }}
+                value={filters.var1}
                 options={[
                   { value: "All", label: "All" },
                   { value: "adminname", label: "Person Name" },
@@ -222,7 +302,7 @@ export default function IssueReturn() {
                   { value: "instserial", label: "Instrument Serial" },
                   { value: "gatepassno", label: "gatepass no" },
                 ]}
-                onChange={(val) => setFilters({ ...filters, var1: val.value })}
+                onChange={(val) => setFilters({ ...filters, var1: val || "All" })}
               />
             </div>
 
@@ -260,7 +340,7 @@ export default function IssueReturn() {
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Category</label>
               <Select
                 name="category"
-                value={{ value: filters.category, label: filters.category === "all" ? "All" : filters.category.charAt(0).toUpperCase() + filters.category.slice(1) }}
+                value={filters.category}
                 options={[
                   { value: "all", label: "All" },
                   { value: "asset", label: "Asset" },
@@ -269,12 +349,13 @@ export default function IssueReturn() {
                   { value: "master", label: "Master" },
                   { value: "misc", label: "Misc" },
                 ]}
-                onChange={(val) => setFilters({ ...filters, category: val.value })}
+                onChange={(val) => setFilters({ ...filters, category: val || "all" })}
               />
             </div>
           </div>
 
           <div className="mt-6 flex justify-end gap-3">
+            <TableConfig table={table} />
             <Button
               color="secondary"
               variant="soft"
@@ -320,7 +401,15 @@ export default function IssueReturn() {
                       {headerGroup.headers.map((header) => (
                         <Th
                           key={header.id}
-                          className="bg-gray-50 px-4 py-3 text-xs font-bold uppercase text-gray-600 dark:bg-dark-800 dark:text-dark-200"
+                          className={clsx(
+                            "bg-gray-50 text-xs font-bold uppercase text-gray-600 dark:bg-dark-800 dark:text-dark-200 align-top",
+                            header.column.getCanPin() && [
+                              header.column.getIsPinned() === "left" &&
+                              "sticky z-2 ltr:left-0 rtl:right-0",
+                              header.column.getIsPinned() === "right" &&
+                              "sticky z-2 ltr:right-0 rtl:left-0",
+                            ]
+                          )}
                         >
                           {header.column.getCanSort() ? (
                             <div
@@ -348,11 +437,7 @@ export default function IssueReturn() {
                 </THead>
                 <TBody>
                   {loading ? (
-                    <Tr>
-                      <Td colSpan={columns.length} className="h-24 text-center">
-                        Loading...
-                      </Td>
-                    </Tr>
+                    <TableLoadingRow colSpan={columns.length} />
                   ) : table.getRowModel().rows.length > 0 ? (
                     table.getRowModel().rows.map((row) => (
                       <Tr
@@ -360,7 +445,18 @@ export default function IssueReturn() {
                         className="border-b border-gray-100 last:border-0 dark:border-dark-600"
                       >
                         {row.getVisibleCells().map((cell) => (
-                          <Td key={cell.id} className="px-4 py-3 text-sm">
+                          <Td
+                            key={cell.id}
+                            className={clsx(
+                              "text-sm bg-white dark:bg-dark-700",
+                              cell.column.getCanPin() && [
+                                cell.column.getIsPinned() === "left" &&
+                                "sticky z-2 ltr:left-0 rtl:right-0",
+                                cell.column.getIsPinned() === "right" &&
+                                "sticky z-2 ltr:right-0 rtl:left-0",
+                              ]
+                            )}
+                          >
                             {flexRender(
                               cell.column.columnDef.cell,
                               cell.getContext(),

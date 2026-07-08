@@ -25,7 +25,7 @@ export function CollapsibleItem({ data }) {
         <>
           <AccordionButton
             className={clsx(
-              "group cursor-pointer flex flex-1 items-center justify-between rounded-lg px-3 py-2 font-medium outline-hidden transition-colors duration-300 ease-in-out",
+              "group cursor-pointer flex flex-1 items-center justify-between rounded-lg px-3 py-2 font-medium outline-none transition-colors duration-300 ease-in-out",
               open
                 ? "text-gray-800 dark:text-dark-50"
                 : "text-gray-800 hover:bg-gray-100 hover:text-gray-950 focus:bg-gray-100 focus:text-gray-950 dark:text-dark-200 dark:hover:bg-dark-300/10 dark:hover:text-dark-50 dark:focus:bg-dark-300/10",

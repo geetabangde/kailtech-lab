@@ -248,7 +248,7 @@ export default function GenerateUlr() {
 
   return (
     <Page title={button_label}>
-      <div className="transition-content px-(--margin-x) pb-8">
+      <div className="transition-content px-[var(--margin-x)] pb-8">
 
         {/* Success Modal */}
         <SuccessModal

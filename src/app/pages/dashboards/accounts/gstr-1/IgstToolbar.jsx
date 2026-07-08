@@ -93,7 +93,7 @@ export function IgstToolbar({ table, filters, onChange, onSearch }) {
   };
 
   return (
-    <div className="px-(--margin-x) pt-4">
+    <div className="px-[var(--margin-x)] pt-4">
       <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h2 className="text-xl font-semibold tracking-wide text-gray-800 dark:text-dark-50">
           GSTR-1 IGST Report

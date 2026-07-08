@@ -23,6 +23,13 @@ import { fuzzyFilter } from "utils/react-table/fuzzyFilter";
 import { useSkipper } from "utils/react-table/useSkipper";
 import { columns } from "./columns";
 import { PaginationSection } from "components/shared/table/PaginationSection";
+import { TableLoadingRow } from "components/shared/table/TableLoadingRow";
+
+const SEARCH_OPTIONS = [
+  { value: "All", label: "All" },
+  { value: "cname", label: "Category name" },
+  { value: "name", label: "Item Name" },
+];
 
 // ----------------------------------------------------------------------
 
@@ -43,7 +50,7 @@ export default function BufferItem() {
   });
 
   const [globalFilter, setGlobalFilter] = useState("");
-  const [sorting, setSorting] = useState([{ id: "quantity_with_unit", desc: false }]);
+  const [sorting, setSorting] = useState([{ id: "quantity", desc: false }]);
 
   const [columnVisibility, setColumnVisibility] = useLocalStorage(
     "column-visibility-buffer-item",
@@ -59,19 +66,56 @@ export default function BufferItem() {
     pageSize: 25,
   });
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (currentFilters) => {
     try {
       setLoading(true);
-      const response = await axios.get("inventory/buffer-item-data", {
+      const response = await axios.get("inventory/get-buffer-item", {
         params: {
-          var1: filters.searchIn,
-          var2: filters.searchTerm,
-          start: filters.start,
-          end: filters.end,
+          var1: currentFilters.searchIn,
+          var2: currentFilters.searchTerm,
+          start: currentFilters.start,
+          end: currentFilters.end,
         }
       });
       if (response.data.status && Array.isArray(response.data.data)) {
-        setData(response.data.data);
+        let filteredData = [...response.data.data];
+        
+        // Filter and sort to put matching items at the top when search term is provided
+        if (currentFilters.searchTerm && currentFilters.searchIn !== "All") {
+          const searchTermLower = currentFilters.searchTerm.toLowerCase();
+          
+          // First, filter to only include matching items
+          filteredData = filteredData.filter((item) => {
+            if (currentFilters.searchIn === "cname") {
+              return item.cname?.toLowerCase().includes(searchTermLower);
+            } else if (currentFilters.searchIn === "name") {
+              return item.name?.toLowerCase().includes(searchTermLower);
+            }
+            return true;
+          });
+          
+          // Then sort to put exact matches or starts-with matches first
+          filteredData.sort((a, b) => {
+            let aValue = currentFilters.searchIn === "cname" ? a.cname?.toLowerCase() : a.name?.toLowerCase();
+            let bValue = currentFilters.searchIn === "cname" ? b.cname?.toLowerCase() : b.name?.toLowerCase();
+            
+            // Exact match first
+            const aExact = aValue === searchTermLower;
+            const bExact = bValue === searchTermLower;
+            if (aExact && !bExact) return -1;
+            if (!aExact && bExact) return 1;
+            
+            // Starts with second
+            const aStarts = aValue?.startsWith(searchTermLower);
+            const bStarts = bValue?.startsWith(searchTermLower);
+            if (aStarts && !bStarts) return -1;
+            if (!aStarts && bStarts) return 1;
+            
+            return 0;
+          });
+        }
+        
+        setData(filteredData);
       } else {
         setData([]);
       }
@@ -80,11 +124,15 @@ export default function BufferItem() {
     } finally {
       setLoading(false);
     }
-  }, [filters.end, filters.searchIn, filters.searchTerm, filters.start]);
+  }, []);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    fetchData(filters);
+  }, []);
+
+  const handleSearch = () => {
+    fetchData(filters);
+  };
 
   const table = useReactTable({
     data: data,
@@ -140,6 +188,12 @@ export default function BufferItem() {
       start: "",
       end: "",
     });
+    fetchData({
+      searchIn: "All",
+      searchTerm: "",
+      start: "",
+      end: "",
+    });
   };
 
   return (
@@ -152,14 +206,9 @@ export default function BufferItem() {
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Search in</label>
               <Select
                 name="searchIn"
-                value={{ value: filters.searchIn, label: filters.searchIn === "All" ? "All" : filters.searchIn }}
-                options={[
-                  { value: "All", label: "All" },
-                  { value: "categoryname", label: "Category name" },
-                  { value: "subcategory", label: "Instrument Categories" },
-                  { value: "idno", label: "Instrument Id" },
-                ]}
-                onChange={(val) => setFilters({ ...filters, searchIn: val.value })}
+                value={filters.searchIn}
+                options={SEARCH_OPTIONS}
+                onChange={(val) => setFilters({ ...filters, searchIn: val || "All" })}
               />
             </div>
 
@@ -205,7 +254,7 @@ export default function BufferItem() {
             </Button>
             <Button
               color="info"
-              onClick={fetchData}
+              onClick={handleSearch}
               className="flex items-center gap-2"
             >
               <Search className="h-4 w-4" /> Go
@@ -268,11 +317,7 @@ export default function BufferItem() {
                 </THead>
                 <TBody>
                   {loading ? (
-                    <Tr>
-                      <Td colSpan={columns.length} className="h-24 text-center">
-                        Loading...
-                      </Td>
-                    </Tr>
+                    <TableLoadingRow colSpan={columns.length} />
                   ) : table.getRowModel().rows.length > 0 ? (
                     table.getRowModel().rows.map((row) => (
                       <Tr

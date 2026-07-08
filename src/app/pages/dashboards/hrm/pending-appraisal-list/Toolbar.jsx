@@ -14,7 +14,7 @@ export function Toolbar({ table }) {
   const canInitiate = permissions.includes(58);
 
   return (
-    <div className="table-toolbar px-(--margin-x) pt-4">
+    <div className="table-toolbar px-[var(--margin-x)] pt-4">
       <div
         className={clsx(
           "transition-content flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4",

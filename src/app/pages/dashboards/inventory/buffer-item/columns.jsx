@@ -16,12 +16,12 @@ export const columns = [
     header: "Item Name",
     cell: (info) => info.getValue(),
   }),
-  columnHelper.accessor("quantity_with_unit", {
+  columnHelper.accessor("quantity", {
     header: "Quantity",
-    cell: (info) => info.getValue(),
+    cell: (info) => `${info.row.original.quantity ?? ""} ${info.row.original.unit_name ?? ""}`.trim(),
   }),
-  columnHelper.accessor("min_with_unit", {
+  columnHelper.accessor("min", {
     header: "Minimum Buffer",
-    cell: (info) => info.getValue(),
+    cell: (info) => `${info.row.original.min ?? ""} ${info.row.original.unit_name ?? ""}`.trim(),
   }),
 ];

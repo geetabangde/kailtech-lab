@@ -5,6 +5,7 @@ import { Button, Input } from "components/ui";
 import { Page } from "components/shared/Page";
 import { toast } from "sonner";
 import axios from "axios";
+import { JWT_HOST_API } from "configs/auth.config";
 
 export default function EditCmcScopeSheet() {
   const { id } = useParams();
@@ -42,7 +43,7 @@ export default function EditCmcScopeSheet() {
   const [instrumentOptions, setInstrumentOptions] = useState([]);
   const [masterOptions, setMasterOptions] = useState([]);
 
-  const API_BASE_URL = 'https://lims.kailtech.in/api';
+  const API_BASE_URL = JWT_HOST_API;
 
   const getAuthToken = () => {
     return localStorage.getItem('authToken') || sessionStorage.getItem('token') || 'your-auth-token-here';

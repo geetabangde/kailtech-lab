@@ -1,7 +1,8 @@
 import PropTypes from "prop-types";
+import { forwardRef } from "react";
 import ReactSelect from "react-select";
 
-export const Select = ({
+export const Select = forwardRef(({
   name,
   label,
   options,
@@ -14,14 +15,15 @@ export const Select = ({
   isClearable = true,
   error,
   className = "",
-}) => {
+}, ref) => {
   const getValue = () => {
     if (isMulti) {
+      const valueList = Array.isArray(value) ? value.map(val => String(val)) : [];
       return options.filter((option) =>
-        Array.isArray(value) ? value.includes(option.value) : false
+        valueList.includes(String(option.value))
       );
     } else {
-      return options.find((option) => option.value === value) || null;
+      return options.find((option) => String(option.value) === String(value)) || null;
     }
   };
 
@@ -72,6 +74,7 @@ export const Select = ({
         </label>
       )}
       <ReactSelect
+        ref={ref}
         name={name}
         options={options}
         isMulti={isMulti}
@@ -89,7 +92,9 @@ export const Select = ({
       )}
     </div>
   );
-};
+});
+
+Select.displayName = "Select";
 
 Select.propTypes = {
   name: PropTypes.string.isRequired,

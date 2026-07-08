@@ -6,7 +6,7 @@ import { Download, Eye, Trash2 } from 'lucide-react';
 import { toast } from "react-hot-toast";
 import { jsPDF } from "jspdf";
 
-const API_BASE_URL = 'https://lims.kailtech.in/api/calibrationprocess';
+const API_BASE_URL = `${JWT_HOST_API}/calibrationprocess`;
 
 const ViewDocuments = () => {
     const navigate = useNavigate();
@@ -752,6 +752,7 @@ export default ViewDocuments;
 // import { Page } from "components/shared/Page";
 // import { Button } from "components/ui";
 // import axios from 'axios';
+import { JWT_HOST_API } from "configs/auth.config";
 
 // const ViewDocuments = () => {
 //     const navigate = useNavigate();
@@ -783,7 +784,7 @@ export default ViewDocuments;
 //                 console.log("Token:", token);
 
 //                 const response = await axios.get(
-//                     `https://lims.kailtech.in/api/calibrationprocess/get-calibration-documents?inwardid=${inwardId}&itemid=${instId}`,
+//                     `${JWT_HOST_API}/calibrationprocess/get-calibration-documents?inwardid=${inwardId}&itemid=${instId}`,
 //                     {
 // //params: { inwardId, instId },
 //                       headers: {

@@ -22,6 +22,7 @@ import { useLockScrollbar, useDidUpdate, useLocalStorage } from "hooks";
 import { fuzzyFilter } from "utils/react-table/fuzzyFilter";
 import { useSkipper } from "utils/react-table/useSkipper";
 import { Toolbar } from "./Toolbar";
+import { FormatHeader } from "components/shared/FormatHeader";
 import { PaginationSection } from "components/shared/table/PaginationSection";
 import { useThemeContext } from "app/contexts/theme/context";
 import { getUserAgentBrowser } from "utils/dom/getUserAgentBrowser";
@@ -51,25 +52,26 @@ export default function SampleInwardRegister() {
     department: "",
     product: "",
     contactperson: "",
-    specificpurpose: "",
+    reportstatus: "",
+    customer: "",
   });
 
   const [departments, setDepartments] = useState([]);
   const [products, setProducts] = useState([]);
-  const [specificPurposes, setSpecificPurposes] = useState([]);
+  const [customers, setCustomers] = useState([]);
 
   // Fetch dropdown data
   const fetchDropdownData = async () => {
     try {
-      const [deptRes, prodRes, specificRes] = await Promise.allSettled([
-        axios.get("/master/get-all-labs"), // Departments (labs)
-        axios.get("/master/get-all-products"), // Products
-        axios.get("/master/get-all-specific-purposes"), // Specific purposes
+      const [custRes, deptRes, prodRes] = await Promise.allSettled([
+        axios.get("/people/get-all-customers"), // Customers
+        axios.get("/register/get-lab-by-vertical/2"), // Departments (labs)
+        axios.get("/testing/get-prodcut-list"), // Products
       ]);
 
+      if (custRes.status === "fulfilled") setCustomers(custRes.value.data?.data || []);
       if (deptRes.status === "fulfilled") setDepartments(deptRes.value.data?.data || []);
       if (prodRes.status === "fulfilled") setProducts(prodRes.value.data?.data || []);
-      if (specificRes.status === "fulfilled") setSpecificPurposes(specificRes.value.data?.data || []);
     } catch (err) {
       console.error("Error fetching dropdown data:", err);
     }
@@ -79,33 +81,38 @@ export default function SampleInwardRegister() {
     fetchDropdownData();
   }, []);
 
-  // Fetch sample inward data using PHP endpoint
+  // Fetch sample inward data
   const fetchSampleInwardData = async () => {
     try {
       setLoading(true);
       setSearched(true);
       
-      // Use bisinwardregisterData.php endpoint matching PHP ajax URL
-      const res = await axios.get("/registers/bisinwardregisterData", { params: filters });
+      // Filter out empty parameters
+      const activeFilters = Object.fromEntries(
+        Object.entries(filters).filter(([, v]) => v !== null && v !== "")
+      );
       
-      // Handle DataTables server-side response format
+      // Use new API endpoint
+      const res = await axios.get("/register/get-inward-register", { params: activeFilters });
+      
+      // Handle response format
       let rows = res.data?.data || [];
       
-      // Map to BIS PHP table structure: S no, Date of Receipt, LRN/BRN, Sample Code, Branch Office, Letter Ref No & date, Billed to, Nature Of Sample, Indian Stanard, Approx Recieved Quantity, Department, Tests, Reporting Date
       rows = rows.map((row) => ({
-        sno: row[0] || "",
-        date_of_receipt: row[1] || "",
-        lrn_brn: row[2] || "",
-        sample_code: row[3] || "",
-        branch_office: row[4] || "",
-        letter_ref: row[5] || "",
-        billed_to: row[6] || "",
-        nature_of_sample: row[7] || "",
-        indian_standard: row[8] || "",
-        approx_quantity: row[9] || "",
-        department: row[10] || "",
-        tests: row[11] || "",
-        reporting_date: row[12] || "",
+        sno: row.id || "",
+        date: row.tdate || "",
+        brn: row.brn || "",
+        lrn: row.lrn || "",
+        party_name: row.customername || "",
+        contact_person: row.concernperson || "",
+        sample_details: row.productname || "",
+        quantity: row.packageText ? String(row.packageText).replace(/<[^>]*>?/gm, "") : "",
+        department: row.dname || "",
+        parameters: row.pname || "",
+        committed_date: row.deadline || "",
+        reporting_date: row.reportdate || "",
+        tat: row.days || "",
+        remarks: row.remark || "",
       }));
       
       setTableData(rows);
@@ -144,71 +151,76 @@ export default function SampleInwardRegister() {
 
   const [autoResetPageIndex] = useSkipper();
 
-  // Define columns matching BIS PHP table structure exactly
+  // Define columns matching API data structure
   const sampleInwardColumns = [
     {
-      id: "sno",
+      accessorKey: "sno",
       header: "S no",
       cell: (info) => info.getValue(),
     },
     {
-      id: "date_of_receipt",
-      header: "Date of Receipt",
+      accessorKey: "date",
+      header: "Date",
       cell: (info) => info.getValue(),
     },
     {
-      id: "lrn_brn",
-      header: "LRN/BRN",
+      accessorKey: "brn",
+      header: "BRN",
       cell: (info) => info.getValue(),
     },
     {
-      id: "sample_code",
-      header: "Sample Code",
+      accessorKey: "lrn",
+      header: "LRN",
       cell: (info) => info.getValue(),
     },
     {
-      id: "branch_office",
-      header: "Branch Office",
+      accessorKey: "party_name",
+      header: "Party name",
       cell: (info) => info.getValue(),
     },
     {
-      id: "letter_ref",
-      header: "Letter Ref No & date",
+      accessorKey: "contact_person",
+      header: "Contact Person",
       cell: (info) => info.getValue(),
     },
     {
-      id: "billed_to",
-      header: "Billed to",
+      accessorKey: "sample_details",
+      header: "Sample Details",
       cell: (info) => info.getValue(),
     },
     {
-      id: "nature_of_sample",
-      header: "Nature Of Sample",
+      accessorKey: "quantity",
+      header: "Quantity",
       cell: (info) => info.getValue(),
     },
     {
-      id: "indian_standard",
-      header: "Indian Stanard",
-      cell: (info) => info.getValue(),
-    },
-    {
-      id: "approx_quantity",
-      header: "Approx Recieved Quantity",
-      cell: (info) => info.getValue(),
-    },
-    {
-      id: "department",
+      accessorKey: "department",
       header: "Department",
       cell: (info) => info.getValue(),
     },
     {
-      id: "tests",
-      header: "Tests",
+      accessorKey: "parameters",
+      header: "Parameters",
       cell: (info) => info.getValue(),
     },
     {
-      id: "reporting_date",
+      accessorKey: "committed_date",
+      header: "Committed Date",
+      cell: (info) => info.getValue(),
+    },
+    {
+      accessorKey: "reporting_date",
       header: "Reporting Date",
+      cell: (info) => info.getValue(),
+    },
+    {
+      accessorKey: "tat",
+      header: "TAT",
+      cell: (info) => info.getValue(),
+    },
+    {
+      accessorKey: "remarks",
+      header: "Remarks",
       cell: (info) => info.getValue(),
     },
   ];
@@ -279,17 +291,27 @@ export default function SampleInwardRegister() {
             filters={filters}
             onChange={handleFilterChange}
             onSearch={handleSearch}
+            customers={customers}
             departments={departments}
             products={products}
-            specificPurposes={specificPurposes}
           />
           <div
             className={clsx(
               "transition-content flex grow flex-col pt-3",
-              tableSettings.enableFullScreen ? "overflow-hidden" : "px-(--margin-x)"
+              tableSettings.enableFullScreen ? "overflow-hidden" : "px-[var(--margin-x)]"
             )}
           >
             <Card className={clsx("relative flex grow flex-col", tableSettings.enableFullScreen && "overflow-hidden")}>
+              <div className="p-4 pb-0 bg-white dark:bg-dark-900">
+                <FormatHeader
+                  title="Sample /UUC Received Record and Department Sample Inward Register"
+                  qfNo="KTRCQF/0704/01"
+                  issueNo="01"
+                  issueDate="01/06/2019"
+                  revisionNo="01"
+                  revisionDate="20/08/2021"
+                />
+              </div>
               <div className="table-wrapper min-w-full grow overflow-x-auto">
                 <Table hoverable dense={tableSettings.enableRowDense} sticky={tableSettings.enableFullScreen} className="w-full text-left rtl:text-right text-xs">
                   <THead>
@@ -371,15 +393,38 @@ export default function SampleInwardRegister() {
                 </Table>
               </div>
               {table.getCoreRowModel().rows.length > 0 && (
-                <div
-                  className={clsx(
-                    "px-4 pb-4 sm:px-5 sm:pt-4",
-                    tableSettings.enableFullScreen && "bg-gray-50 dark:bg-dark-800",
-                    !(table.getIsSomeRowsSelected() || table.getIsAllRowsSelected()) && "pt-4"
-                  )}
-                >
-                  <PaginationSection table={table} />
-                </div>
+                <>
+                  <div
+                    className={clsx(
+                      "px-4 pb-4 sm:px-5 sm:pt-4",
+                      tableSettings.enableFullScreen && "bg-gray-50 dark:bg-dark-800",
+                      !(table.getIsSomeRowsSelected() || table.getIsAllRowsSelected()) && "pt-4"
+                    )}
+                  >
+                    <PaginationSection table={table} />
+                  </div>
+                  {/* Signature Footer matching PHP */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 border-t border-gray-200 dark:border-dark-500 p-6 text-sm text-gray-700 dark:text-gray-300">
+                    <div>
+                      <div className="font-semibold mb-1">Prepared by</div>
+                      <div>Sr. Engineer</div>
+                      <div className="mt-4">Name:</div>
+                      <div className="mt-2">Sign:</div>
+                    </div>
+                    <div>
+                      <div className="font-semibold mb-1">Reviewed by</div>
+                      <div>DTM</div>
+                      <div className="mt-4">Name:</div>
+                      <div className="mt-2">Sign:</div>
+                    </div>
+                    <div>
+                      <div className="font-semibold mb-1">Approved by</div>
+                      <div>TM</div>
+                      <div className="mt-4">Name:</div>
+                      <div className="mt-2">Sign:</div>
+                    </div>
+                  </div>
+                </>
               )}
             </Card>
           </div>

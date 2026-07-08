@@ -413,7 +413,7 @@ export default function AddQuotationItems() {
 
     return (
         <Page title="Quotation Items">
-            <div className="transition-content px-(--margin-x) pb-8">
+            <div className="transition-content px-[var(--margin-x)] pb-8">
                 {/* Header */}
                 <div className="mb-4 flex items-center justify-between">
                     <div>
@@ -450,13 +450,13 @@ export default function AddQuotationItems() {
                             <THead>
                                 <Tr>
                                     <Th className="w-12 text-center">SN</Th>
-                                    <Th className="min-w-[150px]">Standard</Th>
-                                    <Th className="min-w-[180px]">Product</Th>
-                                    <Th className="min-w-[120px]">Grade</Th>
-                                    <Th className="min-w-[120px]">Size</Th>
-                                    <Th className="min-w-[180px]">Package</Th>
+                                    <Th className="min-w-[200px]">Standard</Th>
+                                    <Th className="min-w-[250px]">Product</Th>
+                                    <Th className="min-w-[180px]">Grade</Th>
+                                    <Th className="min-w-[180px]">Size</Th>
+                                    <Th className="min-w-[300px]">Package</Th>
                                     <Th className="w-24">Qty</Th>
-                                    <Th className="min-w-[180px]">Specification</Th>
+                                    <Th className="min-w-[200px]">Specification</Th>
                                     <Th className="w-32">Unit Cost</Th>
                                     <Th className="w-32">Total</Th>
                                     <Th className="w-12 text-center">Action</Th>

@@ -809,7 +809,7 @@ export default function EditTrfStartJob() {
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
     <Page title={`Edit TRF Entry #${id}`}>
-      <div className="transition-content w-full pb-5 px-(--margin-x)">
+      <div className="transition-content w-full pb-5 px-[var(--margin-x)]">
 
         {/* Back link */}
         <div className="mb-4">

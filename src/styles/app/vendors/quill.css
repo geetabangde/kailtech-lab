@@ -1,11 +1,11 @@
 .ql-container.ql-snow,
 .ql-toolbar.ql-snow {
-  @apply border-gray-300! dark:border-dark-450!;
+  @apply !border-gray-300 dark:!border-dark-450;
 }
 
 .ql-error .ql-container.ql-snow,
 .ql-error .ql-toolbar.ql-snow {
-  @apply border-error! dark:border-error-lighter!;
+  @apply !border-error dark:!border-error-lighter;
 }
 
 .ql-toolbar.ql-snow {
@@ -17,27 +17,27 @@
 }
 
 .ql-snow .ql-stroke {
-  @apply stroke-current!;
+  @apply !stroke-current;
 }
 
 .ql-snow .ql-fill,
 .ql-snow .ql-stroke.ql-fill {
-  @apply fill-current!;
+  @apply !fill-current;
 }
 
 .ql-snow .ql-picker,
 .ql-snow .ql-fill,
 .ql-snow .ql-stroke.ql-fill,
 .ql-snow .ql-stroke {
-  @apply text-gray-600! dark:text-dark-200!;
+  @apply !text-gray-600 dark:!text-dark-200;
 }
 
 .ql-snow .ql-picker-options {
-  @apply rounded-md! dark:bg-dark-600!;
+  @apply !rounded-md dark:!bg-dark-600;
 }
 
 .ql-toolbar.ql-snow .ql-picker.ql-expanded .ql-picker-options {
-  @apply dark:border-dark-450!;
+  @apply dark:!border-dark-450;
 }
 
 .ql-snow.ql-toolbar button:hover,
@@ -54,7 +54,7 @@
 .ql-snow .ql-toolbar .ql-picker-item:hover,
 .ql-snow.ql-toolbar .ql-picker-item.ql-selected,
 .ql-snow .ql-toolbar .ql-picker-item.ql-selected {
-  @apply text-primary-600! dark:text-primary-400!;
+  @apply !text-primary-600 dark:!text-primary-400;
 }
 
 .ql-snow.ql-toolbar button:hover .ql-stroke,
@@ -85,7 +85,7 @@
 .ql-snow .ql-toolbar .ql-picker-item:hover .ql-stroke-miter,
 .ql-snow.ql-toolbar .ql-picker-item.ql-selected .ql-stroke-miter,
 .ql-snow .ql-toolbar .ql-picker-item.ql-selected .ql-stroke-miter {
-  @apply stroke-primary-600! dark:stroke-primary-500!;
+  @apply !stroke-primary-600 dark:!stroke-primary-500;
 }
 
 .ql-snow.ql-toolbar button:hover .ql-fill,
@@ -116,11 +116,11 @@
 .ql-snow .ql-toolbar .ql-picker-item:hover .ql-stroke.ql-fill,
 .ql-snow.ql-toolbar .ql-picker-item.ql-selected .ql-stroke.ql-fill,
 .ql-snow .ql-toolbar .ql-picker-item.ql-selected .ql-stroke.ql-fill {
-  @apply fill-primary-600! dark:fill-primary-500!;
+  @apply !fill-primary-600 dark:!fill-primary-500;
 }
 
 .ql-toolbar.ql-snow .ql-picker.ql-expanded .ql-picker-label {
-  @apply rounded-sm! dark:border-dark-450!;
+  @apply !rounded-sm dark:!border-dark-450;
 }
 
 .ql-editor {
@@ -128,9 +128,9 @@
 }
 
 .ql-editor.ql-blank::before {
-  @apply [color:inherit]!;
+  @apply [color:!inherit];
 }
 
 .ql-snow .ql-picker:not(.ql-color-picker):not(.ql-icon-picker) svg {
-  @apply rtl:right-auto! rtl:left-0;
+  @apply rtl:!right-auto rtl:left-0;
 }

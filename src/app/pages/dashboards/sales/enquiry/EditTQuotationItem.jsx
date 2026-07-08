@@ -246,7 +246,7 @@ export default function EditTQuotationItem() {
 
     return (
         <Page title="Edit Quotation Item">
-            <div className="transition-content px-(--margin-x) pb-12 space-y-6">
+            <div className="transition-content px-[var(--margin-x)] pb-12 space-y-6">
                 <div className="flex items-center justify-between mb-4">
                     <h1 className="text-xl font-semibold text-slate-800">Edit Quotation Item</h1>
                     <div className="flex gap-2">

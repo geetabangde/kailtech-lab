@@ -128,7 +128,7 @@ export default function ApproveEmployee() {
           <div
             className={clsx(
               "transition-content flex grow flex-col pt-3",
-              tableSettings.enableFullScreen ? "overflow-hidden" : "px-(--margin-x)",
+              tableSettings.enableFullScreen ? "overflow-hidden" : "px-[var(--margin-x)]",
             )}
           >
             <Card

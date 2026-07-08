@@ -28,6 +28,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import axios from "utils/axios";
 import { toast } from "sonner";
 import { Page } from "components/shared/Page";
+import { parseUserPermissions } from "utils/permissions";
 import logo from "assets/krtc.jpg";
 
 // ─── Open invoice in a print window → user saves as PDF ─────────────────────
@@ -696,6 +697,11 @@ export default function ViewItemizedBill() {
   const [companyInfo, setCompanyInfo] = useState(null);
   const [states, setStates] = useState([]);
 
+  const [einvModal, setEinvModal] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const permissions = parseUserPermissions(localStorage.getItem("userPermissions"));
+  const hasPerm = (id) => permissions.includes(id);
+
   // ── Fetch invoice detail ───────────────────────────────────────────────────
   // API: GET /accounts/view-itemized-invoice/:id
   // Expected response: { status: "true", data: { invoice: {...}, address: {...},
@@ -755,6 +761,7 @@ export default function ViewItemizedBill() {
     : String(Number(invoice.statecode)).padStart(2, "0");
   const isSgst = statecode === "23";
   const isDraft = Number(invoice.status) === 0;
+  const isEinvoice = Number(invoice.status) === 2;
 
   // ── Grouping logic (per user request) ──────────────────────────────────────
   const groupedItemsMap = items.reduce((acc, item) => {
@@ -772,6 +779,141 @@ export default function ViewItemizedBill() {
     return acc;
   }, {});
   const finalItems = Object.values(groupedItemsMap);
+
+  const isFoc = invoice.invoiceno === "FOC";
+  const finalTotalVal = Math.round(parseFloat(invoice.finaltotal) || 0);
+  const canEInvoice = !isFoc && invoice.status == 1 && hasPerm(466) && finalTotalVal !== 0;
+
+  const totalQuantity = finalItems.reduce((sum, item) => sum + (item.meter_option == 1 ? parseFloat(item.meter) : parseFloat(item.qty)), 0);
+  const otherCharges =
+    (parseFloat(invoice.witnesscharges) || 0) +
+    (parseFloat(invoice.samplehandling) || 0) +
+    (parseFloat(invoice.sampleprep) || 0) +
+    (parseFloat(invoice.freight) || 0) +
+    (parseFloat(invoice.mobilisation) || 0);
+  const hasOtherCharges = otherCharges > 0;
+  const subtotal = parseFloat(invoice.subtotal) || 0;
+  const amountNew = subtotal + otherCharges;
+
+  const computedItems = finalItems.map((item) => {
+    if (isFoc) {
+      return { ...item, itemOtherCharge: 0, itemAmount: 0, itemDiscount: 0, itemAssAmt: 0, itemCgst: 0, itemSgst: 0, itemIgst: 0, itemTotVal: 0, gstRate: 0 };
+    }
+    const itemAmountOld = parseFloat(item.amount) || 0;
+    const qty = parseFloat(item.qty) || 0;
+    const itemOtherCharge = hasOtherCharges && totalQuantity > 0
+      ? parseFloat(((otherCharges / totalQuantity) * qty).toFixed(2))
+      : 0;
+    const itemAmount = itemAmountOld + itemOtherCharge;
+    let itemDiscount = 0;
+    if (amountNew > 0) {
+      if (invoice.disctype === "amount") {
+        itemDiscount = parseFloat(((itemAmount / amountNew) * (parseFloat(invoice.discnumber) || 0)).toFixed(2));
+      } else {
+        itemDiscount = parseFloat(((itemAmount / amountNew) * (parseFloat(invoice.discount) || 0)).toFixed(2));
+      }
+    }
+    const itemAssAmt = itemAmount - itemDiscount;
+    let itemCgst = 0, itemSgst = 0, itemIgst = 0;
+    if (isSgst) {
+      itemCgst = parseFloat((itemAssAmt * ((parseFloat(invoice.cgstper) || 0) / 100)).toFixed(2));
+      itemSgst = parseFloat((itemAssAmt * ((parseFloat(invoice.sgstper) || 0) / 100)).toFixed(2));
+    } else {
+      itemIgst = parseFloat((itemAssAmt * ((parseFloat(invoice.igstper) || 0) / 100)).toFixed(2));
+    }
+    const gstRate = (parseFloat(invoice.cgstper) || 0) + (parseFloat(invoice.sgstper) || 0) + (parseFloat(invoice.igstper) || 0);
+    const itemTotVal = itemAssAmt + itemCgst + itemSgst + itemIgst;
+    const eInvDesc = `${item.name || ""} ${item.brand || ""} CCL Updation-${item.brnno || ""}`.trim();
+    return { ...item, description: eInvDesc, itemOtherCharge, itemAmount, itemDiscount, itemAssAmt, itemCgst, itemSgst, itemIgst, itemTotVal, gstRate };
+  });
+
+  const doEInvoice = async () => {
+    try {
+      setBusy(true);
+      const assAmt = (subtotal - (parseFloat(invoice.discount) || 0)) + otherCharges;
+      let cgstVal = 0, sgstVal = 0, igstVal = 0;
+      if (isSgst) {
+        cgstVal = Number((assAmt * ((parseFloat(invoice.cgstper) || 0) / 100)).toFixed(2));
+        sgstVal = Number((assAmt * ((parseFloat(invoice.sgstper) || 0) / 100)).toFixed(2));
+      } else {
+        igstVal = Number((assAmt * ((parseFloat(invoice.igstper) || 0) / 100)).toFixed(2));
+      }
+      const roundoff = Number((parseFloat(invoice.roundoff) || 0).toFixed(2));
+      const totInvValFc = Number((assAmt + cgstVal + sgstVal + igstVal).toFixed(2));
+      const totInvVal = Number((totInvValFc + roundoff).toFixed(2));
+
+      let buyerGstin = invoice.gstno || "URP";
+      let supTyp = "B2B";
+      if (!invoice.gstno || invoice.gstno === "0" || invoice.gstno === "NA") {
+        buyerGstin = "URP";
+        supTyp = "B2C";
+      }
+
+      const dateParts = invoice.approved_on ? invoice.approved_on.split(' ')[0].split('-') : [];
+      const formattedDate = dateParts.length === 3 ? `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}` : "";
+
+      const payload = {
+        Version: "1.1",
+        TranDtls: { TaxSch: "GST", SupTyp: supTyp, RegRev: "N", EcmGstin: null, IgstOnIntra: "N" },
+        DocDtls: { Typ: "INV", No: invoice.invoiceno, Dt: formattedDate },
+        SellerDtls: {
+          Gstin: "23AADCK0799A1ZV",
+          LglNm: "KAILTECH TEST AND RESEARCH CENTRE PVT LTD.",
+          TrdNm: "KAILTECH TEST AND RESEARCH CENTRE PVT LTD.",
+          Addr1: "Plot No. 141-C, Electronic Complex Industrial Area, Indore",
+          Loc: "BHOPAL",
+          Pin: 452010,
+          Stcd: "23"
+        },
+        BuyerDtls: {
+          Gstin: buyerGstin,
+          LglNm: invoice.customername ? invoice.customername.substring(0, 99) : "",
+          Pos: isNaN(Number(statecode)) ? "96" : String(statecode).padStart(2, '0'),
+          Addr1: (invoice._address?.address || invoice.address || "").replace(/[\r\n]+/g, ' ').substring(0, 99),
+          Loc: invoice._address?.city || "",
+          Pin: Number(invoice._address?.pincode) || 999999,
+          Stcd: isNaN(Number(statecode)) ? "96" : String(statecode).padStart(2, '0')
+        },
+        ItemList: computedItems.map((item, index) => ({
+          SlNo: String(index + 1),
+          PrdDesc: (item.description || "").replace(/<[^>]*>?/gm, ' ').substring(0, 300).trim(),
+          IsServc: "Y",
+          HsnCd: companyInfo?.company?.sac_code || "998394",
+          Qty: item.meter_option == 1 ? Number(item.meter) : Number(item.qty),
+          UnitPrice: Number(item.rate),
+          TotAmt: Number(item.itemAmount.toFixed(2)),
+          Discount: Number(item.itemDiscount.toFixed(2)),
+          AssAmt: Number(item.itemAssAmt.toFixed(2)),
+          GstRt: Number(item.gstRate.toFixed(2)),
+          IgstAmt: Number(item.itemIgst.toFixed(2)),
+          CgstAmt: Number(item.itemCgst.toFixed(2)),
+          SgstAmt: Number(item.itemSgst.toFixed(2)),
+          OthChrg: 0,
+          TotItemVal: Number(item.itemTotVal.toFixed(2))
+        })),
+        ValDtls: {
+          AssVal: Number(assAmt.toFixed(2)),
+          CgstVal: cgstVal,
+          SgstVal: sgstVal,
+          IgstVal: igstVal,
+          OthChrg: 0,
+          RndOffAmt: roundoff,
+          TotInvVal: totInvVal,
+          TotInvValFc: totInvValFc
+        },
+        ExpDtls: { CntCode: "IN" }
+      };
+
+      await axios.post(`/einvoice/generate?invoiceid=${id}`, payload);
+      toast.success("E-Invoice generated");
+      setEinvModal(false);
+      load();
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Failed to generate E-Invoice");
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const fmt = (v) => parseFloat(v || 0).toFixed(2);
   const discnumber = parseFloat(invoice.discnumber) || 0;
@@ -798,7 +940,7 @@ export default function ViewItemizedBill() {
 
   return (
     <Page title="View Itemized Bill">
-      <div className="transition-content px-(--margin-x) pb-10">
+      <div className="transition-content px-[var(--margin-x)] pb-10">
         {/* ── Action buttons ── */}
         <div className="mb-4 flex flex-wrap items-center gap-2 print:hidden">
           <button
@@ -845,6 +987,14 @@ export default function ViewItemizedBill() {
           >
             « Back to Invoice List
           </button>
+          {canEInvoice && (
+            <button
+              onClick={() => setEinvModal(true)}
+              className="rounded bg-violet-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-violet-700"
+            >
+              Generate E-Invoice
+            </button>
+          )}
         </div>
 
         {/* ── Invoice Body ── */}
@@ -945,7 +1095,7 @@ export default function ViewItemizedBill() {
                     </div>
                   )}
                 </td>
-                <td className="dark:border-dark-500 border border-gray-400 p-3 align-top">
+                <td className="dark:border-dark-500 border border-gray-400 p-3 align-top" style={{ borderRight: isEinvoice ? "none" : undefined }}>
                   <div>
                     <b>Invoice No.: </b>
                     {invoice.invoiceno}
@@ -959,6 +1109,14 @@ export default function ViewItemizedBill() {
                     {invoice.ponumber}
                   </div>
                 </td>
+                {/* QR code (status == 2) */}
+                {isEinvoice && invoice._qr_image && (
+                  <td className="w-24 border border-gray-400 p-1 align-top dark:border-dark-500" style={{ borderLeft: "none" }}>
+                    <div className="border-2 border-black overflow-hidden">
+                      <img src={invoice._qr_image} alt="QR Code" className="w-full" />
+                    </div>
+                  </td>
+                )}
               </tr>
             </tbody>
           </table>
@@ -1029,6 +1187,13 @@ export default function ViewItemizedBill() {
               <tr>
                 {/* Left: Remark + company info (BRN No is intentionally NOT shown — PHP has it commented out) */}
                 <td className="dark:border-dark-500 w-3/5 border border-gray-400 p-3 align-bottom">
+                  {isEinvoice && (
+                    <div className="mb-2">
+                      {invoice.irn && <div><b>Irn No:</b> {invoice.irn}</div>}
+                      {invoice.ack_no && <div><b>Acknowledgment No:</b> {invoice.ack_no}</div>}
+                      {invoice.ack_dt && <div><b>Acknowledgement Date:</b> {invoice.ack_dt}</div>}
+                    </div>
+                  )}
                   {invoice.remark?.trim() && (
                     <div>
                       <b>Remark :</b> {invoice.remark}
@@ -1261,6 +1426,47 @@ export default function ViewItemizedBill() {
           </div>
         </div>
       </div>
+
+      <ConfirmModal
+        open={einvModal}
+        title="Generate E-Invoice"
+        message="Are you sure you want to generate E-Invoice? This action cannot be undone."
+        onOk={doEInvoice}
+        onCancel={() => setEinvModal(false)}
+        loading={busy}
+      />
     </Page>
+  );
+}
+
+function ConfirmModal({ open, title, message, onOk, onCancel, loading }) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+      <div className="dark:bg-dark-800 w-96 rounded-xl bg-white p-6 shadow-2xl">
+        <h3 className="mb-1 text-base font-semibold text-gray-900 dark:text-white">
+          {title}
+        </h3>
+        <p className="dark:text-dark-300 mb-5 text-sm text-gray-500">
+          {message}
+        </p>
+        <div className="flex justify-end gap-3">
+          <button
+            onClick={onCancel}
+            disabled={loading}
+            className="dark:border-dark-500 dark:text-dark-200 rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onOk}
+            disabled={loading}
+            className="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50"
+          >
+            {loading ? "Please wait…" : "Confirm"}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

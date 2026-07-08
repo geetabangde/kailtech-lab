@@ -431,7 +431,7 @@ export default function TestInput() {
 
   return (
     <Page title="Test Input">
-      <div className="transition-content w-full px-(--margin-x) pb-10">
+      <div className="transition-content w-full px-[var(--margin-x)] pb-10">
         {/* PHP: <a href="performtest.php?hakuna={trfproduct}"> Back To Tests</a> */}
         <div className="mb-5">
           <button

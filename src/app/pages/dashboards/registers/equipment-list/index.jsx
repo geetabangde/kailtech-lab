@@ -13,18 +13,21 @@ import clsx from "clsx";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import axios from "utils/axios";
+import { ChevronsLeft } from "lucide-react";
 
 // Local Imports
-import { Table, Card, THead, TBody, Th, Tr, Td } from "components/ui";
+import { Table, Card, THead, TBody, Th, Tr, Td, Button } from "components/ui";
 import { TableSortIcon } from "components/shared/table/TableSortIcon";
 import { Page } from "components/shared/Page";
 import { Toolbar } from "./Toolbar";
+import { columns } from "./columns";
 import { useLockScrollbar, useDidUpdate, useLocalStorage } from "hooks";
 import { fuzzyFilter } from "utils/react-table/fuzzyFilter";
 import { useSkipper } from "utils/react-table/useSkipper";
 import { PaginationSection } from "components/shared/table/PaginationSection";
 import { useThemeContext } from "app/contexts/theme/context";
 import { getUserAgentBrowser } from "utils/dom/getUserAgentBrowser";
+import { FormatHeader } from "components/shared/FormatHeader";
 
 const isSafari = getUserAgentBrowser() === "Safari";
 
@@ -42,7 +45,9 @@ export default function EquipmentList() {
 
   const [tableData, setTableData] = useState([]);
   const [loading, setLoading] = useState(false);
-  
+  const [searched, setSearched] = useState(false);
+  const [instrumentsList, setInstrumentsList] = useState([]);
+
   // Filters matching PHP code
   const [filters, setFilters] = useState({
     category: "",
@@ -54,7 +59,7 @@ export default function EquipmentList() {
   // Fetch categories dropdown data
   const fetchCategories = async () => {
     try {
-      const res = await axios.get("/master-data/category");
+      const res = await axios.get("inventory/category-list");
       setCategories(res.data?.data || []);
     } catch (err) {
       console.error("Error fetching categories:", err);
@@ -64,7 +69,7 @@ export default function EquipmentList() {
   // Fetch departments dropdown data
   const fetchDepartments = async () => {
     try {
-      const res = await axios.get("/master-data/labs", {
+      const res = await axios.get("master/list-lab", {
         params: { status: 1 }
       });
       setDepartments(res.data?.data || []);
@@ -82,31 +87,57 @@ export default function EquipmentList() {
   const fetchEquipmentData = async () => {
     try {
       setLoading(true);
-      
-      // Use equipment register endpoint matching PHP logic
-      const res = await axios.get("/registers/equipment-register", { params: filters });
-      
-      // Handle DataTables server-side response format
+      setSearched(true);
+
+      // Load instruments list if not loaded yet to match IDs
+      let currentInstList = instrumentsList;
+      if (currentInstList.length === 0) {
+        try {
+          const resInst = await axios.get('/material/get-mm-instrument');
+          currentInstList = resInst.data?.data || resInst.data?.instrument || (Array.isArray(resInst.data) ? resInst.data : []);
+          setInstrumentsList(currentInstList);
+        } catch (err) {
+          console.error("Failed to pre-fetch instruments list:", err);
+        }
+      }
+
+      // Use the new equipment register endpoint
+      const res = await axios.get("/register/equipment-list-register", { params: filters });
+
       let rows = res.data?.data || [];
+
+      // Map JSON response object properties to columns
+      rows = rows.map((row, index) => {
+        const code = (row.equipment_id || "").split('/')[0].trim();
+        const matchedInst = currentInstList.find(item => 
+          (item.idno && String(item.idno).trim() === code) ||
+          (item.newidno && String(item.newidno).trim() === code) ||
+          (item.instrument_id && String(item.instrument_id).trim() === code) ||
+          (item.id_no && String(item.id_no).trim() === code) ||
+          (item.name && row.equipment_name && String(item.name).trim().toLowerCase() === String(row.equipment_name).trim().toLowerCase())
+        );
+        const dbId = matchedInst ? matchedInst.id : "";
+
+        return {
+          sno: row.sr_no || index + 1,
+          name: row.equipment_name || "",
+          equipment_id: row.equipment_id || "",
+          make: row.make || "",
+          year_of_make: row.year_of_make || "",
+          model: row.model || "",
+          serial_no: row.serial_no || "",
+          range: row.range || "",
+          accuracy: row.accuracy || "",
+          least_count: row.least_count || "",
+          last_calibration_date: row.last_calibration_date || "",
+          calibration_due_date: row.calibration_due_date || "",
+          calibrated_by: row.calibrated_by || "",
+          id: dbId || row.id || row.instrument_id || "",
+          labId: row.department || row.labid || row.instrumentlocation || matchedInst?.instrumentlocation || matchedInst?.department || filters.department?.[0] || "",
+        };
+      });
       
-      // Map to PHP table structure: Sr. No, Name of Equipment, Equipment Id, Make, Year Of Make, Model, Serial no, Range, Accuracy, Least count, Last Calibration Date, Calibration Due Date, Calibrated by, Action
-      rows = rows.map((row, index) => ({
-        sno: index + 1,
-        name: row[0] || "",
-        equipment_id: `${row[1] || ""}/${row[2] || ""}`,
-        make: row[3] || "",
-        year_of_make: row[4] || "",
-        model: row[5] || "",
-        serial_no: row[6] || "",
-        range: row[7] || "",
-        accuracy: row[8] || "",
-        least_count: row[9] || "",
-        last_calibration_date: row[10] || "",
-        calibration_due_date: row[11] || "",
-        calibrated_by: row[12] || "",
-        id: row[13] || "",
-      }));
-      
+      console.log("Mapped equipment data:", rows);
       setTableData(rows);
     } catch (err) {
       console.error("Error fetching received data:", err);
@@ -122,34 +153,16 @@ export default function EquipmentList() {
 
   const handleExport = (e) => {
     e?.preventDefault?.();
-    // Create form data for export request
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = '/registers/exportequimentregister';
-    
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value && (typeof value !== 'object' || value.length > 0)) {
-        if (Array.isArray(value)) {
-          value.forEach(val => {
-            const input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = `${key}[]`;
-            input.value = val;
-            form.appendChild(input);
-          });
-        } else {
-          const input = document.createElement('input');
-          input.type = 'hidden';
-          input.name = key;
-          input.value = value;
-          form.appendChild(input);
-        }
-      }
-    });
-    
-    document.body.appendChild(form);
-    form.submit();
-    document.body.removeChild(form);
+    const params = new URLSearchParams();
+    if (filters.category) {
+      params.append('category', filters.category);
+    }
+    if (filters.department && filters.department.length > 0) {
+      filters.department.forEach(dept => {
+        params.append('department[]', dept);
+      });
+    }
+    navigate(`export?${params.toString()}`);
   };
 
   const handleFilterChange = (name, value) => {
@@ -162,56 +175,22 @@ export default function EquipmentList() {
   });
 
   const [globalFilter, setGlobalFilter] = useState("");
-  const [sorting, setSorting] = useState([{ id: "lrn", desc: true }]); // PHP: order: [[0, "desc"]]
+  const [sorting, setSorting] = useState([{ id: "sno", desc: false }]);
 
   const [columnVisibility, setColumnVisibility] = useLocalStorage(
-    "column-visibility-alloted-items-1",
+    "column-visibility-equipment-list-1",
     {},
   );
   const [columnPinning, setColumnPinning] = useLocalStorage(
-    "column-pinning-alloted-items-1",
+    "column-pinning-equipment-list-1",
     {},
   );
 
   const [autoResetPageIndex] = useSkipper();
 
-  // Define columns matching PHP alloted-items table exactly
-  const allotedColumns = [
-    {
-      id: "lrn",
-      header: "LRN",
-      cell: (info) => info.getValue(),
-    },
-    {
-      id: "date",
-      header: "Date",
-      cell: (info) => info.getValue(),
-    },
-    {
-      id: "product",
-      header: "Product",
-      cell: (info) => info.getValue(),
-    },
-    {
-      id: "department",
-      header: "Department",
-      cell: (info) => info.getValue(),
-    },
-    {
-      id: "package",
-      header: "Package",
-      cell: (info) => info.getValue(),
-    },
-    {
-      id: "quantity",
-      header: "Quantity",
-      cell: (info) => info.getValue(),
-    },
-  ];
-
   const table = useReactTable({
     data: tableData,
-    columns: allotedColumns,
+    columns: columns,
     state: {
       globalFilter,
       sorting,
@@ -264,6 +243,22 @@ export default function EquipmentList() {
 
   return (
     <Page title="Equipment List Register">
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-4 px-[var(--margin-x)] pt-4">
+        <h2 className="text-2xl font-bold tracking-wide text-gray-800 dark:text-dark-50">
+          Equipment List Register
+        </h2>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={() => navigate("/dashboards")}
+            variant="filled"
+            color="neutral"
+            className="flex items-center gap-1.5 h-9 rounded-md px-3 text-sm font-medium"
+          >
+            <ChevronsLeft className="h-4 w-4" />
+            Back
+          </Button>
+        </div>
+      </div>
       <Toolbar
         filters={filters}
         onChange={handleFilterChange}
@@ -282,10 +277,23 @@ export default function EquipmentList() {
           <div
             className={clsx(
               "transition-content flex grow flex-col pt-3",
-              tableSettings.enableFullScreen ? "overflow-hidden" : "px-(--margin-x)"
+              tableSettings.enableFullScreen ? "overflow-hidden" : "px-[var(--margin-x)]"
             )}
           >
             <Card className={clsx("relative flex grow flex-col", tableSettings.enableFullScreen && "overflow-hidden")}>
+              <div className="p-4 pb-0 bg-white dark:bg-dark-900">
+                <FormatHeader
+                  title="Equipment list"
+                  qfNo="KTRCQF/0604/11"
+                  issueNo="01"
+                  issueDate="01/06/2019"
+                  revisionNo="01"
+                  revisionDate="20/08/2021"
+                />
+                <div className="flex justify-end text-sm font-medium text-gray-700 dark:text-gray-300 mt-2">
+                  Updated On:- {new Date().toLocaleDateString("en-GB")}
+                </div>
+              </div>
               <div className="table-wrapper min-w-full grow overflow-x-auto">
                 <Table hoverable dense={tableSettings.enableRowDense} sticky={tableSettings.enableFullScreen} className="w-full text-left rtl:text-right text-xs">
                   <THead>
@@ -349,10 +357,17 @@ export default function EquipmentList() {
                         ))}
                       </Tr>
                     ))}
-                    {tableData.length === 0 && !loading && (
+                    {searched && tableData.length === 0 && !loading && (
                       <Tr>
                         <Td colSpan={visibleColumns.length} className="py-10 text-center text-gray-500">
                           No equipment items found for the selected criteria.
+                        </Td>
+                      </Tr>
+                    )}
+                    {!searched && (
+                      <Tr>
+                        <Td colSpan={visibleColumns.length} className="py-10 text-center text-gray-500">
+                          Select a category or department/lab and click Search to view the Equipment List Register.
                         </Td>
                       </Tr>
                     )}
@@ -360,15 +375,38 @@ export default function EquipmentList() {
                 </Table>
               </div>
               {table.getCoreRowModel().rows.length > 0 && (
-                <div
-                  className={clsx(
-                    "px-4 pb-4 sm:px-5 sm:pt-4",
-                    tableSettings.enableFullScreen && "bg-gray-50 dark:bg-dark-800",
-                    !(table.getIsSomeRowsSelected() || table.getIsAllRowsSelected()) && "pt-4"
-                  )}
-                >
-                  <PaginationSection table={table} />
-                </div>
+                <>
+                  <div
+                    className={clsx(
+                      "px-4 pb-4 sm:px-5 sm:pt-4",
+                      tableSettings.enableFullScreen && "bg-gray-50 dark:bg-dark-800",
+                      !(table.getIsSomeRowsSelected() || table.getIsAllRowsSelected()) && "pt-4"
+                    )}
+                  >
+                    <PaginationSection table={table} />
+                  </div>
+                  {/* Signature Footer matching PHP */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 border-t border-gray-200 dark:border-dark-500 p-6 text-sm text-gray-700 dark:text-gray-300">
+                    <div>
+                      <div className="font-semibold mb-1">Prepared by</div>
+                      <div>Sr. Engineer</div>
+                      <div className="mt-4">Name:</div>
+                      <div className="mt-2">Sign:</div>
+                    </div>
+                    <div>
+                      <div className="font-semibold mb-1">Reviewed by</div>
+                      <div>DTM</div>
+                      <div className="mt-4">Name:</div>
+                      <div className="mt-2">Sign:</div>
+                    </div>
+                    <div>
+                      <div className="font-semibold mb-1">Approved by</div>
+                      <div>TM</div>
+                      <div className="mt-4">Name:</div>
+                      <div className="mt-2">Sign:</div>
+                    </div>
+                  </div>
+                </>
               )}
             </Card>
           </div>

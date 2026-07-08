@@ -456,7 +456,7 @@
 //       }
 
 //       const response = await fetch(
-//         `https://lims.kailtech.in/api/calibrationprocess/get-dispatch-details/${dispatchId}`,
+//         `${JWT_HOST_API}/calibrationprocess/get-dispatch-details/${dispatchId}`,
 //         {
 //           method: 'GET',
 //           headers: {
@@ -755,6 +755,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { JWT_HOST_API } from "configs/auth.config";
 
 
 export default function DispatchChallan() {
@@ -795,7 +796,7 @@ export default function DispatchChallan() {
       }
 
       const response = await fetch(
-        `https://lims.kailtech.in/api/calibrationprocess/get-dispatch-details/${id}`,
+        `${JWT_HOST_API}/calibrationprocess/get-dispatch-details/${id}`,
         {
           method: 'GET',
           headers: {

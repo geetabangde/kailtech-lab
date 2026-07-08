@@ -8,11 +8,13 @@ export function Toolbar({ filters, onChange, onSearch, chemists = [] }) {
   const [startDate, setStartDate] = useState(filters.startdate || "");
   const [endDate, setEndDate] = useState(filters.enddate || "");
   const [chemist, setChemist] = useState(filters.chemist || "");
+  const [search, setSearch] = useState(filters.search || "");
 
   const handleInput = (name, value) => {
     if (name === "startdate") setStartDate(value);
     if (name === "enddate") setEndDate(value);
     if (name === "chemist") setChemist(value);
+    if (name === "search") setSearch(value);
     onChange(name, value);
   };
 
@@ -29,7 +31,7 @@ export function Toolbar({ filters, onChange, onSearch, chemists = [] }) {
   };
 
   return (
-    <div className="px-(--margin-x) pt-4">
+    <div className="px-[var(--margin-x)] pt-4">
       <div className="mb-4">
         <h2 className="text-xl font-semibold tracking-wide text-gray-800 dark:text-dark-50">
           Chemist List
@@ -41,7 +43,7 @@ export function Toolbar({ filters, onChange, onSearch, chemists = [] }) {
           e.preventDefault();
           onSearch();
         }}
-        className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_2fr_auto]"
+        className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_2fr_1fr_auto]"
       >
         {/* Start Date */}
         <DatePicker
@@ -103,6 +105,15 @@ export function Toolbar({ filters, onChange, onSearch, chemists = [] }) {
           classNamePrefix="react-select"
           className="w-full text-sm"
           styles={selectStyles}
+        />
+
+        {/* LRN Search */}
+        <input
+          type="text"
+          placeholder="Search LRN..."
+          value={search}
+          onChange={(e) => handleInput("search", e.target.value)}
+          className="h-10 w-full rounded border border-gray-300 px-3 text-sm outline-none dark:border-dark-500 dark:bg-dark-800 dark:text-dark-100 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
         />
 
         {/* Search Button */}

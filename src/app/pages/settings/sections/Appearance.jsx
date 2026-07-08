@@ -104,7 +104,7 @@ export default function Appearance() {
             <div className="mt-2 flex flex-wrap gap-6">
               <Radio
                 value="system"
-                className="w-44 cursor-pointer outline-hidden"
+                className="w-44 cursor-pointer outline-none"
               >
                 {({ checked }) => (
                   <>
@@ -160,7 +160,7 @@ export default function Appearance() {
                   </>
                 )}
               </Radio>
-              <Radio value="light" className="w-44 cursor-pointer outline-hidden">
+              <Radio value="light" className="w-44 cursor-pointer outline-none">
                 {({ checked }) => (
                   <>
                     <div
@@ -189,7 +189,7 @@ export default function Appearance() {
                   </>
                 )}
               </Radio>
-              <Radio value="dark" className="w-44 cursor-pointer outline-hidden">
+              <Radio value="dark" className="w-44 cursor-pointer outline-none">
                 {({ checked }) => (
                   <>
                     <div
@@ -244,7 +244,7 @@ export default function Appearance() {
                   value={color}
                   className={({ checked }) =>
                     clsx(
-                      "flex h-14 w-16 cursor-pointer items-center justify-center rounded-lg border outline-hidden",
+                      "flex h-14 w-16 cursor-pointer items-center justify-center rounded-lg border outline-none",
                       checked
                         ? "border-primary-500"
                         : "border-gray-200 dark:border-dark-500",
@@ -287,7 +287,7 @@ export default function Appearance() {
                 <Radio
                   key={color}
                   value={color}
-                  className="w-32 cursor-pointer outline-hidden"
+                  className="w-32 cursor-pointer outline-none"
                 >
                   {({ checked }) => (
                     <>
@@ -352,7 +352,7 @@ export default function Appearance() {
                 <Radio
                   key={color}
                   value={color}
-                  className="w-32 cursor-pointer outline-hidden"
+                  className="w-32 cursor-pointer outline-none"
                 >
                   {({ checked }) => (
                     <>
@@ -423,7 +423,7 @@ export default function Appearance() {
           >
             <Label className="sr-only">Notification Group Style</Label>
             <div className="grid max-w-xl gap-4 sm:grid-cols-2">
-              <Radio value="stack" className="cursor-pointer outline-hidden">
+              <Radio value="stack" className="cursor-pointer outline-none">
                 {({ checked }) => (
                   <>
                     <div
@@ -458,7 +458,7 @@ export default function Appearance() {
                   </>
                 )}
               </Radio>
-              <Radio value="expand" className="cursor-pointer outline-hidden">
+              <Radio value="expand" className="cursor-pointer outline-none">
                 {({ checked }) => (
                   <>
                     <div
@@ -504,7 +504,7 @@ export default function Appearance() {
                     key={i}
                     className={({ checked }) =>
                       clsx(
-                        "flex-1 cursor-pointer border-2 border-transparent border-b-current pb-1 text-base font-medium outline-hidden",
+                        "flex-1 cursor-pointer border-2 border-transparent border-b-current pb-1 text-base font-medium outline-none",
                         checked
                           ? "text-primary-600 dark:text-primary-400"
                           : "text-gray-500 dark:text-dark-300",

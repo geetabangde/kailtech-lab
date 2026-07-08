@@ -66,6 +66,7 @@ export default function EditQuotations() {
   const [contacts, setContacts] = useState([]);
   const [statutoryDetails, setStatutoryDetails] = useState([]);
   const [isNewCustomer, setIsNewCustomer] = useState(false);
+  const [countries, setCountries] = useState([]);
 
   const fetchCustomerExtras = async (customerId) => {
     try {
@@ -96,11 +97,12 @@ export default function EditQuotations() {
   const fetchInitialData = useCallback(async () => {
     try {
       setLoading(true);
-      const [custRes, ctypeRes, purposeRes, editRes] =
+      const [custRes, ctypeRes, purposeRes, countryRes, editRes] =
         await Promise.all([
           axios.get("/people/get-all-customers"),
           axios.get("/people/get-customer-type-list"),
           axios.get("/people/get-specific-purpose-list"),
+          axios.get("/people/get-country"),
           axios.get(`/sales/get-editdata-quotation/${id}`),
         ]);
 
@@ -109,6 +111,7 @@ export default function EditQuotations() {
       setCustomers(getData(custRes));
       setCustomerTypes(getData(ctypeRes));
       setSpecificPurposes(getData(purposeRes));
+      setCountries(getData(countryRes));
 
       if (editRes.data?.status || editRes.data?.status === "true") {
         const { quotation: q, statutoryDetails, customerData } = editRes.data.data;
@@ -146,6 +149,33 @@ export default function EditQuotations() {
           if (!isNew && customerData) {
             setAddresses(customerData.addresses || []);
             setContacts(customerData.contacts || []);
+
+            setFormData((prev) => {
+              let newCperson = prev.cperson;
+              let newCaddress = prev.caddress;
+
+              // Fallback: If cperson is 0, try to match by contactpersonname
+              if ((!newCperson || newCperson === "0") && prev.contactpersonname) {
+                const matchedContact = (customerData.contacts || []).find(
+                  (c) => c.name?.trim().toLowerCase() === prev.contactpersonname.trim().toLowerCase()
+                );
+                if (matchedContact) {
+                  newCperson = String(matchedContact.id);
+                }
+              }
+
+              // Fallback: If caddress is 0, try to match by customeraddress
+              if ((!newCaddress || newCaddress === "0") && prev.customeraddress) {
+                const matchedAddress = (customerData.addresses || []).find(
+                  (a) => prev.customeraddress.includes(a.address) || prev.customeraddress.includes(a.city)
+                );
+                if (matchedAddress) {
+                  newCaddress = String(matchedAddress.id);
+                }
+              }
+
+              return { ...prev, cperson: newCperson, caddress: newCaddress };
+            });
           }
         }
       }
@@ -209,7 +239,7 @@ export default function EditQuotations() {
   const handleEditorChange = (name, val, quill) => {
     setFormData(prev => ({
       ...prev,
-      [name]: quill.root.innerHTML
+      [name]: quill?.root?.innerHTML || ""
     }));
   };
 
@@ -274,7 +304,7 @@ export default function EditQuotations() {
 
   return (
     <Page title="Edit Quotation">
-      <div className="transition-content px-(--margin-x) pb-8">
+      <div className="transition-content px-[var(--margin-x)] pb-8">
         <div className="mb-4 flex items-center justify-between">
           <h1 className="text-xl font-semibold text-gray-800 dark:text-gray-100">
             Edit Quotation
@@ -312,35 +342,69 @@ export default function EditQuotations() {
               {/* Conditional Details Block */}
               {(isNewCustomer || formData.customer) && (
                 <>
-                  <div className="form-group md:col-span-2">
-                    <label className={labelCls}>Customer Address</label>
-                    <input
-                      name="customeraddress"
-                      value={formData.customeraddress}
-                      onChange={handleChange}
-                      className={inputCls}
-                      required
-                      placeholder="Enter address"
-                      readOnly={!isNewCustomer}
-                    />
-                  </div>
-                  
                   {isNewCustomer ? (
-                    <div className="form-group md:col-span-2">
-                      <label className={labelCls}>Contact Person Name</label>
-                      <input
-                        name="contactpersonname"
-                        value={formData.contactpersonname}
-                        onChange={handleChange}
-                        className={inputCls}
-                        required
-                        placeholder="Enter contact person"
-                      />
-                    </div>
+                    <>
+                      <div className="form-group md:col-span-2">
+                        <label className={labelCls}>Customer Address</label>
+                        <input
+                          name="customeraddress"
+                          value={formData.customeraddress}
+                          onChange={handleChange}
+                          className={inputCls}
+                          required
+                          placeholder="Enter address"
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label className={labelCls}>Contact Person Name</label>
+                        <input
+                          name="contactpersonname"
+                          value={formData.contactpersonname}
+                          onChange={handleChange}
+                          className={inputCls}
+                          required
+                          placeholder="Enter contact person"
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label className={labelCls}>GST NO</label>
+                        <input
+                          name="gstno"
+                          value={formData.gstno}
+                          onChange={handleChange}
+                          className={inputCls}
+                          placeholder="Enter GST"
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label className={labelCls}>Country</label>
+                        <Select
+                          options={countries.map((c) => ({
+                            value: c.id,
+                            label: c.country_name,
+                          }))}
+                          value={countries
+                            .map((c) => ({ value: c.id, label: c.country_name }))
+                            .find((opt) => String(opt.value) === String(formData.country))}
+                          onChange={(opt) => handleSelectChange("country", opt?.value)}
+                          placeholder="Select Country..."
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label className={labelCls}>State / Province</label>
+                        <input
+                          name="state"
+                          value={formData.state}
+                          onChange={handleChange}
+                          className={inputCls}
+                          placeholder="Enter state"
+                        />
+                      </div>
+                    </>
                   ) : (
                     <>
                       <div className="form-group md:col-span-2">
-                        <label className={labelCls}>Billing Address</label>
+                        <label className={labelCls}>Customer Address</label>
                         <Select
                           options={addresses.map((a) => ({ value: a.id, label: `${a.name} (${a.address})` }))}
                           value={addresses
@@ -350,8 +414,8 @@ export default function EditQuotations() {
                           placeholder="Select Address"
                         />
                       </div>
-                      <div className="form-group md:col-span-2">
-                        <label className={labelCls}>Contact Person</label>
+                      <div className="form-group">
+                        <label className={labelCls}>Contact Person Name</label>
                         <Select
                           options={contacts.map((c) => ({ value: c.id, label: c.name }))}
                           value={contacts
@@ -359,6 +423,70 @@ export default function EditQuotations() {
                             .find((opt) => String(opt.value) === String(formData.cperson))}
                           onChange={(opt) => handleSelectChange("cperson", opt?.value)}
                           placeholder="Select Contact"
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label className={labelCls}>Contact Person Designation</label>
+                        <input
+                          name="concernpersondesignation"
+                          value={formData.concernpersondesignation}
+                          onChange={handleChange}
+                          className={inputCls}
+                          placeholder="Enter designation"
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label className={labelCls}>Contact Person Email</label>
+                        <input
+                          name="concernpersonemail"
+                          value={formData.concernpersonemail}
+                          onChange={handleChange}
+                          className={inputCls}
+                          placeholder="Enter email"
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label className={labelCls}>Contact Person Mobile</label>
+                        <input
+                          name="concernpersonmobile"
+                          value={formData.concernpersonmobile}
+                          onChange={handleChange}
+                          className={inputCls}
+                          placeholder="Enter mobile"
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label className={labelCls}>GST NO</label>
+                        <input
+                          name="gstno"
+                          value={formData.gstno}
+                          onChange={handleChange}
+                          className={inputCls}
+                          placeholder="Enter GST"
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label className={labelCls}>Country</label>
+                        <Select
+                          options={countries.map((c) => ({
+                            value: c.id,
+                            label: c.country_name,
+                          }))}
+                          value={countries
+                            .map((c) => ({ value: c.id, label: c.country_name }))
+                            .find((opt) => String(opt.value) === String(formData.country))}
+                          onChange={(opt) => handleSelectChange("country", opt?.value)}
+                          placeholder="Select Country..."
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label className={labelCls}>State / Province</label>
+                        <input
+                          name="state"
+                          value={formData.state}
+                          onChange={handleChange}
+                          className={inputCls}
+                          placeholder="Enter state"
                         />
                       </div>
                     </>

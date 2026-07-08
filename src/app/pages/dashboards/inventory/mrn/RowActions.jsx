@@ -14,7 +14,7 @@ export function RowActions({ row }) {
   const handleActionClick = () => {
     // PHP: if ($row['status'] == 0) { Add MRN Item } else { View Mrn Items }
     if (status === 0 || status === "0") {
-      navigate(`/dashboards/inventory/mrn/add-item/${id}`, { state: { mrn: row.original } });
+      navigate(`/dashboards/inventory/mrn/addMrnItemPurchasewopo?id=${id}`, { state: { mrn: row.original } });
     } else {
       navigate(`/dashboards/inventory/mrn/view-items/${id}`, { state: { mrn: row.original } });
     }

@@ -621,7 +621,7 @@ export default function EditTestingInvoice() {
   // ─────────────────────────────────────────────────────────────────────────
   return (
     <Page title="Edit Testing Invoice">
-      <div className="transition-content px-(--margin-x) pb-10">
+      <div className="transition-content px-[var(--margin-x)] pb-10">
 
         {/* Header */}
         <div className="mb-4 flex items-center justify-between">

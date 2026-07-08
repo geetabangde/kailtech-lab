@@ -1,9 +1,10 @@
 import { useNavigate } from "react-router";
-import { Button, Input, Select } from "components/ui";
+import { Button, Input } from "components/ui";
 import { Page } from "components/shared/Page";
 import axios from "utils/axios"; // Interceptor should attach token
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
+import ReactSelect from "react-select";
 
 export default function AddGateEntry() {
   const navigate = useNavigate();
@@ -25,7 +26,7 @@ export default function AddGateEntry() {
     const fetchPurposes = async () => {
       try {
         setFetchingPurposes(true);
-        const response = await axios.get("/gateentry/get-gate-purpose-list");
+        const response = await axios.get("/people/get-specific-purpose-list");
         if (response.data.status && Array.isArray(response.data.data)) {
           setPurposes(
             response.data.data.map((p) => ({ value: p.id, label: p.name }))
@@ -47,7 +48,7 @@ export default function AddGateEntry() {
       ...prev,
       [name]: value,
     }));
-    
+
     // Clear error when user starts typing
     if (errors[name]) {
       setErrors(prev => ({
@@ -60,15 +61,15 @@ export default function AddGateEntry() {
   // Custom validation function
   const validateForm = () => {
     const newErrors = {};
-    
+
     if (!formData.purpose) {
       newErrors.purpose = "This is required field";
     }
-    
+
     if (!formData.description) {
       newErrors.description = "This is required field";
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -76,29 +77,34 @@ export default function AddGateEntry() {
   // ✅ Form submit
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Validate form before submitting
     if (!validateForm()) {
       return;
     }
-    
+
     setLoading(true);
 
     try {
-      const form = new FormData();
-      form.append("purpose", formData.purpose);
-      form.append("description", formData.description);
-      form.append("quantity", formData.quantity);
-      form.append("source", formData.source);
+      const payload = {
+        purpose: Number(formData.purpose),
+        description: formData.description,
+        source: formData.source,
+        quantity: formData.quantity
+      };
 
-      await axios.post("/gateentry/gate-entry-create", form); // token attached via interceptor
+      const response = await axios.post("/gate-entry/add-gate-entry", payload); // token attached via interceptor
 
-      toast.success("Gate entry created successfully ✅", {
-        duration: 1000,
-        icon: "✅",
-      });
+      if (response.data.status) {
+        toast.success(response.data.message || "Gate entry created successfully ✅", {
+          duration: 1000,
+          icon: "✅",
+        });
 
-      navigate("/dashboards/gate-entry");
+        navigate("/dashboards/gate-entry");
+      } else {
+        toast.error(response.data.message || "Failed to create gate entry ❌");
+      }
     } catch (err) {
       console.error("Error creating gate entry:", err);
       toast.error(err?.response?.data?.message || "Failed to create gate entry ❌");
@@ -129,16 +135,31 @@ export default function AddGateEntry() {
           onSubmit={handleSubmit}
           className="grid grid-cols-1 md:grid-cols-2 gap-4"
         >
-          <div className="md:col-span-2">
-            <Select
-              label="Purpose"
-              name="purpose"
-              placeholder={fetchingPurposes ? "Loading..." : "Select Purpose"}
+          <div className="md:col-span-2 space-y-1">
+            <label className="block text-sm font-medium">Purpose</label>
+            <ReactSelect
               options={purposes}
-              value={formData.purpose}
-              onChange={(val) =>
-                setFormData((prev) => ({ ...prev, purpose: val }))
-              }
+              value={purposes.find((p) => p.value == formData.purpose) || null}
+              onChange={(selected) => {
+                setFormData((prev) => ({ ...prev, purpose: selected ? selected.value : "" }));
+                if (errors.purpose) {
+                  setErrors((prev) => ({ ...prev, purpose: "" }));
+                }
+              }}
+              placeholder={fetchingPurposes ? "Loading..." : "Select Purpose"}
+              isClearable
+              menuPortalTarget={document.body}
+              styles={{
+                control: (base) => ({
+                  ...base,
+                  minHeight: "42px",
+                  borderRadius: "0.5rem",
+                  borderColor: "#D1D5DB",
+                  boxShadow: "none",
+                  "&:hover": { borderColor: "#9CA3AF" },
+                }),
+                menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+              }}
             />
             {errors.purpose && (
               <p className="mt-1 text-sm text-red-500">{errors.purpose}</p>
@@ -151,7 +172,7 @@ export default function AddGateEntry() {
               <textarea
                 name="description"
                 placeholder="Describe Items"
-                className="w-full rounded-md border border-gray-300 p-2 text-sm focus:border-blue-500 focus:outline-hidden dark:border-dark-500 dark:bg-dark-900"
+                className="w-full rounded-md border border-gray-300 p-2 text-sm focus:border-blue-500 focus:outline-none dark:border-dark-500 dark:bg-dark-900"
                 rows={3}
                 value={formData.description}
                 onChange={handleChange}

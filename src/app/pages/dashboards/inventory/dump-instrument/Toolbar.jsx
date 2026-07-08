@@ -47,7 +47,7 @@ export function Toolbar({ table }) {
       <div
         className={clsx(
           "transition-content flex items-center justify-between gap-4",
-          isFullScreenEnabled ? "px-4 sm:px-5" : "px-(--margin-x) pt-4",
+          isFullScreenEnabled ? "px-4 sm:px-5" : "px-[var(--margin-x)] pt-4",
         )}
       >
           {/*  */}
@@ -55,19 +55,8 @@ export function Toolbar({ table }) {
           {/* Heading */}
           <div className="min-w-0">
             <h2 className="text-xl font-semibold tracking-wide text-gray-800 dark:text-dark-50">
-            Mrn Item List Pending For Coding
+            Dumped Instruments
             </h2>
-          </div>
-
-          {/* PHP: <a href="mrnchallan.php" class="btn btn-primary mb-2 mb-sm-0"><< MRN List</a> */}
-          <div>
-            <Button
-              onClick={() => navigate("/dashboards/inventory/purchase-order/mrn-challan")}
-              className="h-9 rounded-md px-4 text-sm font-medium"
-              color="primary"
-            >
-              {`<< MRN List`}
-            </Button>
           </div>
         </div>
 
@@ -91,30 +80,26 @@ export function Toolbar({ table }) {
               leave="transition ease-in"
               leaveFrom="opacity-100 translate-y-0"
               leaveTo="opacity-0 translate-y-2"
-              className="absolute z-100 mt-1.5 min-w-[10rem] whitespace-nowrap rounded-lg border border-gray-300 bg-white py-1 shadow-lg shadow-gray-200/50 outline-hidden focus-visible:outline-hidden dark:border-dark-500 dark:bg-dark-700 dark:shadow-none ltr:right-0 rtl:left-0"
+              className="absolute z-100 mt-1.5 min-w-[10rem] whitespace-nowrap rounded-lg border border-gray-300 bg-white py-1 shadow-lg shadow-gray-200/50 outline-none focus-visible:outline-none dark:border-dark-500 dark:bg-dark-700 dark:shadow-none ltr:right-0 rtl:left-0"
             >
               <MenuItem>
                 {({ focus }) => (
-                  <>
-                    {/* PHP: <a href="mrnchallan.php" class="btn btn-primary mb-2 mb-sm-0"><< MRN List</a> */}
-                    <button
-                      onClick={() => navigate("/dashboards/inventory/purchase-order/mrn-challan")}
-                      className={clsx(
-                        "flex h-9 w-full items-center px-3 tracking-wide outline-hidden transition-colors",
-                        focus &&
-                          "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
-                      )}
-                    >
-                      <span>{`<< MRN List`}</span>
-                    </button>
-                  </>
+                  <button
+                    className={clsx(
+                      "flex h-9 w-full items-center px-3 tracking-wide outline-none transition-colors",
+                      focus &&
+                        "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
+                    )}
+                  >
+                    <span>Refresh</span>
+                  </button>
                 )}
               </MenuItem>
               <MenuItem>
                 {({ focus }) => (
                   <button
                     className={clsx(
-                      "flex h-9 w-full items-center px-3 tracking-wide outline-hidden transition-colors",
+                      "flex h-9 w-full items-center px-3 tracking-wide outline-none transition-colors",
                       focus &&
                         "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
                     )}
@@ -127,7 +112,7 @@ export function Toolbar({ table }) {
                 {({ focus }) => (
                   <button
                     className={clsx(
-                      "flex h-9 w-full items-center px-3 tracking-wide outline-hidden transition-colors",
+                      "flex h-9 w-full items-center px-3 tracking-wide outline-none transition-colors",
                       focus &&
                         "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
                     )}
@@ -141,7 +126,7 @@ export function Toolbar({ table }) {
                 {({ focus }) => (
                   <button
                     className={clsx(
-                      "flex h-9 w-full items-center px-3 tracking-wide outline-hidden transition-colors",
+                      "flex h-9 w-full items-center px-3 tracking-wide outline-none transition-colors",
                       focus &&
                         "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
                     )}
@@ -155,7 +140,7 @@ export function Toolbar({ table }) {
                 {({ focus }) => (
                   <button
                     className={clsx(
-                      "flex h-9 w-full items-center px-3 tracking-wide outline-hidden transition-colors",
+                      "flex h-9 w-full items-center px-3 tracking-wide outline-none transition-colors",
                       focus &&
                         "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
                     )}
@@ -168,7 +153,7 @@ export function Toolbar({ table }) {
                 {({ focus }) => (
                   <button
                     className={clsx(
-                      "flex h-9 w-full items-center px-3 tracking-wide outline-hidden transition-colors",
+                      "flex h-9 w-full items-center px-3 tracking-wide outline-none transition-colors",
                       focus &&
                         "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
                     )}
@@ -181,7 +166,7 @@ export function Toolbar({ table }) {
                 {({ focus }) => (
                   <button
                     className={clsx(
-                      "flex h-9 w-full items-center px-3 tracking-wide outline-hidden transition-colors",
+                      "flex h-9 w-full items-center px-3 tracking-wide outline-none transition-colors",
                       focus &&
                         "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
                     )}
@@ -207,7 +192,7 @@ export function Toolbar({ table }) {
           <div
             className={clsx(
               "flex space-x-2 pt-4  [&_.input-root]:flex-1",
-              isFullScreenEnabled ? "px-4 sm:px-5" : "px-(--margin-x)",
+              isFullScreenEnabled ? "px-4 sm:px-5" : "px-[var(--margin-x)]",
             )}
           >
             <SearchInput table={table} />
@@ -216,7 +201,7 @@ export function Toolbar({ table }) {
           <div
             className={clsx(
               "hide-scrollbar flex shrink-0 space-x-2 overflow-x-auto pb-1 pt-4 ",
-              isFullScreenEnabled ? "px-4 sm:px-5" : "px-(--margin-x)",
+              isFullScreenEnabled ? "px-4 sm:px-5" : "px-[var(--margin-x)]",
             )}
           >
           
@@ -226,7 +211,7 @@ export function Toolbar({ table }) {
         <div
           className={clsx(
             "custom-scrollbar transition-content flex justify-between space-x-4 overflow-x-auto pb-1 pt-4 ",
-            isFullScreenEnabled ? "px-4 sm:px-5" : "px-(--margin-x)",
+            isFullScreenEnabled ? "px-4 sm:px-5" : "px-[var(--margin-x)]",
           )}
           style={{
             "--margin-scroll": isFullScreenEnabled

@@ -1,9 +1,10 @@
 import { useParams, useNavigate } from "react-router";
 import { useEffect, useState } from "react";
-import { Button, Input, Select } from "components/ui";
+import { Button, Input } from "components/ui";
 import { Page } from "components/shared/Page";
 import axios from "utils/axios";
 import { toast } from "sonner";
+import ReactSelect from "react-select";
 
 export default function EditGateEntry() {
   const { id } = useParams();
@@ -24,7 +25,7 @@ export default function EditGateEntry() {
     const fetchPurposes = async () => {
       try {
         setFetchingPurposes(true);
-        const response = await axios.get("/gateentry/get-gate-purpose-list");
+        const response = await axios.get("/people/get-specific-purpose-list");
         if (response.data.status && Array.isArray(response.data.data)) {
           setPurposes(
             response.data.data.map((p) => ({ value: p.id, label: p.name }))
@@ -154,16 +155,31 @@ export default function EditGateEntry() {
           onSubmit={handleSubmit}
           className="grid grid-cols-1 md:grid-cols-2 gap-4"
         >
-          <div className="md:col-span-2">
-            <Select
-              label="Purpose"
-              name="purpose"
-              placeholder={fetchingPurposes ? "Loading..." : "Select Purpose"}
+          <div className="md:col-span-2 space-y-1">
+            <label className="block text-sm font-medium">Purpose</label>
+            <ReactSelect
               options={purposes}
-              value={gateEntry.purpose}
-              onChange={(val) =>
-                setGateEntry((prev) => ({ ...prev, purpose: val }))
-              }
+              value={purposes.find((p) => p.value == gateEntry.purpose) || null}
+              onChange={(selected) => {
+                setGateEntry((prev) => ({ ...prev, purpose: selected ? selected.value : "" }));
+                if (errors.purpose) {
+                  setErrors((prev) => ({ ...prev, purpose: "" }));
+                }
+              }}
+              placeholder={fetchingPurposes ? "Loading..." : "Select Purpose"}
+              isClearable
+              menuPortalTarget={document.body}
+              styles={{
+                control: (base) => ({
+                  ...base,
+                  minHeight: "42px",
+                  borderRadius: "0.5rem",
+                  borderColor: "#D1D5DB",
+                  boxShadow: "none",
+                  "&:hover": { borderColor: "#9CA3AF" },
+                }),
+                menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+              }}
             />
             {errors.purpose && (
               <p className="mt-1 text-sm text-red-500">{errors.purpose}</p>
@@ -176,7 +192,7 @@ export default function EditGateEntry() {
               <textarea
                 name="description"
                 placeholder="Describe Items"
-                className="w-full rounded-md border border-gray-300 p-2 text-sm focus:border-blue-500 focus:outline-hidden dark:border-dark-500 dark:bg-dark-900"
+                className="w-full rounded-md border border-gray-300 p-2 text-sm focus:border-blue-500 focus:outline-none dark:border-dark-500 dark:bg-dark-900"
                 rows={3}
                 value={gateEntry.description}
                 onChange={(e) => handleInputChange("description", e.target.value)}

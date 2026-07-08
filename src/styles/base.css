@@ -24,7 +24,7 @@ body {
 }
 
 body.is-monochrome::before {
-  @apply pointer-events-none fixed inset-0 z-999999 -m-[5rem] h-[calc(100%+10rem)] w-[calc(100%+10rem)] backdrop-grayscale backdrop-opacity-[.92] content-[''];
+  @apply pointer-events-none fixed inset-0 z-[999999] -m-[5rem] h-[calc(100%+10rem)] w-[calc(100%+10rem)] backdrop-grayscale backdrop-opacity-[.92] content-[''];
 }
 
 .transition-content {
@@ -95,11 +95,11 @@ body.is-monochrome::before {
   }
 
   .custom-scrollbar::-webkit-scrollbar {
-    @apply size-(--scrollbar-size);
+    @apply size-[var(--scrollbar-size)];
   }
 
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    @apply bg-gray-300/80 dark:bg-dark-400;
+    @apply bg-gray-300 opacity-80 dark:bg-dark-400 dark:opacity-100;
   }
 
   .custom-scrollbar::-webkit-scrollbar-thumb {

@@ -253,7 +253,7 @@ export default function MaintenanceEquipmentHistory() {
   }
 
   return (
-    <div className="transition-content grid grid-cols-1 grid-rows-[auto_auto_1fr] px-(--margin-x) py-4">
+    <div className="transition-content grid grid-cols-1 grid-rows-[auto_auto_1fr] px-[var(--margin-x)] py-4">
       {/* ✅ Master Record Information */}
       {masterRecord && (
         <div className="mb-4 rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-dark-800">

@@ -16,7 +16,7 @@ export function Toolbar({ table }) {
     <div
       className={clsx(
         "transition-content",
-        isFullScreenEnabled ? "px-4 sm:px-5" : "px-(--margin-x) pt-4",
+        isFullScreenEnabled ? "px-4 sm:px-5" : "px-[var(--margin-x)] pt-4",
       )}
     >
       <div className="flex items-center justify-between">

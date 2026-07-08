@@ -337,7 +337,7 @@ export default function DraftReportView() {
 
   return (
     <Page title={`Draft Report — ${lrn ?? id}`}>
-      <div className="transition-content px-(--margin-x) pb-8">
+      <div className="transition-content px-[var(--margin-x)] pb-8">
         {/* ── Page Header ───────────────────────────────────────── */}
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">

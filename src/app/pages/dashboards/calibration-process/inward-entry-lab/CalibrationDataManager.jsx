@@ -4,6 +4,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'utils/axios';
 import { toast } from 'sonner';
+import { JWT_HOST_API } from "configs/auth.config";
 
 export const CalibrationDataManager = ({ 
   inwardId, 
@@ -67,7 +68,7 @@ export const CalibrationDataManager = ({
   useEffect(() => {
     const fetchUnits = async () => {
       try {
-        const response = await axios.get('https://lims.kailtech.in/api/master/units-list');
+        const response = await axios.get(`${JWT_HOST_API}/master/units-list`);
         if (response.data.status && response.data.data) {
           setUnitsList(response.data.data.map(unit => ({
             value: unit.id,

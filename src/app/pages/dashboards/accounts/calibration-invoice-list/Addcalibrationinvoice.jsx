@@ -170,11 +170,10 @@ function CustomerSearch({ customers, value, onChange }) {
               <div
                 key={c.id}
                 onMouseDown={() => handleSelect(c)}
-                className={`dark:hover:bg-dark-700 cursor-pointer px-3 py-2 text-sm hover:bg-blue-50 ${
-                  String(c.id) === String(value)
-                    ? "dark:bg-dark-700 bg-blue-50 font-semibold text-blue-700 dark:text-blue-400"
-                    : "dark:text-dark-200 text-gray-700"
-                }`}
+                className={`dark:hover:bg-dark-700 cursor-pointer px-3 py-2 text-sm hover:bg-blue-50 ${String(c.id) === String(value)
+                  ? "dark:bg-dark-700 bg-blue-50 font-semibold text-blue-700 dark:text-blue-400"
+                  : "dark:text-dark-200 text-gray-700"
+                  }`}
               >
                 {c.name}
               </div>
@@ -668,7 +667,7 @@ export default function AddCalibrationInvoice() {
   // ─────────────────────────────────────────────────────────────────────────
   return (
     <Page title="Add Calibration Invoice">
-      <div className="transition-content px-(--margin-x) pb-10">
+      <div className="transition-content px-[var(--margin-x)] pb-10">
         {/* ── Page Header ── */}
         <div className="mb-4 flex items-center justify-between">
           <h2 className="dark:text-dark-100 text-base font-semibold text-gray-800">
@@ -829,11 +828,10 @@ export default function AddCalibrationInvoice() {
                 {/* Tax type indicator */}
                 <div className="pt-1">
                   <span
-                    className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
-                      isSgst
-                        ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                        : "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-                    }`}
+                    className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${isSgst
+                      ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                      : "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                      }`}
                   >
                     {isSgst ? "CGST + SGST Applicable" : "IGST Applicable"}
                   </span>
@@ -898,10 +896,10 @@ export default function AddCalibrationInvoice() {
                           </div>
                           {(item.accreditation ?? "").toLowerCase() ===
                             "nabl" && (
-                            <span className="mt-0.5 inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700 dark:bg-green-900/30 dark:text-green-400">
-                              With Nabl
-                            </span>
-                          )}
+                              <span className="mt-0.5 inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                                With Nabl
+                              </span>
+                            )}
                         </td>
                         <td className="dark:text-dark-300 px-3 py-2 text-xs text-gray-600">
                           {item.idno ?? "—"}

@@ -15,7 +15,24 @@ export const columns = [
   columnHelper.accessor("sr_no", {
     id: "sr_no",
     header: "S.No(Trf)",
-    cell: (info) => safeRender(info.getValue()),
+    cell: (info) => (
+      <div className="flex items-center gap-2">
+        {info.row.getCanExpand() && (
+          <button
+            onClick={info.row.getToggleExpandedHandler()}
+            className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full text-white cursor-pointer shadow-sm transition-colors"
+            style={{
+              backgroundColor: info.row.getIsExpanded() ? "#ef4444" : "#22c55e",
+            }}
+          >
+            <span className="text-sm font-bold leading-none" style={{ marginTop: "-2px" }}>
+              {info.row.getIsExpanded() ? "-" : "+"}
+            </span>
+          </button>
+        )}
+        <span>{safeRender(info.getValue())}</span>
+      </div>
+    ),
   }),
   columnHelper.accessor("booking_date", {
     id: "booking_date",
@@ -50,7 +67,11 @@ export const columns = [
   columnHelper.accessor("is_code", {
     id: "is_code",
     header: "IS Code",
-    cell: (info) => safeRender(info.getValue()),
+    cell: (info) => (
+      <div className="max-w-[250px] whitespace-normal break-words leading-tight">
+        {safeRender(info.getValue())}
+      </div>
+    ),
   }),
   columnHelper.accessor("sample", {
     id: "sample",
@@ -87,6 +108,7 @@ export const columns = [
     header: "Mech Code",
     cell: (info) => safeRender(info.getValue()),
   }),
+ 
   columnHelper.accessor("chem_code", {
     id: "chem_code",
     header: "Chem Code",

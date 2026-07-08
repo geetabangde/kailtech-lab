@@ -56,12 +56,7 @@ export default function DisposalRegister() {
   // Fetch departments dropdown data (no permission check for disposal register)
   const fetchDepartments = async () => {
     try {
-      const res = await axios.get("/master/get-all-labs", {
-        params: {
-          vertical: 2,
-          status: 1
-        }
-      });
+      const res = await axios.get("/register/get-lab-by-vertical/2");
       setDepartments(res.data?.data || []);
     } catch (err) {
       console.error("Error fetching departments:", err);
@@ -78,25 +73,41 @@ export default function DisposalRegister() {
       setLoading(true);
       setSearched(true);
       
-      // Use disposalregisterdata.php endpoint matching PHP ajax URL
-      const res = await axios.get("/registers/disposalregisterdata", { params: filters });
+      // Use the updated disposal-register API endpoint
+      const res = await axios.get("/register/disposal-register", { params: filters });
       
-      // Handle DataTables server-side response format
       let rows = res.data?.data || [];
       
-      // Map to PHP table structure: S.No, LRN, Nature Of Sample, Date Of Sample, Quantity, Reporting Date, Disposal Date, Checked By, Remark, Actions
-      rows = rows.map((row) => ({
-        sno: row[0] || "",
-        lrn: row[1] || "",
-        nature_of_sample: row[2] || "",
-        date_of_sample: row[3] || "",
-        quantity: row[4] || "",
-        reporting_date: row[5] || "",
-        disposal_date: row[6] || "",
-        checked_by: row[7] || "",
-        remark: row[8] || "",
-        actions: row[9] || "",
-      }));
+      // Support both array formats and object formats for flexibility
+      rows = rows.map((row, index) => {
+        if (Array.isArray(row)) {
+          return {
+            sno: row[0] || index + 1,
+            lrn: row[1] || "",
+            nature_of_sample: row[2] || "",
+            date_of_sample: row[3] || "",
+            quantity: row[4] || "",
+            reporting_date: row[5] || "",
+            disposal_date: row[6] || "",
+            checked_by: row[7] || "",
+            remark: row[8] || "",
+            actions: row[9] || "",
+          };
+        } else {
+          return {
+            sno: index + 1,
+            lrn: row.lrn || "",
+            nature_of_sample: row.name || row.nature_of_sample || "",
+            date_of_sample: row.din_date || row.date_of_sample || "",
+            quantity: row.description || row.quantity || "",
+            reporting_date: row.report_date || row.reporting_date || "",
+            disposal_date: row.dispatch_date || row.disposal_date || "",
+            checked_by: row.approved_by || row.checked_by || "",
+            remark: row.remark || "",
+            actions: row.actions || "",
+          };
+        }
+      });
       
       setTableData(rows);
     } catch (err) {
@@ -259,7 +270,7 @@ export default function DisposalRegister() {
           <div
             className={clsx(
               "transition-content flex grow flex-col pt-3",
-              tableSettings.enableFullScreen ? "overflow-hidden" : "px-(--margin-x)"
+              tableSettings.enableFullScreen ? "overflow-hidden" : "px-[var(--margin-x)]"
             )}
           >
             <Card className={clsx("relative flex grow flex-col", tableSettings.enableFullScreen && "overflow-hidden")}>

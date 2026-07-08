@@ -147,7 +147,7 @@ export function SearchDialog({ close }) {
                 })}
                 data-search-item
                 to={item.path}
-                className="group flex items-center justify-between space-x-2 rounded-lg bg-gray-100 px-2.5 py-2 tracking-wide text-gray-800 outline-hidden transition-all focus:ring-3 focus:ring-primary-500/50 dark:bg-dark-600 dark:text-dark-100 "
+                className="group flex items-center justify-between space-x-2 rounded-lg bg-gray-100 px-2.5 py-2 tracking-wide text-gray-800 outline-none transition-all focus:ring-3 focus:ring-primary-500/50 dark:bg-dark-600 dark:text-dark-100 "
                 onClick={close}
               >
                 <div className="min-w-0">

@@ -358,7 +358,7 @@ export default function CreateQuotationFromEnquiry() {
 
     return (
         <Page title="Convert Enquiry to Quotation">
-            <div className="transition-content px-(--margin-x) pb-8">
+            <div className="transition-content px-[var(--margin-x)] pb-8">
                 {/* Header */}
                 <div className="mb-4 flex items-center justify-between">
                     <div>

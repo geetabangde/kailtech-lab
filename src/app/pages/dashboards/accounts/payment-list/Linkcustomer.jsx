@@ -7,6 +7,7 @@ import { toast } from "sonner";
 // Local Imports
 import { Page } from "components/shared/Page";
 import { Card } from "components/ui";
+import Select from "react-select";
 
 // ----------------------------------------------------------------------
 
@@ -21,8 +22,6 @@ const toApiDate = (d) => {
   return d;
 };
 
-const selectCls =
-  "w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-700 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-dark-500 dark:bg-dark-800 dark:text-dark-100";
 
 function FormRow({ label, children }) {
   return (
@@ -66,7 +65,10 @@ export default function LinkCustomer() {
         if (d) setPayment(d);
 
         if (customerRes.data.status && Array.isArray(customerRes.data.data)) {
-          setCustomers(customerRes.data.data);
+          const sortedCustomers = [...customerRes.data.data].sort((a, b) =>
+            (a.name || "").localeCompare(b.name || "")
+          );
+          setCustomers(sortedCustomers);
         }
       } catch (err) {
         console.error(err);
@@ -155,7 +157,7 @@ export default function LinkCustomer() {
 
   return (
     <Page title="Link Customer to Payment">
-      <div className="transition-content px-(--margin-x) pb-8">
+      <div className="transition-content px-[var(--margin-x)] pb-8">
         {/* ── Header ── */}
         <div className="mb-5 flex items-center justify-between">
           <h2 className="dark:text-dark-50 text-xl font-semibold text-gray-800">
@@ -173,18 +175,34 @@ export default function LinkCustomer() {
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             {/* Customer Name — EDITABLE dropdown */}
             <FormRow label="Customer Name">
-              <select
-                value={customerid}
-                onChange={(e) => setCustomerid(e.target.value)}
-                className={selectCls}
-              >
-                <option value="">Select Customer</option>
-                {customers.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
+              <Select
+                value={
+                  customerid
+                    ? {
+                        value: customerid,
+                        label: customers.find((c) => c.id == customerid)?.name,
+                      }
+                    : null
+                }
+                onChange={(selectedOption) =>
+                  setCustomerid(selectedOption ? selectedOption.value : "")
+                }
+                options={customers.map((c) => ({ value: c.id, label: c.name }))}
+                placeholder="Select Customer"
+                isSearchable
+                isClearable
+                styles={{
+                  control: (base) => ({
+                    ...base,
+                    borderRadius: "0.375rem",
+                    borderColor: "#d1d5db",
+                    boxShadow: "none",
+                    "&:hover": {
+                      borderColor: "#d1d5db",
+                    },
+                  }),
+                }}
+              />
             </FormRow>
 
             {/* Payment Mode — readonly */}

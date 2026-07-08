@@ -58,8 +58,8 @@ export default function AssignedCalibrationRegister() {
     try {
       setLoading(true);
       setSearched(true);
-      // Adjust the endpoint to match your actual backend API route
-      const res = await axios.get("/registers/get-assigned-calibration-register", { params: filters });
+      // Fetch assigned calibration register data from the correct backend API route
+      const res = await axios.get("/register/assigned-calibration-register", { params: filters });
 
       let rows = res.data?.data || [];
 
@@ -81,11 +81,38 @@ export default function AssignedCalibrationRegister() {
           ...r,
           sr_no: r.sr_no || i + 1,
           lrn: r.lrn || r.LRN,
-          assigned_person: r.assigned_person || r.chemist,
-          assign_date: r.assign_date || r.allotmentdate,
-          start_date: r.start_date || r.startdate,
-          end_date: r.end_date || r.enddate,
-          tat: r.tat || r.tat_days,
+          assigned_person: r.fullname || r.assigned_person || r.chemist,
+          assign_date: r.allotedon || r.assign_date || r.allotmentdate,
+          start_date: r.startdate || r.start_date,
+          end_date: r.enddate || r.end_date,
+          performance_timing: (() => {
+            const totalSeconds = r.totalSeconds !== undefined ? Number(r.totalSeconds) : 0;
+            const tatDays = r.tatDays !== undefined ? Number(r.tatDays) : 0;
+            const days = Math.floor(totalSeconds / 86400);
+            const text = r.performancetimeing || r.performance_timing || "-";
+
+            if (totalSeconds === 0) {
+              return text;
+            }
+            const color = tatDays >= days ? "#22c55e" : "#ef4444";
+            return `<div style="background-color: ${color}; color: white; padding: 4px 10px; border-radius: 6px; font-size: 13px; font-weight: 500; text-align: center; display: inline-block;">${text}</div>`;
+          })(),
+          performance_timing_assigned: (() => {
+            const tatDays = r.tatDays !== undefined ? Number(r.tatDays) : 0;
+            const allottotalSeconds = r.allottotalSeconds !== undefined ? Number(r.allottotalSeconds) : 0;
+            const allotmentTotalDaysInDays = Math.floor(allottotalSeconds / 86400);
+            const text = r.allotmentTotalDays || `${allotmentTotalDaysInDays} days`;
+
+            if (r.allottotalSeconds === undefined || r.allottotalSeconds === null) {
+              return r.performance_timing_assigned || "-";
+            }
+            const color = tatDays >= allotmentTotalDaysInDays ? "#22c55e" : "#ef4444";
+            return `<div style="background-color: ${color}; color: white; padding: 4px 10px; border-radius: 6px; font-size: 13px; font-weight: 500; text-align: center; display: inline-block;">${text}</div>`;
+          })(),
+          tat: (() => {
+            const val = r.tatDays ?? r.tat ?? r.tat_days;
+            return val !== undefined && val !== null ? `${val} Days` : "-";
+          })(),
         }));
       }
 
@@ -99,8 +126,8 @@ export default function AssignedCalibrationRegister() {
 
   const fetchMetadata = async () => {
     try {
-      // PHP Code uses: $resultcust = $obj->selectextrawhere("admin", "status=1");
-      const res = await axios.get("/people/get-all-users");
+      // Fetch lab users for the dropdown from the correct endpoint
+      const res = await axios.get("/register/get-lab-user");
       setChemists(res.data?.data || []);
     } catch (err) {
       console.error("Error fetching metadata:", err);
@@ -222,7 +249,7 @@ export default function AssignedCalibrationRegister() {
               "transition-content flex grow flex-col pt-3",
               tableSettings.enableFullScreen
                 ? "overflow-hidden"
-                : "px-(--margin-x)",
+                : "px-[var(--margin-x)]",
             )}
           >
             <Card

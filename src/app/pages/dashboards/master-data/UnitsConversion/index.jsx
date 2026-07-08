@@ -89,12 +89,12 @@ export default function OrdersDatatableV1() {
   const [sorting, setSorting] = useState([{ id: "id", desc: true }]);
 
   const [columnVisibility, setColumnVisibility] = useLocalStorage(
-    "column-visibility-orders-1",
+    "column-visibility-UnitsConversion-index",
     {},
   );
 
   const [columnPinning, setColumnPinning] = useLocalStorage(
-    "column-pinning-orders-1",
+    "column-pinning-UnitsConversion-index",
     {},
   );
 
@@ -243,7 +243,7 @@ export default function OrdersDatatableV1() {
               "transition-content flex grow flex-col pt-3",
               tableSettings.enableFullScreen
                 ? "overflow-hidden"
-                : "px-(--margin-x)",
+                : "px-[var(--margin-x)]",
             )}
           >
             <Card

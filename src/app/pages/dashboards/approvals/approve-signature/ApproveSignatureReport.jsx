@@ -319,7 +319,7 @@ export default function ApproveSignatureReport() {
   const nablStatus = nablObj?.status ?? 0;
   // PHP: if ($nabl == 1) → nabltest.png, elseif ($nabl == 3) → qai.jpeg
   const nablLogo =
-    nablStatus === 1 ? (nablObj?.logo ?? "/images/nabltest.png") :
+    nablStatus === 1 ? (nablObj?.logo ?? "/images/nabl2348.png") :
     nablStatus === 3 ? "/images/qai.jpeg" : null;
 
   // PHP: $reportstatus = hodrequests.status (if hid) OR trfProducts.status
@@ -386,7 +386,7 @@ export default function ApproveSignatureReport() {
 
   return (
     <Page title={`Approve Signature — Report ${ulr ?? ""}`}>
-      <div className="transition-content px-(--margin-x) pb-8">
+      <div className="transition-content px-[var(--margin-x)] pb-8">
 
         {/* ── Page Header ─────────────────────────────────────────────── */}
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">

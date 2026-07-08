@@ -55,14 +55,14 @@ export default function OrdersDatatableV1() {
   const fetchGateEntries = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await axios.get("/gateentry/get-gate-entry-list", {
+      const response = await axios.get("/gate-entry/gate-entries-list", {
         params: {
           searchByFromdate: dateFilter.minDate,
           searchByTodate: dateFilter.maxDate,
         },
       });
 
-      if (response.data.status && Array.isArray(response.data.data)) {
+      if (response.data && Array.isArray(response.data.data)) {
         setGateEntries(response.data.data);
       } else {
         setGateEntries([]);
@@ -88,12 +88,12 @@ export default function OrdersDatatableV1() {
   const [sorting, setSorting] = useState([{ id: "id", desc: true }]);
 
   const [columnVisibility, setColumnVisibility] = useLocalStorage(
-    "column-visibility-orders-1",
+    "column-visibility-gate-entry-index",
     {},
   );
 
   const [columnPinning, setColumnPinning] = useLocalStorage(
-    "column-pinning-orders-1",
+    "column-pinning-gate-entry-index",
     {},
   );
 
@@ -208,7 +208,7 @@ export default function OrdersDatatableV1() {
               "transition-content flex grow flex-col pt-3",
               tableSettings.enableFullScreen
                 ? "overflow-hidden"
-                : "px-(--margin-x)",
+                : "px-[var(--margin-x)]",
             )}
           >
             <Card

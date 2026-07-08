@@ -104,7 +104,7 @@ export default function QualityObjectivesPage() {
             )}
           </div>
 
-          <div className="px-(--margin-x) py-4 border-t border-gray-100 dark:border-dark-700">
+          <div className="px-[var(--margin-x)] py-4 border-t border-gray-100 dark:border-dark-700">
             <Table.Pagination table={table} />
           </div>
         </Card>

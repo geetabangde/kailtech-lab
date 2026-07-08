@@ -11,7 +11,7 @@ import {
 } from "@tanstack/react-table";
 import clsx from "clsx";
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, Link } from "react-router";
 import axios from "utils/axios";
 
 // Local Imports
@@ -56,19 +56,18 @@ export default function EnvironmentalCondition() {
     try {
       setLoading(true);
       
-      // Use environmental-condition endpoint matching PHP logic
-      const res = await axios.get("/viewenvrcrddata", { params: filters });
+      // Use the correct API endpoint provided by the user
+      const res = await axios.get("/register/viewenviornmental-condition", { params: filters });
       
-      // Handle DataTables server-side response format
       let rows = res.data?.data || [];
       
-      // Map to PHP table structure: ID, Name, Alloted user, Alloted Masters, Actions
+      // Map the new JSON structure: id, name, users, masters
       rows = rows.map((row) => ({
-        record_id: row[0] || "",
-        name: row[1] || "",
-        alloted_user: row[2] || "",
-        alloted_masters: row[3] || "",
-        actions: row[4] || "",
+        record_id: row.id || "",
+        name: row.name || "",
+        alloted_user: row.users || "",
+        alloted_masters: row.masters || "",
+        actions: "",
       }));
       
       setTableData(rows);
@@ -142,29 +141,39 @@ export default function EnvironmentalCondition() {
   // Define columns matching PHP environmental-condition table exactly
   const environmentalColumns = [
     {
-      id: "id",
+      accessorKey: "record_id",
       header: "ID",
       cell: (info) => info.getValue(),
     },
     {
-      id: "name",
+      accessorKey: "name",
       header: "Name",
       cell: (info) => info.getValue(),
     },
     {
-      id: "alloted_user",
+      accessorKey: "alloted_user",
       header: "Alloted user",
       cell: (info) => info.getValue(),
     },
     {
-      id: "alloted_masters",
+      accessorKey: "alloted_masters",
       header: "Alloted Masters",
       cell: (info) => info.getValue(),
     },
     {
-      id: "actions",
+      accessorKey: "actions",
       header: "Actions",
-      cell: (info) => info.getValue(),
+      cell: (info) => {
+        const row = info.row.original;
+        return (
+          <Link
+            to={`/dashboards/master-data/manage-labs/environmental-record/${row.record_id}`}
+            className="inline-flex items-center justify-center px-3 py-1 bg-cyan-500 hover:bg-cyan-600 text-white rounded text-xs font-semibold transition-colors shadow-sm"
+          >
+            Environmental Record
+          </Link>
+        );
+      },
     },
   ];
 
@@ -239,7 +248,7 @@ export default function EnvironmentalCondition() {
           <div
             className={clsx(
               "transition-content flex grow flex-col pt-3",
-              tableSettings.enableFullScreen ? "overflow-hidden" : "px-(--margin-x)"
+              tableSettings.enableFullScreen ? "overflow-hidden" : "px-[var(--margin-x)]"
             )}
           >
             <Card className={clsx("relative flex grow flex-col", tableSettings.enableFullScreen && "overflow-hidden")}>
@@ -285,7 +294,7 @@ export default function EnvironmentalCondition() {
                           <Td
                             key={cell.id}
                             className={clsx(
-                              "relative bg-white whitespace-nowrap",
+                              "relative bg-white whitespace-normal break-words min-w-[100px]",
                               cardSkin === "shadow" ? "dark:bg-dark-700" : "dark:bg-dark-900",
                               cell.column.getCanPin() && [
                                 cell.column.getIsPinned() === "left" && "sticky z-2 ltr:left-0 rtl:right-0",

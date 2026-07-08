@@ -4,6 +4,7 @@ import { Page } from "components/shared/Page";
 import axios from "utils/axios";
 import { toast } from "sonner";
 import { Button } from "components/ui";
+import { JWT_HOST_API } from "configs/auth.config";
 
 export default function ViewTraceability() {
   const { id: inwardId, itemId: instId } = useParams();
@@ -26,7 +27,7 @@ export default function ViewTraceability() {
       setError(null);
 
       const response = await axios.post(
-        `https://lims.kailtech.in/api/calibrationprocess/view-tracebility?inwardid=${inwardId}&instid=${instId}`,
+        `${JWT_HOST_API}/calibrationprocess/view-tracebility?inwardid=${inwardId}&instid=${instId}`,
            {
           
           headers: {

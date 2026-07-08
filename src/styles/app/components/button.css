@@ -3,5 +3,5 @@
 }
 
 .btn-base {
-  @apply inline-flex cursor-pointer items-center justify-center text-center font-medium tracking-wide outline-hidden transition-all duration-200 focus:outline-hidden disabled:pointer-events-none disabled:select-none;
+  @apply inline-flex cursor-pointer items-center justify-center text-center font-medium tracking-wide outline-none transition-all duration-200 focus:outline-none disabled:pointer-events-none disabled:select-none;
 }

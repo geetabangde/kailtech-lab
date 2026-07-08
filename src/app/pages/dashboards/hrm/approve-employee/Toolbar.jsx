@@ -8,7 +8,7 @@ import { Button, Input, ReactSelect as Select } from "components/ui";
 
 export function Toolbar({ table, status, setStatus }) {
   return (
-    <div className="table-toolbar px-(--margin-x) pt-4 pb-2">
+    <div className="table-toolbar px-[var(--margin-x)] pt-4 pb-2">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
         <div className="min-w-0">
           <h2 className="text-xl font-semibold tracking-wide text-gray-800 dark:text-dark-50">

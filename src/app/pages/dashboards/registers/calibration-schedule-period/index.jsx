@@ -13,9 +13,10 @@ import clsx from "clsx";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import axios from "utils/axios";
+import { ChevronsLeft } from "lucide-react";
 
 // Local Imports
-import { Table, Card, THead, TBody, Th, Tr, Td } from "components/ui";
+import { Table, Card, THead, TBody, Th, Tr, Td, Button } from "components/ui";
 import { TableSortIcon } from "components/shared/table/TableSortIcon";
 import { Page } from "components/shared/Page";
 import { useLockScrollbar, useDidUpdate, useLocalStorage } from "hooks";
@@ -27,6 +28,8 @@ import { PaginationSection } from "components/shared/table/PaginationSection";
 import { SelectedRowsActions } from "./SelectedRowsActions";
 import { useThemeContext } from "app/contexts/theme/context";
 import { getUserAgentBrowser } from "utils/dom/getUserAgentBrowser";
+import { FormatHeader } from "components/shared/FormatHeader";
+import { useLabsContext } from "app/contexts/labs/context";
 
 // ----------------------------------------------------------------------
 
@@ -35,6 +38,7 @@ const isSafari = getUserAgentBrowser() === "Safari";
 export default function CalibrationSchedulePeriod() {
   const { cardSkin } = useThemeContext();
   const navigate = useNavigate();
+  const { labs } = useLabsContext();
   const permissions = JSON.parse(localStorage.getItem("userPermissions") || "[]");
 
   useEffect(() => {
@@ -59,34 +63,34 @@ export default function CalibrationSchedulePeriod() {
     try {
       setLoading(true);
       setSearched(true);
-      
-      // Use the PHP endpoint for calibration schedule data
-      const res = await axios.get("/registers/calibration-schedule-period", { params: filters });
-      
+
+      // Use the new endpoint for calibration schedule data
+      const res = await axios.get("/register/calibration-schedul-period", { params: filters });
+
       let rows = res.data?.data || [];
-      
-      // Map to PHP table structure: Sr. No, Name of Equipment, Equipment Id, Frequency, Last Calibration Date, Next Calibration Date, Jan-Dec columns
+
+      // Map JSON response object properties to columns
       rows = rows.map((row, index) => ({
-        sr_no: index + 1,
-        name: row[0] || "",
-        equipment_id: `${row[1] || ""}/${row[2] || ""}`,
-        frequency: row[3] || "",
-        last_calibration_date: row[4] || "",
-        next_calibration_date: row[5] || "",
-        jan: row[6] || "",
-        feb: row[7] || "",
-        mar: row[8] || "",
-        apr: row[9] || "",
-        may: row[10] || "",
-        jun: row[11] || "",
-        jul: row[12] || "",
-        aug: row[13] || "",
-        sep: row[14] || "",
-        oct: row[15] || "",
-        nov: row[16] || "",
-        dec: row[17] || "",
+        sr_no: row.sr_no || index + 1,
+        name: row.equipment_name || "",
+        equipment_id: row.equipment_id || "",
+        frequency: row.frequency || "",
+        last_calibration_date: row.last_calibration_date || "",
+        next_calibration_date: row.next_calibration_date || "",
+        jan: row.jan || "",
+        feb: row.feb || "",
+        mar: row.mar || "",
+        apr: row.apr || "",
+        may: row.may || "",
+        jun: row.jun || "",
+        jul: row.jul || "",
+        aug: row.aug || "",
+        sep: row.sep || "",
+        oct: row.oct || "",
+        nov: row.nov || "",
+        dec: row.dec || "",
       }));
-      
+
       setTableData(rows);
     } catch (err) {
       console.error("Error fetching calibration schedule data:", err);
@@ -98,7 +102,7 @@ export default function CalibrationSchedulePeriod() {
   const fetchMetadata = async () => {
     try {
       // Fetch departments/labs for the dropdown
-      const res = await axios.get("/master-data/labs");
+      const res = await axios.get("/master/list-lab");
       setDepartments(res.data?.data || []);
     } catch (err) {
       console.error("Error fetching metadata:", err);
@@ -120,7 +124,8 @@ export default function CalibrationSchedulePeriod() {
 
   const handleExport = (e) => {
     e?.preventDefault?.();
-    
+    console.log("Export button clicked. Current filters:", filters);
+
     // Validate required fields
     if (!filters.startdate || !filters.enddate) {
       alert('Please select start date and end date for export');
@@ -131,7 +136,7 @@ export default function CalibrationSchedulePeriod() {
     const params = new URLSearchParams();
     params.append('startdate', filters.startdate);
     params.append('enddate', filters.enddate);
-    
+
     // Add departments if selected
     if (filters.department && filters.department.length > 0) {
       filters.department.forEach(dept => {
@@ -139,8 +144,11 @@ export default function CalibrationSchedulePeriod() {
       });
     }
 
+    const exportUrl = `/dashboards/registers/calibration-schedule-period/export?${params.toString()}`;
+    console.log("Navigating to export page:", exportUrl);
+    
     // Navigate to export route with parameters
-    navigate(`/dashboards/registers/calibration-schedule-period/export?${params.toString()}`);
+    navigate(exportUrl);
   };
 
   const [tableSettings, setTableSettings] = useState({
@@ -224,17 +232,54 @@ export default function CalibrationSchedulePeriod() {
     );
   }
 
+  const handleBackToMMInstrumentList = () => {
+    // 1. Try to get lab from selected department filter
+    let selectedLab = null;
+    if (filters.department && filters.department.length > 0) {
+      const firstDeptId = filters.department[0];
+      selectedLab = labs?.find((l) => String(l.id) === String(firstDeptId));
+    }
+
+    // 2. Fallback to first lab the user has access to
+    if (!selectedLab && labs && labs.length > 0) {
+      const employeeId = Number(localStorage.getItem("userId") || 0);
+      selectedLab = labs.find((l) => l.users?.includes(employeeId)) || labs[0];
+    }
+
+    if (selectedLab) {
+      const slug = selectedLab.slug || selectedLab.name
+        .toLowerCase()
+        .replace(/\s+/g, '-')
+        .replace(/[()]/g, '')
+        .replace(/&/g, 'and')
+        .replace(/[^a-z0-9-]/g, '');
+
+      navigate(`/dashboards/material-list/${slug}?labId=${selectedLab.id}`);
+    } else {
+      // Last resort fallback
+      navigate("/dashboards");
+    }
+  };
+
   return (
     <Page title="Calibration Schedule Period">
       <div className="transition-content w-full pb-5">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold">Calibration Schedule Period</h3>
-          <button 
-            onClick={() => navigate("/dashboards/registers/mminstrumentlist")}
-            className="btn btn-warning"
-          >
-            &lt;&lt; Back To MM Instrument List
-          </button>
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-4 px-[var(--margin-x)] pt-4">
+          <h2 className="text-2xl font-bold tracking-wide text-gray-800 dark:text-dark-50">
+            Calibration Schedule Period
+          </h2>
+          <div className="flex items-center gap-2">
+
+            <Button
+              onClick={handleBackToMMInstrumentList}
+              variant="filled"
+              color="neutral"
+              className="flex items-center gap-1.5 h-9 rounded-md px-3 text-sm font-medium"
+            >
+              <ChevronsLeft className="h-4 w-4" />
+              Back To MM Instrument List
+            </Button>
+          </div>
         </div>
         <div
           className={clsx(
@@ -255,7 +300,7 @@ export default function CalibrationSchedulePeriod() {
               "transition-content flex grow flex-col pt-3",
               tableSettings.enableFullScreen
                 ? "overflow-hidden"
-                : "px-(--margin-x)",
+                : "px-[var(--margin-x)]",
             )}
           >
             <Card
@@ -264,6 +309,19 @@ export default function CalibrationSchedulePeriod() {
                 tableSettings.enableFullScreen && "overflow-hidden",
               )}
             >
+              <div className="p-4 pb-0 bg-white dark:bg-dark-900">
+                <FormatHeader
+                  title="Calibration Schedule Period"
+                  qfNo="KTRCQF/0604/03"
+                  issueNo="01"
+                  issueDate="01/06/2019"
+                  revisionNo="01"
+                  revisionDate="20/08/2021"
+                />
+                <div className="flex justify-end text-sm font-medium text-gray-700 dark:text-gray-300 mt-2">
+                  Date:- {new Date().toLocaleDateString("en-GB")}
+                </div>
+              </div>
               <div className="table-wrapper min-w-full grow overflow-x-auto">
                 <Table
                   hoverable
@@ -272,46 +330,58 @@ export default function CalibrationSchedulePeriod() {
                   className="w-full text-left rtl:text-right"
                 >
                   <THead>
-                    {table.getHeaderGroups().map((headerGroup) => (
+                    {table.getHeaderGroups().map((headerGroup, groupIndex) => (
                       <Tr key={headerGroup.id}>
-                        {headerGroup.headers.map((header) => (
-                          <Th
-                            key={header.id}
-                            className={clsx(
-                              "bg-gray-200 font-semibold uppercase text-gray-800 dark:bg-dark-800 dark:text-dark-100 first:ltr:rounded-tl-lg last:ltr:rounded-tr-lg first:rtl:rounded-tr-lg last:rtl:rounded-tl-lg",
-                              header.column.getCanPin() && [
-                                header.column.getIsPinned() === "left" &&
-                                "sticky z-2 ltr:left-0 rtl:right-0",
-                                header.column.getIsPinned() === "right" &&
-                                "sticky z-2 ltr:right-0 rtl:left-0",
-                              ],
-                            )}
-                          >
-                            {header.column.getCanSort() ? (
-                              <div
-                                className="flex cursor-pointer select-none items-center space-x-3 "
-                                onClick={header.column.getToggleSortingHandler()}
-                              >
-                                <span className="flex-1">
-                                  {header.isPlaceholder
-                                    ? null
-                                    : flexRender(
+                        {headerGroup.headers.map((header) => {
+                          // If we are in the bottom row, skip rendering ungrouped column spacers
+                          if (groupIndex > 0 && !header.column.parent) {
+                            return null;
+                          }
+
+                          // Calculate rowSpan:
+                          // Spacers/placeholder headers represent ungrouped columns on the top-level.
+                          // These top-level placeholders should span all the way down.
+                          const rowSpan = header.isPlaceholder ? (table.getHeaderGroups().length - groupIndex) : 1;
+
+                          return (
+                            <Th
+                              key={header.id}
+                              colSpan={header.colSpan}
+                              rowSpan={rowSpan}
+                              className={clsx(
+                                "bg-gray-200 font-semibold uppercase text-gray-800 dark:bg-dark-800 dark:text-dark-100 first:ltr:rounded-tl-lg last:ltr:rounded-tr-lg first:rtl:rounded-tr-lg last:rtl:rounded-tl-lg text-center",
+                                header.column.getCanPin() && [
+                                  header.column.getIsPinned() === "left" &&
+                                  "sticky z-2 ltr:left-0 rtl:right-0",
+                                  header.column.getIsPinned() === "right" &&
+                                  "sticky z-2 ltr:right-0 rtl:left-0",
+                                ],
+                              )}
+                            >
+                              {header.column.getCanSort() ? (
+                                <div
+                                  className="flex cursor-pointer select-none items-center justify-center space-x-3"
+                                  onClick={header.column.getToggleSortingHandler()}
+                                >
+                                  <span className="flex-1">
+                                    {flexRender(
                                       header.column.columnDef.header,
                                       header.getContext(),
                                     )}
-                                </span>
-                                <TableSortIcon
-                                  sorted={header.column.getIsSorted()}
-                                />
-                              </div>
-                            ) : header.isPlaceholder ? null : (
-                              flexRender(
-                                header.column.columnDef.header,
-                                header.getContext(),
-                              )
-                            )}
-                          </Th>
-                        ))}
+                                  </span>
+                                  <TableSortIcon
+                                    sorted={header.column.getIsSorted()}
+                                  />
+                                </div>
+                              ) : (
+                                flexRender(
+                                  header.column.columnDef.header,
+                                  header.getContext(),
+                                )
+                              )}
+                            </Th>
+                          );
+                        })}
                       </Tr>
                     ))}
                   </THead>
@@ -382,19 +452,42 @@ export default function CalibrationSchedulePeriod() {
               </div>
               <SelectedRowsActions table={table} />
               {table.getCoreRowModel().rows.length > 0 && (
-                <div
-                  className={clsx(
-                    "px-4 pb-4 sm:px-5 sm:pt-4",
-                    tableSettings.enableFullScreen &&
-                    "bg-gray-50 dark:bg-dark-800",
-                    !(
-                      table.getIsSomeRowsSelected() ||
-                      table.getIsAllRowsSelected()
-                    ) && "pt-4",
-                  )}
-                >
-                  <PaginationSection table={table} />
-                </div>
+                <>
+                  <div
+                    className={clsx(
+                      "px-4 pb-4 sm:px-5 sm:pt-4",
+                      tableSettings.enableFullScreen &&
+                      "bg-gray-50 dark:bg-dark-800",
+                      !(
+                        table.getIsSomeRowsSelected() ||
+                        table.getIsAllRowsSelected()
+                      ) && "pt-4",
+                    )}
+                  >
+                    <PaginationSection table={table} />
+                  </div>
+                  {/* Signature Footer matching PHP */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 border-t border-gray-200 dark:border-dark-500 p-6 text-sm text-gray-700 dark:text-gray-300">
+                    <div>
+                      <div className="font-semibold mb-1">Prepared by</div>
+                      <div>Sr. Engineer</div>
+                      <div className="mt-4">Name:</div>
+                      <div className="mt-2">Sign:</div>
+                    </div>
+                    <div>
+                      <div className="font-semibold mb-1">Reviewed by</div>
+                      <div>DTM</div>
+                      <div className="mt-4">Name:</div>
+                      <div className="mt-2">Sign:</div>
+                    </div>
+                    <div>
+                      <div className="font-semibold mb-1">Approved by</div>
+                      <div>TM</div>
+                      <div className="mt-4">Name:</div>
+                      <div className="mt-2">Sign:</div>
+                    </div>
+                  </div>
+                </>
               )}
             </Card>
           </div>

@@ -7,10 +7,11 @@ import {
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
+  getExpandedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
 import clsx from "clsx";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Fragment } from "react";
 import { useNavigate } from "react-router";
 import axios from "utils/axios";
 
@@ -56,8 +57,6 @@ export default function CalibrationTrackReport() {
     color: "",
   });
 
-  const [searched, setSearched] = useState(false);
-
   // Metadata for dropdowns
   const [bdList, setBdList] = useState([]);
   const [customers, setCustomers] = useState([]);
@@ -70,69 +69,56 @@ export default function CalibrationTrackReport() {
       const [bdRes, custRes, labRes, chemRes] = await Promise.allSettled([
         axios.get("/people/get-customer-bd"), // BDs
         axios.get("/people/get-all-customers"), // Customers
-        axios.get("/master/get-all-labs"), // Labs
-        axios.get("/people/get-all-users"), // Chemists
+        axios.get("/register/get-lab-by-vertical/1"), // Labs
+        axios.get("/register/get-lab-user"), // Chemists
       ]);
 
       if (bdRes.status === "fulfilled") setBdList(bdRes.value.data?.data || []);
       if (custRes.status === "fulfilled") setCustomers(custRes.value.data?.data || []);
-      
-      // The PHP script specifically queries for "vertical=1" (calibration labs). 
-      // We will filter here just in case the API doesn't.
-      if (labRes.status === "fulfilled") {
-        const allLabs = labRes.value.data?.data || [];
-        setLabs(allLabs.filter((l) => l.vertical === 1 || String(l.vertical) === "1"));
-      }
-
+      if (labRes.status === "fulfilled") setLabs(labRes.value.data?.data || []);
       if (chemRes.status === "fulfilled") setChemists(chemRes.value.data?.data || []);
     } catch (err) {
       console.error("Error fetching metadata:", err);
     }
   }, []);
 
-  useEffect(() => {
-    fetchMetadata();
-  }, [fetchMetadata]);
-
   // Fetch report data
   const fetchReportData = async () => {
     try {
       setLoading(true);
-      setSearched(true);
-      const res = await axios.get("/registers/get-calibration-track-report", { params: filters });
+      
+      const activeFilters = Object.fromEntries(
+        Object.entries(filters).filter((entry) => entry[1] !== "" && entry[1] !== null && entry[1] !== undefined)
+      );
+
+      const res = await axios.get("/register/calibration-track-record", { params: activeFilters });
       
       let rows = res.data?.data || [];
       
-      if (rows.length > 0 && Array.isArray(rows[0])) {
-        // Map 19 columns if returned as array of arrays
-        rows = rows.map((r, i) => ({
-          sr_no: r[0] || i + 1,
-          booking_date: r[1],
-          client_name: r[2],
-          rep: r[3],
-          concerned_bd: r[4],
-          brn_no: r[5],
-          lrn_no: r[6],
-          sample: r[7],
-          department: r[8],
-          tat: r[9],
-          hod_chemist_engineer: r[10],
-          final_report_date: r[11],
-          ulr_no: r[12],
-          ulr_generate_date: r[13],
-          approved_date: r[14],
-          bill_no: r[15],
-          bill_date: r[16],
-          dispatch: r[17],
-          dispatch_date: r[18],
-        }));
-      } else {
-        // Fallback for object format
-        rows = rows.map((r, i) => ({
-          ...r,
-          sr_no: r.sr_no || r.s_no || i + 1,
-        }));
-      }
+      // Map API response to table columns
+      rows = rows.map((r, i) => ({
+        ...r,
+        sr_no: r.sr_no || i + 1,
+        booking_date: r.inwarddate,
+        client_name: r.customername,
+        rep: r.reportname,
+        concerned_bd: r.bdnames,
+        brn_no: r.bookingrefno,
+        lrn_no: r.lrn,
+        sample: r.name,
+        department: r.lab,
+        tat: r.daysrequired,
+        hod_chemist_engineer: r.caliby,
+        final_report_date: r.calibratedon,
+        ulr_no: r.ulrno,
+        ulr_generate_date: r.allotedon,
+        approved_date: r.approvedon,
+        bill_no: r.invoiceno,
+        bill_date: r.issuedate,
+        dispatch: r.challanno,
+        dispatch_date: r.authoriseon,
+        row_colors: r.row_colors,
+      }));
       
       setTableData(rows);
     } catch (err) {
@@ -141,6 +127,12 @@ export default function CalibrationTrackReport() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchMetadata();
+    fetchReportData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchMetadata]);
 
   const handleFilterChange = (name, value) => {
     setFilters((prev) => ({ ...prev, [name]: value }));
@@ -160,8 +152,19 @@ export default function CalibrationTrackReport() {
   const [sorting, setSorting] = useState([]);
 
   const [columnVisibility, setColumnVisibility] = useLocalStorage(
-    "column-visibility-calibration-track-report-1",
-    {},
+    "column-visibility-calibration-track-report-2",
+    {
+      tat: false,
+      hod_chemist_engineer: false,
+      final_report_date: false,
+      ulr_no: false,
+      ulr_generate_date: false,
+      approved_date: false,
+      bill_no: false,
+      bill_date: false,
+      dispatch: false,
+      dispatch_date: false,
+    },
   );
   const [columnPinning, setColumnPinning] = useLocalStorage(
     "column-pinning-calibration-track-report-1",
@@ -192,6 +195,8 @@ export default function CalibrationTrackReport() {
     globalFilterFn: fuzzyFilter,
     onSortingChange: setSorting,
     getSortedRowModel: getSortedRowModel(),
+    getExpandedRowModel: getExpandedRowModel(),
+    getRowCanExpand: () => true,
     getPaginationRowModel: getPaginationRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onColumnPinningChange: setColumnPinning,
@@ -244,7 +249,7 @@ export default function CalibrationTrackReport() {
           <div
             className={clsx(
               "transition-content flex grow flex-col pt-3",
-              tableSettings.enableFullScreen ? "overflow-hidden" : "px-(--margin-x)"
+              tableSettings.enableFullScreen ? "overflow-hidden" : "px-[var(--margin-x)]"
             )}
           >
             <Card className={clsx("relative flex grow flex-col", tableSettings.enableFullScreen && "overflow-hidden")}>
@@ -279,49 +284,75 @@ export default function CalibrationTrackReport() {
                   </THead>
                   <TBody>
                     {table.getRowModel().rows.map((row) => (
-                      <Tr
-                        key={row.id}
-                        className={clsx(
-                          "relative border-y border-transparent border-b-gray-200 dark:border-b-dark-500",
-                          row.getIsSelected() && !isSafari && "row-selected after:pointer-events-none after:absolute after:inset-0 after:z-2 after:h-full after:w-full after:border-3 after:border-transparent after:bg-primary-500/10 ltr:after:border-l-primary-500 rtl:after:border-r-primary-500"
+                      <Fragment key={row.id}>
+                        <Tr
+                          className={clsx(
+                            "relative border-y border-transparent border-b-gray-200 dark:border-b-dark-500",
+                            row.getIsSelected() && !isSafari && "row-selected after:pointer-events-none after:absolute after:inset-0 after:z-2 after:h-full after:w-full after:border-3 after:border-transparent after:bg-primary-500/10 ltr:after:border-l-primary-500 rtl:after:border-r-primary-500"
+                          )}
+                        >
+                          {row.getVisibleCells().map((cell) => (
+                            <Td
+                              key={cell.id}
+                              className={clsx(
+                                "relative bg-white whitespace-nowrap",
+                                cardSkin === "shadow" ? "dark:bg-dark-700" : "dark:bg-dark-900",
+                                cell.column.getCanPin() && [
+                                  cell.column.getIsPinned() === "left" && "sticky z-2 ltr:left-0 rtl:right-0",
+                                  cell.column.getIsPinned() === "right" && "sticky z-2 ltr:right-0 rtl:left-0",
+                                ]
+                              )}
+                            >
+                              {cell.column.getIsPinned() && (
+                                <div
+                                  className={clsx(
+                                    "pointer-events-none absolute inset-0 border-gray-200 dark:border-dark-500",
+                                    cell.column.getIsPinned() === "left" ? "ltr:border-r rtl:border-l" : "ltr:border-l rtl:border-r"
+                                  )}
+                                ></div>
+                              )}
+                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            </Td>
+                          ))}
+                        </Tr>
+                        {row.getIsExpanded() && (
+                          <Tr>
+                            <Td colSpan={row.getVisibleCells().length} className="bg-gray-50 px-4 py-2 dark:bg-dark-800">
+                              <div className="flex flex-col text-xs">
+                                {row.getAllCells().map((cell) => {
+                                  const ignoredColumns = [
+                                    "sr_no",
+                                    "booking_date",
+                                    "client_name",
+                                    "rep",
+                                    "concerned_bd",
+                                    "brn_no",
+                                    "lrn_no",
+                                    "sample",
+                                    "department"
+                                  ];
+                                  if (ignoredColumns.includes(cell.column.id)) return null;
+                                  return (
+                                    <div key={cell.id} className="flex flex-col sm:flex-row sm:gap-2 py-[2px]">
+                                      <span className="font-semibold text-gray-800 w-52 dark:text-gray-200">
+                                        {typeof cell.column.columnDef.header === "string" ? cell.column.columnDef.header : cell.column.id}:
+                                      </span>
+                                      <span className="text-gray-700 dark:text-gray-400">
+                                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                      </span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </Td>
+                          </Tr>
                         )}
-                      >
-                        {row.getVisibleCells().map((cell) => (
-                          <Td
-                            key={cell.id}
-                            className={clsx(
-                              "relative bg-white whitespace-nowrap",
-                              cardSkin === "shadow" ? "dark:bg-dark-700" : "dark:bg-dark-900",
-                              cell.column.getCanPin() && [
-                                cell.column.getIsPinned() === "left" && "sticky z-2 ltr:left-0 rtl:right-0",
-                                cell.column.getIsPinned() === "right" && "sticky z-2 ltr:right-0 rtl:left-0",
-                              ]
-                            )}
-                          >
-                            {cell.column.getIsPinned() && (
-                              <div
-                                className={clsx(
-                                  "pointer-events-none absolute inset-0 border-gray-200 dark:border-dark-500",
-                                  cell.column.getIsPinned() === "left" ? "ltr:border-r rtl:border-l" : "ltr:border-l rtl:border-r"
-                                )}
-                              ></div>
-                            )}
-                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                          </Td>
-                        ))}
-                      </Tr>
+                      </Fragment>
                     ))}
-                    {searched && tableData.length === 0 && !loading && (
+                    {tableData.length === 0 && !loading && (
                       <Tr>
                         <Td colSpan={visibleColumns.length} className="py-10 text-center text-gray-500">
                           No data found for the selected criteria.
-                        </Td>
-                      </Tr>
-                    )}
-                    {!searched && (
-                      <Tr>
-                        <Td colSpan={visibleColumns.length} className="py-10 text-center text-gray-500">
-                          Use the filters above and click Search to view the Calibration Track Report.
                         </Td>
                       </Tr>
                     )}

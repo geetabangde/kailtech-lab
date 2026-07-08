@@ -12,7 +12,7 @@ import { SocialSource } from "./SocialSource";
 export default function Home() {
   return (
     <Page title="Homepage">
-      <div className="transition-content w-full px-(--margin-x) pt-5 lg:pt-6">
+      <div className="transition-content w-full px-[var(--margin-x)] pt-5 lg:pt-6">
       <Statistics />
       <div className="mt-4 grid grid-cols-12 gap-4 sm:mt-5 sm:gap-5 lg:mt-6 lg:gap-6">
           <ProductsTable />

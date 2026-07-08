@@ -17,8 +17,8 @@ export const columns = [
   }),
 
   // ✅ Date
-  columnHelper.accessor("entry_date", {
-    id: "entry_date",
+  columnHelper.accessor("added_on", {
+    id: "added_on",
     header: "Date",
     cell: (info) => info.getValue() || "N/A",
   }),

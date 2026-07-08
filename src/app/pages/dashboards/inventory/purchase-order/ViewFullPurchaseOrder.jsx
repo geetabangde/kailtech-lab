@@ -111,7 +111,7 @@ export default function ViewFullPurchaseOrder() {
 
   return (
     <Page title="View Purchase Order">
-      <div className="transition-content w-full px-(--margin-x) pb-5 pt-4">
+      <div className="transition-content w-full px-[var(--margin-x)] pb-5 pt-4">
         <Card className="relative flex flex-col p-6">
           <div className="flex items-center justify-between border-b border-gray-200 pb-4 dark:border-dark-500">
             <h2 className="text-xl font-semibold text-gray-800 dark:text-dark-50">

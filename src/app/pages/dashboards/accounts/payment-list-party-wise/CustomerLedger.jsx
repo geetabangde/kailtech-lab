@@ -77,7 +77,7 @@ export default function CustomerLedger() {
 
   return (
     <Page title="Customer Ledger">
-      <div className="transition-content px-(--margin-x) pb-8">
+      <div className="transition-content px-[var(--margin-x)] pb-8">
         {/* ── Header + filters ── */}
         <div className="mb-5 flex flex-wrap items-end gap-3">
           <div className="flex flex-col gap-1">

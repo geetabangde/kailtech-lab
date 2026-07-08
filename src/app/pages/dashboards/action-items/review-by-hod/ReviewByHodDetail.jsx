@@ -381,7 +381,7 @@ export default function ReviewByHodDetail() {
 
   // PHP: nabl==1 → nabltest.png, nabl==3 → qai.jpeg
   const nablLogo = nablObj?.logo || (
-    nablStatus === 1 ? "/images/nabltest.png" :
+    nablStatus === 1 ? "/images/nabl2348.png" :
       nablStatus === 3 ? "/images/qai.jpeg" :
         null
   );
@@ -425,7 +425,7 @@ export default function ReviewByHodDetail() {
 
   return (
     <Page title={`REPORT-${ulr ?? ""}`}>
-      <div className="transition-content px-(--margin-x) pb-8">
+      <div className="transition-content px-[var(--margin-x)] pb-8">
 
         {/* ── Page Header ───────────────────────────────────────────────── */}
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">

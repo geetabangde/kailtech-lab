@@ -135,7 +135,7 @@ export default function RoleRequestPage() {
       <div className="transition-content w-full pb-5">
         <div className={clsx("flex h-full w-full flex-col", tableSettings.enableFullScreen && "fixed inset-0 z-61 bg-white pt-3 dark:bg-dark-900")}>
           <Toolbar table={table} />
-          <div className={clsx("transition-content flex grow flex-col pt-3", tableSettings.enableFullScreen ? "overflow-hidden" : "px-(--margin-x)")}>
+          <div className={clsx("transition-content flex grow flex-col pt-3", tableSettings.enableFullScreen ? "overflow-hidden" : "px-[var(--margin-x)]")}>
             <Card className={clsx("relative flex grow flex-col", tableSettings.enableFullScreen && "overflow-hidden")}>
               <div className="table-wrapper min-w-full grow overflow-x-auto">
                 {loading ? (

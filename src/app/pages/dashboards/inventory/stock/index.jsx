@@ -19,7 +19,9 @@ import { useLockScrollbar, useLocalStorage } from "hooks";
 import { fuzzyFilter } from "utils/react-table/fuzzyFilter";
 import { useSkipper } from "utils/react-table/useSkipper";
 import { columns } from "./columns";
+import { TableConfig } from "./TableConfig";
 import { PaginationSection } from "components/shared/table/PaginationSection";
+import { TableLoadingRow } from "components/shared/table/TableLoadingRow";
 
 // ----------------------------------------------------------------------
 
@@ -61,8 +63,8 @@ export default function Stock() {
   const fetchStock = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await axios.get("inventory/stock-data");
-      if (response.data.status && Array.isArray(response.data.data)) {
+      const response = await axios.get("inventory/get-stock-list");
+      if ((response.data.status === true || response.data.status === "true") && Array.isArray(response.data.data)) {
         setOrders(response.data.data);
       } else {
         setOrders([]);
@@ -87,6 +89,7 @@ export default function Stock() {
       columnVisibility,
       columnPinning,
       pagination,
+      tableSettings,
     },
     meta: {
       updateData: (rowIndex, columnId, value) => {
@@ -150,6 +153,9 @@ export default function Stock() {
               <h3 className="text-lg font-bold text-gray-800 dark:text-dark-100">
                 Stock Report
               </h3>
+              <div className="flex items-center gap-2">
+                <TableConfig table={table} />
+              </div>
             </div>
 
             <div className="grow overflow-auto p-0">
@@ -164,7 +170,15 @@ export default function Stock() {
                       {headerGroup.headers.map((header) => (
                         <Th
                           key={header.id}
-                          className="bg-gray-50 px-4 py-3 text-xs font-bold uppercase text-gray-600 dark:bg-dark-800 dark:text-dark-200"
+                          className={clsx(
+                            "bg-gray-50 text-xs font-bold uppercase text-gray-600 dark:bg-dark-800 dark:text-dark-200",
+                            header.column.getCanPin() && [
+                              header.column.getIsPinned() === "left" &&
+                              "sticky z-2 ltr:left-0 rtl:right-0",
+                              header.column.getIsPinned() === "right" &&
+                              "sticky z-2 ltr:right-0 rtl:left-0",
+                            ]
+                          )}
                         >
                           {header.column.getCanSort() ? (
                             <div
@@ -192,11 +206,7 @@ export default function Stock() {
                 </THead>
                 <TBody>
                   {loading ? (
-                    <Tr>
-                      <Td colSpan={columns.length} className="h-24 text-center text-gray-500 italic">
-                        Loading stock items...
-                      </Td>
-                    </Tr>
+                    <TableLoadingRow colSpan={columns.length} />
                   ) : table.getRowModel().rows.length > 0 ? (
                     table.getRowModel().rows.map((row) => (
                       <Tr
@@ -204,7 +214,18 @@ export default function Stock() {
                         className="border-b border-gray-100 last:border-0 dark:border-dark-600"
                       >
                         {row.getVisibleCells().map((cell) => (
-                          <Td key={cell.id} className="px-4 py-3 text-sm">
+                          <Td 
+                            key={cell.id} 
+                            className={clsx(
+                              "text-sm bg-white dark:bg-dark-700",
+                              cell.column.getCanPin() && [
+                                cell.column.getIsPinned() === "left" &&
+                                "sticky z-2 ltr:left-0 rtl:right-0",
+                                cell.column.getIsPinned() === "right" &&
+                                "sticky z-2 ltr:right-0 rtl:left-0",
+                              ]
+                            )}
+                          >
                             {flexRender(
                               cell.column.columnDef.cell,
                               cell.getContext(),

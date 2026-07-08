@@ -96,7 +96,7 @@ export default function ViewTestDocuments() {
 
   return (
     <Page title="View Test Document">
-      <div className="transition-content w-full pb-10 px-(--margin-x)">
+      <div className="transition-content w-full pb-10 px-[var(--margin-x)]">
 
         {/* ── Header ────────────────────────────────────────────────────────── */}
         <div className="mb-5 flex items-center justify-between">

@@ -1,7 +1,6 @@
 // hooks/useObservations.js
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'utils/axios';
-import { toast } from 'sonner';
 
 export const useObservations = (observationTemplate, instId, inwardId) => {
   const [observations, setObservations] = useState([]);
@@ -31,7 +30,7 @@ export const useObservations = (observationTemplate, instId, inwardId) => {
       if (isSuccess && response.data.data) {
         const observationData = response.data.data;
         console.log('📊 Observation Data:', observationData);
-        
+
         // Process based on template type
         processObservationData(observationData, observationTemplate);
       } else {
@@ -46,7 +45,7 @@ export const useObservations = (observationTemplate, instId, inwardId) => {
 
   // Process observation data based on template
   const processObservationData = (data, template) => {
-    switch(template) {
+    switch (template) {
       case 'observationmt':
         processMTData(data);
         break;
@@ -98,6 +97,9 @@ export const useObservations = (observationTemplate, instId, inwardId) => {
       case 'observationctg':
         processCTGData(data);
         break;
+      case 'observationtswoi':
+        processTSWOIData(data);
+        break;
       default:
         setObservations([]);
     }
@@ -106,11 +108,11 @@ export const useObservations = (observationTemplate, instId, inwardId) => {
   // MT - Measuring Tool
   const processMTData = (data) => {
     const mtData = data.data || data;
-    
+
     if (mtData.calibration_points) {
       console.log('✅ MT calibration_points found:', mtData.calibration_points);
       setObservations(mtData.calibration_points);
-      
+
       if (mtData.thermal_coeff) {
         setThermalCoeff({
           uuc: mtData.thermal_coeff.uuc || '',
@@ -152,11 +154,11 @@ export const useObservations = (observationTemplate, instId, inwardId) => {
   // MM - Multimeter
   const processMMData = (data) => {
     const leastCountMap = {};
-    
+
     if (data.calibration_points && Array.isArray(data.calibration_points)) {
       console.log('✅ MM calibration_points found:', data.calibration_points);
       setObservations(data.calibration_points);
-      
+
       // Extract least count data
       data.calibration_points.forEach(point => {
         if (point.point_id && point.precision) {
@@ -170,7 +172,7 @@ export const useObservations = (observationTemplate, instId, inwardId) => {
       });
     } else if (data.data && Array.isArray(data.data)) {
       setObservations(data.data);
-      
+
       data.data.forEach(unitTypeGroup => {
         if (unitTypeGroup.calibration_points) {
           unitTypeGroup.calibration_points.forEach(point => {
@@ -182,7 +184,7 @@ export const useObservations = (observationTemplate, instId, inwardId) => {
       });
     } else if (data.unit_types && Array.isArray(data.unit_types)) {
       setObservations(data.unit_types);
-      
+
       data.unit_types.forEach(unitTypeGroup => {
         if (unitTypeGroup.calibration_points) {
           unitTypeGroup.calibration_points.forEach(point => {
@@ -197,7 +199,7 @@ export const useObservations = (observationTemplate, instId, inwardId) => {
     } else {
       setObservations([]);
     }
-    
+
     setLeastCountData(leastCountMap);
     console.log('📊 MM Least Count Map:', leastCountMap);
   };
@@ -205,7 +207,7 @@ export const useObservations = (observationTemplate, instId, inwardId) => {
   // AVG - Analog Vacuum Gauge
   const processAVGData = (data) => {
     const avgData = data.data || data;
-    
+
     if (avgData.calibration_point && Array.isArray(avgData.calibration_point)) {
       console.log('✅ AVG calibration_point found:', avgData.calibration_point);
       setObservations(avgData.calibration_point);
@@ -228,7 +230,7 @@ export const useObservations = (observationTemplate, instId, inwardId) => {
   // MG - Manometer Gauge
   const processMGData = (data) => {
     const mgData = data.data || data;
-    
+
     if (mgData.calibration_points && Array.isArray(mgData.calibration_points)) {
       console.log('✅ MG calibration_points found:', mgData.calibration_points);
       setObservations(mgData.calibration_points);
@@ -255,11 +257,11 @@ export const useObservations = (observationTemplate, instId, inwardId) => {
   // FG - Force Gauge
   const processFGData = (data) => {
     const fgData = data.data || data;
-    
+
     if (fgData.calibration_points && Array.isArray(fgData.calibration_points)) {
       console.log('✅ FG calibration_points found:', fgData.calibration_points);
       setObservations(fgData.calibration_points);
-      
+
       if (fgData.thermal_coefficients) {
         setThermalCoeff({
           uuc: fgData.thermal_coefficients.thermal_coeff_uuc || '',
@@ -270,7 +272,7 @@ export const useObservations = (observationTemplate, instId, inwardId) => {
     } else if (fgData.unit_types && Array.isArray(fgData.unit_types)) {
       console.log('✅ FG unit_types found:', fgData.unit_types);
       setObservations(fgData.unit_types);
-      
+
       if (fgData.thermal_coeff) {
         setThermalCoeff({
           uuc: fgData.thermal_coeff.uuc || '',
@@ -288,7 +290,7 @@ export const useObservations = (observationTemplate, instId, inwardId) => {
     if (data.calibration_points && Array.isArray(data.calibration_points)) {
       console.log('✅ EXM calibration_points found:', data.calibration_points);
       setObservations(data.calibration_points);
-      
+
       if (data.thermal_coefficients) {
         setThermalCoeff({
           uuc: data.thermal_coefficients.uuc || '',
@@ -315,11 +317,11 @@ export const useObservations = (observationTemplate, instId, inwardId) => {
   // HG - Height Gauge
   const processHGData = (data) => {
     const hgData = data[1] || data;
-    
+
     if (hgData.calibration_points && Array.isArray(hgData.calibration_points)) {
       console.log('✅ HG calibration_points found:', hgData.calibration_points);
       setObservations(hgData.calibration_points);
-      
+
       if (data[0] && data[0].thermal_coefficients) {
         setThermalCoeff({
           uuc: data[0].thermal_coefficients.uuc_coefficient || '',
@@ -335,11 +337,11 @@ export const useObservations = (observationTemplate, instId, inwardId) => {
   // IT - Internal Thread
   const processITData = (data) => {
     const itData = data.data || data;
-    
+
     if (itData.calibration_points) {
       console.log('✅ IT calibration_points found:', itData.calibration_points);
       setObservations(itData.calibration_points);
-      
+
       if (itData.thermal_coefficients) {
         setThermalCoeff({
           uuc: itData.thermal_coefficients.uuc_coefficient || '',
@@ -356,11 +358,11 @@ export const useObservations = (observationTemplate, instId, inwardId) => {
   const processMSRData = (data) => {
     if (Array.isArray(data) && data.length > 0) {
       const msrData = data[0];
-      
+
       if (msrData.calibration_points && Array.isArray(msrData.calibration_points)) {
         console.log('✅ MSR calibration_points found:', msrData.calibration_points);
         setObservations(msrData.calibration_points);
-        
+
         if (msrData.thermal_coeff) {
           setThermalCoeff({
             uuc: msrData.thermal_coeff.uuc || '',
@@ -388,7 +390,7 @@ export const useObservations = (observationTemplate, instId, inwardId) => {
       console.log('❌ No DG observations found');
       setObservations([]);
     }
-    
+
     if (data.thermal_coefficients) {
       setThermalCoeff({
         uuc: data.thermal_coefficients.uuc || '',
@@ -403,7 +405,7 @@ export const useObservations = (observationTemplate, instId, inwardId) => {
     if (data.points) {
       console.log('✅ CTG points found:', data.points);
       setObservations(data.points);
-      
+
       // Extract least count data
       const leastCountMap = {};
       data.points.forEach(point => {
@@ -411,10 +413,10 @@ export const useObservations = (observationTemplate, instId, inwardId) => {
           leastCountMap[point.id] = parseFloat(point.least_count);
         }
       });
-      
+
       setLeastCountData(leastCountMap);
       console.log('📊 CTG Least Count Map:', leastCountMap);
-      
+
       if (data.thermal_coeff) {
         setThermalCoeff({
           uuc: data.thermal_coeff.uuc || '',
@@ -423,6 +425,28 @@ export const useObservations = (observationTemplate, instId, inwardId) => {
         });
       }
     } else {
+      setObservations([]);
+    }
+  };
+
+  // TSWOI - Temperature Sensor Without Indicator
+  const processTSWOIData = (data) => {
+    const tswoiData = data.data || data;
+
+    if (tswoiData.calibration_points && Array.isArray(tswoiData.calibration_points)) {
+      console.log('✅ TSWOI calibration_points found:', tswoiData.calibration_points);
+      setObservations(tswoiData.calibration_points);
+    } else if (tswoiData.points && Array.isArray(tswoiData.points)) {
+      console.log('✅ TSWOI points found:', tswoiData.points);
+      setObservations(tswoiData.points);
+    } else if (Array.isArray(tswoiData)) {
+      console.log('✅ TSWOI data array found:', tswoiData);
+      setObservations(tswoiData);
+    } else if (tswoiData.observations && Array.isArray(tswoiData.observations)) {
+      console.log('✅ TSWOI observations found:', tswoiData.observations);
+      setObservations(tswoiData.observations);
+    } else {
+      console.log('❌ No TSWOI observations found');
       setObservations([]);
     }
   };

@@ -10,7 +10,9 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import clsx from "clsx";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import axios from "utils/axios";
+import { toast } from "sonner";
 
 // Local Imports
 import { Table, Card, THead, TBody, Th, Tr, Td } from "components/ui";
@@ -21,9 +23,7 @@ import { fuzzyFilter } from "utils/react-table/fuzzyFilter";
 import { useSkipper } from "utils/react-table/useSkipper";
 import { Toolbar } from "./Toolbar";
 import { columns } from "./columns";
-import { ordersList } from "./data";
 import { PaginationSection } from "components/shared/table/PaginationSection";
-import { SelectedRowsActions } from "components/shared/table/SelectedRowsActions";
 import { useThemeContext } from "app/contexts/theme/context";
 import { getUserAgentBrowser } from "utils/dom/getUserAgentBrowser";
 
@@ -31,10 +31,31 @@ import { getUserAgentBrowser } from "utils/dom/getUserAgentBrowser";
 
 const isSafari = getUserAgentBrowser() === "Safari";
 
-export default function OrdersDatatableV1() {
+export default function SuppliersDatatable() {
   const { cardSkin } = useThemeContext();
 
-  const [orders, setOrders] = useState([...ordersList]);
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchSuppliers = async () => {
+      try {
+        setLoading(true);
+        const res = await axios.get("/people/get-suppliers-list");
+        if (res.data?.status === "true" || res.data?.status === true) {
+          setOrders(res.data.data || []);
+        } else {
+          toast.error("Failed to fetch suppliers");
+        }
+      } catch (err) {
+        console.error("Error fetching suppliers:", err);
+        toast.error("Failed to fetch suppliers");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchSuppliers();
+  }, []);
 
   const [tableSettings, setTableSettings] = useState({
     enableFullScreen: false,
@@ -46,12 +67,12 @@ export default function OrdersDatatableV1() {
   const [sorting, setSorting] = useState([{ id: "id", desc: true }]);
 
   const [columnVisibility, setColumnVisibility] = useLocalStorage(
-    "column-visibility-orders-1",
+    "column-visibility-suppliers-index",
     {},
   );
 
   const [columnPinning, setColumnPinning] = useLocalStorage(
-    "column-pinning-orders-1",
+    "column-pinning-suppliers-index",
     {},
   );
 
@@ -124,13 +145,13 @@ export default function OrdersDatatableV1() {
   useLockScrollbar(tableSettings.enableFullScreen);
 
   return (
-    <Page title="Customer Categories List">
+    <Page title="Suppliers List">
       <div className="transition-content w-full pb-5">
         <div
           className={clsx(
             "flex h-full w-full flex-col",
             tableSettings.enableFullScreen &&
-              "fixed inset-0 z-61 bg-white pt-3 dark:bg-dark-900",
+            "fixed inset-0 z-61 bg-white pt-3 dark:bg-dark-900",
           )}
         >
           <Toolbar table={table} />
@@ -139,7 +160,7 @@ export default function OrdersDatatableV1() {
               "transition-content flex grow flex-col pt-3",
               tableSettings.enableFullScreen
                 ? "overflow-hidden"
-                : "px-(--margin-x)",
+                : "px-[var(--margin-x)]",
             )}
           >
             <Card
@@ -149,115 +170,120 @@ export default function OrdersDatatableV1() {
               )}
             >
               <div className="table-wrapper min-w-full grow overflow-x-auto">
-                <Table
-                  hoverable
-                  dense={tableSettings.enableRowDense}
-                  sticky={tableSettings.enableFullScreen}
-                  className="w-full text-left rtl:text-right"
-                >
-                  <THead>
-                    {table.getHeaderGroups().map((headerGroup) => (
-                      <Tr key={headerGroup.id}>
-                        {headerGroup.headers.map((header) => (
-                          <Th
-                            key={header.id}
-                            className={clsx(
-                              "bg-gray-200 font-semibold uppercase text-gray-800 dark:bg-dark-800 dark:text-dark-100 first:ltr:rounded-tl-lg last:ltr:rounded-tr-lg first:rtl:rounded-tr-lg last:rtl:rounded-tl-lg",
-                              header.column.getCanPin() && [
-                                header.column.getIsPinned() === "left" &&
+                {loading ? (
+                  <div className="flex h-64 items-center justify-center">
+                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
+                  </div>
+                ) : (
+                  <Table
+                    hoverable
+                    dense={tableSettings.enableRowDense}
+                    sticky={tableSettings.enableFullScreen}
+                    className="w-full text-left rtl:text-right"
+                  >
+                    <THead>
+                      {table.getHeaderGroups().map((headerGroup) => (
+                        <Tr key={headerGroup.id}>
+                          {headerGroup.headers.map((header) => (
+                            <Th
+                              key={header.id}
+                              className={clsx(
+                                "bg-gray-200 font-semibold uppercase text-gray-800 dark:bg-dark-800 dark:text-dark-100 first:ltr:rounded-tl-lg last:ltr:rounded-tr-lg first:rtl:rounded-tr-lg last:rtl:rounded-tl-lg",
+                                header.column.getCanPin() && [
+                                  header.column.getIsPinned() === "left" &&
                                   "sticky z-2 ltr:left-0 rtl:right-0",
-                                header.column.getIsPinned() === "right" &&
+                                  header.column.getIsPinned() === "right" &&
                                   "sticky z-2 ltr:right-0 rtl:left-0",
-                              ],
-                            )}
-                          >
-                            {header.column.getCanSort() ? (
-                              <div
-                                className="flex cursor-pointer select-none items-center space-x-3 "
-                                onClick={header.column.getToggleSortingHandler()}
-                              >
-                                <span className="flex-1">
-                                  {header.isPlaceholder
-                                    ? null
-                                    : flexRender(
+                                ],
+                              )}
+                            >
+                              {header.column.getCanSort() ? (
+                                <div
+                                  className="flex cursor-pointer select-none items-center space-x-3 "
+                                  onClick={header.column.getToggleSortingHandler()}
+                                >
+                                  <span className="flex-1">
+                                    {header.isPlaceholder
+                                      ? null
+                                      : flexRender(
                                         header.column.columnDef.header,
                                         header.getContext(),
                                       )}
-                                </span>
-                                <TableSortIcon
-                                  sorted={header.column.getIsSorted()}
-                                />
-                              </div>
-                            ) : header.isPlaceholder ? null : (
-                              flexRender(
-                                header.column.columnDef.header,
-                                header.getContext(),
-                              )
-                            )}
-                          </Th>
-                        ))}
-                      </Tr>
-                    ))}
-                  </THead>
-                  <TBody>
-                    {table.getRowModel().rows.map((row) => {
-                      return (
-                        <Tr
-                          key={row.id}
-                          className={clsx(
-                            "relative border-y border-transparent border-b-gray-200 dark:border-b-dark-500",
-                            row.getIsSelected() && !isSafari &&
-                              "row-selected after:pointer-events-none after:absolute after:inset-0 after:z-2 after:h-full after:w-full after:border-3 after:border-transparent after:bg-primary-500/10 ltr:after:border-l-primary-500 rtl:after:border-r-primary-500",
-                          )}
-                        >
-                          {/* first row is a normal row */}
-                          {row.getVisibleCells().map((cell) => {
-                            return (
-                              <Td
-                                key={cell.id}
-                                className={clsx(
-                                  "relative bg-white",
-                                  cardSkin === "shadow"
-                                    ? "dark:bg-dark-700"
-                                    : "dark:bg-dark-900",
-                                  cell.column.getCanPin() && [
-                                    cell.column.getIsPinned() === "left" &&
-                                      "sticky z-2 ltr:left-0 rtl:right-0",
-                                    cell.column.getIsPinned() === "right" &&
-                                      "sticky z-2 ltr:right-0 rtl:left-0",
-                                  ],
-                                )}
-                              >
-                                {cell.column.getIsPinned() && (
-                                  <div
-                                    className={clsx(
-                                      "pointer-events-none absolute inset-0 border-gray-200 dark:border-dark-500",
-                                      cell.column.getIsPinned() === "left"
-                                        ? "ltr:border-r rtl:border-l"
-                                        : "ltr:border-l rtl:border-r",
-                                    )}
-                                  ></div>
-                                )}
-                                {flexRender(
-                                  cell.column.columnDef.cell,
-                                  cell.getContext(),
-                                )}
-                              </Td>
-                            );
-                          })}
+                                  </span>
+                                  <TableSortIcon
+                                    sorted={header.column.getIsSorted()}
+                                  />
+                                </div>
+                              ) : header.isPlaceholder ? null : (
+                                flexRender(
+                                  header.column.columnDef.header,
+                                  header.getContext(),
+                                )
+                              )}
+                            </Th>
+                          ))}
                         </Tr>
-                      );
-                    })}
-                  </TBody>
-                </Table>
+                      ))}
+                    </THead>
+                    <TBody>
+                      {table.getRowModel().rows.map((row) => {
+                        return (
+                          <Tr
+                            key={row.id}
+                            className={clsx(
+                              "relative border-y border-transparent border-b-gray-200 dark:border-b-dark-500",
+                              row.getIsSelected() && !isSafari &&
+                              "row-selected after:pointer-events-none after:absolute after:inset-0 after:z-2 after:h-full after:w-full after:border-3 after:border-transparent after:bg-primary-500/10 ltr:after:border-l-primary-500 rtl:after:border-r-primary-500",
+                            )}
+                          >
+                            {/* first row is a normal row */}
+                            {row.getVisibleCells().map((cell) => {
+                              return (
+                                <Td
+                                  key={cell.id}
+                                  className={clsx(
+                                    "relative bg-white",
+                                    cardSkin === "shadow"
+                                      ? "dark:bg-dark-700"
+                                      : "dark:bg-dark-900",
+                                    cell.column.getCanPin() && [
+                                      cell.column.getIsPinned() === "left" &&
+                                      "sticky z-2 ltr:left-0 rtl:right-0",
+                                      cell.column.getIsPinned() === "right" &&
+                                      "sticky z-2 ltr:right-0 rtl:left-0",
+                                    ],
+                                  )}
+                                >
+                                  {cell.column.getIsPinned() && (
+                                    <div
+                                      className={clsx(
+                                        "pointer-events-none absolute inset-0 border-gray-200 dark:border-dark-500",
+                                        cell.column.getIsPinned() === "left"
+                                          ? "ltr:border-r rtl:border-l"
+                                          : "ltr:border-l rtl:border-r",
+                                      )}
+                                    ></div>
+                                  )}
+                                  {flexRender(
+                                    cell.column.columnDef.cell,
+                                    cell.getContext(),
+                                  )}
+                                </Td>
+                              );
+                            })}
+                          </Tr>
+                        );
+                      })}
+                    </TBody>
+                  </Table>
+                )}
               </div>
-              <SelectedRowsActions table={table} title="Supplier List" showDelete={false} />
               {table.getCoreRowModel().rows.length && (
                 <div
                   className={clsx(
                     "px-4 pb-4 sm:px-5 sm:pt-4",
                     tableSettings.enableFullScreen &&
-                      "bg-gray-50 dark:bg-dark-800",
+                    "bg-gray-50 dark:bg-dark-800",
                     !(
                       table.getIsSomeRowsSelected() ||
                       table.getIsAllRowsSelected()

@@ -15,11 +15,11 @@ export const columns = [
     header: "Qty",
     cell: (info) => info.getValue(),
   }),
-  columnHelper.accessor("unit", {
+  columnHelper.accessor("uname", {
     header: "Unit",
     cell: (info) => info.getValue(),
   }),
-  columnHelper.accessor("expiry", {
+  columnHelper.accessor("exp", {
     header: "Expiry",
     cell: (info) => info.getValue(),
   }),

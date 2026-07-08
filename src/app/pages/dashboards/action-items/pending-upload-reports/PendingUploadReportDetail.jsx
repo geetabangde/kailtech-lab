@@ -126,7 +126,7 @@ export default function UploadReport() {
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <Page title="Upload Report">
-      <div className="transition-content px-(--margin-x) pb-5">
+      <div className="transition-content px-[var(--margin-x)] pb-5">
         <Card className="overflow-hidden">
 
           {/* ── Header ──────────────────────────────────────────────────── */}

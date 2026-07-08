@@ -63,7 +63,7 @@ export function Toolbar({ table }) {
 
           "transition-content flex items-center justify-between gap-4",
 
-          isFullScreenEnabled ? "px-4 sm:px-5" : "px-(--margin-x) pt-4",
+          isFullScreenEnabled ? "px-4 sm:px-5" : "px-[var(--margin-x)] pt-4",
 
         )}
 
@@ -141,7 +141,7 @@ export function Toolbar({ table }) {
 
               leaveTo="opacity-0 translate-y-2"
 
-              className="absolute z-100 mt-1.5 min-w-[10rem] whitespace-nowrap rounded-lg border border-gray-300 bg-white py-1 shadow-lg shadow-gray-200/50 outline-hidden focus-visible:outline-hidden dark:border-dark-500 dark:bg-dark-700 dark:shadow-none ltr:right-0 rtl:left-0"
+              className="absolute z-100 mt-1.5 min-w-[10rem] whitespace-nowrap rounded-lg border border-gray-300 bg-white py-1 shadow-lg shadow-gray-200/50 outline-none focus-visible:outline-none dark:border-dark-500 dark:bg-dark-700 dark:shadow-none ltr:right-0 rtl:left-0"
 
             >
 
@@ -155,7 +155,7 @@ export function Toolbar({ table }) {
 
                     className={clsx(
 
-                      "flex h-9 w-full items-center px-3 tracking-wide outline-hidden transition-colors",
+                      "flex h-9 w-full items-center px-3 tracking-wide outline-none transition-colors",
 
                       focus &&
 
@@ -181,7 +181,7 @@ export function Toolbar({ table }) {
 
                     className={clsx(
 
-                      "flex h-9 w-full items-center px-3 tracking-wide outline-hidden transition-colors",
+                      "flex h-9 w-full items-center px-3 tracking-wide outline-none transition-colors",
 
                       focus &&
 
@@ -207,7 +207,7 @@ export function Toolbar({ table }) {
 
                     className={clsx(
 
-                      "flex h-9 w-full items-center px-3 tracking-wide outline-hidden transition-colors",
+                      "flex h-9 w-full items-center px-3 tracking-wide outline-none transition-colors",
 
                       focus &&
 
@@ -235,7 +235,7 @@ export function Toolbar({ table }) {
 
                     className={clsx(
 
-                      "flex h-9 w-full items-center px-3 tracking-wide outline-hidden transition-colors",
+                      "flex h-9 w-full items-center px-3 tracking-wide outline-none transition-colors",
 
                       focus &&
 
@@ -263,7 +263,7 @@ export function Toolbar({ table }) {
 
                     className={clsx(
 
-                      "flex h-9 w-full items-center px-3 tracking-wide outline-hidden transition-colors",
+                      "flex h-9 w-full items-center px-3 tracking-wide outline-none transition-colors",
 
                       focus &&
 
@@ -289,7 +289,7 @@ export function Toolbar({ table }) {
 
                     className={clsx(
 
-                      "flex h-9 w-full items-center px-3 tracking-wide outline-hidden transition-colors",
+                      "flex h-9 w-full items-center px-3 tracking-wide outline-none transition-colors",
 
                       focus &&
 
@@ -315,7 +315,7 @@ export function Toolbar({ table }) {
 
                     className={clsx(
 
-                      "flex h-9 w-full items-center px-3 tracking-wide outline-hidden transition-colors",
+                      "flex h-9 w-full items-center px-3 tracking-wide outline-none transition-colors",
 
                       focus &&
 
@@ -367,7 +367,7 @@ export function Toolbar({ table }) {
 
               "flex space-x-2 pt-4  [&_.input-root]:flex-1",
 
-              isFullScreenEnabled ? "px-4 sm:px-5" : "px-(--margin-x)",
+              isFullScreenEnabled ? "px-4 sm:px-5" : "px-[var(--margin-x)]",
 
             )}
 
@@ -385,7 +385,7 @@ export function Toolbar({ table }) {
 
               "hide-scrollbar flex shrink-0 space-x-2 overflow-x-auto pb-1 pt-4 ",
 
-              isFullScreenEnabled ? "px-4 sm:px-5" : "px-(--margin-x)",
+              isFullScreenEnabled ? "px-4 sm:px-5" : "px-[var(--margin-x)]",
 
             )}
 
@@ -405,7 +405,7 @@ export function Toolbar({ table }) {
 
             "custom-scrollbar transition-content flex justify-between space-x-4 overflow-x-auto pb-1 pt-4 ",
 
-            isFullScreenEnabled ? "px-4 sm:px-5" : "px-(--margin-x)",
+            isFullScreenEnabled ? "px-4 sm:px-5" : "px-[var(--margin-x)]",
 
           )}
 

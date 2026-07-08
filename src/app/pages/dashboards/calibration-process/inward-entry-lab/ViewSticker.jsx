@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { JWT_HOST_API } from "configs/auth.config";
 
 function ViewSticker() {
     const navigate = useNavigate();
@@ -57,7 +58,7 @@ function ViewSticker() {
                     console.log('Making API call for instId:', id);
 
                     const response = await fetch(
-                        'https://lims.kailtech.in/api/calibrationprocess/view-sticker',
+                        `${JWT_HOST_API}/calibrationprocess/view-sticker`,
                         {
                             method: 'POST',
                             headers: headers,

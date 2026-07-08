@@ -28,7 +28,7 @@ export function Toolbar({ filters, onChange, onSearch, departments }) {
   };
 
   return (
-    <div className="px-(--margin-x) pt-4">
+    <div className="px-[var(--margin-x)] pt-4">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-xl font-semibold tracking-wide text-gray-800 dark:text-dark-50">
           Disposal Register
@@ -81,7 +81,14 @@ export function Toolbar({ filters, onChange, onSearch, departments }) {
                   label: dept.name,
                 })),
               ]}
-              value={departments?.find((d) => d.id === department) || null}
+              value={
+                department
+                  ? {
+                      value: department,
+                      label: departments?.find((d) => d.id === department)?.name || "Select Department",
+                    }
+                  : null
+              }
               onChange={(opt) => handleInput("department", opt ? opt.value : "")}
               isClearable
               placeholder="Select Department"

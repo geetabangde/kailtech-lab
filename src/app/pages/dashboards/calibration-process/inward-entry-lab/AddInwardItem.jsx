@@ -604,8 +604,9 @@ export default function AddItem() {
             <p>View Quotation</p>
             <Button
               type="button"
+              color="primary"
               variant="filled"
-              className="text-white bg-blue-600 hover:bg-blue-700 px-2 py-1"
+              className="px-2 py-1"
               onClick={() =>
                 window.open(
                   `/dashboards/calibration-process/inward-entry-lab/quotation/view/${sampleEntryByData?.quotationid}?caliblocation=${encodeURIComponent(calibLocation)}&calibacc=${encodeURIComponent(calibAcc)}`,
@@ -678,8 +679,9 @@ export default function AddItem() {
                           </Button>
                           <Button
                             type="button"
+                            color="primary"
                             variant="filled"
-                            className="text-white bg-blue-600 hover:bg-blue-700 px-2 py-1"
+                            className="px-2 py-1"
                             onClick={() => {
                               setSelectedInstrument(item.instid);
                               setFormData({
@@ -777,8 +779,9 @@ export default function AddItem() {
 
                 <Button
                   type="button"
+                  color="primary"
                   variant="filled"
-                  className="text-white bg-blue-600 hover:bg-blue-700 px-2 py-1"
+                  className="px-2 py-1"
                   onClick={handleAddItem}
                   disabled={!selectedInstrument || loading}
                 >

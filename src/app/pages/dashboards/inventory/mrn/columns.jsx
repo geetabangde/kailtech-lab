@@ -12,14 +12,22 @@ export const columns = [
   }),
   columnHelper.accessor("customername", {
     header: "Vendor / Customer Name",
-    cell: (info) => info.getValue() || "—",
+    cell: (info) => {
+      const val = info.getValue();
+      if (!val) return "—";
+      return (
+        <div className="whitespace-normal break-words max-w-[250px] font-medium text-gray-900 dark:text-dark-50">
+          {val}
+        </div>
+      );
+    },
   }),
   columnHelper.accessor("concernpersonname", {
     header: "Concern Person Detail",
     cell: (info) => {
       const { concernpersonname, concernpersonemail, concernpersonmobile } = info.row.original;
       return (
-        <div className="flex flex-col text-xs space-y-0.5">
+        <div className="flex flex-col text-xs space-y-0.5 whitespace-normal break-words max-w-[250px] font-medium">
           <span className="font-medium text-gray-900 dark:text-dark-50">{concernpersonname}</span>
           <span className="text-gray-500">{concernpersonemail}</span>
           <span className="text-gray-500">{concernpersonmobile}</span>

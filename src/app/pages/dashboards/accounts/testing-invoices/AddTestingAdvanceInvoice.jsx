@@ -635,7 +635,7 @@ export default function AddDirectTestingInvoice() {
   // ─────────────────────────────────────────────────────────────────────────
   return (
     <Page title="Add Direct Testing Invoice">
-      <div className="transition-content px-(--margin-x) pb-10">
+      <div className="transition-content px-[var(--margin-x)] pb-10">
         {/* Header */}
         <div className="mb-4 flex items-center justify-between">
           <h2 className="dark:text-dark-100 text-base font-semibold text-gray-800">

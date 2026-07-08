@@ -125,7 +125,7 @@ function DesktopView({
             leaveFrom="opacity-100 translate-y-0"
             leaveTo="opacity-0 translate-y-2"
             anchor={anchor}
-            className="z-100 flex w-fit flex-col rounded-md border border-gray-300 bg-white shadow-lg shadow-gray-200/50 outline-hidden ring-primary-500/50 focus-visible:outline-hidden focus-visible:ring-3 dark:border-dark-500 dark:bg-dark-750 dark:shadow-none"
+            className="z-100 flex w-fit flex-col rounded-md border border-gray-300 bg-white shadow-lg shadow-gray-200/50 outline-none ring-primary-500/50 focus-visible:outline-none focus-visible:ring-3 dark:border-dark-500 dark:bg-dark-750 dark:shadow-none"
           >
             <div className="flex flex-col overflow-hidden">{children}</div>
           </Transition>

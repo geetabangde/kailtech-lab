@@ -42,7 +42,7 @@ export default function PendingSampleRegister() {
 
   const [tableData, setTableData] = useState([]);
   const [loading, setLoading] = useState(false);
-  
+
   // Filters matching PHP code
   const [filters, setFilters] = useState({
     startdate: "",
@@ -56,9 +56,7 @@ export default function PendingSampleRegister() {
   // Fetch chemists dropdown data
   const fetchChemists = async () => {
     try {
-      const res = await axios.get("/master-data/admin", {
-        params: { status: 1 }
-      });
+      const res = await axios.get("register/get-lab-user");
       setChemists(res.data?.data || []);
     } catch (err) {
       console.error("Error fetching chemists:", err);
@@ -68,9 +66,7 @@ export default function PendingSampleRegister() {
   // Fetch departments dropdown data
   const fetchDepartments = async () => {
     try {
-      const res = await axios.get("/master-data/labs", {
-        params: { status: 1 }
-      });
+      const res = await axios.get("master/list-lab");
       setDepartments(res.data?.data || []);
     } catch (err) {
       console.error("Error fetching departments:", err);
@@ -82,40 +78,38 @@ export default function PendingSampleRegister() {
     fetchDepartments();
   }, []);
 
-  // Fetch pending sample register data using PHP endpoint
+  // Fetch pending sample register data
   const fetchPendingSampleData = async () => {
     try {
       setLoading(true);
-      
-      // Use pending-sample-register endpoint matching PHP logic
-      const res = await axios.get("/registers/pendingSampleRegisterData", { params: filters });
-      
-      // Handle DataTables server-side response format
+
+      const res = await axios.get("register/pending-sample", { params: filters });
+
       let rows = res.data?.data || [];
-      
-      // Map to PHP table structure: S.No, Product, LRN, BRN, Customer Name, Contact person, Sample Qty, Department, Received Date, Allotment Date, Accept Date, Commitment Date, TAT, Parameter, Chemist Name, Grade/Size, Chemist, Parameters, Action
+
       rows = rows.map((row, index) => ({
         sno: index + 1,
-        product: row[0] || "",
-        lrn: row[1] || "",
-        brn: row[2] || "",
-        customer_name: row[3] || "",
-        contact_person: row[4] || "",
-        sample_qty: row[5] || "",
-        department: row[6] || "",
-        received_date: row[7] || "",
-        allotment_date: row[8] || "",
-        accept_date: row[9] || "",
-        commitment_date: row[10] || "",
-        tat: row[11] || "",
-        parameter: row[12] || "",
-        chemist_name: row[13] || "",
-        grade_size: row[14] || "",
-        chemist: row[15] || "",
-        parameters: row[16] || "",
-        id: row[17] || "",
+        product: row.product || row[0] || "",
+        lrn: row.lrn || row[1] || "",
+        brn: row.brn || row[2] || "",
+        customer_name: row.customer_name || row[3] || "",
+        contact_person: row.contact_name || row.contact_person || row[4] || "",
+        sample_qty: row.received_items || row.sample_qty || row[5] || "",
+        department: row.labs || row.department || row[6] || "",
+        received_date: row.received_date || row[7] || "",
+        allotment_date: row.alloted_date || row.allotment_date || row[8] || "",
+        accept_date: row.accepted_date || row.accept_date || row[9] || "",
+        commitment_date: row.deadline || row.commitment_date || row[10] || "",
+        tat: row.tat || row[11] || "",
+        parameter: row.testing_status || row.parameter || row[12] || "",
+        chemist_name: row.chemist || row.chemist_name || row[13] || "",
+        grade_size: row.grade_size || row[14] || "",
+        chemist: row.chemist || row[15] || "",
+        parameters: row.parameters || row[16] || "",
+        id: row.id || row[17] || "",
+        ...row
       }));
-      
+
       setTableData(rows);
     } catch (err) {
       console.error("Error fetching received data:", err);
@@ -135,7 +129,7 @@ export default function PendingSampleRegister() {
     const form = document.createElement('form');
     form.method = 'POST';
     form.action = '/registers/exportcrmlist';
-    
+
     Object.entries(filters).forEach(([key, value]) => {
       if (value && (typeof value !== 'object' || value.length > 0)) {
         if (Array.isArray(value)) {
@@ -155,7 +149,7 @@ export default function PendingSampleRegister() {
         }
       }
     });
-    
+
     document.body.appendChild(form);
     form.submit();
     document.body.removeChild(form);
@@ -184,87 +178,123 @@ export default function PendingSampleRegister() {
 
   const [autoResetPageIndex] = useSkipper();
 
-  // Define columns matching PHP pending-sample-register table exactly
+  const safeRender = (val) => {
+    if (val === undefined || val === null || val === "" || val === "0000-00-00" || val === "0000-00-00 00:00") return "-";
+    return val;
+  };
+
   const pendingSampleColumns = [
     {
-      id: "sno",
+      accessorKey: "sno",
       header: "Sno",
-      cell: (info) => info.getValue(),
+      cell: (info) => safeRender(info.getValue()),
     },
     {
-      id: "product",
+      accessorKey: "product",
       header: "Product",
-      cell: (info) => info.getValue(),
+      cell: (info) => (
+        <div className="whitespace-normal min-w-[250px]">
+          {safeRender(info.getValue())}
+        </div>
+      ),
     },
     {
-      id: "lrn",
+      accessorKey: "lrn",
       header: "LRN",
-      cell: (info) => info.getValue(),
+      cell: (info) => safeRender(info.getValue()),
     },
+    ...(permissions.includes(358) ? [
+      {
+        accessorKey: "brn",
+        header: "BRN",
+        cell: (info) => safeRender(info.getValue()),
+      },
+      {
+        accessorKey: "customer_name",
+        header: "Customer Name",
+        cell: (info) => safeRender(info.getValue()),
+      },
+      {
+        accessorKey: "contact_person",
+        header: "Contact person",
+        cell: (info) => safeRender(info.getValue()),
+      }
+    ] : []),
     {
-      id: "brn",
-      header: "BRN",
-      cell: (info) => info.getValue(),
-    },
-    {
-      id: "customer_name",
-      header: "Customer Name",
-      cell: (info) => info.getValue(),
-    },
-    {
-      id: "contact_person",
-      header: "Contact person",
-      cell: (info) => info.getValue(),
-    },
-    {
-      id: "sample_qty",
+      accessorKey: "sample_qty",
       header: "Sample Qty",
-      cell: (info) => info.getValue(),
+      cell: (info) => (
+        <div className="whitespace-normal min-w-[150px]">
+          {safeRender(info.getValue())}
+        </div>
+      ),
     },
     {
-      id: "department",
+      accessorKey: "department",
       header: "Department",
-      cell: (info) => info.getValue(),
+      cell: (info) => safeRender(info.getValue()),
     },
     {
-      id: "received_date",
+      accessorKey: "received_date",
       header: "Received Date",
-      cell: (info) => info.getValue(),
+      cell: (info) => safeRender(info.getValue()),
     },
     {
-      id: "allotment_date",
+      accessorKey: "allotment_date",
       header: "Allotment Date",
-      cell: (info) => info.getValue(),
+      cell: (info) => safeRender(info.getValue()),
     },
     {
-      id: "accept_date",
+      accessorKey: "accept_date",
       header: "Accept Date",
-      cell: (info) => info.getValue(),
+      cell: (info) => safeRender(info.getValue()),
     },
     {
-      id: "commitment_date",
+      accessorKey: "commitment_date",
       header: "Commitment Date",
-      cell: (info) => info.getValue(),
+      cell: (info) => safeRender(info.getValue()),
     },
     {
-      id: "tat",
+      accessorKey: "tat",
       header: "TAT",
-      cell: (info) => info.getValue(),
+      cell: (info) => safeRender(info.getValue()),
     },
     {
-      id: "parameter",
+      accessorKey: "parameter",
       header: "Parameter",
-      cell: (info) => info.getValue(),
+      cell: (info) => {
+        const val = info.getValue();
+        if (typeof val === 'object' && val !== null) {
+          return (
+            <div className="text-sm">
+              <span className="no-print block">{val.completed || 0} Tests completed</span>
+              <span className="no-print block">{val.pending_completion || 0} Tests Pending completion</span>
+              <span className="no-print block">{val.pending_assignment || 0} Tests Pending Assignment</span>
+            </div>
+          );
+        }
+        return safeRender(val);
+      },
     },
     {
-      id: "chemist_name",
+      accessorKey: "chemist_name",
       header: "Chemist Name",
-      cell: (info) => info.getValue(),
+      cell: (info) => safeRender(info.getValue()),
     },
     {
       id: "action",
       header: "Action",
-      cell: (info) => info.getValue(),
+      cell: ({ row }) => {
+        if (!permissions.includes(272)) return null;
+        return (
+          <button
+            onClick={() => navigate(`/dashboards/registers/parameter-detail?lrn=${row.original.lrn}`)}
+            className="inline-flex items-center justify-center px-3 py-1 bg-cyan-500 hover:bg-cyan-600 text-white rounded text-xs font-semibold transition-colors shadow-xs"
+          >
+            List
+          </button>
+        );
+      },
     },
   ];
 
@@ -341,7 +371,7 @@ export default function PendingSampleRegister() {
           <div
             className={clsx(
               "transition-content flex grow flex-col pt-3",
-              tableSettings.enableFullScreen ? "overflow-hidden" : "px-(--margin-x)"
+              tableSettings.enableFullScreen ? "overflow-hidden" : "px-[var(--margin-x)]"
             )}
           >
             <Card className={clsx("relative flex grow flex-col", tableSettings.enableFullScreen && "overflow-hidden")}>

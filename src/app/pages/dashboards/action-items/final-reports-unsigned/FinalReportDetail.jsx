@@ -7,10 +7,11 @@ import axios from "utils/axios";
 import { Page } from "components/shared/Page";
 import { Card } from "components/ui";
 import {
-  PrintWithLHButton,
+  //PrintWithLHButton, // Keeping for reference if needed
   PrintWithoutLHButton,
   PrintWithoutLHTwoSignButton,
 } from "./TestReportPdf";
+import { PrintExportTestingReportButton } from "../signed-reports/ExportTestingReport";
 
 // ----------------------------------------------------------------------
 // Route: /dashboards/action-items/final-reports/view?tid=49506&hid=52927
@@ -19,13 +20,13 @@ import {
 // ----------------------------------------------------------------------
 
 export default function FinalReportDetail() {
-  const [searchParams]              = useSearchParams();
-  const tid                         = searchParams.get("tid");
-  const hid                         = searchParams.get("hid");
+  const [searchParams] = useSearchParams();
+  const tid = searchParams.get("tid");
+  const hid = searchParams.get("hid");
 
-  const [report,  setReport]  = useState(null);
+  const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error,   setError]   = useState(null);
+  const [error, setError] = useState(null);
 
   // ── Fetch report data ───────────────────────────────────────────────────
   // GET /actionitem/view-test-report?tid=:tid&hid=:hid
@@ -37,7 +38,7 @@ export default function FinalReportDetail() {
         const params = new URLSearchParams({ tid });
         if (hid) params.append("hid", hid);
         const res = await axios.get(`/actionitem/view-test-report?${params.toString()}`);
-        const d   = res.data?.data ?? res.data ?? null;
+        const d = res.data?.data ?? res.data ?? null;
         setReport(d);
       } catch (err) {
         setError(err?.response?.data?.message ?? "Failed to load report.");
@@ -77,20 +78,20 @@ export default function FinalReportDetail() {
   }
 
   // ── Destructure for display ──────────────────────────────────────────────
-  const trfProduct   = report.trf_product   ?? {};
-  const product      = report.product       ?? {};
-  const customer     = report.customer      ?? {};
-  const dates        = report.dates         ?? {};
-  const testResults  = report.test_results  ?? [];
-  const signatories  = report.signatories   ?? [];
-  const remarks      = report.remarks       ?? {};
-  const nablStatus   = report.nabl?.status  ?? 0;
-  const hasSpecs     = testResults.some((r) => r.specification && r.specification !== "—");
+  const trfProduct = report.trf_product ?? {};
+  const product = report.product ?? {};
+  const customer = report.customer ?? {};
+  const dates = report.dates ?? {};
+  const testResults = report.test_results ?? [];
+  const signatories = report.signatories ?? [];
+  const remarks = report.remarks ?? {};
+  const nablStatus = report.nabl?.status ?? 0;
+  const hasSpecs = testResults.some((r) => r.specification && r.specification !== "—");
   const reportStatus = report.report_status?.code ?? 0;
 
   return (
     <Page title={`Final Report — ${trfProduct.ulr ?? trfProduct.lrn ?? tid}`}>
-      <div className="transition-content px-(--margin-x) pb-5">
+      <div className="transition-content px-[var(--margin-x)] pb-5">
         <Card className="overflow-hidden">
 
           {/* ── Header ──────────────────────────────────────────────────── */}
@@ -100,7 +101,7 @@ export default function FinalReportDetail() {
             </h3>
             <div className="flex flex-wrap items-center gap-2">
               {/* PHP: Print Report With Letter Head */}
-              <PrintWithLHButton report={report} />
+              <PrintExportTestingReportButton report={report} />
               {/* PHP: Print Report Without Letter Head */}
               <PrintWithoutLHButton report={report} />
               {/* PHP: Print Report Without Letter Head (2 Signs) */}
@@ -113,7 +114,7 @@ export default function FinalReportDetail() {
             {/* ── NABL / QAI logo ─────────────────────────────────────── */}
             {nablStatus === 1 && (
               <div className="mb-4 flex justify-center">
-                <img src="/images/nabltest.png" alt="NABL" className="h-14 w-auto object-contain" />
+                <img src="/images/nabl2348.png" alt="NABL" className="h-14 w-auto object-contain" />
               </div>
             )}
             {nablStatus === 3 && (
@@ -148,13 +149,13 @@ export default function FinalReportDetail() {
                     </td>
                     <InfoRow label="Laboratory Reference Number (LRN)" value={trfProduct.lrn ?? trfProduct.brn ?? "—"} />
                   </tr>
-                  <InfoTr label="Date of Receipt"            value={fmtDate(report.trf?.date ?? dates.receipt_date)} />
-                  <InfoTr label="Condition, When Received"   value={trfProduct.condition_name ?? "—"} />
-                  <InfoTr label="Packing, When Received"     value={trfProduct.sealed_name    ?? "—"} />
+                  <InfoTr label="Date of Receipt" value={fmtDate(report.trf?.date ?? dates.receipt_date)} />
+                  <InfoTr label="Condition, When Received" value={trfProduct.condition_name ?? "—"} />
+                  <InfoTr label="Packing, When Received" value={trfProduct.sealed_name ?? "—"} />
                   <InfoTr label="Quantity Received (Approx.)" value={buildQtyStr(report.received_items)} />
-                  <InfoTr label="Date of Start Of Test"      value={fmtDate(dates.start_date)} />
-                  <InfoTr label="Date of Completion"         value={fmtDate(dates.end_date)} />
-                  <InfoTr label="Date of Reporting"          value={fmtDate(trfProduct.reportdate ?? dates.report_date)} />
+                  <InfoTr label="Date of Start Of Test" value={fmtDate(dates.start_date)} />
+                  <InfoTr label="Date of Completion" value={fmtDate(dates.end_date)} />
+                  <InfoTr label="Date of Reporting" value={fmtDate(trfProduct.reportdate ?? dates.report_date)} />
 
                   {/* Sample rows full width */}
                   <tr>
@@ -209,8 +210,8 @@ export default function FinalReportDetail() {
                   ) : (
                     testResults.map((row, idx) => {
                       const displayResult = row.result?.display_value ?? row.result?.value ?? row.result ?? "—";
-                      const unitDisplay   = row.unit?.description     ?? row.unit?.name    ?? row.unit   ?? "—";
-                      const methodName    = row.method?.name          ?? row.method        ?? "—";
+                      const unitDisplay = row.unit?.description ?? row.unit?.name ?? row.unit ?? "—";
+                      const methodName = row.method?.name ?? row.method ?? "—";
                       const { bg, color } = parseColorFlag(row.compliance_style);
                       return (
                         <tr key={row.id ?? idx} className="border-t border-gray-200 dark:border-dark-500">
@@ -314,17 +315,17 @@ function InfoTr({ label, value }) {
 }
 
 function RemarkSection({ remarks }) {
-  const hodRemark     = remarks?.hod_remark     ?? "";
-  const witnessVal    = remarks?.witness        ?? "";
+  const hodRemark = remarks?.hod_remark ?? "";
+  const witnessVal = remarks?.witness ?? "";
   const witnessDetail = remarks?.witness_detail ?? "";
-  const bdlRemark     = remarks?.bdl_remark     ?? "";
-  const adlRemark     = remarks?.adl_remark     ?? "";
+  const bdlRemark = remarks?.bdl_remark ?? "";
+  const adlRemark = remarks?.adl_remark ?? "";
 
   const lines = [];
-  if (hodRemark?.trim())                   lines.push(hodRemark.trim());
+  if (hodRemark?.trim()) lines.push(hodRemark.trim());
   if (witnessVal === "1" && witnessDetail) lines.push(`The test was witnessed by ${witnessDetail}`);
-  if (bdlRemark)                           lines.push(bdlRemark);
-  if (adlRemark)                           lines.push(adlRemark);
+  if (bdlRemark) lines.push(bdlRemark);
+  if (adlRemark) lines.push(adlRemark);
 
   if (!lines.length) return null;
   return (
@@ -349,7 +350,7 @@ function fmtDate(d) {
 
 function parseColorFlag(styleStr) {
   if (!styleStr) return { bg: null, color: null };
-  const bg    = styleStr.match(/background\s*:\s*([^;!]+)/i)?.[1]?.trim() ?? null;
+  const bg = styleStr.match(/background\s*:\s*([^;!]+)/i)?.[1]?.trim() ?? null;
   const color = styleStr.match(/(?:^|;)\s*color\s*:\s*([^;!]+)/i)?.[1]?.trim() ?? null;
   return { bg, color };
 }

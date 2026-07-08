@@ -4,7 +4,7 @@ import clsx from "clsx";
 import Select from "react-select";
 import { DatePicker } from "components/shared/form/Datepicker";
 
-export function Toolbar({ filters, onChange, onSearch, chemists = [] }) {
+export function Toolbar({ filters, onChange, onSearch, chemists = [], onExportPdf, onExportExcel, onPrint }) {
   const [startDate, setStartDate] = useState(filters.startdate || "");
   const [endDate, setEndDate] = useState(filters.enddate || "");
   const [chemist, setChemist] = useState(filters.chemist || "");
@@ -29,7 +29,7 @@ export function Toolbar({ filters, onChange, onSearch, chemists = [] }) {
   };
 
   return (
-    <div className="px-(--margin-x) pt-4">
+    <div className="px-[var(--margin-x)] pt-4">
       <div className="mb-4">
         <h2 className="text-xl font-semibold tracking-wide text-gray-800 dark:text-dark-50">
           Assigned Register
@@ -105,13 +105,44 @@ export function Toolbar({ filters, onChange, onSearch, chemists = [] }) {
           styles={selectStyles}
         />
 
-        {/* Search Button */}
-        <button
-          type="submit"
-          className="h-10 rounded bg-blue-600 px-6 text-sm font-medium text-white hover:bg-blue-700 sm:w-auto"
-        >
-          Search
-        </button>
+        <div className="col-span-full flex flex-wrap items-center gap-2 sm:col-span-1">
+          <button
+            type="submit"
+            className="h-10 rounded bg-green-600 px-6 text-sm font-medium text-white hover:bg-green-700 sm:w-auto"
+          >
+            Search
+          </button>
+          
+          <div className="flex gap-1 ml-auto sm:ml-2 border rounded border-gray-300 dark:border-dark-600 overflow-hidden bg-gray-50 dark:bg-dark-800 h-10 items-center">
+            {onExportPdf && (
+              <button
+                type="button"
+                onClick={onExportPdf}
+                className="h-full px-3 text-xs font-semibold text-gray-700 hover:bg-gray-200 dark:text-gray-200 dark:hover:bg-dark-700 transition-colors border-r border-gray-300 dark:border-dark-600"
+              >
+                PDF
+              </button>
+            )}
+            {onPrint && (
+              <button
+                type="button"
+                onClick={onPrint}
+                className="h-full px-3 text-xs font-semibold text-gray-700 hover:bg-gray-200 dark:text-gray-200 dark:hover:bg-dark-700 transition-colors border-r border-gray-300 dark:border-dark-600"
+              >
+                Print
+              </button>
+            )}
+            {onExportExcel && (
+              <button
+                type="button"
+                onClick={onExportExcel}
+                className="h-full px-3 text-xs font-semibold text-gray-700 hover:bg-gray-200 dark:text-gray-200 dark:hover:bg-dark-700 transition-colors"
+              >
+                Excel
+              </button>
+            )}
+          </div>
+        </div>
       </form>
     </div>
   );

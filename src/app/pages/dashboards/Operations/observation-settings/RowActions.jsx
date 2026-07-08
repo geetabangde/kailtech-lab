@@ -107,7 +107,7 @@ export function RowActions({ row, table }) {
           >
             <MenuItems
               anchor={{ to: "bottom end", gap: 12 }}
-              className="absolute z-100 w-[11rem] rounded-lg border border-gray-300 bg-white py-1 shadow-lg shadow-gray-200/50 outline-hidden focus-visible:outline-hidden dark:border-dark-500 dark:bg-dark-750 dark:shadow-none ltr:right-0 rtl:left-0"
+              className="absolute z-100 w-[11rem] rounded-lg border border-gray-300 bg-white py-1 shadow-lg shadow-gray-200/50 outline-none focus-visible:outline-none dark:border-dark-500 dark:bg-dark-750 dark:shadow-none ltr:right-0 rtl:left-0"
             >
               {/* ✏️ Edit */}
               {/* <MenuItem>
@@ -115,7 +115,7 @@ export function RowActions({ row, table }) {
                   <button
                     onClick={handleEdit}
                     className={clsx(
-                      "flex h-9 w-full items-center space-x-3 px-3 tracking-wide outline-hidden transition-colors",
+                      "flex h-9 w-full items-center space-x-3 px-3 tracking-wide outline-none transition-colors",
                       focus &&
                         "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100"
                     )}
@@ -132,7 +132,7 @@ export function RowActions({ row, table }) {
                   <button
                     onClick={handleEditUncertainty}
                     className={clsx(
-                      "flex h-9 w-full items-center space-x-3 px-3 tracking-wide outline-hidden transition-colors",
+                      "flex h-9 w-full items-center space-x-3 px-3 tracking-wide outline-none transition-colors",
                       focus &&
                         "bg-blue-50 text-blue-600 dark:bg-dark-600 dark:text-blue-400"
                     )}
@@ -149,7 +149,7 @@ export function RowActions({ row, table }) {
                   <button
                     onClick={openModal}
                     className={clsx(
-                      "this:error flex h-9 w-full items-center space-x-3 px-3 tracking-wide text-this outline-hidden transition-colors dark:text-this-light",
+                      "this:error flex h-9 w-full items-center space-x-3 px-3 tracking-wide text-this outline-none transition-colors dark:text-this-light",
                       focus && "bg-this/10 dark:bg-this-light/10"
                     )}
                   >

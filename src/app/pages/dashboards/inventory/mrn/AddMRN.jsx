@@ -1,7 +1,39 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
-import { Button, Input, Select, Card } from "components/ui";
+import { Button, Input, Card } from "components/ui";
 import { Page } from "components/shared/Page";
+import ReactSelect from "react-select";
+
+const SearchableSelect = ({ label, name, options, value, onChange, required }) => {
+  return (
+    <div className="flex flex-col gap-1">
+      {label && (
+        <label className="text-sm font-medium text-gray-700 dark:text-dark-100">
+          {label} {required && <span className="text-red-500">*</span>}
+        </label>
+      )}
+      <ReactSelect
+        name={name}
+        options={options}
+        value={options.find(o => String(o.value) === String(value)) || null}
+        onChange={(option) => onChange({ target: { name, value: option ? option.value : '' } })}
+        isClearable
+        styles={{
+          control: (base) => ({
+            ...base,
+            minHeight: '42px',
+            borderRadius: '0.5rem',
+            borderColor: '#d1d5db',
+            boxShadow: 'none',
+            '&:hover': { borderColor: '#3b82f6' }
+          }),
+          menuPortal: base => ({ ...base, zIndex: 9999 })
+        }}
+        menuPortalTarget={document.body}
+      />
+    </div>
+  );
+};
 import axios from "utils/axios";
 import { toast } from "sonner";
 
@@ -12,15 +44,21 @@ export default function AddMRN() {
   const [loading, setLoading] = useState(false);
   const [fetchingDetails, setFetchingDetails] = useState(false);
 
-  // Form State
   const [formData, setFormData] = useState({
     typeofrecieving: "",
     poid: "",
-    custaddid: "",
-    concernpersonname: "",
-    gstnumber: "",
-    wcno: "",
-    wcdate: "",
+    customerid: "",
+    vendorname: "",
+    vendoraddress: "",
+    contactpersonname: "",
+    gstno: "",
+    city: "",
+    mobile: "",
+    email: "",
+    challanno: "",
+    challandate: "",
+    invoiceno: "",
+    invoicedate: "",
     dispatchthrough: "By Hand",
     dispatchdetail: "",
   });
@@ -33,7 +71,6 @@ export default function AddMRN() {
 
   // Dropdown Lists
   const [purchaseOrders, setPurchaseOrders] = useState([]);
-  const [vendorAddresses, setVendorAddresses] = useState([]);
 
   // ✅ Fetch Purchase Orders on Component Mount
   useEffect(() => {
@@ -59,18 +96,30 @@ export default function AddMRN() {
         try {
           setFetchingDetails(true);
           const response = await axios.get("/inventory/get-purchase-order-details", {
-            params: { poid: formData.poid, type: formData.typeofrecieving },
+            params: { poid: formData.poid, type: formData.typeofrecieving.toLowerCase() },
           });
 
-          if (response.data.status) {
-            const data = response.data.data;
-            setVendorAddresses(data.addresses || []);
-            setFormData((prev) => ({
-              ...prev,
-              concernpersonname: data.concernpersonname || "",
-              gstnumber: data.gstnumber || "",
-              custaddid: data.addresses?.[0]?.id || "", // Default to first address if available
-            }));
+          if (response.data && (response.data.status === true || response.data.status === "true" || response.data.data)) {
+            const responseData = response.data.data || response.data;
+            const data = Array.isArray(responseData) ? responseData[0] : responseData;
+            
+            if (data) {
+              const addressText = data.address || data.saddress || data.bill_and_consign_to || "";
+              const contactName = data.scontact || data.sname || data.concernpersonname || "";
+              const gst = data.gstno || data.gstnumber || "";
+              
+              setFormData((prev) => ({
+                ...prev,
+                customerid: data.customer_id || data.supplier_id || "",
+                vendorname: data.company || data.name || "",
+                vendoraddress: addressText,
+                city: data.city || "",
+                contactpersonname: contactName,
+                gstno: gst,
+                mobile: data.mobile || "",
+                email: data.email || "",
+              }));
+            }
           }
         } catch (err) {
           console.error("Error fetching vendor details:", err);
@@ -110,20 +159,36 @@ export default function AddMRN() {
     try {
       const form = new FormData();
       
+      // Helper function to format date yyyy-mm-dd to dd/mm/yyyy
+      const formatDate = (dateStr) => {
+        if (!dateStr) return "";
+        const [y, m, d] = dateStr.split("-");
+        return `${d}/${m}/${y}`;
+      };
+
       // Append all text fields
       Object.entries(formData).forEach(([key, value]) => {
-        form.append(key, value);
+        if (key === 'challandate' || key === 'invoicedate') {
+          form.append(key, formatDate(value));
+        } else {
+          form.append(key, value);
+        }
       });
 
       // Append files if they exist
       if (files.rupload1) form.append("rupload1", files.rupload1);
       if (files.rupload2) form.append("rupload2", files.rupload2);
 
-      // PHP logic: insertMRNwopo.php
-      await axios.post("/inventory/create-mrn", form);
+      const response = await axios.post("/inventory/create-mrn", form);
+      const newMrnId = response.data?.mrn_id || response.data?.data?.mrn_id;
 
-      toast.success("MRN added successfully ✅");
-      navigate("/dashboards/inventory/mrn");
+      toast.success(response.data?.message || "MRN added successfully ✅");
+      
+      if (newMrnId) {
+        navigate(`/dashboards/inventory/mrn/addMrnItemPurchasewopo?id=${newMrnId}`);
+      } else {
+        navigate("/dashboards/inventory/mrn");
+      }
     } catch (err) {
       console.error("Error creating MRN:", err);
       toast.error(err?.response?.data?.message || "Failed to create MRN ❌");
@@ -158,61 +223,56 @@ export default function AddMRN() {
               
               {/* Type Of Receiving */}
               <div className="space-y-1">
-                <Select
+                <SearchableSelect
                   label="Type Of Receiving"
                   name="typeofrecieving"
                   value={formData.typeofrecieving}
                   onChange={handleChange}
                   required
-                >
-                  <option value="">Select Type</option>
-                  <option value="Challan">Challan</option>
-                  <option value="Invoice">Invoice</option>
-                  <option value="Challan & Invoice">Challan & Invoice</option>
-                </Select>
+                  options={[
+                    { label: "Challan", value: "Challan" },
+                    { label: "Invoice", value: "Invoice" },
+                    { label: "Challan & Invoice", value: "Challan & Invoice" },
+                  ]}
+                />
               </div>
 
               {/* Purchase Order Selection */}
               <div className="space-y-1">
-                <Select
+                <SearchableSelect
                   label="Purchase Order"
                   name="poid"
                   value={formData.poid}
                   onChange={handleChange}
                   required
-                >
-                  <option value="">Choose One..</option>
-                  {purchaseOrders.map((po) => (
-                    <option key={po.id} value={po.id}>
-                      {po.po_number} - {po.supplier_company}
-                    </option>
-                  ))}
-                </Select>
+                  options={purchaseOrders.map((po) => ({
+                    value: po.id,
+                    label: `${po.po_number} - ${po.supplier_company}`
+                  }))}
+                />
               </div>
 
               {/* ✅ Dynamic Details Section (Auto-populated from PO selection) */}
               <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 pt-6 border-t border-gray-100 dark:border-dark-700">
                 
-                <Select
-                  label="Vendor Address"
-                  name="custaddid"
-                  value={formData.custaddid}
-                  onChange={handleChange}
-                  required
-                  disabled={fetchingDetails || !formData.poid}
-                >
-                  <option value="">Select Address</option>
-                  {vendorAddresses.map((addr) => (
-                    <option key={addr.id} value={addr.id}>
-                      {addr.address}
-                    </option>
-                  ))}
-                </Select>
+                <div className="space-y-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-dark-100">
+                    Vendor Address
+                  </label>
+                  <textarea
+                    name="vendoraddress"
+                    value={formData.vendoraddress}
+                    readOnly
+                    className="w-full rounded-lg border border-gray-300 bg-gray-50 p-3 text-sm shadow-sm transition-all focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 dark:bg-dark-900/50 dark:border-dark-600 dark:text-dark-50"
+                    rows={2}
+                    placeholder={fetchingDetails ? "Loading..." : "Auto-filled"}
+                  />
+                </div>
 
                 <Input
                   label="Contact Person Name"
-                  name="concernpersonname"
-                  value={formData.concernpersonname}
+                  name="contactpersonname"
+                  value={formData.contactpersonname}
                   readOnly
                   placeholder={fetchingDetails ? "Loading..." : "Auto-filled"}
                   className="bg-gray-50 dark:bg-dark-900/50"
@@ -220,46 +280,92 @@ export default function AddMRN() {
 
                 <Input
                   label="GST Number"
-                  name="gstnumber"
-                  value={formData.gstnumber}
+                  name="gstno"
+                  value={formData.gstno}
                   readOnly
                   placeholder={fetchingDetails ? "Loading..." : "Auto-filled"}
                   className="bg-gray-50 dark:bg-dark-900/50"
                 />
 
                 <Input
-                  label="Challan/ Invoice Number"
-                  name="wcno"
-                  value={formData.wcno}
-                  onChange={handleChange}
-                  placeholder="Enter Number"
-                  required
+                  label="Mobile No"
+                  name="mobile"
+                  value={formData.mobile}
+                  readOnly
+                  placeholder={fetchingDetails ? "Loading..." : "Auto-filled"}
+                  className="bg-gray-50 dark:bg-dark-900/50"
                 />
 
                 <Input
-                  label="Challan/Invoice Date"
-                  name="wcdate"
-                  type="date"
-                  value={formData.wcdate}
-                  onChange={handleChange}
-                  max={new Date().toISOString().split("T")[0]}
-                  required
+                  label="Email"
+                  name="email"
+                  value={formData.email}
+                  readOnly
+                  placeholder={fetchingDetails ? "Loading..." : "Auto-filled"}
+                  className="bg-gray-50 dark:bg-dark-900/50"
                 />
+
+                {(formData.typeofrecieving === "Challan" || formData.typeofrecieving === "Challan & Invoice") && (
+                  <>
+                    <Input
+                      label="Challan Number"
+                      name="challanno"
+                      value={formData.challanno}
+                      onChange={handleChange}
+                      placeholder="Enter Number"
+                      required
+                    />
+                    <Input
+                      label="Challan Date"
+                      name="challandate"
+                      type="date"
+                      value={formData.challandate}
+                      onChange={handleChange}
+                      max={new Date().toISOString().split("T")[0]}
+                      required
+                    />
+                  </>
+                )}
+
+                {(formData.typeofrecieving === "Invoice" || formData.typeofrecieving === "Challan & Invoice") && (
+                  <>
+                    <Input
+                      label="Invoice Number"
+                      name="invoiceno"
+                      value={formData.invoiceno}
+                      onChange={handleChange}
+                      placeholder="Enter Number"
+                      required
+                    />
+                    <Input
+                      label="Invoice Date"
+                      name="invoicedate"
+                      type="date"
+                      value={formData.invoicedate}
+                      onChange={handleChange}
+                      max={new Date().toISOString().split("T")[0]}
+                      required
+                    />
+                  </>
+                )}
               </div>
 
               {/* ✅ Logistic Details Section */}
               <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 pt-6 border-t border-gray-100 dark:border-dark-700">
                 
-                <Select
-                  label="Receive Through"
-                  name="dispatchthrough"
-                  value={formData.dispatchthrough}
-                  onChange={handleChange}
-                  required
-                >
-                  <option value="By Hand">By Hand</option>
-                  <option value="By courier">By courier</option>
-                </Select>
+                <div className="space-y-1">
+                  <SearchableSelect
+                    label="Receive Through"
+                    name="dispatchthrough"
+                    value={formData.dispatchthrough}
+                    onChange={handleChange}
+                    required
+                    options={[
+                      { label: "By Hand", value: "By Hand" },
+                      { label: "By courier", value: "By courier" },
+                    ]}
+                  />
+                </div>
 
                 <div className="md:col-span-2 space-y-1">
                   <label className="block text-sm font-medium text-gray-700 dark:text-dark-100">

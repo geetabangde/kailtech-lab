@@ -5,7 +5,7 @@
 
 .form-input-base,
 .form-textarea-base {
-  @apply block w-full appearance-none bg-transparent tracking-wide outline-hidden transition-colors duration-200 ease-in-out placeholder:font-light focus:outline-hidden disabled:select-none;
+  @apply block w-full appearance-none bg-transparent tracking-wide outline-none transition-colors duration-200 ease-in-out placeholder:font-light focus:outline-none disabled:select-none;
 }
 
 .form-input,

@@ -172,7 +172,7 @@ export default function TestPackagesList() {
           )}
         >
           {/* ── Toolbar ── */}
-          <div className="flex flex-wrap items-center justify-between gap-3 px-(--margin-x) pt-4 pb-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 px-[var(--margin-x)] pt-4 pb-3">
             <h2 className="dark:text-dark-50 text-xl font-semibold text-gray-800">
               Price List
               <span className="dark:bg-dark-700 dark:text-dark-300 ml-2 rounded-full bg-gray-100 px-2 py-0.5 text-sm font-normal text-gray-500">
@@ -203,7 +203,7 @@ export default function TestPackagesList() {
               "transition-content flex grow flex-col pt-1",
               tableSettings.enableFullScreen
                 ? "overflow-hidden"
-                : "px-(--margin-x)",
+                : "px-[var(--margin-x)]",
             )}
           >
             <Card

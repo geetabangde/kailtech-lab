@@ -72,7 +72,7 @@ export function SellerCard({ avatar, name, sales, impression, chartData }) {
         <Avatar
           size={16}
           classNames={{
-            root: "rounded-full bg-linear-to-r from-sky-400 to-blue-600 p-0.5",
+            root: "rounded-full bg-gradient-to-r from-sky-400 to-blue-600 p-0.5",
             display: "border-2 border-white text-lg dark:border-dark-700",
           }}
           src={avatar}

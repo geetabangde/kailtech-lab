@@ -19,6 +19,7 @@ export default function OrganisationSetting() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [countries, setCountries] = useState([]);
+  const [states, setStates] = useState([]);
   const [accountTypes, setAccountTypes] = useState([]);
 
   const [formData, setFormData] = useState({
@@ -33,8 +34,12 @@ export default function OrganisationSetting() {
     city: "",
     country_id: "",
     state: "",
+    indian_state: "",
     pincode: "",
-    company_logo: "", // Add this
+    company_logo: "",
+    favicon_url: "",
+    logo_upload: null,
+    favicon: null,
     // Bank
     bank_name: "",
     account_name: "",
@@ -69,68 +74,67 @@ export default function OrganisationSetting() {
   const fetchInitialData = async () => {
     try {
       setLoading(true);
-      
-      // Fetch dropdowns separately to not block main data
-      try {
-        const [countriesRes, accountTypesRes] = await Promise.all([
-          axios.get("master/view-country-list"),
-          axios.get("master/view-bank-account-type-list")
-        ]);
-        if (countriesRes.data.status) {
-          setCountries(countriesRes.data.data.map(c => ({ label: c.country_name || c.name, value: c.id })));
-        }
-        if (accountTypesRes.data.status) {
-          setAccountTypes(accountTypesRes.data.data.map(t => ({ label: t.name, value: t.id })));
-        }
-      } catch (e) {
-        console.error("Dropdowns fetch error:", e);
-      }
 
-      // Fetch main company info
-      const settingsRes = await axios.get("get-company-info");
-      console.log("Full Settings Response:", settingsRes);
+      const res = await axios.get("/rolemanagment/get-company-setting");
+      console.log("Full Settings Response:", res.data);
 
-      if (settingsRes.data && (settingsRes.data.status === true || settingsRes.data.status === "true")) {
-        const d = settingsRes.data.data;
-        console.log("Extracted Data Object:", d);
-        
-        if (d) {
-          setFormData({
-            // Company
-            company_name: d.company?.name || "",
-            short_name: d.company?.short_name || "",
-            gst_no: d.company?.gst_no || "",
-            sac_code: d.company?.sac_code || "",
-            hsn_code: d.company?.hsn_code || "",
-            sme_no: d.company?.sme_no || "",
-            cin_no: d.company?.cin_no || "",
-            pan_no: d.company?.pan_no || "",
-            // Bank
-            bank_name: d.bank?.bank_name || "",
-            branch_name: d.bank?.branch || "",
-            account_number: d.bank?.account_no || "",
-            account_name: d.bank?.account_name || "",
-            account_type_id: d.bank?.account_type || "",
-            ifsc_code: d.bank?.ifsc || "",
-            micr_no: d.bank?.micr || "",
-            swift_code: d.bank?.swift_code || "",
-            // Address
-            address_1: d.address?.full_address || "",
-            city: d.address?.city || "",
-            state: d.address?.state || "",
-            pincode: d.address?.pincode || "",
-            country_id: d.address?.country || "",
-            // Contact
-            phone: d.contact?.phone || "",
-            email: d.contact?.email || "",
-            website: d.contact?.website || "",
-            // Branding
-            company_logo: d.branding?.logo || "",
-            favicon: d.branding?.favicon || "",
-          });
+      if (res.data && (res.data.status === true || res.data.status === "true")) {
+        const d = res.data.data;
+
+        // 1. Populate Dropdowns
+        if (d.countries) {
+          setCountries(d.countries.map(c => ({ label: c.country_name || c.name, value: c.id })));
         }
+        if (d.states) {
+          setStates(d.states.map(s => ({ label: s.state, value: s.id })));
+        }
+        if (d.account_types) {
+          setAccountTypes(d.account_types.map(t => ({ label: t.name, value: t.id })));
+        }
+
+        // 2. Populate Company Info
+        const companyDetail = d.company_detail || {};
+        setFormData({
+          // Company / General
+          company_name: companyDetail.company_name || "",
+          short_name: companyDetail.short_name || "",
+          phone: companyDetail.phone || "",
+          website: companyDetail.website || "",
+          gst_no: companyDetail.gst_no || "",
+          email: companyDetail.email || "",
+          address_1: companyDetail.address_1 || "",
+          city: companyDetail.city || "",
+          country_id: companyDetail.country_id || "",
+          state: companyDetail.state || "",
+          indian_state: companyDetail.indian_state || "",
+          pincode: companyDetail.pincode || "",
+          // Branding
+          company_logo: d.logo_url || "",
+          favicon_url: d.favicon_url || "",
+          logo_upload: null,
+          favicon: null,
+          // Bank
+          bank_name: companyDetail.bank_name || "",
+          account_name: companyDetail.account_name || "",
+          account_type_id: companyDetail.account_type_id || "",
+          account_number: companyDetail.account_number || "",
+          micr_no: companyDetail.micr_no || "",
+          ifsc_code: companyDetail.ifsc_code || "",
+          swift_code: companyDetail.swift_code || "",
+          branch_name: companyDetail.branch_name || "",
+          // Details
+          gumasta_no: companyDetail.gumasta_no || "",
+          msme_no: companyDetail.msme_no || "",
+          sme_no: companyDetail.sme_no || "",
+          cin_no: companyDetail.cin_no || "",
+          hsn_code: companyDetail.hsn_code || "",
+          sac_code: companyDetail.sac_code || "",
+          tan_no: companyDetail.tan_no || "",
+          pan_no: companyDetail.pan_no || "",
+        });
       } else {
-        console.warn("Settings API returned non-success status:", settingsRes.data);
+        console.warn("Settings API returned non-success status:", res.data);
+        toast.error(res.data.message || "Failed to load settings data");
       }
     } catch (err) {
       console.error("Critical error in fetchInitialData:", err);
@@ -141,8 +145,19 @@ export default function OrganisationSetting() {
   };
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    const { name, value, files } = e.target;
+    if (files) {
+      const file = files[0];
+      setFormData((prev) => ({ ...prev, [name]: file }));
+
+      // If uploading company_logo, also update the preview URL immediately
+      if (name === "logo_upload" && file) {
+        const previewUrl = URL.createObjectURL(file);
+        setFormData((prev) => ({ ...prev, company_logo: previewUrl }));
+      }
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -151,11 +166,30 @@ export default function OrganisationSetting() {
     try {
       const payload = new FormData();
       Object.keys(formData).forEach(key => {
-        payload.append(key, formData[key]);
+        if (formData[key] !== null && formData[key] !== undefined) {
+          payload.append(key, formData[key]);
+        }
       });
 
-      const response = await axios.post("/roles/update-organisation-settings", payload);
-      if (response.data.status) {
+      // Append legacy PHP names to ensure backend receives what it expects
+      payload.append("address_line_1", formData.address_1 || "");
+      payload.append("account_no", formData.account_number || "");
+      payload.append("micr_code", formData.micr_no || "");
+
+      // Append hidden section flags that PHP backend might check
+      payload.append("personal_detail", "-1");
+      payload.append("bank_detail", "-1");
+      payload.append("company_detail", "-1");
+
+      if (formData.logo_upload instanceof File) {
+        payload.append("logo_upload", formData.logo_upload);
+      }
+      if (formData.favicon instanceof File) {
+        payload.append("favicon", formData.favicon);
+      }
+
+      const response = await axios.post("rolemanagment/save-company-setting", payload);
+      if (response.data.status || response.data.success) {
         toast.success("Settings updated successfully ✅");
       } else {
         toast.error(response.data.message || "Failed to update settings");
@@ -204,7 +238,7 @@ export default function OrganisationSetting() {
         </div>
 
         {/* Company Header Section */}
-        <Card className="mb-8 p-6 bg-linear-to-r from-blue-50 to-indigo-50 dark:from-dark-800 dark:to-dark-900 border-none">
+        <Card className="mb-8 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-dark-800 dark:to-dark-900 border-none">
           <div className="flex flex-col md:flex-row items-center gap-8">
             <div className="relative group">
               <div className="w-40 h-40 rounded-2xl overflow-hidden bg-white shadow-xl flex items-center justify-center p-2 border-4 border-white dark:border-dark-700">
@@ -252,21 +286,21 @@ export default function OrganisationSetting() {
           </div>
         </Card>
 
-        <TabGroup className="flex flex-col md:flex-row gap-6">
-          <TabList className="flex flex-col gap-2 min-w-[240px]">
+        <TabGroup className="flex flex-col gap-6">
+          <TabList className="flex flex-row flex-wrap gap-2 pb-2 border-b border-gray-100 dark:border-dark-800">
             {tabs.map((tab) => (
               <Tab
                 key={tab.name}
                 className={({ selected }) =>
                   clsx(
-                    "flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all outline-hidden text-left",
+                    "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all outline-none cursor-pointer",
                     selected
                       ? "bg-blue-600 text-white shadow-md shadow-blue-200/50"
                       : "text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-dark-800"
                   )
                 }
               >
-                <tab.icon className="w-5 h-5" />
+                <tab.icon className="w-4.5 h-4.5" />
                 {tab.name}
               </Tab>
             ))}
@@ -278,13 +312,14 @@ export default function OrganisationSetting() {
               <TabPanel>
                 <Card className="p-6">
                   <h3 className="text-lg font-semibold mb-6 border-b pb-2">General Information</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <Input
                       label="Company Name"
                       name="company_name"
                       value={formData.company_name}
                       onChange={handleChange}
                       placeholder="Enter Company Name"
+                      classNames={{ root: "md:col-span-2" }}
                     />
                     <Input
                       label="Short Name"
@@ -292,6 +327,7 @@ export default function OrganisationSetting() {
                       value={formData.short_name}
                       onChange={handleChange}
                       placeholder="Short Name"
+                      classNames={{ root: "md:col-span-1" }}
                     />
                     <Input
                       label="Phone No."
@@ -299,6 +335,7 @@ export default function OrganisationSetting() {
                       value={formData.phone}
                       onChange={handleChange}
                       placeholder="Phone Number"
+                      classNames={{ root: "md:col-span-2" }}
                     />
                     <Input
                       label="Website"
@@ -306,6 +343,7 @@ export default function OrganisationSetting() {
                       value={formData.website}
                       onChange={handleChange}
                       placeholder="www.example.com"
+                      classNames={{ root: "md:col-span-1" }}
                     />
                     <Input
                       label="GST No"
@@ -313,6 +351,7 @@ export default function OrganisationSetting() {
                       value={formData.gst_no}
                       onChange={handleChange}
                       placeholder="GST Number"
+                      classNames={{ root: "md:col-span-2" }}
                     />
                     <Input
                       label="E-Mail"
@@ -320,15 +359,16 @@ export default function OrganisationSetting() {
                       value={formData.email}
                       onChange={handleChange}
                       placeholder="Company Email"
+                      classNames={{ root: "md:col-span-1" }}
                     />
-                    <div className="md:col-span-2">
-                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <div className="md:col-span-3">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Address
                       </label>
                       <textarea
                         name="address_1"
                         rows={3}
-                        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-hidden focus:ring-2 focus:ring-blue-500/20 dark:border-dark-500 dark:bg-dark-900 resize-none"
+                        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-dark-500 dark:bg-dark-900 resize-none"
                         value={formData.address_1}
                         onChange={handleChange}
                         placeholder="1234 Main St"
@@ -340,22 +380,37 @@ export default function OrganisationSetting() {
                       value={formData.city}
                       onChange={handleChange}
                       placeholder="City"
+                      classNames={{ root: "md:col-span-1" }}
                     />
                     <Select
                       label="Country"
                       name="country_id"
                       options={countries}
                       value={formData.country_id}
-                      onChange={(val) => setFormData(p => ({ ...p, country_id: val }))}
+                      onChange={(val) => setFormData(p => ({ ...p, country_id: val, state: "", indian_state: "" }))}
                       placeholder="Select Country"
+                      className="md:col-span-1"
                     />
-                    <Input
-                      label="State"
-                      name="state"
-                      value={formData.state}
-                      onChange={handleChange}
-                      placeholder="State"
-                    />
+                    {String(formData.country_id) === "1" ? (
+                      <Select
+                        label="State"
+                        name="indian_state"
+                        options={states}
+                        value={formData.indian_state}
+                        onChange={(val) => setFormData(p => ({ ...p, indian_state: val }))}
+                        placeholder="Select State"
+                        className="md:col-span-1"
+                      />
+                    ) : (
+                      <Input
+                        label="State"
+                        name="state"
+                        value={formData.state}
+                        onChange={handleChange}
+                        placeholder="State"
+                        classNames={{ root: "md:col-span-1" }}
+                      />
+                    )}
                     <Input
                       label="Pincode"
                       name="pincode"
@@ -363,7 +418,38 @@ export default function OrganisationSetting() {
                       value={formData.pincode}
                       onChange={handleChange}
                       placeholder="Pincode"
+                      classNames={{ root: "md:col-span-1" }}
                     />
+                    <div className="md:col-span-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Company Logo
+                      </label>
+                      <input
+                        type="file"
+                        name="logo_upload"
+                        accept="image/*"
+                        onChange={handleChange}
+                        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:border-dark-500 dark:bg-dark-900"
+                      />
+                    </div>
+                    <div className="md:col-span-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Favicon Logo
+                      </label>
+                      <input
+                        type="file"
+                        name="favicon"
+                        accept="image/*"
+                        onChange={handleChange}
+                        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:border-dark-500 dark:bg-dark-900"
+                      />
+                      {formData.favicon_url && (
+                        <div className="mt-1.5 flex items-center gap-2">
+                          <img src={formData.favicon_url} alt="Favicon" className="w-5 h-5 object-contain" />
+                          <span className="text-xs text-gray-500">Current Favicon</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </Card>
               </TabPanel>
@@ -503,12 +589,12 @@ export default function OrganisationSetting() {
               {/* Placeholders for other tabs */}
               <TabPanel>
                 <Card className="p-6 flex items-center justify-center h-64 italic text-gray-500">
-                  Manage Roles settings will be integrated here.
+
                 </Card>
               </TabPanel>
               <TabPanel>
                 <Card className="p-6 flex items-center justify-center h-64 italic text-gray-500">
-                  App Settings configuration will be integrated here.
+
                 </Card>
               </TabPanel>
 
@@ -523,8 +609,8 @@ export default function OrganisationSetting() {
                   {saving ? (
                     <span className="flex items-center gap-2">
                       <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 000 8v4a8 8 0 01-8-8z"></path>
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 000 8v4a8 8 0 01-8-8z"></path>
                       </svg>
                       Saving...
                     </span>

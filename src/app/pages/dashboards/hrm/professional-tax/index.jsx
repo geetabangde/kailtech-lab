@@ -11,7 +11,9 @@ import {
 } from "@tanstack/react-table";
 import clsx from "clsx";
 import { useState, useEffect } from "react";
+import { Navigate } from "react-router-dom";
 import axios from "utils/axios";
+import { getStoredPermissions } from "app/navigation/dashboards";
 
 // Local Imports
 import { Table, Card, THead, TBody, Th, Tr, Td } from "components/ui";
@@ -32,6 +34,7 @@ import { getUserAgentBrowser } from "utils/dom/getUserAgentBrowser";
 const isSafari = getUserAgentBrowser() === "Safari";
 
 export default function ProfessionalTaxDatatable() {
+  const permissions = getStoredPermissions();
   const { cardSkin } = useThemeContext();
 
   const [taxSlabs, setTaxSlabs] = useState([]);
@@ -47,7 +50,12 @@ export default function ProfessionalTaxDatatable() {
       setLoading(true);
       const response = await axios.get("/hrm/professional-tax-list");
 
-      if (response.data.status && Array.isArray(response.data.data)) {
+      if (
+        (response.data.status === true ||
+          response.data.status === "true" ||
+          response.data.status === "success") &&
+        Array.isArray(response.data.data)
+      ) {
         setTaxSlabs(response.data.data);
       } else {
         console.warn("Unexpected response structure:", response.data);
@@ -138,6 +146,11 @@ export default function ProfessionalTaxDatatable() {
   useDidUpdate(() => table.resetRowSelection(), [taxSlabs]);
   useLockScrollbar(tableSettings.enableFullScreen);
 
+  // ✅ Permission Check
+  if (!permissions.includes(229)) {
+    return <Navigate to="/dashboards" replace />;
+  }
+
   // ✅ Loading UI
   if (loading) {
     return (
@@ -181,7 +194,7 @@ export default function ProfessionalTaxDatatable() {
           <div
             className={clsx(
               "transition-content flex grow flex-col pt-3",
-              tableSettings.enableFullScreen ? "overflow-hidden" : "px-(--margin-x)",
+              tableSettings.enableFullScreen ? "overflow-hidden" : "px-[var(--margin-x)]",
             )}
           >
             <Card

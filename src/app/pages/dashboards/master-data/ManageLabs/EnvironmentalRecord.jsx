@@ -7,13 +7,13 @@ import { toast } from "sonner";
 export default function ViewEnvironmentalRecord() {
   const navigate = useNavigate();
   const params = useParams();
-  
+
   // Get labId from URL params - check what params are available
   console.log("All URL Params:", params);
   const labId = params.labId || params.id || params['*']?.split('/').pop();
-  
+
   console.log("Extracted Lab ID:", labId);
-  
+
   const [loading, setLoading] = useState(false);
   const [printLoading, setPrintLoading] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState("02");
@@ -29,13 +29,13 @@ export default function ViewEnvironmentalRecord() {
   useEffect(() => {
     const fetchEnvironmentalData = async () => {
       console.log("Lab ID from URL:", labId); // Debug log
-      
+
       if (!labId) {
         console.error("Lab ID is missing. Current URL:", window.location.href);
         toast.error("Lab ID is required. Please navigate from the lab list.");
         return;
       }
-      
+
       setLoading(true);
       try {
         console.log("Fetching data with params:", {
@@ -174,7 +174,7 @@ export default function ViewEnvironmentalRecord() {
           <h2 className="text-lg font-semibold text-gray-800">Environmental Record List</h2>
           <div className="flex items-center gap-4">
             <div className="flex gap-3 items-center">
-              <select 
+              <select
                 value={selectedMonth}
                 onChange={(e) => setSelectedMonth(e.target.value)}
                 className="px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -185,7 +185,7 @@ export default function ViewEnvironmentalRecord() {
                   </option>
                 ))}
               </select>
-              <select 
+              <select
                 value={selectedYear}
                 onChange={(e) => setSelectedYear(e.target.value)}
                 className="px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -209,7 +209,7 @@ export default function ViewEnvironmentalRecord() {
         <div className="p-6">
           <div className="printable-area">
             <div className="space-y-6 text-sm leading-relaxed print:text-black">
-              
+
               {/* Main Header */}
               <div className="flex border border-gray-300 bg-white shadow-sm">
                 {/* Logo Section */}
@@ -274,7 +274,7 @@ export default function ViewEnvironmentalRecord() {
                     {type.ranges?.map((range, idx) => (
                       <span key={idx}>
                         <strong>{range.subtype}:</strong>{' '}
-                        {range.rangetype === 'Range' 
+                        {range.rangetype === 'Range'
                           ? `${range.minrange}-${range.maxrange} ${range.unit}`
                           : `${range.minrange} ${range.unit}`
                         }
@@ -302,8 +302,8 @@ export default function ViewEnvironmentalRecord() {
                       return readings.map((reading, readingIdx) => (
                         <tr key={`${idx}-${readingIdx}`} className="hover:bg-gray-50">
                           {readingIdx === 0 && (
-                            <td 
-                              className="p-3 border border-gray-300 font-medium" 
+                            <td
+                              className="p-3 border border-gray-300 font-medium"
                               rowSpan={readings.length}
                             >
                               {formatDate(record.date)}
@@ -319,8 +319,8 @@ export default function ViewEnvironmentalRecord() {
                             {reading.humidity || '-'}
                           </td>
                           {readingIdx === 0 && (
-                            <td 
-                              className="p-3 border border-gray-300" 
+                            <td
+                              className="p-3 border border-gray-300"
                               rowSpan={readings.length}
                             >
                               {record.added_by || '-'}
@@ -344,8 +344,8 @@ export default function ViewEnvironmentalRecord() {
 
             {/* Print Button */}
             <div className="flex justify-end mt-6 no-print">
-              <button 
-                onClick={handlePrint} 
+              <button
+                onClick={handlePrint}
                 disabled={printLoading}
                 className="px-4 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
               >

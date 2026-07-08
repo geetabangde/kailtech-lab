@@ -29,7 +29,7 @@ export function MenuItem({ data }) {
       id={id}
       className={({ isActive }) =>
         clsx(
-          "text-xs-plus flex cursor-pointer items-center justify-between px-2 tracking-wide outline-hidden transition-[color,padding-left,padding-right] duration-300 ease-in-out hover:ltr:pl-4 hover:rtl:pr-4",
+          "text-xs-plus flex cursor-pointer items-center justify-between px-2 tracking-wide outline-none transition-[color,padding-left,padding-right] duration-300 ease-in-out hover:ltr:pl-4 hover:rtl:pr-4",
           isActive
             ? "text-primary-600 dark:text-primary-400 font-medium"
             : "dark:text-dark-200 dark:hover:text-dark-50 dark:focus:text-dark-50 text-gray-600 hover:text-gray-900 focus:text-gray-900",

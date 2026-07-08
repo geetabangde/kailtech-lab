@@ -13,7 +13,7 @@
 
 [data-layout="main-layout"] main.main-content,
 [data-layout="main-layout"] .app-header {
-  @apply md:ltr:ml-(--main-panel-width) md:rtl:mr-(--main-panel-width);
+  @apply md:ltr:ml-[var(--main-panel-width)] md:rtl:mr-[var(--main-panel-width)];
 }
 
 [data-layout="main-layout"].is-sidebar-open main.main-content,
@@ -30,7 +30,7 @@
 }
 
 [data-layout="main-layout"] .main-panel {
-  @apply invisible fixed top-0 z-40 h-full w-(--main-panel-width) shrink-0 -translate-x-full transform-gpu transition-[transform,visibility] duration-200 ease-in md:visible md:z-60 md:translate-x-0 ltr:left-0 rtl:right-0 rtl:translate-x-full md:rtl:translate-x-0;
+  @apply invisible fixed top-0 z-40 h-full w-[var(--main-panel-width)] shrink-0 -translate-x-full transform-gpu transition-[transform,visibility] duration-200 ease-in md:visible md:z-[60] md:translate-x-0 ltr:left-0 rtl:right-0 rtl:translate-x-full md:rtl:translate-x-0;
 }
 
 [data-layout="main-layout"].is-sidebar-open .main-panel {
@@ -48,11 +48,11 @@
 
 [data-layout="sideblock"] main.main-content,
 [data-layout="sideblock"] .app-header {
-  @apply xl:ltr:ml-(--sidebar-panel-width) xl:rtl:mr-(--sidebar-panel-width);
+  @apply xl:ltr:ml-[var(--sidebar-panel-width)] xl:rtl:mr-[var(--sidebar-panel-width)];
 }
 
 [data-layout="sideblock"] .sidebar-panel {
-  @apply invisible fixed top-0 z-30 h-full w-(--sidebar-panel-width) -translate-x-full transform-gpu transition-[transform,visibility,width] duration-[.25s] ease-in xl:visible ltr:left-0 xl:ltr:translate-x-0 rtl:right-0 rtl:translate-x-full xl:rtl:translate-x-0;
+  @apply invisible fixed top-0 z-30 h-full w-[var(--sidebar-panel-width)] -translate-x-full transform-gpu transition-[transform,visibility,width] duration-[.25s] ease-in xl:visible ltr:left-0 xl:ltr:translate-x-0 rtl:right-0 rtl:translate-x-full xl:rtl:translate-x-0;
 }
 
 [data-layout="sideblock"].is-sidebar-open .sidebar-panel {

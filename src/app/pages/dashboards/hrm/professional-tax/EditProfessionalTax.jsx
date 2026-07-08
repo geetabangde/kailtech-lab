@@ -34,14 +34,14 @@ export default function EditProfessionalTax() {
     const fetchTaxSlab = async () => {
       try {
         setFetching(true);
-        const response = await axios.get(`/hrm/get-professional-tax-byid/${id}`);
+        const response = await axios.get(`/hrm/professional-tax-get/${id}`);
         const result = response.data;
 
-        if (result.status === "true" && result.data) {
+        if ((result.status === "true" || result.status === true || result.status === "success") && result.data) {
           setFormData({
-            min: result.data.min || "",
-            max: result.data.max || "",
-            tax: result.data.tax || "",
+            min: result.data.min || result.data.min === 0 ? result.data.min : "",
+            max: result.data.max || result.data.max === 0 ? result.data.max : "",
+            tax: result.data.tax || result.data.tax === 0 ? result.data.tax : "",
           });
         } else {
           toast.error(result.message || "Failed to load tax slab data.");
@@ -146,10 +146,12 @@ export default function EditProfessionalTax() {
       form.append("max", formData.max);
       form.append("tax", formData.tax);
 
-      const response = await axios.post(`/hrm/update-professional-tax/${id}`, form);
+      const response = await axios.post(`/hrm/professional-tax-update/${id}`, form, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
       const result = response.data;
 
-      if (result.status === "true") {
+      if (result.status === "true" || result.status === true || result.status === "success") {
         toast.success(result.message || "Tax slab updated successfully ✅", {
           duration: 2000,
           icon: "✅",

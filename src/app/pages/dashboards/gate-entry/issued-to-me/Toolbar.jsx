@@ -10,7 +10,8 @@ import {
 } from "@headlessui/react";
 import { EllipsisHorizontalIcon } from "@heroicons/react/20/solid";
 
-import { Button, Input, Select } from "components/ui";
+import { Button, Input } from "components/ui";
+import ReactSelect from "react-select";
 import { TableConfig } from "./TableConfig";
 import { useBreakpointsContext } from "app/contexts/breakpoint/context";
 
@@ -25,7 +26,7 @@ export function Toolbar({ table }) {
       <div
         className={clsx(
           "transition-content flex items-center justify-between gap-4",
-          isFullScreenEnabled ? "px-4 sm:px-5" : "px-(--margin-x) pt-4",
+          isFullScreenEnabled ? "px-4 sm:px-5" : "px-[var(--margin-x)] pt-4",
         )}
       >
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
@@ -51,13 +52,13 @@ export function Toolbar({ table }) {
               leave="transition ease-in"
               leaveFrom="opacity-100 translate-y-0"
               leaveTo="opacity-0 translate-y-2"
-              className="absolute z-100 mt-1.5 min-w-[10rem] whitespace-nowrap rounded-lg border border-gray-300 bg-white py-1 shadow-lg shadow-gray-200/50 outline-hidden focus-visible:outline-hidden dark:border-dark-500 dark:bg-dark-700 dark:shadow-none ltr:right-0 rtl:left-0"
+              className="absolute z-100 mt-1.5 min-w-[10rem] whitespace-nowrap rounded-lg border border-gray-300 bg-white py-1 shadow-lg shadow-gray-200/50 outline-none focus-visible:outline-none dark:border-dark-500 dark:bg-dark-700 dark:shadow-none ltr:right-0 rtl:left-0"
             >
               <MenuItem>
                 {({ focus }) => (
                   <button
                     className={clsx(
-                      "flex h-9 w-full items-center px-3 tracking-wide outline-hidden transition-colors",
+                      "flex h-9 w-full items-center px-3 tracking-wide outline-none transition-colors",
                       focus &&
                       "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
                     )}
@@ -70,7 +71,7 @@ export function Toolbar({ table }) {
                 {({ focus }) => (
                   <button
                     className={clsx(
-                      "flex h-9 w-full items-center px-3 tracking-wide outline-hidden transition-colors",
+                      "flex h-9 w-full items-center px-3 tracking-wide outline-none transition-colors",
                       focus &&
                       "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
                     )}
@@ -90,7 +91,7 @@ export function Toolbar({ table }) {
         <div
           className={clsx(
             "custom-scrollbar transition-content flex justify-between space-x-4 overflow-x-auto pb-1 pt-4 ",
-            isFullScreenEnabled ? "px-4 sm:px-5" : "px-(--margin-x)",
+            isFullScreenEnabled ? "px-4 sm:px-5" : "px-[var(--margin-x)]",
           )}
         >
           <div className="flex shrink-0 space-x-2 ">
@@ -116,15 +117,30 @@ export function Toolbar({ table }) {
             <div className="flex items-center space-x-2">
               <span className="text-xs font-medium text-gray-500 dark:text-dark-200">Status:</span>
               <div className="w-32">
-                <Select
-                  name="status"
+                <ReactSelect
                   options={[
                     { label: "All", value: "" },
                     { label: "Alloted", value: "1" },
                     { label: "Lrn Done", value: "2" },
                   ]}
-                  value={table.getState().filters?.status || ""}
-                  onChange={(val) => table.options.meta.setFilters(prev => ({ ...prev, status: val }))}
+                  value={[
+                    { label: "All", value: "" },
+                    { label: "Alloted", value: "1" },
+                    { label: "Lrn Done", value: "2" },
+                  ].find((p) => p.value === (table.getState().filters?.status || "")) || { label: "All", value: "" }}
+                  onChange={(selected) => table.options.meta.setFilters(prev => ({ ...prev, status: selected ? selected.value : "" }))}
+                  menuPortalTarget={document.body}
+                  styles={{
+                    control: (base) => ({
+                      ...base,
+                      minHeight: "42px",
+                      borderRadius: "0.5rem",
+                      borderColor: "#D1D5DB",
+                      boxShadow: "none",
+                      "&:hover": { borderColor: "#9CA3AF" },
+                    }),
+                    menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+                  }}
                 />
               </div>
             </div>
@@ -136,7 +152,7 @@ export function Toolbar({ table }) {
       )}
 
       {isXs && (
-        <div className={clsx("flex p-4 gap-2", isFullScreenEnabled ? "px-4" : "px-(--margin-x)")}>
+        <div className={clsx("flex p-4 gap-2", isFullScreenEnabled ? "px-4" : "px-[var(--margin-x)]")}>
             <SearchInput table={table} />
             <TableConfig table={table} />
         </div>

@@ -76,7 +76,7 @@ export function Toolbar({
       <div
         className={clsx(
           "transition-content flex items-center justify-between gap-4",
-          isFullScreenEnabled ? "px-4 sm:px-5" : "px-(--margin-x) pt-4",
+          isFullScreenEnabled ? "px-4 sm:px-5" : "px-[var(--margin-x)] pt-4",
         )}
       >
         <div className="min-w-0">
@@ -108,7 +108,7 @@ export function Toolbar({
       <div
         className={clsx(
           "transition-content mt-4 flex flex-nowrap items-end gap-3 overflow-x-auto",
-          isFullScreenEnabled ? "px-4 sm:px-5" : "px-(--margin-x)",
+          isFullScreenEnabled ? "px-4 sm:px-5" : "px-[var(--margin-x)]",
         )}
       >
         {/* Start Date */}
@@ -202,7 +202,7 @@ export function Toolbar({
       <div
         className={clsx(
           "transition-content flex justify-between gap-4 pt-4 pb-1",
-          isFullScreenEnabled ? "px-4 sm:px-5" : "px-(--margin-x)",
+          isFullScreenEnabled ? "px-4 sm:px-5" : "px-[var(--margin-x)]",
         )}
       >
         <div className="flex shrink-0 items-center space-x-2">

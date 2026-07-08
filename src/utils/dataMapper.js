@@ -20,6 +20,7 @@ export const mapDataBySuffix = (suffix, apiData) => {
     hg: mapHgData,
     mg: mapMgData,
     fg: mapFgData,
+    dw: mapDwData,
   };
 
   const mapper = mappers[suffix];
@@ -519,5 +520,53 @@ const mapFgData = (apiData) => {
     coverageFactor: item.coverage_factor,
     expandedUnc: item.expanded_uncertainty,
     cmc: item.cmc_taken,
+  }));
+};
+
+const safeGetArrayValue = (val) => {
+  if (!val) return [];
+  if (Array.isArray(val)) return val;
+  if (typeof val === 'string') {
+    if (val.trim().startsWith('[')) {
+      try {
+        return JSON.parse(val);
+      } catch {
+        // ignore
+      }
+    }
+    return val.split(',').map(s => s.trim());
+  }
+  return [val];
+};
+
+const mapDwData = (apiData) => {
+  if (!Array.isArray(apiData)) return [];
+  
+  return apiData.map((item) => ({
+    srNo: item.sr_no,
+    unit: item.unit,
+    calibrationPoint: item.calibration_point ?? item.point,
+    uuca: safeGetArrayValue(item.uuca ?? item.s1),
+    mastera: safeGetArrayValue(item.mastera ?? item.u1),
+    masterb: safeGetArrayValue(item.masterb ?? item.u2),
+    uucb: safeGetArrayValue(item.uucb ?? item.s2),
+    deltai: safeGetArrayValue(item.deltai ?? item.diff),
+    typeA: item.typea ?? item.type_a,
+    averagedeltai: item.averagedeltai ?? item.average_diff ?? item.avg_diff,
+    mcr: item.mcr ?? item.conv_mass,
+    densityofair: item.densityofair ?? item.density_of_air,
+    densityofairref: item.densityofairref ?? item.density_of_air_ref ?? 0.0012,
+    densityofmaster: item.densityofmaster ?? item.density_of_master,
+    densityuuc: item.densityuuc ?? item.density_uuc,
+    refweightmass: item.refweightmass ?? item.ref_weight_mass,
+    volumofref: item.volumofref ?? item.volume_of_ref,
+    volumeoftestweight: item.volumeoftestweight ?? item.volume_of_test_weight,
+    airbyouncy: item.airbyouncy ?? item.air_buoyancy,
+    masterleastcount: item.masterleastcount ?? item.master_least_count,
+    masterunc: item.masterunc ?? item.master_uncertainty ?? item.master_unc,
+    comuncer: item.comuncer ?? item.combined_uncertainty ?? item.combined_unc,
+    coveragefactor: item.coveragefactor ?? item.coverage_factor ?? 2,
+    expandeduncertainty: item.expandeduncertainty ?? item.expanded_uncertainty ?? item.expanded_unc,
+    cmcuncertainty: item.cmcuncertainty ?? item.cmc_uncertainty ?? item.cmc,
   }));
 };

@@ -1,4 +1,3 @@
-// Import Dependencies
 import PropTypes from "prop-types";
 import { Link } from "react-router-dom";
 import { Button } from "components/ui";
@@ -42,14 +41,15 @@ export function RowActions({ row }) {
   const canEditDin = (statusInt === -2 || statusInt === -1) && permissions.includes(341);
 
   return (
-    <div className="flex flex-wrap gap-1.5 min-w-[150px]">
+    <div className="flex flex-wrap items-center gap-2 min-w-[150px]">
       {canApprove && (
         <Button
           component={Link}
           to={`/dashboards/inventory/din-list/approve-dispatch?hakuna=${id}&matata=1`}
           size="xs"
           color="success"
-          className="px-2 font-bold"
+          variant="soft"
+          className="px-2.5 py-1 font-semibold transition-all hover:bg-success-100"
         >
           Approve
         </Button>
@@ -61,7 +61,8 @@ export function RowActions({ row }) {
           to={`/dashboards/inventory/din-list/approve-dispatch?hakuna=${id}&matata=2`}
           size="xs"
           color="error"
-          className="px-2 font-bold"
+          variant="soft"
+          className="px-2.5 py-1 font-semibold transition-all hover:bg-error-100"
         >
           Reject
         </Button>
@@ -71,7 +72,8 @@ export function RowActions({ row }) {
         <Button
           size="xs"
           color="warning"
-          className="px-2 font-bold"
+          variant="soft"
+          className="px-2.5 py-1 font-semibold transition-all hover:bg-warning-100"
           onClick={() => console.log("Edit Dispatch Detail Modal", id)}
         >
           Edit Dispatch
@@ -82,7 +84,8 @@ export function RowActions({ row }) {
         <Button
           size="xs"
           color="info"
-          className="px-2 font-bold"
+          variant="soft"
+          className="px-2.5 py-1 font-semibold transition-all hover:bg-info-100"
           onClick={() => console.log("Add Dispatch Detail Modal", id)}
         >
           Add Dispatch
@@ -91,13 +94,14 @@ export function RowActions({ row }) {
 
       {canEditDin && (
         <>
-          {[1, 2, 3, 4, 5].includes(purposeInt) && (
+          {purposeInt !== 11 && (
             <Button
               component={Link}
               to={`/dashboards/inventory/din-list/edit-din?hakuna=${id}`}
               size="xs"
               color="warning"
-              className="px-2 font-bold"
+              variant="soft"
+              className="px-2.5 py-1 font-semibold transition-all hover:bg-warning-100"
             >
               Edit Din
             </Button>
@@ -108,7 +112,8 @@ export function RowActions({ row }) {
               to={`/dashboards/inventory/din-list/edit-gendin?hakuna=${id}`}
               size="xs"
               color="warning"
-              className="px-2 font-bold"
+              variant="soft"
+              className="px-2.5 py-1 font-semibold transition-all hover:bg-warning-100"
             >
               Edit Din
             </Button>
@@ -121,9 +126,10 @@ export function RowActions({ row }) {
         to={`/dashboards/inventory/din-list/view-din-form?hakuna=${id}`}
         size="xs"
         color="primary"
-        className="px-2 font-bold"
+        variant="soft"
+        className="px-2.5 py-1 font-semibold transition-all hover:bg-primary-100"
       >
-        View
+        View Din Form
       </Button>
     </div>
   );

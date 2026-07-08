@@ -198,7 +198,7 @@ export function Notifications() {
                 {(notifications.length > 0 && activeTab === 0) ||
                 filteredNotifications.length > 0 ? (
                   <TabPanels as={Fragment}>
-                    <TabPanel className="custom-scrollbar grow space-y-4 overflow-y-auto overflow-x-hidden p-4 outline-hidden">
+                    <TabPanel className="custom-scrollbar grow space-y-4 overflow-y-auto overflow-x-hidden p-4 outline-none">
                       {notifications.map((item) => (
                         <NotificationItem
                           key={item.id}

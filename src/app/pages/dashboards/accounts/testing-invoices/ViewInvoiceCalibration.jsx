@@ -26,6 +26,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import axios from "utils/axios";
 import { toast } from "sonner";
 import { Page } from "components/shared/Page";
+import { parseUserPermissions } from "utils/permissions";
 import logo from "assets/krtc.jpg";
 
 // ─── Open invoice in a print window → user saves as PDF ─────────────────────
@@ -451,6 +452,13 @@ export default function ViewInvoiceCalibration() {
   const [imgBase64, setImgBase64] = useState({ qr: "", sign: "", dSign: "" });
   const [states, setStates] = useState([]);
 
+  const [approveModal, setApproveModal] = useState(false);
+  const [einvModal, setEinvModal] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const permissions = parseUserPermissions(localStorage.getItem("userPermissions"));
+  const hasPerm = (id) => permissions.includes(id);
+
   // ── Fetch invoice detail ───────────────────────────────────────────────────
   const load = useCallback(async () => {
     if (!id) return;
@@ -600,6 +608,117 @@ export default function ViewInvoiceCalibration() {
     return { ...item, itemOtherCharge, itemAmount, itemDiscount, itemAssAmt, itemCgst, itemSgst, itemIgst, itemTotVal, gstRate };
   });
 
+  const finalTotalVal = Math.round(parseFloat(invoice.finaltotal) || 0);
+
+  const doApprove = async () => {
+    try {
+      setBusy(true);
+      await axios.post("/accounts/approve-calibration-invoice", { invoiceid: id });
+      toast.success("Invoice approved");
+      setApproveModal(false);
+      load();
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Failed to approve invoice");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const doEInvoice = async () => {
+    try {
+      setBusy(true);
+
+      const subtotal = parseFloat(invoice.subtotal) || 0;
+      const discount = parseFloat(invoice.discount) || 0;
+      const assAmt = (subtotal - discount) + otherCharges;
+
+      let cgstVal = 0, sgstVal = 0, igstVal = 0;
+      if (isSgst) {
+        cgstVal = Number((assAmt * ((parseFloat(invoice.cgstper) || 0) / 100)).toFixed(2));
+        sgstVal = Number((assAmt * ((parseFloat(invoice.sgstper) || 0) / 100)).toFixed(2));
+      } else {
+        igstVal = Number((assAmt * ((parseFloat(invoice.igstper) || 0) / 100)).toFixed(2));
+      }
+      const roundoff = Number((parseFloat(invoice.roundoff) || 0).toFixed(2));
+      const totInvValFc = Number((assAmt + cgstVal + sgstVal + igstVal).toFixed(2));
+      const totInvVal = Number((totInvValFc + roundoff).toFixed(2));
+
+      let buyerGstin = invoice.gstno || "URP";
+      let supTyp = "B2B";
+      if (!invoice.gstno || invoice.gstno === "0" || invoice.gstno === "NA") {
+        buyerGstin = "URP";
+        supTyp = "B2C";
+      }
+
+      const dateParts = invoice.approved_on ? invoice.approved_on.split(' ')[0].split('-') : [];
+      const formattedDate = dateParts.length === 3 ? `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}` : "";
+
+      const payload = {
+        Version: "1.1",
+        TranDtls: { TaxSch: "GST", SupTyp: supTyp, RegRev: "N", EcmGstin: null, IgstOnIntra: "N" },
+        DocDtls: { Typ: "INV", No: invoice.invoiceno, Dt: formattedDate },
+        SellerDtls: {
+          Gstin: "23AADCK0799A1ZV",
+          LglNm: "KAILTECH TEST AND RESEARCH CENTRE PVT LTD.",
+          TrdNm: "KAILTECH TEST AND RESEARCH CENTRE PVT LTD.",
+          Addr1: "Plot No. 141-C, Electronic Complex Industrial Area, Indore",
+          Loc: "BHOPAL",
+          Pin: 452010,
+          Stcd: "23"
+        },
+        BuyerDtls: {
+          Gstin: buyerGstin,
+          LglNm: invoice.customername ? invoice.customername.substring(0, 99) : "",
+          Pos: isNaN(Number(statecode)) ? "96" : String(statecode).padStart(2, '0'),
+          Addr1: (invoice._address?.address || invoice.address || "").replace(/[\r\n]+/g, ' ').substring(0, 99),
+          Loc: invoice._address?.city || "",
+          Pin: Number(invoice._address?.pincode) || 999999,
+          Stcd: isNaN(Number(statecode)) ? "96" : String(statecode).padStart(2, '0')
+        },
+        ItemList: computedItems.map((item, index) => ({
+          SlNo: String(index + 1),
+          PrdDesc: (item.description || "").replace(/<[^>]*>?/gm, ' ').substring(0, 300).trim(),
+          IsServc: "Y",
+          HsnCd: companyInfo?.company?.sac_code || "998394",
+          Qty: item.meter_option == 1 ? Number(item.meter) : Number(item.qty),
+          UnitPrice: Number(item.rate),
+          TotAmt: Number(item.itemAmount.toFixed(2)),
+          Discount: Number(item.itemDiscount.toFixed(2)),
+          AssAmt: Number(item.itemAssAmt.toFixed(2)),
+          GstRt: Number(item.gstRate.toFixed(2)),
+          IgstAmt: Number(item.itemIgst.toFixed(2)),
+          CgstAmt: Number(item.itemCgst.toFixed(2)),
+          SgstAmt: Number(item.itemSgst.toFixed(2)),
+          OthChrg: 0,
+          TotItemVal: Number(item.itemTotVal.toFixed(2))
+        })),
+        ValDtls: {
+          AssVal: Number(assAmt.toFixed(2)),
+          CgstVal: cgstVal,
+          SgstVal: sgstVal,
+          IgstVal: igstVal,
+          OthChrg: 0,
+          RndOffAmt: roundoff,
+          TotInvVal: totInvVal,
+          TotInvValFc: totInvValFc
+        },
+        ExpDtls: { CntCode: "IN" }
+      };
+
+      await axios.post(`/einvoice/generate?invoiceid=${id}`, payload);
+      toast.success("E-Invoice generated");
+      setEinvModal(false);
+      load();
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Failed to generate E-Invoice");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const canApprove = invoice.status == 0 && ((hasPerm(269) && finalTotalVal <= 5000) || (hasPerm(270) && finalTotalVal > 5000));
+  const canEInvoice = !isFoc && invoice.status == 1 && hasPerm(466) && finalTotalVal !== 0;
+
   // ── Summary values ─────────────────────────────────────────────────────────
   const fmt = (v) => parseFloat(v || 0).toFixed(2);
   const discnumber = parseFloat(invoice.discnumber) || 0;
@@ -622,7 +741,7 @@ export default function ViewInvoiceCalibration() {
 
   return (
     <Page title="View Invoice">
-      <div className="transition-content px-(--margin-x) pb-10">
+      <div className="transition-content px-[var(--margin-x)] pb-10">
 
         {/* No hidden print-template refs needed — we use window.open+print */}
 
@@ -650,8 +769,24 @@ export default function ViewInvoiceCalibration() {
             onClick={() => navigate("/dashboards/accounts/testing-invoices")}
             className="rounded bg-sky-500 px-4 py-1.5 text-sm font-medium text-white hover:bg-sky-600"
           >
-            &laquo; Back to Invoice List
+            &laquo; Back to List
           </button>
+          {canApprove && (
+            <button
+              onClick={() => setApproveModal(true)}
+              className="rounded bg-green-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-green-700"
+            >
+              Approve
+            </button>
+          )}
+          {canEInvoice && (
+            <button
+              onClick={() => setEinvModal(true)}
+              className="rounded bg-violet-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-violet-700"
+            >
+              Generate E-Invoice
+            </button>
+          )}
         </div>
 
         {/* ── Invoice body ── */}
@@ -872,15 +1007,15 @@ export default function ViewInvoiceCalibration() {
                 <td className="border border-gray-400 p-3 align-top text-xs dark:border-dark-500">
                   <div>For online payments - {invoice.bankaccountname || companyInfo?.bank?.account_name || "KAILTECH TEST AND RESEARCH CENTRE PVT LTD."}</div>
                   <div>
-                    Bank Name : {invoice.bankname || companyInfo?.bank?.bank_name || "—"}, 
+                    Bank Name : {invoice.bankname || companyInfo?.bank?.bank_name || "—"},
                     Branch Name : {invoice.bankbranch || companyInfo?.bank?.branch || "—"}
                   </div>
                   <div>
-                    Bank Account No. : {invoice.bankaccountno || companyInfo?.bank?.account_no || "—"}, 
+                    Bank Account No. : {invoice.bankaccountno || companyInfo?.bank?.account_no || "—"},
                     A/c Type : {invoice.bankactype || companyInfo?.bank?.account_type || "—"}
                   </div>
                   <div>
-                    IFSC CODE: {invoice.bankifsccode || companyInfo?.bank?.ifsc || "—"}, 
+                    IFSC CODE: {invoice.bankifsccode || companyInfo?.bank?.ifsc || "—"},
                     MICR CODE: {invoice.bankmicr || companyInfo?.bank?.micr || "—"}
                   </div>
                   <div className="mt-2 text-gray-600">
@@ -924,11 +1059,76 @@ export default function ViewInvoiceCalibration() {
             </tbody>
           </table>
 
-          <div className="mt-3 text-center text-xs text-gray-400">
-            This is a system generated invoice
+          <div className="mt-3 flex items-center justify-center gap-4 text-xs text-gray-500">
+            <span>This is a system generated invoice</span>
+            {canApprove && (
+              <button
+                onClick={() => setApproveModal(true)}
+                className="rounded bg-green-600 px-3 py-1 font-semibold text-white hover:bg-green-700 print:hidden"
+              >
+                Approve
+              </button>
+            )}
+            {canEInvoice && (
+              <button
+                onClick={() => setEinvModal(true)}
+                className="rounded bg-green-600 px-3 py-1 font-semibold text-white hover:bg-green-700 print:hidden"
+              >
+                Generate E-Invoice
+              </button>
+            )}
           </div>
         </div>
       </div>
+
+      <ConfirmModal
+        open={approveModal}
+        title="Approve Invoice"
+        message={`Are you sure you want to approve invoice ${invoice.invoiceno}?`}
+        onOk={doApprove}
+        onCancel={() => setApproveModal(false)}
+        loading={busy}
+      />
+      <ConfirmModal
+        open={einvModal}
+        title="Generate E-Invoice"
+        message="Are you sure you want to generate E-Invoice? This action cannot be undone."
+        onOk={doEInvoice}
+        onCancel={() => setEinvModal(false)}
+        loading={busy}
+      />
     </Page>
+  );
+}
+
+function ConfirmModal({ open, title, message, onOk, onCancel, loading }) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+      <div className="dark:bg-dark-800 w-96 rounded-xl bg-white p-6 shadow-2xl">
+        <h3 className="mb-1 text-base font-semibold text-gray-900 dark:text-white">
+          {title}
+        </h3>
+        <p className="dark:text-dark-300 mb-5 text-sm text-gray-500">
+          {message}
+        </p>
+        <div className="flex justify-end gap-3">
+          <button
+            onClick={onCancel}
+            disabled={loading}
+            className="dark:border-dark-500 dark:text-dark-200 rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onOk}
+            disabled={loading}
+            className="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50"
+          >
+            {loading ? "Please wait…" : "Confirm"}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

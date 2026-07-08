@@ -794,7 +794,7 @@ export default function EditCalibrationInvoice() {
   if (loadingInvoice) {
     return (
       <Page title="Edit Calibration Invoice">
-        <div className="transition-content px-(--margin-x) pb-10">
+        <div className="transition-content px-[var(--margin-x)] pb-10">
           <Card className="p-6">
             <div className="animate-pulse space-y-4">
               {[120, 80, 200, 160].map((w, i) => (
@@ -816,7 +816,7 @@ export default function EditCalibrationInvoice() {
   // ─────────────────────────────────────────────────────────────────────────
   return (
     <Page title="Edit Calibration Invoice">
-      <div className="transition-content px-(--margin-x) pb-10">
+      <div className="transition-content px-[var(--margin-x)] pb-10">
         {/* ── Header ── */}
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-3">

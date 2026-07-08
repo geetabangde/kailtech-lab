@@ -63,9 +63,9 @@ export default function SampleInwardRegister() {
   const fetchDropdownData = async () => {
     try {
       const [custRes, deptRes, prodRes] = await Promise.allSettled([
-        axios.get("/master/get-all-customers"), // Customers
-        axios.get("/master/get-all-labs"), // Departments (labs)
-        axios.get("/master/get-all-products"), // Products
+        axios.get("/people/get-all-customers"), // Customers
+        axios.get("/master/list-lab"), // Departments (labs)
+        axios.get("/testing/get-prodcut-list"), // Products
       ]);
 
       if (custRes.status === "fulfilled") setCustomers(custRes.value.data?.data || []);
@@ -86,28 +86,25 @@ export default function SampleInwardRegister() {
       setLoading(true);
       setSearched(true);
       
-      // Use inwardregisterData.php endpoint matching PHP ajax URL
-      const res = await axios.get("/registers/inwardregisterData", { params: filters });
+      const res = await axios.get("/register/bis-inward-register", { params: filters });
       
-      // Handle DataTables server-side response format
       let rows = res.data?.data || [];
       
-      // Map to PHP table structure: S no, Date, BRN, LRN, Party name, Contact Person, Sample Details, Quantity, Department, Parameters, Committed Date, Reporting Date, TAT, Remarks
-      rows = rows.map((row) => ({
-        sno: row[0] || "",
-        date: row[1] || "",
-        brn: row[2] || "",
-        lrn: row[3] || "",
-        party_name: row[4] || "",
-        contact_person: row[5] || "",
-        sample_details: row[6] || "",
-        quantity: row[7] || "",
-        department: row[8] || "",
-        parameters: row[9] || "",
-        committed_date: row[10] || "",
-        reporting_date: row[11] || "",
-        tat: row[12] || "",
-        remarks: row[13] || "",
+      rows = rows.map((row, index) => ({
+        sno: index + 1,
+        date: row.tdate || "",
+        brn: row.brn || "",
+        lrn: row.lrn || "",
+        party_name: row.partyname || "",
+        contact_person: row.concernperson || "",
+        sample_details: row.productname || "",
+        quantity: row.packageDetails ? row.packageDetails.replace(/<br\s*\/?>/gi, " ") : "",
+        department: row.dname || "",
+        parameters: row.pname || "",
+        committed_date: row.deadline || "",
+        reporting_date: row.reportdate || "",
+        tat: row.tat || "",
+        remarks: row.remark || "",
       }));
       
       setTableData(rows);
@@ -149,72 +146,72 @@ export default function SampleInwardRegister() {
   // Define columns matching PHP sample inward register table exactly
   const sampleInwardColumns = [
     {
-      id: "sno",
+      accessorKey: "sno",
       header: "S no",
       cell: (info) => info.getValue(),
     },
     {
-      id: "date",
+      accessorKey: "date",
       header: "Date",
       cell: (info) => info.getValue(),
     },
     {
-      id: "brn",
+      accessorKey: "brn",
       header: "BRN",
       cell: (info) => info.getValue(),
     },
     {
-      id: "lrn",
+      accessorKey: "lrn",
       header: "LRN",
       cell: (info) => info.getValue(),
     },
     {
-      id: "party_name",
+      accessorKey: "party_name",
       header: "Party name",
       cell: (info) => info.getValue(),
     },
     {
-      id: "contact_person",
+      accessorKey: "contact_person",
       header: "Contact Person",
       cell: (info) => info.getValue(),
     },
     {
-      id: "sample_details",
+      accessorKey: "sample_details",
       header: "Sample Details",
       cell: (info) => info.getValue(),
     },
     {
-      id: "quantity",
+      accessorKey: "quantity",
       header: "Quantity",
       cell: (info) => info.getValue(),
     },
     {
-      id: "department",
+      accessorKey: "department",
       header: "Department",
       cell: (info) => info.getValue(),
     },
     {
-      id: "parameters",
+      accessorKey: "parameters",
       header: "Parameters",
       cell: (info) => info.getValue(),
     },
     {
-      id: "committed_date",
+      accessorKey: "committed_date",
       header: "Committed Date",
       cell: (info) => info.getValue(),
     },
     {
-      id: "reporting_date",
+      accessorKey: "reporting_date",
       header: "Reporting Date",
       cell: (info) => info.getValue(),
     },
     {
-      id: "tat",
+      accessorKey: "tat",
       header: "TAT",
       cell: (info) => info.getValue(),
     },
     {
-      id: "remarks",
+      accessorKey: "remarks",
       header: "Remarks",
       cell: (info) => info.getValue(),
     },
@@ -293,7 +290,7 @@ export default function SampleInwardRegister() {
           <div
             className={clsx(
               "transition-content flex grow flex-col pt-3",
-              tableSettings.enableFullScreen ? "overflow-hidden" : "px-(--margin-x)"
+              tableSettings.enableFullScreen ? "overflow-hidden" : "px-[var(--margin-x)]"
             )}
           >
             <Card className={clsx("relative flex grow flex-col", tableSettings.enableFullScreen && "overflow-hidden")}>

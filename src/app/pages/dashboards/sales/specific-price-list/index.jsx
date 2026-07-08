@@ -239,7 +239,7 @@ export default function SpecificPriceList() {
           )}
         >
           {/* ── Toolbar ── */}
-          <div className="flex flex-wrap items-center justify-between gap-3 px-(--margin-x) pt-4 pb-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 px-[var(--margin-x)] pt-4 pb-3">
             <h2 className="text-xl font-semibold text-gray-800 dark:text-dark-50">
               Customer Specific Price List
               <span className="ml-2 rounded-full bg-gray-100 px-2 py-0.5 text-sm font-normal text-gray-500 dark:bg-dark-700 dark:text-dark-300">
@@ -268,7 +268,7 @@ export default function SpecificPriceList() {
               "transition-content flex grow flex-col pt-1",
               tableSettings.enableFullScreen
                 ? "overflow-hidden"
-                : "px-(--margin-x)",
+                : "px-[var(--margin-x)]",
             )}
           >
             <Card

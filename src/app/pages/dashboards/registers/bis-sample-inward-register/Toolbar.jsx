@@ -43,10 +43,10 @@ export function Toolbar({ filters, onChange, onSearch, customers = [], departmen
   ];
 
   return (
-    <div className="px-(--margin-x) pt-4">
+    <div className="px-[var(--margin-x)] pt-4">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-xl font-semibold tracking-wide text-gray-800 dark:text-dark-50">
-          All Sample Inward Register
+          BIS Sample Inward Register
         </h2>
       </div>
 

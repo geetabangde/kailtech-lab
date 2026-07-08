@@ -50,7 +50,7 @@ export default function EditExpenseCategory() {
 
   return (
     <Page title="Edit Expense Category">
-      <div className="px-(--margin-x) py-5">
+      <div className="px-[var(--margin-x)] py-5">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-xl font-semibold text-gray-800 dark:text-dark-50">
             Edit Expense Category

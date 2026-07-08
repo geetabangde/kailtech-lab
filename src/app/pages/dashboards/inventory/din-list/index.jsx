@@ -22,7 +22,9 @@ import { useLockScrollbar, useLocalStorage } from "hooks";
 import { fuzzyFilter } from "utils/react-table/fuzzyFilter";
 import { useSkipper } from "utils/react-table/useSkipper";
 import { columns } from "./columns";
+import { TableConfig } from "./TableConfig";
 import { PaginationSection } from "components/shared/table/PaginationSection";
+import { TableLoadingRow } from "components/shared/table/TableLoadingRow";
 
 // ----------------------------------------------------------------------
 
@@ -33,6 +35,39 @@ function usePermissions() {
   } catch {
     return p?.split(",").map(Number) || [];
   }
+}
+
+function ColumnFilter({ column }) {
+  const columnFilterValue = column.getFilterValue();
+
+  if (column.id === 'status') {
+    return (
+      <select
+        value={columnFilterValue?.toString() ?? ''}
+        onChange={e => column.setFilterValue(e.target.value)}
+        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-xs dark:border-dark-600 dark:bg-dark-800 px-2 py-1 normal-case font-normal"
+        onClick={e => e.stopPropagation()}
+      >
+        <option value="">All</option>
+        <option value="1">Approved / Dispatched</option>
+        <option value="-2">Pending For Checklist</option>
+        <option value="-1">Pending For approve</option>
+        <option value="0">Pending For Dispatch</option>
+        <option value="99">Rejected Din</option>
+      </select>
+    );
+  }
+
+  return (
+    <input
+      type="text"
+      value={(columnFilterValue ?? '')}
+      onChange={e => column.setFilterValue(e.target.value)}
+      placeholder={`Search...`}
+      className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-xs dark:border-dark-600 dark:bg-dark-800 px-2 py-1 font-normal normal-case"
+      onClick={e => e.stopPropagation()}
+    />
+  );
 }
 
 export default function DinList() {
@@ -67,9 +102,9 @@ export default function DinList() {
   const fetchDinList = async () => {
     try {
       setLoading(true);
-      const response = await axios.get("inventory/din-list-data");
+      const response = await axios.get("inventory/get-din-list");
 
-      if (response.data.status && Array.isArray(response.data.data)) {
+      if ((response.data.status === true || response.data.status === "true") && Array.isArray(response.data.data)) {
         setOrders(response.data.data);
       } else {
         setOrders([]);
@@ -90,6 +125,7 @@ export default function DinList() {
       columnVisibility,
       columnPinning,
       pagination,
+      tableSettings,
     },
     meta: {
       updateData: (rowIndex, columnId, value) => {
@@ -141,21 +177,7 @@ export default function DinList() {
     );
   }
 
-  if (loading) {
-    return (
-      <Page title="Din List">
-        <div className="flex h-[60vh] items-center justify-center text-gray-600">
-          <div className="flex items-center gap-2">
-            <svg className="animate-spin h-6 w-6 text-primary-600" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 000 8v4a8 8 0 01-8-8z"></path>
-            </svg>
-            <span className="text-lg font-medium">Loading Din List...</span>
-          </div>
-        </div>
-      </Page>
-    );
-  }
+  
 
   return (
     <Page title="Din List">
@@ -186,12 +208,14 @@ export default function DinList() {
                   />
                 </div>
 
+                <TableConfig table={table} />
+
                 {permissions.includes(303) && (
                   <Button
                     component={Link}
                     to="/dashboards/inventory/din-list/add-din"
                     color="primary"
-                    variant="solid"
+                    variant="filled"
                     className="!bg-blue-600 !text-white hover:!bg-blue-700 whitespace-nowrap font-bold shadow-sm"
                   >
                     {"<< Request Dispatch"}
@@ -212,41 +236,71 @@ export default function DinList() {
                       {headerGroup.headers.map((header) => (
                         <Th
                           key={header.id}
-                          className="bg-gray-50 px-4 py-3 text-xs font-bold uppercase text-gray-600 dark:bg-dark-800 dark:text-dark-200"
-                        >
-                          {header.column.getCanSort() ? (
-                            <div
-                              className="flex cursor-pointer select-none items-center gap-2"
-                              onClick={header.column.getToggleSortingHandler()}
-                            >
-                              {flexRender(
-                                header.column.columnDef.header,
-                                header.getContext(),
-                              )}
-                              <TableSortIcon
-                                sorted={header.column.getIsSorted()}
-                              />
-                            </div>
-                          ) : (
-                            flexRender(
-                              header.column.columnDef.header,
-                              header.getContext(),
-                            )
+                          className={clsx(
+                            "bg-gray-50 text-xs font-bold uppercase text-gray-600 dark:bg-dark-800 dark:text-dark-200 align-top",
+                            header.column.getCanPin() && [
+                              header.column.getIsPinned() === "left" &&
+                              "sticky z-2 ltr:left-0 rtl:right-0",
+                              header.column.getIsPinned() === "right" &&
+                              "sticky z-2 ltr:right-0 rtl:left-0",
+                            ]
                           )}
+                        >
+                          <div className="flex flex-col gap-2">
+                            {header.column.getCanSort() ? (
+                              <div
+                                className="flex cursor-pointer select-none items-center gap-2"
+                                onClick={header.column.getToggleSortingHandler()}
+                              >
+                                {flexRender(
+                                  header.column.columnDef.header,
+                                  header.getContext(),
+                                )}
+                                <TableSortIcon
+                                  sorted={header.column.getIsSorted()}
+                                />
+                              </div>
+                            ) : (
+                              <div>
+                                {flexRender(
+                                  header.column.columnDef.header,
+                                  header.getContext(),
+                                )}
+                              </div>
+                            )}
+                            {header.column.getCanFilter() ? (
+                              <div>
+                                <ColumnFilter column={header.column} table={table} />
+                              </div>
+                            ) : null}
+                          </div>
                         </Th>
                       ))}
                     </Tr>
                   ))}
                 </THead>
                 <TBody>
-                  {table.getRowModel().rows.length > 0 ? (
+                  {loading ? (
+                    <TableLoadingRow colSpan={columns.length} />
+                  ) : table.getRowModel().rows.length > 0 ? (
                     table.getRowModel().rows.map((row) => (
                       <Tr
                         key={row.id}
                         className="border-b border-gray-200 hover:bg-gray-50/50 dark:border-dark-500 dark:hover:bg-dark-600/50"
                       >
                         {row.getVisibleCells().map((cell) => (
-                          <Td key={cell.id} className="px-4 py-3">
+                          <Td 
+                            key={cell.id} 
+                            className={clsx(
+                              "bg-white dark:bg-dark-700",
+                              cell.column.getCanPin() && [
+                                cell.column.getIsPinned() === "left" &&
+                                "sticky z-2 ltr:left-0 rtl:right-0",
+                                cell.column.getIsPinned() === "right" &&
+                                "sticky z-2 ltr:right-0 rtl:left-0",
+                              ]
+                            )}
+                          >
                             {flexRender(
                               cell.column.columnDef.cell,
                               cell.getContext(),

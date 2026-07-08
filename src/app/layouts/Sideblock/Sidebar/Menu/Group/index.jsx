@@ -28,13 +28,13 @@ export function Group({ data }) {
       >
         <button
           onClick={toggle}
-          className="flex cursor-pointer items-center gap-3 pt-2 mb-2 text-xs font-medium uppercase tracking-wider text-gray-500 outline-hidden hover:text-gray-900 focus:text-gray-900 dark:text-dark-300 dark:hover:text-dark-50 dark:focus:text-dark-50"
+          className="flex cursor-pointer items-center gap-3 pt-2 mb-2 text-xs font-medium uppercase tracking-wider text-gray-500 outline-none hover:text-gray-900 focus:text-gray-900 dark:text-dark-300 dark:hover:text-dark-50 dark:focus:text-dark-50"
         >
           <span>{t(data.transKey)}</span>
         </button>
         <div
           className={clsx(
-            "pointer-events-none absolute inset-x-0 -bottom-3 h-3 bg-linear-to-b from-white to-transparent",
+            "pointer-events-none absolute inset-x-0 -bottom-3 h-3 bg-gradient-to-b from-white to-transparent",
             cardSkin === "bordered"
               ? "dark:from-dark-900"
               : "dark:from-dark-750",

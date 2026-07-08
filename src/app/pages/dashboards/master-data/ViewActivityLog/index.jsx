@@ -91,12 +91,12 @@ export default function OrdersDatatableV1() {
   const [sorting, setSorting] = useState([{ id: "id", desc: true }]);
 
   const [columnVisibility, setColumnVisibility] = useLocalStorage(
-    "column-visibility-orders-1",
+    "column-visibility-ViewActivityLog-index",
     {},
   );
 
   const [columnPinning, setColumnPinning] = useLocalStorage(
-    "column-pinning-orders-1",
+    "column-pinning-ViewActivityLog-index",
     {},
   );
 
@@ -192,7 +192,7 @@ export default function OrdersDatatableV1() {
           )}
         >
           {/* Month Filter */}
-          <div className="mb-4 px-(--margin-x)">
+          <div className="mb-4 px-[var(--margin-x)]">
             <div className="flex items-center gap-3">
               <label htmlFor="month-filter" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Filter by Month:
@@ -219,7 +219,7 @@ export default function OrdersDatatableV1() {
               "transition-content flex grow flex-col pt-3",
               tableSettings.enableFullScreen
                 ? "overflow-hidden"
-                : "px-(--margin-x)",
+                : "px-[var(--margin-x)]",
             )}
           >
             <Card

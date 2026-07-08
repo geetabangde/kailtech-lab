@@ -57,7 +57,7 @@ export default function ProcessGuideDatatable() {
       setLoading(true);
       const response = await axios.get("rolemanagment/get-process-guide");
 
-      if (response.data.status && Array.isArray(response.data.data)) {
+      if ((response.data.status || response.data.success) && Array.isArray(response.data.data)) {
         setProcesses(response.data.data);
       } else {
         console.warn("Unexpected response structure:", response.data);
@@ -80,12 +80,12 @@ export default function ProcessGuideDatatable() {
   const [sorting, setSorting] = useState([{ id: "id", desc: true }]);
 
   const [columnVisibility, setColumnVisibility] = useLocalStorage(
-    "column-visibility-orders-1",
+    "column-visibility-process-guide-index",
     {},
   );
 
   const [columnPinning, setColumnPinning] = useLocalStorage(
-    "column-pinning-orders-1",
+    "column-pinning-process-guide-index",
     {},
   );
 
@@ -185,7 +185,7 @@ export default function ProcessGuideDatatable() {
               "transition-content flex grow flex-col pt-3",
               tableSettings.enableFullScreen
                 ? "overflow-hidden"
-                : "px-(--margin-x)",
+                : "px-[var(--margin-x)]",
             )}
           >
             <Card

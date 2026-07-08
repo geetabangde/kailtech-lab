@@ -62,7 +62,13 @@ export const columns = [
   }),
   columnHelper.accessor("performance_timing_assigned", {
     id: "performance_timing_assigned",
-    header: "Performance Timing on the base of Assigned date",
+    header: () => {
+      return (
+        <div>
+          Performance Timing on <br /> the base of Assigned date
+        </div>
+      );
+    },
     cell: (info) => {
       const val = info.getValue();
       if (!val) return "-";

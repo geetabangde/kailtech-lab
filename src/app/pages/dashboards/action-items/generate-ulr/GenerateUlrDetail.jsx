@@ -494,7 +494,7 @@ export default function GenerateUlrDetail() {
     test_results.some((r) => r.specification && r.specification !== "—");
 
   const nablLogo =
-    nablStatus === 1 ? (nablObj?.logo ?? "/images/nabltest.png") :
+    nablStatus === 1 ? (nablObj?.logo ?? "/images/nabl2348.png") :
       nablStatus === 3 ? "/images/qai.jpeg" : null;
 
   const qtyStr = received_items
@@ -529,7 +529,7 @@ export default function GenerateUlrDetail() {
 
   return (
     <Page title={`REPORT-${ulr ?? ""}`}>
-      <div className="transition-content px-(--margin-x) pb-8">
+      <div className="transition-content px-[var(--margin-x)] pb-8">
 
         {/* Page Header */}
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">

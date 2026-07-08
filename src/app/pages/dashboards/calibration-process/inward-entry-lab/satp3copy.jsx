@@ -1612,7 +1612,7 @@
 //     console.log('Payload:', payload);
 
 //     try {
-//       const response = await fetch('https://lims.kailtech.in/api/calibrationprocess/insert-calibration-step3', {
+//       const response = await fetch(`${JWT_HOST_API}/calibrationprocess/insert-calibration-step3`, {
 //         method: 'POST',
 //         headers: {
 //           'Content-Type': 'application/json',
@@ -3719,7 +3719,7 @@
 
 //     try {
 //       await axios.post(
-//         "https://lims.kailtech.in/api/calibrationprocess/set-observations",
+//         `${JWT_HOST_API}/calibrationprocess/set-observations`,
 //         obsPayload,
 //         {
 //           headers: {
@@ -4011,7 +4011,7 @@
 
 //     try {
 //       const response1 = await fetch(
-//         "https://lims.kailtech.in/api/calibrationprocess/insert-calibration-step3",
+//         `${JWT_HOST_API}/calibrationprocess/insert-calibration-step3`,
 //         {
 //           method: "POST",
 //           headers: {
@@ -4441,6 +4441,7 @@ import { Page } from 'components/shared/Page';
 import { Button } from 'components/ui/Button';
 import { toast } from 'sonner';
 import axios from 'utils/axios';
+import { JWT_HOST_API } from "configs/auth.config";
 
 const CalibrateStep3 = () => {
   const navigate = useNavigate();
@@ -5079,7 +5080,7 @@ const CalibrateStep3 = () => {
     try {
       for (const payload of payloads) {
         await axios.post(
-          'https://lims.kailtech.in/api/calibrationprocess/set-observations',
+          `${JWT_HOST_API}/calibrationprocess/set-observations`,
           payload,
           {
             headers: {
@@ -5125,7 +5126,7 @@ const CalibrateStep3 = () => {
 
     try {
       await axios.post(
-        'https://lims.kailtech.in/api/calibrationprocess/set-observations',
+        `${JWT_HOST_API}/calibrationprocess/set-observations`,
         payload,
         {
           headers: {
@@ -5397,7 +5398,7 @@ const CalibrateStep3 = () => {
     try {
       for (const payload of payloads) {
         await axios.post(
-          'https://lims.kailtech.in/api/calibrationprocess/set-observations',
+          `${JWT_HOST_API}/calibrationprocess/set-observations`,
           payload,
           {
             headers: {
@@ -5671,7 +5672,7 @@ const CalibrateStep3 = () => {
 
     try {
       const response = await axios.post(
-        'https://lims.kailtech.in/api/calibrationprocess/insert-calibration-step3',
+        `${JWT_HOST_API}/calibrationprocess/insert-calibration-step3`,
         payloadStep3,
         {
           headers: {

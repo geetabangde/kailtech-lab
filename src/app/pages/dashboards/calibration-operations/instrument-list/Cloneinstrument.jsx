@@ -12,7 +12,7 @@ import EnvironmentalFields from "./components/EnvironmentalFields";
 import PriceListSection from "./components/PriceListSection";
 import AddCalibration from "./components/AddCalibration";
 import AddUncertainty from "./components/AddUncertainty";
-import AddCertificateSetting from "./components/AddCertificateSetting";
+import UncertainitySetting from "./components/UncertainitySetting";
 
 export default function CloneInstrument() {
   const navigate = useNavigate();
@@ -271,9 +271,9 @@ export default function CloneInstrument() {
         const toArray = (value) =>
           value != null && String(value).trim() !== ""
             ? String(value)
-                .split(",")
-                .map((v) => v.trim())
-                .filter(Boolean)
+              .split(",")
+              .map((v) => v.trim())
+              .filter(Boolean)
             : [];
         const matchingFormat = formattedOptions.find(
           (opt) => opt.value === savedSuffix
@@ -799,8 +799,8 @@ export default function CloneInstrument() {
           <div key={step} className="flex items-center">
             <div
               className={`flex h-10 w-10 items-center justify-center rounded-full ${currentStep >= step
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-300 text-gray-600"
+                ? "bg-blue-600 text-white"
+                : "bg-gray-300 text-gray-600"
                 }`}
             >
               {step}
@@ -856,8 +856,8 @@ export default function CloneInstrument() {
           <h2 className="text-lg font-semibold">
             {currentStep === 1 && "Step 1: Clone Instrument (Modify as needed)"}
             {currentStep === 2 && "Step 2: Calibration Results Settings"}
-            {currentStep === 3 && "Step 3: Uncertainty Settings"}
-            {currentStep === 4 && "Step 4: Certificate Settings"}
+            {currentStep === 3 && "Step 3: "}
+            {currentStep === 4 && "Step 4: Uncertainity Settings"}
           </h2>
           <Button
             variant="outlined"
@@ -1025,14 +1025,14 @@ export default function CloneInstrument() {
           </div>
         )}
 
-        {/* Step 4: Certificate Settings */}
+        {/* Step 4: Uncertainity */}
         {currentStep === 4 && (
           <div>
             {savedInstrumentId && savedFormatId ? (
-              <AddCertificateSetting
+              <UncertainitySetting
                 instid={savedInstrumentId}
-                instrumentId={savedInstrumentId}
                 formatId={savedFormatId}
+                formatValue={formData.suffix}
                 onComplete={() => {
                   toast.success("Instrument cloned successfully!");
                   navigate(

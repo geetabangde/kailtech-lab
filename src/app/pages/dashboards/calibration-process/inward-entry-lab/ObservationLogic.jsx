@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'utils/axios';
 import { toast } from 'sonner';
+import { JWT_HOST_API } from "configs/auth.config";
 
 export const useObservationLogic = ({
   observationTemplate,
@@ -107,10 +108,10 @@ export const useObservationLogic = ({
 
     observationData.forEach((point) => {
       const row = [point.sequence_number?.toString() || point.sr_no?.toString() || ''];
-      
+
       sortedSettings.forEach((setting) => {
         const fieldname = setting.fieldname;
-        
+
         if (fieldname === 'uuc') {
           row.push(safeGetValue(point.set_pressure?.uuc_value || point.uuc_value));
         } else if (fieldname === 'calculatedmaster') {
@@ -118,7 +119,7 @@ export const useObservationLogic = ({
         } else if (fieldname === 'master' || fieldname.includes('observation')) {
           const obsSettings = dynamicHeadings?.observation_heading?.observation_settings || [];
           const obsCount = obsSettings.filter(obs => obs.checkbox === 'yes').length;
-          
+
           for (let i = 1; i <= obsCount; i++) {
             row.push(safeGetValue(point.observations?.[`master_${i}`] || point[`m${i}`]));
           }
@@ -130,14 +131,14 @@ export const useObservationLogic = ({
           row.push(safeGetValue(point.calculations?.hysteresis || point.hysterisis));
         }
       });
-      
+
       rows.push(row);
       calibrationPoints.push(point.point_id?.toString() || '');
       types.push('master');
       repeatables.push('0');
       values.push(safeGetValue(point.set_pressure?.uuc_value) || '0');
     });
-    
+
     return { rows, hiddenInputs: { calibrationPoints, types, repeatables, values } };
   }, [dynamicHeadings]);
 
@@ -238,7 +239,7 @@ export const useObservationLogic = ({
         currentCol++;
       } else if (fieldname === 'master' || fieldname.includes('observation')) {
         const obsCount = dynamicHeadings?.observation_heading?.observation_settings?.filter(obs => obs.checkbox === 'yes').length || 3;
-        
+
         for (let i = 0; i < obsCount; i++) {
           payloads.push({
             inwardid: inwardId,
@@ -381,7 +382,7 @@ export const useObservationLogic = ({
     try {
       for (const payload of payloads) {
         await axios.post(
-          'https://lims.kailtech.in/api/calibrationprocess/set-observations',
+          `${JWT_HOST_API}/calibrationprocess/set-observations`,
           payload,
           {
             headers: {
@@ -426,7 +427,7 @@ export const useObservationLogic = ({
 
     try {
       await axios.post(
-        'https://lims.kailtech.in/api/calibrationprocess/set-observations',
+        `${JWT_HOST_API}/calibrationprocess/set-observations`,
         payload,
         {
           headers: {
@@ -437,6 +438,7 @@ export const useObservationLogic = ({
       );
 
       toast.success('Thermal coefficient saved successfully!');
+
     } catch (err) {
       console.error('Error saving thermal coefficient:', err);
       toast.error(err.response?.data?.message || 'Failed to save thermal coefficient');
@@ -462,7 +464,7 @@ export const useObservationLogic = ({
         if (setting.fieldname === 'master' || setting.fieldname.includes('observation')) {
           const obsSettings = dynamicHeadings?.observation_heading?.observation_settings || [];
           const obsCount = obsSettings.filter(obs => obs.checkbox === 'yes').length;
-          
+
           for (let i = 0; i < obsCount; i++) {
             const key = `${rowIndex}-${colIndex}`;
             const value = tableInputValues[key] ?? '';
@@ -559,7 +561,7 @@ export const useObservationLogic = ({
           currentCol++;
         } else if (fieldname === 'master' || fieldname.includes('observation')) {
           const obsCount = dynamicHeadings?.observation_heading?.observation_settings?.filter(obs => obs.checkbox === 'yes').length || 3;
-          
+
           for (let i = 0; i < obsCount; i++) {
             calibrationPoints.push(calibPointId);
             types.push('master');

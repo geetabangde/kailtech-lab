@@ -4,3 +4,4 @@
 **/
 
 export const JWT_HOST_API = "https://lims.kailtech.in/api";
+export const IMAGE_HOST_API = "https://lims.kailtech.in";

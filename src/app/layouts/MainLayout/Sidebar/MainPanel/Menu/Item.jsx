@@ -32,7 +32,7 @@ export function Item({
         "data-tooltip-place": "right",
       }}
       className={clsx(
-        "relative flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-lg outline-hidden transition-colors duration-200",
+        "relative flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-lg outline-none transition-colors duration-200",
         isActive
           ? "bg-primary-600/10 text-primary-600 dark:bg-primary-400/15 dark:text-primary-400"
           : "hover:bg-primary-600/20 focus:bg-primary-600/20 active:bg-primary-600/25 dark:text-dark-200 dark:hover:bg-dark-300/20 dark:focus:bg-dark-300/20 dark:active:bg-dark-300/25 text-gray-500",

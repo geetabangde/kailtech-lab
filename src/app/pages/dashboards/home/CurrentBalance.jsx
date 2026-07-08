@@ -61,7 +61,7 @@ const chartConfig = {
 
 export function CurrentBalance() {
   return (
-    <Box className="relative flex flex-col rounded-lg bg-linear-to-br from-primary-600 to-primary-500 px-5 pb-5">
+    <Box className="relative flex flex-col rounded-lg bg-gradient-to-br from-primary-600 to-primary-500 px-5 pb-5">
       <div className="ax-transparent-gridline mt-5 w-1/2">
         <Chart type="line" height="70" series={series} options={chartConfig} />
       </div>

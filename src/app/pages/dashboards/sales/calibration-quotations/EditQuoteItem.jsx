@@ -284,7 +284,7 @@ export default function EditQuoteItem() {
 
   return (
     <Page title="Edit Quotation Items (Calibration)">
-      <div className="transition-content px-(--margin-x) pb-8">
+      <div className="transition-content px-[var(--margin-x)] pb-8">
         {/* Header */}
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-3">

@@ -20,7 +20,7 @@ export function Toolbar({ table }) {
       <div
         className={clsx(
           "transition-content flex items-center justify-between gap-4",
-          isFullScreen ? "px-4 sm:px-5" : "px-(--margin-x) pt-4",
+          isFullScreen ? "px-4 sm:px-5" : "px-[var(--margin-x)] pt-4",
         )}
       >
         <h2 className="text-base font-semibold text-gray-800 dark:text-gray-100">
@@ -37,7 +37,7 @@ export function Toolbar({ table }) {
         <div
           className={clsx(
             "flex space-x-2 pt-4 [&_.input-root]:flex-1",
-            isFullScreen ? "px-4 sm:px-5" : "px-(--margin-x)",
+            isFullScreen ? "px-4 sm:px-5" : "px-[var(--margin-x)]",
           )}
         >
           <SearchInput table={table} />
@@ -48,7 +48,7 @@ export function Toolbar({ table }) {
       <div
         className={clsx(
           "transition-content pt-2 pb-1",
-          isFullScreen ? "px-4 sm:px-5" : "px-(--margin-x)",
+          isFullScreen ? "px-4 sm:px-5" : "px-[var(--margin-x)]",
         )}
       >
         <p className="text-xs text-gray-500 dark:text-gray-400">

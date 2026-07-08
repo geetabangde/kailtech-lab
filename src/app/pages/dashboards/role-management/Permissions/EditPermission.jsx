@@ -60,7 +60,7 @@ export default function EditPermission() {
           if (permissionData) {
             // Find the module name from the ID
             const moduleObj = allModulesRaw.find(m => String(m.id) === String(permissionData.module));
-            
+
             setFormData({
               name: permissionData.name || "",
               description: permissionData.description || "",
@@ -112,7 +112,7 @@ export default function EditPermission() {
     setLoading(true);
     try {
       const selectedModule = allModulesRaw.find(m => m.name === formData.module);
-      
+
       const payload = {
         name: formData.name,
         description: formData.description,
@@ -159,11 +159,11 @@ export default function EditPermission() {
       <Page title="Edit Permission">
         <div className="flex h-[60vh] items-center justify-center">
           <div className="flex flex-col items-center gap-3">
-             <svg className="animate-spin h-8 w-8 text-blue-600" viewBox="0 0 24 24">
-               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 000 8v4a8 8 0 01-8-8z"></path>
-             </svg>
-             <p className="text-gray-500 font-medium">Loading permission data...</p>
+            <svg className="animate-spin h-8 w-8 text-blue-600" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 000 8v4a8 8 0 01-8-8z"></path>
+            </svg>
+            <p className="text-gray-500 font-medium">Loading permission data...</p>
           </div>
         </div>
       </Page>
@@ -246,15 +246,15 @@ export default function EditPermission() {
                   type="submit"
                   variant="filled"
                   color="primary"
-                  className="w-full justify-center py-3 text-lg font-bold rounded-lg shadow-lg shadow-blue-500/30"
+                  className="w-full justify-center py-2 text-md font-bold rounded-lg shadow-lg shadow-blue-500/30"
                   disabled={loading}
                 >
                   {loading ? (
                     <div className="flex items-center gap-2">
-                       <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 000 8v4a8 8 0 01-8-8z"></path>
-                       </svg>
+                      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 000 8v4a8 8 0 01-8-8z"></path>
+                      </svg>
                       Updating...
                     </div>
                   ) : (

@@ -32,7 +32,7 @@ export function Toolbar({ filters, onChange, onSearch, departments, customerType
   };
 
   return (
-    <div className="px-(--margin-x) pt-4">
+    <div className="px-[var(--margin-x)] pt-4">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-xl font-semibold tracking-wide text-gray-800 dark:text-dark-50">
           Remnant Register
@@ -85,7 +85,16 @@ export function Toolbar({ filters, onChange, onSearch, departments, customerType
                   label: dept.name,
                 })),
               ]}
-              value={departments?.find((d) => d.id === department) || null}
+              value={
+                department
+                  ? {
+                      value: String(department),
+                      label:
+                        departments?.find((d) => String(d.id) === String(department))?.name ||
+                        String(department),
+                    }
+                  : null
+              }
               onChange={(opt) => handleInput("department", opt ? opt.value : "")}
               isClearable
               placeholder="Select Department"
@@ -108,7 +117,16 @@ export function Toolbar({ filters, onChange, onSearch, departments, customerType
                   label: ctype.name,
                 })),
               ]}
-              value={customerTypes?.find((c) => c.id === ctype) || null}
+              value={
+                ctype
+                  ? {
+                      value: String(ctype),
+                      label:
+                        customerTypes?.find((c) => String(c.id) === String(ctype))?.name ||
+                        String(ctype),
+                    }
+                  : null
+              }
               onChange={(opt) => handleInput("ctype", opt ? opt.value : "")}
               isClearable
               placeholder="Select Customer Type"
@@ -127,7 +145,16 @@ export function Toolbar({ filters, onChange, onSearch, departments, customerType
                   label: purpose.name,
                 })),
               ]}
-              value={specificPurposes?.find((p) => p.id === specificpurpose) || null}
+              value={
+                specificpurpose
+                  ? {
+                      value: String(specificpurpose),
+                      label:
+                        specificPurposes?.find((p) => String(p.id) === String(specificpurpose))?.name ||
+                        String(specificpurpose),
+                    }
+                  : null
+              }
               onChange={(opt) => handleInput("specificpurpose", opt ? opt.value : "")}
               isClearable
               placeholder="Select Specific Purpose"

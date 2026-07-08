@@ -41,13 +41,21 @@ export function RowActions({ row, table }) {
     setConfirmDeleteLoading(true);
 
     try {
-      await axios.delete(`/hrm/delete-professional-tax/${id}`);
-      table.options.meta?.deleteRow(row);
-      setDeleteSuccess(true);
-      toast.success("Professional Tax slab deleted successfully", {
-        duration: 2000,
-        icon: "🗑️",
-      });
+      const res = await axios.post(`/hrm/professional-tax-delete/${id}`);
+
+      if (res.data.status === true || res.data.status === "true" || res.data.status === "success") {
+        table.options.meta?.deleteRow(row);
+        setDeleteSuccess(true);
+        toast.success(res.data.message || "Professional Tax slab deleted successfully", {
+          duration: 2000,
+          icon: "🗑️",
+        });
+      } else {
+        setDeleteError(true);
+        toast.error(res.data.message || "Failed to delete tax slab ❌", {
+          duration: 3000,
+        });
+      }
     } catch (error) {
       console.error("Delete failed:", error);
       setDeleteError(true);

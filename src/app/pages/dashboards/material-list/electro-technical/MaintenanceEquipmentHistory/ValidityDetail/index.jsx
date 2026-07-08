@@ -328,7 +328,7 @@ export default function ValidityDetailsTable() {
   }
 
   return (
-    <div className="transition-content grid grid-cols-1 grid-rows-[auto_auto_1fr] px-(--margin-x) py-4">
+    <div className="transition-content grid grid-cols-1 grid-rows-[auto_auto_1fr] px-[var(--margin-x)] py-4">
       <Toaster
         position="top-right"
         reverseOrder={false}

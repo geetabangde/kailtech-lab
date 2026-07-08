@@ -27,9 +27,13 @@ export default function AddTestingQuotation() {
     customername: "",
     customeraddress: "",
     contactpersonname: "",
+    concernpersondesignation: "",
+    concernpersonemail: "",
+    concernpersonmobile: "",
     gstno: "",
     country: "",
     state: "",
+    stateid: "",
     ctype: "",
     specificpurpose: "",
     enquirydate: dayjs().format("YYYY-MM-DD"),
@@ -46,8 +50,10 @@ export default function AddTestingQuotation() {
   const [customerTypes, setCustomerTypes] = useState([]);
   const [specificPurposes, setSpecificPurposes] = useState([]);
   const [countries, setCountries] = useState([]);
+  const [states, setStates] = useState([]);
   const [statutoryDetails, setStatutoryDetails] = useState([]);
   const [isNewCustomer, setIsNewCustomer] = useState(false);
+  const [isIndianCountry, setIsIndianCountry] = useState(false);
 
   const MODE_OPTIONS = [
     { value: "0", label: "Telephone" },
@@ -65,13 +71,14 @@ export default function AddTestingQuotation() {
   const fetchDropdownData = async () => {
     try {
       setLoading(true);
-      const [custRes, ctypeRes, purposeRes, countryRes, statutoryRes] =
+      const [custRes, ctypeRes, purposeRes, countryRes, statutoryRes, stateRes] =
         await Promise.all([
           axios.get("/people/get-all-customers"),
           axios.get("/people/get-customer-type-list"),
           axios.get("/people/get-specific-purpose-list"),
           axios.get("/people/get-country"),
           axios.get("/sales/get-satutory-details"),
+          axios.get("/people/get-state"),
         ]);
 
       const getData = (res) => res.data?.Data || res.data?.data || [];
@@ -81,6 +88,7 @@ export default function AddTestingQuotation() {
       setSpecificPurposes(getData(purposeRes));
       setCountries(getData(countryRes));
       setStatutoryDetails(getData(statutoryRes));
+      setStates(getData(stateRes));
     } catch (err) {
       console.error("Error fetching dropdown data:", err);
       toast.error("Failed to load form data");
@@ -100,10 +108,15 @@ export default function AddTestingQuotation() {
         customername: "",
         customeraddress: "",
         contactpersonname: "",
+        concernpersondesignation: "",
+        concernpersonemail: "",
+        concernpersonmobile: "",
         gstno: "",
         country: "",
         state: "",
+        stateid: "",
       }));
+      setIsIndianCountry(false);
     } else if (val) {
       setIsNewCustomer(false);
       try {
@@ -118,13 +131,14 @@ export default function AddTestingQuotation() {
         setFormData((prev) => ({
           ...prev,
           customername: custData.name || prev.customername,
-          customeraddress: addrData.address 
+          customeraddress: addrData.address
             ? `${addrData.address || ""} ${addrData.city || ""} ${addrData.pincode || ""}`.trim()
             : (custData.address || ""),
           contactpersonname: addrData.contact_person || custData.pname || "",
           gstno: custData.gstno || "",
           country: custData.country || "",
-          state: custData.stateid || custData.state || "",
+          state: custData.state || "",
+          stateid: custData.stateid || "",
           caddress: addrData.id || "",
           cperson: addrData.contact_person_id || custData.contact_person_id || "",
         }));
@@ -142,10 +156,14 @@ export default function AddTestingQuotation() {
   };
 
   const handleSelectChange = (name, selectedOption) => {
+    const val = selectedOption ? selectedOption.value : "";
     setFormData((prev) => ({
       ...prev,
-      [name]: selectedOption ? selectedOption.value : "",
+      [name]: val,
     }));
+    if (name === "country") {
+      setIsIndianCountry(String(val) === "1");
+    }
   };
 
   const handleEditorChange = (name, val, quill) => {
@@ -159,9 +177,15 @@ export default function AddTestingQuotation() {
     e.preventDefault();
 
     // Basic Validation
-    if (!formData.customer || formData.customer === "new") {
+    if (!formData.customer) {
       toast.error("Please select a valid customer");
       return;
+    }
+    if (formData.customer === "new") {
+      if (!formData.customername || !formData.customeraddress || !formData.contactpersonname) {
+        toast.error("Please fill in all the required new customer details");
+        return;
+      }
     }
     if (!formData.ctype) {
       toast.error("Please select a customer type");
@@ -175,7 +199,7 @@ export default function AddTestingQuotation() {
     setSubmitting(true);
     try {
       const payload = {
-        customer: Number(formData.customer),
+        customer: formData.customer === "new" ? "new" : Number(formData.customer),
         caddress: formData.caddress ? Number(formData.caddress) : 0,
         cperson: formData.cperson ? Number(formData.cperson) : 0,
         ctype: Number(formData.ctype),
@@ -185,7 +209,21 @@ export default function AddTestingQuotation() {
         customterms: formData.customterms,
         ourscope: formData.ourscope,
         yourscope: formData.yourscope,
+        customername: formData.customername,
+        customeraddress: formData.customeraddress,
+        contactpersonname: formData.contactpersonname,
+        concernpersondesignation: formData.concernpersondesignation,
+        concernpersonemail: formData.concernpersonemail,
+        concernpersonmobile: formData.concernpersonmobile,
+        gstno: formData.gstno,
+        country: formData.country,
       };
+
+      if (isIndianCountry) {
+        payload.stateid = formData.stateid;
+      } else {
+        payload.state = formData.state;
+      }
 
       const res = await axios.post("/sales/add-testing-quotation", payload);
       if (res.data.status === "true" || res.data.status === true) {
@@ -216,7 +254,7 @@ export default function AddTestingQuotation() {
 
   return (
     <Page title="Add New Testing Quotation">
-      <div className="transition-content px-(--margin-x) pb-8">
+      <div className="transition-content px-[var(--margin-x)] pb-8">
         {/* Header */}
         <div className="mb-4 flex items-center justify-between">
           <h1 className="text-xl font-semibold text-gray-800 dark:text-gray-100">
@@ -249,8 +287,8 @@ export default function AddTestingQuotation() {
                     formData.customer === "new"
                       ? { value: "new", label: "Add New Customer" }
                       : customers
-                          .map((c) => ({ value: c.id, label: c.name }))
-                          .find((opt) => String(opt.value) === String(formData.customer)) || null
+                        .map((c) => ({ value: c.id, label: c.name }))
+                        .find((opt) => String(opt.value) === String(formData.customer)) || null
                   }
                   onChange={handleCustomerChange}
                   placeholder="Choose Customer..."
@@ -320,6 +358,44 @@ export default function AddTestingQuotation() {
                   </div>
                   <div className="form-group">
                     <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                      Contact Person Designation
+                    </label>
+                    <input
+                      name="concernpersondesignation"
+                      value={formData.concernpersondesignation}
+                      onChange={handleChange}
+                      className="h-10 w-full rounded-md border border-gray-300 px-3 text-sm outline-none focus:ring-1 focus:ring-blue-500"
+                      placeholder="Enter designation"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                      Contact Person Email
+                    </label>
+                    <input
+                      type="email"
+                      name="concernpersonemail"
+                      value={formData.concernpersonemail}
+                      onChange={handleChange}
+                      className="h-10 w-full rounded-md border border-gray-300 px-3 text-sm outline-none focus:ring-1 focus:ring-blue-500"
+                      placeholder="Enter email address"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                      Contact Person Mobile
+                    </label>
+                    <input
+                      type="tel"
+                      name="concernpersonmobile"
+                      value={formData.concernpersonmobile}
+                      onChange={handleChange}
+                      className="h-10 w-full rounded-md border border-gray-300 px-3 text-sm outline-none focus:ring-1 focus:ring-blue-500"
+                      placeholder="Enter mobile number"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="mb-1.5 block text-sm font-medium text-gray-700">
                       GST NO
                     </label>
                     <input
@@ -350,13 +426,24 @@ export default function AddTestingQuotation() {
                     <label className="mb-1.5 block text-sm font-medium text-gray-700">
                       State / Province
                     </label>
-                    <input
-                      name="state"
-                      value={formData.state}
-                      onChange={handleChange}
-                      className="h-10 w-full rounded-md border border-gray-300 px-3 text-sm outline-none focus:ring-1 focus:ring-blue-500"
-                      placeholder="Enter state"
-                    />
+                    {isIndianCountry ? (
+                      <Select
+                        options={states.map((s) => ({ value: s.id, label: s.state }))}
+                        value={states
+                          .map((s) => ({ value: s.id, label: s.state }))
+                          .find((opt) => String(opt.value) === String(formData.stateid))}
+                        onChange={(opt) => handleSelectChange("stateid", opt)}
+                        placeholder="Select State..."
+                      />
+                    ) : (
+                      <input
+                        name="state"
+                        value={formData.state}
+                        onChange={handleChange}
+                        className="h-10 w-full rounded-md border border-gray-300 px-3 text-sm outline-none focus:ring-1 focus:ring-blue-500"
+                        placeholder="Enter state"
+                      />
+                    )}
                   </div>
                 </>
               )}

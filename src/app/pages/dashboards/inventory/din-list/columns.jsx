@@ -24,13 +24,13 @@ export const columns = [
     cell: StatusCell,
   }),
 
-  columnHelper.accessor("din_date", {
+  columnHelper.accessor("dindate", {
     id: "din_date",
     header: "Date",
     cell: DateCell,
   }),
 
-  columnHelper.accessor("challan_no", {
+  columnHelper.accessor("challanno", {
     id: "challan_no",
     header: "Challan No",
     cell: (info) => info.getValue() || "N/A",
@@ -42,19 +42,19 @@ export const columns = [
     cell: (info) => info.getValue(),
   }),
 
-  columnHelper.accessor("purpose_name", {
+  columnHelper.accessor("dinpname", {
     id: "purpose_name",
     header: "Purpose",
     cell: (info) => info.getValue(),
   }),
 
-  columnHelper.accessor("inward_id", {
+  columnHelper.accessor("inwardid", {
     id: "inward_id",
     header: "Inward Entry No",
     cell: (info) => info.getValue(),
   }),
 
-  columnHelper.accessor("trf_id", {
+  columnHelper.accessor("trfid", {
     id: "trf_id",
     header: "TRF No",
     cell: (info) => info.getValue(),
@@ -66,19 +66,19 @@ export const columns = [
     cell: (info) => info.getValue(),
   }),
 
-  columnHelper.accessor("customer_name", {
+  columnHelper.accessor("customername", {
     id: "customer_name",
     header: "Customer",
     cell: CustomerCell,
   }),
 
-  columnHelper.accessor("concern_person", {
+  columnHelper.accessor("concernperson", {
     id: "concern_person",
     header: "Concern Person",
     cell: ConcernPersonCell,
   }),
 
-  columnHelper.accessor("added_by_name", {
+  columnHelper.accessor("addedBy", {
     id: "added_by_name",
     header: "Added By",
     cell: AddedByCell,
@@ -87,6 +87,7 @@ export const columns = [
   columnHelper.display({
     id: "action",
     header: "Action",
+    enableColumnFilter: false,
     cell: ({ row }) => <RowActions row={row} />,
   }),
 ];

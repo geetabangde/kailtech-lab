@@ -9,9 +9,6 @@ import axios from "utils/axios";
 import { toast } from "sonner";
 
 
-
-// ----------------------------------------------------------------------
-
 const confirmMessages = {
   pending: {
     description:
@@ -39,27 +36,27 @@ export function RowActions({ row, table }) {
   };
 
   const handleDeleteRows = useCallback(async () => {
-  const id = row.original.id;
-  setConfirmDeleteLoading(true);
+    const id = row.original.id;
+    setConfirmDeleteLoading(true);
 
-  try {
-    await axios.delete(`/hrm/delete-policy/${id}`);
-    table.options.meta?.deleteRow(row);
-    setDeleteSuccess(true);
-     toast.success("Policy deleted successfully", {
-      duration: 1000,
-      icon: "🗑️",
-    });
-  } catch (error) {
-    console.error("Delete failed:", error);
-    setDeleteError(true);
-     toast.error("Failed to delete policy ❌", {
-      duration: 2000,
-    });
-  } finally {
-    setConfirmDeleteLoading(false);
-  }
-}, [row, table]);
+    try {
+      await axios.delete(`/hrm/policy-delete/${id}`);
+      table.options.meta?.deleteRow(row);
+      setDeleteSuccess(true);
+      toast.success("Policy deleted successfully", {
+        duration: 1000,
+        icon: "🗑️",
+      });
+    } catch (error) {
+      console.error("Delete failed:", error);
+      setDeleteError(true);
+      toast.error("Failed to delete policy ❌", {
+        duration: 2000,
+      });
+    } finally {
+      setConfirmDeleteLoading(false);
+    }
+  }, [row, table]);
 
   const state = deleteError ? "error" : deleteSuccess ? "success" : "pending";
 

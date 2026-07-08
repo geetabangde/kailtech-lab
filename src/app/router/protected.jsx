@@ -3046,7 +3046,7 @@ const protectedRoutes = {
                       lazy: async () => ({
                         Component: (
                           await import(
-                            "app/pages/dashboards/role-management/Roles/EditUnit"
+                            "app/pages/dashboards/role-management/Roles/EditRole"
                           )
                         ).default,
                       }),
@@ -3191,6 +3191,16 @@ const protectedRoutes = {
                   })
                 },
                 {
+                  path: "pending-for-testing-lrn-wise-list/chemists",
+                  lazy: async () => ({
+                    Component: (
+                      await import(
+                        "app/pages/dashboards/registers/pending-for-testing-lrn-wise-list/chemists"
+                      )
+                    ).default,
+                  })
+                },
+                {
                   path: "pending-for-testing-parameter-wise",
                   lazy: async () => ({
                     Component: (
@@ -3330,20 +3340,62 @@ const protectedRoutes = {
                 },
                 {
                   path: "equipment-list",
-                  lazy: async () => ({
-                    Component: (
-                      await import(
-                        "app/pages/dashboards/registers/equipment-list"
-                      )
-                    ).default,
-                  })
+                  children: [
+                    {
+                      index: true,
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/registers/equipment-list"
+                          )
+                        ).default,
+                      }),
+                    },
+                    {
+                      path: "export",
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/registers/equipment-list/ExportEquimentRegister"
+                          )
+                        ).default,
+                      }),
+                    },
+                  ],
                 },
+
+
                 {
                   path: "crm-list",
+                  children: [
+                    {
+                      index: true,
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/registers/crm-list"
+                          )
+                        ).default,
+                      }),
+                    },
+                    {
+                      path: "export",
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/registers/crm-list/ExportCRMList"
+                          )
+                        ).default,
+                      }),
+                    },
+                  ],
+                },
+                {
+                  path: "consumablelogcrmwise/:id",
                   lazy: async () => ({
                     Component: (
                       await import(
-                        "app/pages/dashboards/registers/crm-list"
+                        "app/pages/dashboards/registers/crm-list/ConsumableLogCrmWise"
                       )
                     ).default,
                   })
@@ -3369,6 +3421,207 @@ const protectedRoutes = {
                   })
                 }
               ]
+            },
+            // ========================records=======================================
+            {
+              path: "records",
+              children: [
+                {
+                  path: "calibration-crf-srf",
+                  children: [
+                    {
+                      path: "",
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/records/calibration-crf-srf"
+                          )
+                        ).default,
+                      }),
+                    },
+                    {
+                      path: "srf-view/:id",
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/records/calibration-crf-srf/ViewSRF"
+                          )
+                        ).default,
+                      }),
+                    },
+                  ],
+                },
+                {
+                  path: "calibration-crf-srf-non-nabl",
+                  children: [
+                    {
+                      path: "",
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/records/calibration-crf-srf/NonNablIndex"
+                          )
+                        ).default,
+                      }),
+                    },
+                    {
+                      path: "srf-view/:id",
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/records/calibration-crf-srf/ViewSRF"
+                          )
+                        ).default,
+                      }),
+                    },
+                  ],
+                },
+                {
+                  path: "ulr-list",
+                  lazy: async () => ({
+                    Component: (
+                      await import(
+                        "app/pages/dashboards/calibration-process/ulr-list/ulr"
+                      )
+                    ).default,
+                  }),
+                },
+                {
+                  path: "service-report-list",
+                  children: [
+                    {
+                      path: "",
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/records/service-report-list"
+                          )
+                        ).default,
+                      }),
+                    },
+                    {
+                      path: "view/:id",
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/records/service-report-list/ViewServiceReport"
+                          )
+                        ).default,
+                      }),
+                    },
+                  ],
+                },
+                {
+                  path: "cmc-scope-sheet",
+                  lazy: async () => ({
+                    Component: (
+                      await import(
+                        "app/pages/dashboards/records/cmc-scope-sheet"
+                      )
+                    ).default,
+                  }),
+                },
+                {
+                  path: "sample-inward-register",
+                  children: [
+                    {
+                      path: "",
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/records/sample-inward-register"
+                          )
+                        ).default,
+                      }),
+                    },
+                    {
+                      path: "export",
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/records/sample-inward-register/ExportSampleInward"
+                          )
+                        ).default,
+                      }),
+                    },
+                  ],
+                },
+                {
+                  path: "lrn-brn-register",
+                  lazy: async () => ({
+                    Component: (
+                      await import(
+                        "app/pages/dashboards/calibration-process/lrnBrnRegister/lrn"
+                      )
+                    ).default,
+                  }),
+                },
+                {
+                  path: "environmental-record",
+                  lazy: async () => ({
+                    Component: (
+                      await import(
+                        "app/pages/dashboards/records/environmental-record"
+                      )
+                    ).default,
+                  }),
+                },
+                {
+                  path: "equipment-list",
+                  children: [
+                    {
+                      index: true,
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/registers/equipment-list"
+                          )
+                        ).default,
+                      }),
+                    },
+                    {
+                      path: "export",
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/registers/equipment-list/ExportEquimentRegister"
+                          )
+                        ).default,
+                      }),
+                    },
+                  ],
+                },
+                {
+                  path: "calibration-schedule-period",
+                  lazy: async () => ({
+                    Component: (
+                      await import(
+                        "app/pages/dashboards/registers/calibration-schedule-period"
+                      )
+                    ).default,
+                  }),
+                },
+                {
+                  path: "calibration-schedule-period/export",
+                  lazy: async () => ({
+                    Component: (
+                      await import(
+                        "app/pages/dashboards/registers/calibration-schedule-period/ExportCalibrationSchedule"
+                      )
+                    ).default,
+                  }),
+                },
+                {
+                  path: "dispatch-register",
+                  lazy: async () => ({
+                    Component: (
+                      await import(
+                        "app/pages/dashboards/registers/dispatch-register"
+                      )
+                    ).default,
+                  }),
+                },
+              ],
             },
             // ========================quality-documents=============================
             {
@@ -3689,6 +3942,26 @@ const protectedRoutes = {
                     Component: (
                       await import(
                         "app/pages/dashboards/accounts/calibration-invoice-list/Addcalibrationinvoice"
+                      )
+                    ).default,
+                  }),
+                },
+                {
+                  path: "calibration-invoice-list/add-advance",
+                  lazy: async () => ({
+                    Component: (
+                      await import(
+                        "app/pages/dashboards/accounts/calibration-invoice-list/Addadvancecalibrationinvoice"
+                      )
+                    ).default,
+                  }),
+                },
+                {
+                  path: "calibration-invoice-list/add-foc",
+                  lazy: async () => ({
+                    Component: (
+                      await import(
+                        "app/pages/dashboards/accounts/calibration-invoice-list/Addfoccalibrationinvoice"
                       )
                     ).default,
                   }),
@@ -4217,6 +4490,26 @@ const protectedRoutes = {
                     ).default,
                   }),
                 },
+                {
+                  path: "suppliers/edit/:id",
+                  lazy: async () => ({
+                    Component: (
+                      await import(
+                        "app/pages/dashboards/people/suppliers/EditSupplier"
+                      )
+                    ).default,
+                  }),
+                },
+                {
+                  path: "suppliers/add-vendor-item-price/:id",
+                  lazy: async () => ({
+                    Component: (
+                      await import(
+                        "app/pages/dashboards/people/suppliers/AddVendorItemPrice"
+                      )
+                    ).default,
+                  }),
+                },
 
                 {
                   path: "users",
@@ -4356,6 +4649,26 @@ const protectedRoutes = {
                         Component: (
                           await import(
                             "app/pages/dashboards/inventory/mrn/AddMRNItem"
+                          )
+                        ).default,
+                      }),
+                    },
+                    {
+                      path: "addMrnItemPurchasewopo",
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/inventory/mrn/AddMrnItemPurchasewopo"
+                          )
+                        ).default,
+                      }),
+                    },
+                    {
+                      path: "addMrnItemPurchase",
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/inventory/mrn/AddMrnItemPurchase"
                           )
                         ).default,
                       }),
@@ -4543,6 +4856,36 @@ const protectedRoutes = {
                         ).default,
                       }),
                     },
+                    {
+                      path: "add-din",
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/inventory/din-list/AddDin"
+                          )
+                        ).default,
+                      }),
+                    },
+                    {
+                      path: "edit-din",
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/inventory/din-list/EditDin"
+                          )
+                        ).default,
+                      }),
+                    },
+                    {
+                      path: "view-din-form",
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/inventory/din-list/ViewDinForm"
+                          )
+                        ).default,
+                      }),
+                    },
                   ],
                 },
                 {
@@ -4609,6 +4952,16 @@ const protectedRoutes = {
                         Component: (
                           await import(
                             "app/pages/dashboards/inventory/pending-verification"
+                          )
+                        ).default,
+                      }),
+                    },
+                    {
+                      path: "verification-form",
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/inventory/pending-verification/InstrumentVerificationForm"
                           )
                         ).default,
                       }),
@@ -4745,6 +5098,31 @@ const protectedRoutes = {
             {
               path: "hrm",
               children: [
+                {
+                  path: "manage-leave-rules",
+                  children: [
+                    {
+                      path: "",
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/hrm/manage-leave-rules"
+                          )
+                        ).default,
+                      }),
+                    },
+                    {
+                      path: "add",
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/hrm/manage-leave-rules/AddLeaveRule"
+                          )
+                        ).default,
+                      }),
+                    },
+                  ],
+                },
                 {
                   path: "manage-branch",
                   children: [
@@ -4974,6 +5352,41 @@ const protectedRoutes = {
                   }),
                 },
                 {
+                  path: "holidays",
+                  children: [
+                    {
+                      path: "",
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/hrm/holiday-list"
+                          )
+                        ).default,
+                      }),
+                    },
+                    {
+                      path: "add",
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/hrm/holiday-list/AddHoliday"
+                          )
+                        ).default,
+                      }),
+                    },
+                    {
+                      path: "yearly-list/:year",
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/hrm/holiday-list/YearlyHolidayLists"
+                          )
+                        ).default,
+                      }),
+                    },
+                  ],
+                },
+                {
                   path: "view-attendance-policies",
                   children: [
                     {
@@ -5077,6 +5490,41 @@ const protectedRoutes = {
                   }),
                 },
                 {
+                  path: "view-offer-letters-list",
+                  children: [
+                    {
+                      path: "",
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/hrm/view-offer-letters-list"
+                          )
+                        ).default,
+                      }),
+                    },
+                    {
+                      path: "add",
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/hrm/view-offer-letters-list/AddOfferLetter"
+                          )
+                        ).default,
+                      }),
+                    },
+                    {
+                      path: "view/:id",
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/hrm/view-offer-letters-list/ViewOfferLetter"
+                          )
+                        ).default,
+                      }),
+                    },
+                  ],
+                },
+                {
                   path: "manage-employee",
                   children: [
                     {
@@ -5104,7 +5552,47 @@ const protectedRoutes = {
                       lazy: async () => ({
                         Component: (
                           await import(
-                            "app/pages/dashboards/hrm/manage-employee/EditManageEmployee"
+                            "app/pages/dashboards/hrm/manage-employee/EditEmployeeDetails"
+                          )
+                        ).default,
+                      }),
+                    },
+                    {
+                      path: "joining-form/:id",
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/hrm/manage-employee/ViewEmployeeJoiningForm"
+                          )
+                        ).default,
+                      }),
+                    },
+                    {
+                      path: "view/:id",
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/hrm/manage-employee/ViewEmployee"
+                          )
+                        ).default,
+                      }),
+                    },
+                    {
+                      path: "permission/:id",
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/hrm/manage-employee/EmployeePermissions"
+                          )
+                        ).default,
+                      }),
+                    },
+                    {
+                      path: "extra-permission/:id",
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/hrm/manage-employee/EmployeeExtraPermissions"
                           )
                         ).default,
                       }),
@@ -5190,6 +5678,341 @@ const protectedRoutes = {
                         Component: (
                           await import(
                             "app/pages/dashboards/profile/my-department-stock/Edit"
+                          )
+                        ).default,
+                      }),
+                    },
+                  ],
+                },
+                {
+                  path: "din-list",
+                  children: [
+                    {
+                      index: true,
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/profile/din-list"
+                          )
+                        ).default,
+                      }),
+                    },
+                    {
+                      path: "add-din",
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/profile/din-list/AddDin"
+                          )
+                        ).default,
+                      }),
+                    },
+                    {
+                      path: "view-din-form",
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/profile/din-list/ViewDinForm"
+                          )
+                        ).default,
+                      }),
+                    },
+                  ],
+                },
+                {
+                  path: "attendance",
+                  children: [
+                    {
+                      index: true,
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/profile/attendance"
+                          )
+                        ).default,
+                      }),
+                    },
+                  ],
+                },
+                {
+                  path: "my-leaves",
+                  children: [
+                    {
+                      index: true,
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/profile/my-leaves"
+                          )
+                        ).default,
+                      }),
+                    },
+                    {
+                      path: "apply",
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/profile/my-leaves/ApplyLeave"
+                          )
+                        ).default,
+                      }),
+                    },
+                  ],
+                },
+                {
+                  path: "leaves-approval",
+                  children: [
+                    {
+                      index: true,
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/profile/leaves-approval"
+                          )
+                        ).default,
+                      }),
+                    },
+                  ],
+                },
+                {
+                  path: "my-issue-item-list",
+                  children: [
+                    {
+                      index: true,
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/profile/my-issue-item-list"
+                          )
+                        ).default,
+                      }),
+                    },
+                  ],
+                },
+                {
+                  path: "request-new-customer",
+                  children: [
+                    {
+                      index: true,
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/profile/request-new-customer"
+                          )
+                        ).default,
+                      }),
+                    },
+                    {
+                      path: "add",
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/profile/request-new-customer/AddCustomerRequest"
+                          )
+                        ).default,
+                      }),
+                    },
+                  ],
+                },
+                {
+                  path: "raise-complaint",
+                  children: [
+                    {
+                      index: true,
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/profile/raise-a-complaint"
+                          )
+                        ).default,
+                      }),
+                    },
+                  ],
+                },
+                {
+                  path: "complaint-list",
+                  children: [
+                    {
+                      index: true,
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/profile/complaint-list"
+                          )
+                        ).default,
+                      }),
+                    },
+                  ],
+                },
+                {
+                  path: "my-sales-report",
+                  children: [
+                    {
+                      index: true,
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/profile/my-sales-report"
+                          )
+                        ).default,
+                      }),
+                    },
+                  ],
+                },
+                {
+                  path: "invoice-report",
+                  children: [
+                    {
+                      index: true,
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/profile/invoice-report"
+                          )
+                        ).default,
+                      }),
+                    },
+                  ],
+                },
+                {
+                  path: "payment-report",
+                  children: [
+                    {
+                      index: true,
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/profile/payment-report"
+                          )
+                        ).default,
+                      }),
+                    },
+                    {
+                      path: "add",
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/profile/payment-report/AddNewPayment"
+                          )
+                        ).default,
+                      }),
+                    },
+                    {
+                      path: "details",
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/profile/payment-report/PaymentDetails"
+                          )
+                        ).default,
+                      }),
+                    },
+                    {
+                      path: "ledger",
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/profile/payment-report/PartyLedger"
+                          )
+                        ).default,
+                      }),
+                    },
+                  ],
+                },
+                {
+                  path: "mom-list",
+                  children: [
+                    {
+                      index: true,
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/profile/mom-list"
+                          )
+                        ).default,
+                      }),
+                    },
+                    {
+                      path: "add",
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/profile/mom-list/AddNewMom"
+                          )
+                        ).default,
+                      }),
+                    },
+                  ],
+                },
+                {
+                  path: "my-kra",
+                  children: [
+                    {
+                      index: true,
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/profile/my-kra"
+                          )
+                        ).default,
+                      }),
+                    },
+                  ],
+                },
+                {
+                  path: "customer-compaint-record",
+                  children: [
+                    {
+                      index: true,
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/profile/customer-compaint-record"
+                          )
+                        ).default,
+                      }),
+                    },
+                  ],
+                },
+                {
+                  path: "customer-complaint-record",
+                  children: [
+                    {
+                      index: true,
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/profile/customer-compaint-record"
+                          )
+                        ).default,
+                      }),
+                    },
+                  ],
+                },
+                {
+                  path: "non-confirming-record",
+                  children: [
+                    {
+                      index: true,
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/profile/non-confirming-record"
+                          )
+                        ).default,
+                      }),
+                    },
+                  ],
+                },
+                {
+                  path: "raise-incidence-deviation",
+                  children: [
+                    {
+                      index: true,
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/profile/raise-incidence-deviation"
                           )
                         ).default,
                       }),

@@ -99,10 +99,10 @@ const f2 = (v) => parseFloat(v ?? 0).toFixed(2);
 const fmtDate = (d) =>
   d && d !== "0000-00-00 00:00:00"
     ? new Date(d).toLocaleDateString("en-IN", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      })
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    })
     : "";
 
 // ─── Number to words ─────────────────────────────────────────────────────────
@@ -392,11 +392,11 @@ function InvoicePrintTemplate({
               const itemOtherCharge =
                 otherCharges > 0 && totalQty > 0
                   ? parseFloat(
-                      (
-                        (otherCharges / totalQty) *
-                        parseFloat(item.qty || 0)
-                      ).toFixed(2),
-                    )
+                    (
+                      (otherCharges / totalQty) *
+                      parseFloat(item.qty || 0)
+                    ).toFixed(2),
+                  )
                   : 0;
               displayAmount = f2(itemAmountOld + itemOtherCharge);
             }
@@ -885,19 +885,6 @@ export default function ViewCalibrationInvoice() {
     }
   };
 
-  const doEInvoice = async () => {
-    try {
-      setBusy(true);
-      await axios.post("/accounts/generate-einvoice", { invoiceid: id });
-      toast.success("E-Invoice generated");
-      setEinvModal(false);
-      load();
-    } catch {
-      toast.error("Failed to generate E-Invoice");
-    } finally {
-      setBusy(false);
-    }
-  };
 
   if (loading)
     return (
@@ -1034,15 +1021,117 @@ export default function ViewCalibrationInvoice() {
     };
   });
 
+  const doEInvoice = async () => {
+    try {
+      setBusy(true);
+
+      const subtotal = parseFloat(invoice.subtotal) || 0;
+      const discount = parseFloat(invoice.discount) || 0;
+      const assAmt = (subtotal - discount) + otherCharges;
+
+      let cgstVal = 0, sgstVal = 0, igstVal = 0;
+      if (isSgst) {
+        cgstVal = Number((assAmt * ((parseFloat(invoice.cgstper) || 0) / 100)).toFixed(2));
+        sgstVal = Number((assAmt * ((parseFloat(invoice.sgstper) || 0) / 100)).toFixed(2));
+      } else {
+        igstVal = Number((assAmt * ((parseFloat(invoice.igstper) || 0) / 100)).toFixed(2));
+      }
+      const roundoff = Number((parseFloat(invoice.roundoff) || 0).toFixed(2));
+      const totInvValFc = Number((assAmt + cgstVal + sgstVal + igstVal).toFixed(2));
+      const totInvVal = Number((totInvValFc + roundoff).toFixed(2));
+
+      let buyerGstin = invoice.gstno || "URP";
+      let supTyp = "B2B";
+      if (!invoice.gstno || invoice.gstno === "0" || invoice.gstno === "NA") {
+        buyerGstin = "URP";
+        supTyp = "B2C";
+      }
+
+      const dateParts = invoice.approved_on ? invoice.approved_on.split(' ')[0].split('-') : [];
+      const formattedDate = dateParts.length === 3 ? `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}` : "";
+
+      const payload = {
+        Version: "1.1",
+        TranDtls: {
+          TaxSch: "GST",
+          SupTyp: supTyp,
+          RegRev: "N",
+          EcmGstin: null,
+          IgstOnIntra: "N"
+        },
+        DocDtls: {
+          Typ: "INV",
+          No: invoice.invoiceno,
+          Dt: formattedDate
+        },
+        SellerDtls: {
+          Gstin: "23AADCK0799A1ZV",
+          LglNm: "KAILTECH TEST AND RESEARCH CENTRE PVT LTD.",
+          TrdNm: "KAILTECH TEST AND RESEARCH CENTRE PVT LTD.",
+          Addr1: "Plot No. 141-C, Electronic Complex Industrial Area, Indore",
+          Loc: "BHOPAL",
+          Pin: 452010,
+          Stcd: "23"
+        },
+        BuyerDtls: {
+          Gstin: buyerGstin,
+          LglNm: invoice.customername ? invoice.customername.substring(0, 99) : "",
+          Pos: isNaN(Number(statecode)) ? "96" : String(statecode).padStart(2, '0'),
+          Addr1: (invoice._address?.address || invoice.address || "").replace(/[\r\n]+/g, ' ').substring(0, 99),
+          Loc: invoice._address?.city || "",
+          Pin: Number(invoice._address?.pincode) || 999999,
+          Stcd: isNaN(Number(statecode)) ? "96" : String(statecode).padStart(2, '0')
+        },
+        ItemList: computedItems.map((item, index) => ({
+          SlNo: String(index + 1),
+          PrdDesc: (item.description || "").replace(/<[^>]*>?/gm, ' ').substring(0, 300).trim(),
+          IsServc: "Y",
+          HsnCd: companyInfo?.company?.sac_code || "998394",
+          Qty: item.meter_option == 1 ? Number(item.meter) : Number(item.qty),
+          UnitPrice: Number(item.rate),
+          TotAmt: Number(item.itemAmount.toFixed(2)),
+          Discount: Number(item.itemDiscount.toFixed(2)),
+          AssAmt: Number(item.itemAssAmt.toFixed(2)),
+          GstRt: Number(item.gstRate.toFixed(2)),
+          IgstAmt: Number(item.itemIgst.toFixed(2)),
+          CgstAmt: Number(item.itemCgst.toFixed(2)),
+          SgstAmt: Number(item.itemSgst.toFixed(2)),
+          OthChrg: 0,
+          TotItemVal: Number(item.itemTotVal.toFixed(2))
+        })),
+        ValDtls: {
+          AssVal: Number(assAmt.toFixed(2)),
+          CgstVal: cgstVal,
+          SgstVal: sgstVal,
+          IgstVal: igstVal,
+          OthChrg: 0,
+          RndOffAmt: roundoff,
+          TotInvVal: totInvVal,
+          TotInvValFc: totInvValFc
+        },
+        ExpDtls: {
+          CntCode: "IN"
+        }
+      };
+
+      await axios.post(`/einvoice/generate?invoiceid=${id}`, payload);
+      toast.success("E-Invoice generated");
+      setEinvModal(false);
+      load();
+    } catch {
+      toast.error("Failed to generate E-Invoice");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const canApprove =
     invoice.status === 0 &&
     ((hasPerm(269) && finalTotalVal <= 5000) ||
       (hasPerm(270) && finalTotalVal > 5000));
-  const approvedAt = invoice.approved_on ? new Date(invoice.approved_on) : null;
   const canEInvoice =
     !isFoc &&
     invoice.status === 1 &&
-    approvedAt >= new Date("2023-08-01") &&
     hasPerm(466) &&
     finalTotalVal !== 0;
 
@@ -1071,7 +1160,7 @@ export default function ViewCalibrationInvoice() {
 
   return (
     <Page title="View Invoice">
-      <div className="transition-content px-(--margin-x) pb-10">
+      <div className="transition-content px-[var(--margin-x)] pb-10">
         <div className="mb-4 flex flex-wrap items-center gap-2 print:hidden">
           <button
             onClick={() => handleExport(true)}
@@ -1551,8 +1640,24 @@ export default function ViewCalibrationInvoice() {
               </tr>
             </tbody>
           </table>
-          <div className="mt-3 text-center text-xs text-gray-400">
-            This is a system generated invoice
+          <div className="mt-3 flex items-center justify-center gap-4 text-xs text-gray-500">
+            <span>This is a system generated invoice</span>
+            {canApprove && (
+              <button
+                onClick={() => setApproveModal(true)}
+                className="rounded bg-green-600 px-3 py-1 font-semibold text-white hover:bg-green-700 print:hidden"
+              >
+                Approve
+              </button>
+            )}
+            {canEInvoice && (
+              <button
+                onClick={() => setEinvModal(true)}
+                className="rounded bg-green-600 px-3 py-1 font-semibold text-white hover:bg-green-700 print:hidden"
+              >
+                Generate E-Invoice
+              </button>
+            )}
           </div>
         </div>
       </div>

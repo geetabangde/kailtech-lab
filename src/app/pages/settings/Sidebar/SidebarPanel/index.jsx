@@ -31,7 +31,7 @@ export function SidebarPanel() {
     >
       <div
         className={clsx(
-          "flex h-full grow flex-col bg-white ltr:pl-(--main-panel-width) rtl:pr-(--main-panel-width)",
+          "flex h-full grow flex-col bg-white ltr:pl-[var(--main-panel-width)] rtl:pr-[var(--main-panel-width)]",
           cardSkin === "shadow" ? "dark:bg-dark-750" : "dark:bg-dark-900",
         )}
       >

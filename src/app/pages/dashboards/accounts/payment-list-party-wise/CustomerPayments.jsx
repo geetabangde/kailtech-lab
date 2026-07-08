@@ -282,7 +282,7 @@ export default function CustomerPayments() {
 
   return (
     <Page title="Customer Payment List">
-      <div className="transition-content px-(--margin-x) pb-8">
+      <div className="transition-content px-[var(--margin-x)] pb-8">
         {/* ── Header ── */}
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h2 className="dark:text-dark-50 text-xl font-semibold text-gray-800">

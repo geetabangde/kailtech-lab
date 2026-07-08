@@ -47,20 +47,22 @@ export default function AllotedItems() {
     try {
       setLoading(true);
       
-      // Use allotedData.php endpoint matching PHP ajax URL
-      const res = await axios.get("/registers/allotedData");
+      // Use new API endpoint
+      const res = await axios.get("/register/get-allot-items");
       
-      // Handle DataTables server-side response format
+      // Handle response format
       let rows = res.data?.data || [];
       
-      // Map to PHP table structure: LRN, Date, Product, Department, Package, Quantity
+      // Map JSON to flat object for table
       rows = rows.map((row) => ({
-        lrn: row[0] || "",
-        date: row[1] || "",
-        product: row[2] || "",
-        department: row[3] || "",
-        package: row[4] || "",
-        quantity: row[5] || "",
+        lrn: row.lrn || "",
+        added_on: row.added_on || "",
+        product: row.product || "",
+        department: row.department || "",
+        package: row.package || "",
+        alloted: row.alloted || "",
+        unit: row.unit || "",
+        qtyname: row.qtyname || "",
       }));
       
       setTableData(rows);
@@ -95,37 +97,40 @@ export default function AllotedItems() {
 
   const [autoResetPageIndex] = useSkipper();
 
-  // Define columns matching PHP alloted-items table exactly
   const allotedColumns = [
     {
-      id: "lrn",
+      accessorKey: "lrn",
       header: "LRN",
       cell: (info) => info.getValue(),
     },
     {
-      id: "date",
+      accessorKey: "added_on",
       header: "Date",
       cell: (info) => info.getValue(),
     },
     {
-      id: "product",
+      accessorKey: "product",
       header: "Product",
       cell: (info) => info.getValue(),
     },
     {
-      id: "department",
+      accessorKey: "department",
       header: "Department",
       cell: (info) => info.getValue(),
     },
     {
-      id: "package",
+      accessorKey: "package",
       header: "Package",
       cell: (info) => info.getValue(),
     },
     {
       id: "quantity",
       header: "Quantity",
-      cell: (info) => info.getValue(),
+      cell: ({ row }) => {
+        const { alloted, unit, qtyname } = row.original;
+        const qty = qtyname && qtyname !== "-" ? qtyname : "";
+        return `${alloted || ""} ${unit || ""} ${qty}`.trim();
+      },
     },
   ];
 
@@ -194,7 +199,7 @@ export default function AllotedItems() {
           <div
             className={clsx(
               "transition-content flex grow flex-col pt-3",
-              tableSettings.enableFullScreen ? "overflow-hidden" : "px-(--margin-x)"
+              tableSettings.enableFullScreen ? "overflow-hidden" : "px-[var(--margin-x)]"
             )}
           >
             <Card className={clsx("relative flex grow flex-col", tableSettings.enableFullScreen && "overflow-hidden")}>

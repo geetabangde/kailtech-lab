@@ -3,6 +3,7 @@
 // ==========================================
 import axios from 'utils/axios';
 import { toast } from 'sonner';
+import { JWT_HOST_API } from "configs/auth.config";
 
 export const ObservationHandlers = ({
   inwardId,
@@ -185,7 +186,7 @@ export const ObservationHandlers = ({
     try {
       for (const payload of payloads) {
         await axios.post(
-          'https://lims.kailtech.in/api/calibrationprocess/set-observations',
+          `${JWT_HOST_API}/calibrationprocess/set-observations`,
           payload,
           {
             headers: {
@@ -228,7 +229,7 @@ export const ObservationHandlers = ({
 
     try {
       await axios.post(
-        'https://lims.kailtech.in/api/calibrationprocess/set-observations',
+        `${JWT_HOST_API}/calibrationprocess/set-observations`,
         payload,
         {
           headers: {

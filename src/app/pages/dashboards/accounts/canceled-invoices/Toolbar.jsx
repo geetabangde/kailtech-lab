@@ -13,7 +13,7 @@ export function Toolbar({ table }) {
     <div
       className={clsx(
         "transition-content",
-        isFullScreenEnabled ? "px-4 sm:px-5" : "px-(--margin-x) pt-4",
+        isFullScreenEnabled ? "px-4 sm:px-5" : "px-[var(--margin-x)] pt-4",
       )}
     >
       <h2 className="text-xl font-semibold tracking-wide text-gray-800 dark:text-dark-50">

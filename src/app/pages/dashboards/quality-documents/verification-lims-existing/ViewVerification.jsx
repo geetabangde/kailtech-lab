@@ -96,7 +96,7 @@ export default function ViewVerification() {
 
   return (
     <Page title="Verification Details">
-      <div className="px-(--margin-x) py-6 max-w-5xl mx-auto">
+      <div className="px-[var(--margin-x)] py-6 max-w-5xl mx-auto">
         {/* Actions Bar (No Print) */}
         <div className="flex items-center justify-between mb-6 no-print">
           <Button

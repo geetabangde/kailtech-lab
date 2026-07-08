@@ -35,14 +35,14 @@ export default function DispatchRegister() {
 
   useEffect(() => {
     // Permission check for dispatch register - adjust as needed
-    if (!permissions.includes(353)) {
+    if (!permissions.includes(162)) {
       navigate("/dashboards");
     }
   }, [navigate, permissions]);
 
   const [tableData, setTableData] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [, setSearched] = useState(false);
+  const [searched, setSearched] = useState(false);
   
   // Filters matching PHP code
   const [filters, setFilters] = useState({
@@ -50,6 +50,7 @@ export default function DispatchRegister() {
     enddate: "",
     department: "",
     customer: "",
+    purpose: "",
     lrn: "",
     brn: "",
     contactperson: "",
@@ -57,6 +58,7 @@ export default function DispatchRegister() {
 
   const [departments, setDepartments] = useState([]);
   const [customers, setCustomers] = useState([]);
+  const [purposes, setPurposes] = useState([]);
 
   // Fetch departments dropdown data (no permission check for disposal register)
   const fetchDepartments = useCallback(async () => {
@@ -76,7 +78,7 @@ export default function DispatchRegister() {
   // Fetch customers dropdown data
   const fetchCustomers = useCallback(async () => {
     try {
-      const res = await axios.get("/master/get-customers", {
+      const res = await axios.get("/people/get-all-customers", {
         params: { status: 1 }
       });
       setCustomers(res.data?.data || []);
@@ -85,37 +87,55 @@ export default function DispatchRegister() {
     }
   }, []);
 
+  // Fetch purposes dropdown data
+  const fetchPurposes = useCallback(async () => {
+    try {
+      const res = await axios.get("/people/get-specific-purpose-list");
+      setPurposes(res.data?.data || []);
+    } catch (err) {
+      console.error("Error fetching purposes:", err);
+    }
+  }, []);
+
   useEffect(() => {
     fetchDepartments();
     fetchCustomers();
-  }, [fetchDepartments, fetchCustomers]);
+    fetchPurposes();
+  }, [fetchDepartments, fetchCustomers, fetchPurposes]);
 
-  // Fetch dispatch register data using PHP endpoint
   const fetchReceivedData = async () => {
     try {
       setLoading(true);
       setSearched(true);
       
-      // Use dispatchtestingitem endpoint matching PHP ajax URL
-      const res = await axios.get("/registers/dispatchtestingitem", { params: filters });
+      const apiParams = {};
+      if (filters.startdate) apiParams.startdate = filters.startdate;
+      if (filters.enddate) apiParams.enddate = filters.enddate;
+      if (filters.customer) apiParams.customer = filters.customer;
+      if (filters.purpose) apiParams.purpose = filters.purpose;
+      if (filters.contactperson) apiParams.contactperson = filters.contactperson;
+      if (filters.lrn) apiParams.lrn = filters.lrn;
+      if (filters.brn) apiParams.brn = filters.brn;
       
-      // Handle DataTables server-side response format
+      const res = await axios.get("/register/dispatch-register", { params: apiParams });
+      
       let rows = res.data?.data || [];
       
-      // Map to PHP table structure: Date, BRN, LRN, Name of Party Address, Person, Description (Sample, Report, Invoice), Dispatch Date, Dispatch Through, Document No., Dispatched By
       rows = rows.map((row) => ({
-        date: row[0] || "",
-        brn: row[1] || "",
-        lrn: row[2] || "",
-        name_of_party_address: row[3] || "",
-        person: row[4] || "",
-        sample_description: row[5] || "",
-        report_description: row[6] || "",
-        invoice_description: row[7] || "",
-        dispatch_date: row[8] || "",
-        dispatch_through: row[9] || "",
-        document_no: row[10] || "",
-        dispatched_by: row[11] || "",
+        date: row.dindate || row.added_on || "",
+        brn: row.brn || "",
+        lrn: row.lrn || "",
+        purpose: row.purposeName || row.purpose || "",
+        basis: row.basis || "",
+        name_of_party_address: row.customername || "",
+        person: row.concernperson || "",
+        sample_description: row.sampleDescription || "",
+        report_description: row.certificate || "",
+        invoice_description: row.invoice || "",
+        dispatch_date: row.dispatchdate || "",
+        dispatch_through: row.dispatchThroughName || "",
+        document_no: row.courrierno || row.gatpassnumber || "",
+        dispatched_by: row.dispatchByName || "",
       }));
       
       setTableData(rows);
@@ -157,62 +177,72 @@ export default function DispatchRegister() {
   // Define columns matching PHP dispatch register table exactly
   const dispatchColumns = [
     {
-      id: "date",
+      accessorKey: "date",
       header: "Date",
       cell: (info) => info.getValue(),
     },
     {
-      id: "brn",
+      accessorKey: "brn",
       header: "BRN",
       cell: (info) => info.getValue(),
     },
     {
-      id: "lrn",
+      accessorKey: "lrn",
       header: "LRN",
       cell: (info) => info.getValue(),
     },
     {
-      id: "name_of_party_address",
+      accessorKey: "purpose",
+      header: "Purpose",
+      cell: (info) => info.getValue(),
+    },
+    {
+      accessorKey: "basis",
+      header: "Basis",
+      cell: (info) => info.getValue(),
+    },
+    {
+      accessorKey: "name_of_party_address",
       header: "Name of Party Address",
       cell: (info) => info.getValue(),
     },
     {
-      id: "person",
+      accessorKey: "person",
       header: "Person",
       cell: (info) => info.getValue(),
     },
     {
-      id: "sample_description",
+      accessorKey: "sample_description",
       header: "Sample",
       cell: (info) => info.getValue(),
     },
     {
-      id: "report_description",
+      accessorKey: "report_description",
       header: "Report",
       cell: (info) => info.getValue(),
     },
     {
-      id: "invoice_description",
+      accessorKey: "invoice_description",
       header: "Invoice",
       cell: (info) => info.getValue(),
     },
     {
-      id: "dispatch_date",
+      accessorKey: "dispatch_date",
       header: "Dispatch Date",
       cell: (info) => info.getValue(),
     },
     {
-      id: "dispatch_through",
+      accessorKey: "dispatch_through",
       header: "Dispatch Through",
       cell: (info) => info.getValue(),
     },
     {
-      id: "document_no",
+      accessorKey: "document_no",
       header: "Document No.",
       cell: (info) => info.getValue(),
     },
     {
-      id: "dispatched_by",
+      accessorKey: "dispatched_by",
       header: "Dispatched By",
       cell: (info) => info.getValue(),
     },
@@ -279,6 +309,7 @@ export default function DispatchRegister() {
         onSearch={handleSearch}
         departments={departments}
         customers={customers}
+        purposes={purposes}
       />
       <div className="transition-content w-full pb-5">
         <div
@@ -290,7 +321,7 @@ export default function DispatchRegister() {
           <div
             className={clsx(
               "transition-content flex grow flex-col pt-3",
-              tableSettings.enableFullScreen ? "overflow-hidden" : "px-(--margin-x)"
+              tableSettings.enableFullScreen ? "overflow-hidden" : "px-[var(--margin-x)]"
             )}
           >
             <Card className={clsx("relative flex grow flex-col", tableSettings.enableFullScreen && "overflow-hidden")}>
@@ -357,10 +388,17 @@ export default function DispatchRegister() {
                         ))}
                       </Tr>
                     ))}
-                    {tableData.length === 0 && !loading && (
+                    {searched && tableData.length === 0 && !loading && (
                       <Tr>
                         <Td colSpan={visibleColumns.length} className="py-10 text-center text-gray-500">
                           No dispatch items found.
+                        </Td>
+                      </Tr>
+                    )}
+                    {!searched && (
+                      <Tr>
+                        <Td colSpan={visibleColumns.length} className="py-10 text-center text-gray-500">
+                          Use the filters above and click Search to view the Dispatch Register.
                         </Td>
                       </Tr>
                     )}

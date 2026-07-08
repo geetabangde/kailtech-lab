@@ -4,7 +4,7 @@ import { Button, Select, Pagination, PaginationItems, PaginationNext, Pagination
 import axios from "utils/axios";
 import { toast } from "sonner";
 import { PerformActions } from "./PerformActions";
-
+import { JWT_HOST_API } from 'configs/auth.config';
 
 const PerformCalibration = () => {
     const navigate = useNavigate();
@@ -328,7 +328,7 @@ const PerformCalibration = () => {
             // Use the correct endpoint with proper spelling
             // If your domain is kailtech.in
             const response = await axios.post(
-                "https://lims.kailtech.in/api/calibrationprocess/calculate-uncertanity", // Note: uncertainty spelling
+                `${JWT_HOST_API}/calibrationprocess/calculate-uncertanity`, // Note: uncertainty spelling
                 payload
             );
 
@@ -788,10 +788,10 @@ const PerformCalibration = () => {
     //         formData.append('inwardid', inwardId);
     //         formData.append('itemid', currentUploadItem.id);
     //         formData.append('path', uploadFile);
-           
 
 
-            
+
+
 
     //          // File ko 'path' key me bhejo
     //         // Note: 'name' field API me required nahi hai, agar chahiye to add kar sakte ho
@@ -801,7 +801,7 @@ const PerformCalibration = () => {
 
     //         // API call to upload document
     //         const response = await axios.post(
-    //             'https://lims.kailtech.in/api/calibrationprocess/upload-calibration-documents',
+    //             `${JWT_HOST_API}/calibrationprocess/upload-calibration-documents`,
     //             formData,
     //             {
     //                 headers: {
@@ -843,69 +843,69 @@ const PerformCalibration = () => {
     // };
 
     const handleUploadSubmit = async () => {
-    if (!uploadName.trim()) {
-        toast.error("Please enter a name for the document.");
-        return;
-    }
+        if (!uploadName.trim()) {
+            toast.error("Please enter a name for the document.");
+            return;
+        }
 
-    if (!uploadFile) {
-        toast.error("Please select a file to upload.");
-        return;
-    }
+        if (!uploadFile) {
+            toast.error("Please select a file to upload.");
+            return;
+        }
 
-    try {
-        // Create FormData
-        const formData = new FormData();
-        formData.append('inwardid', inwardId);
-        formData.append('itemid', currentUploadItem.id);
-        formData.append('path', uploadFile);
-        formData.append('name', uploadName); // Added name field
+        try {
+            // Create FormData
+            const formData = new FormData();
+            formData.append('inwardid', inwardId);
+            formData.append('itemid', currentUploadItem.id);
+            formData.append('path', uploadFile);
+            formData.append('name', uploadName); // Added name field
 
-        // Show loading toast
-        const loadingToast = toast.loading("Uploading document...");
+            // Show loading toast
+            const loadingToast = toast.loading("Uploading document...");
 
-        // API call to upload document
-        const response = await axios.post(
-            'https://lims.kailtech.in/api/calibrationprocess/upload-calibration-documents',
-            formData,
-            {
-                headers: {
-                    'Content-Type': 'multipart/form-data'
+            // API call to upload document
+            const response = await axios.post(
+                `${JWT_HOST_API}/calibrationprocess/upload-calibration-documents`,
+                formData,
+                {
+                    headers: {
+                        'Content-Type': 'multipart/form-data'
+                    }
                 }
+            );
+
+            // Dismiss loading toast
+            toast.dismiss(loadingToast);
+
+            // Check response
+            if (response.data && response.data.success) {
+                toast.success(response.data.message || "Document uploaded successfully!");
+                // Refresh data
+                fetchCalibrationData();
+            } else {
+                toast.error(response.data?.message || "Failed to upload document.");
             }
-        );
 
-        // Dismiss loading toast
-        toast.dismiss(loadingToast);
+            // Reset form and close modal
+            setUploadName('');
+            setUploadFile(null);
+            setShowUploadModal(false);
+            setCurrentUploadItem(null);
 
-        // Check response
-        if (response.data && response.data.success) {
-            toast.success(response.data.message || "Document uploaded successfully!");
-            // Refresh data
-            fetchCalibrationData();
-        } else {
-            toast.error(response.data?.message || "Failed to upload document.");
+        } catch (error) {
+            console.error('Upload error:', error);
+
+            // Show appropriate error message
+            if (error.response) {
+                toast.error(error.response.data?.message || "Failed to upload document.");
+            } else if (error.request) {
+                toast.error("No response from server. Please check your connection.");
+            } else {
+                toast.error("Failed to upload document.");
+            }
         }
-
-        // Reset form and close modal
-        setUploadName('');
-        setUploadFile(null);
-        setShowUploadModal(false);
-        setCurrentUploadItem(null);
-
-    } catch (error) {
-        console.error('Upload error:', error);
-
-        // Show appropriate error message
-        if (error.response) {
-            toast.error(error.response.data?.message || "Failed to upload document.");
-        } else if (error.request) {
-            toast.error("No response from server. Please check your connection.");
-        } else {
-            toast.error("Failed to upload document.");
-        }
-    }
-};
+    };
 
     // Handle Cancel LRN submission
     const handleCancelLRNSubmit = async () => {
@@ -998,7 +998,7 @@ const PerformCalibration = () => {
 
             // API call
             const response = await axios.post(
-                'https://lims.kailtech.in/api/calibrationprocess/submit-revision-request',
+                `${JWT_HOST_API}/calibrationprocess/submit-revision-request`,
                 formData,
                 {
                     headers: {
@@ -1402,76 +1402,81 @@ const PerformCalibration = () => {
                             </thead>
                             <tbody>
                                 {displayedData.length > 0 ? (
-                                    displayedData.map((item, itemIndex) => (
-                                        <tr key={item.id} className="border-b border-gray-200 hover:bg-gray-50">
-                                            <td className="p-3 text-center border border-gray-200">
-                                                <div className="flex flex-col items-center gap-2">
-                                                    <span className="font-medium">{startIndex + itemIndex + 1}</span>
+                                    displayedData.map((item, itemIndex) => {
+                                        const allotedReviewer = reviewers.find(r => r.id == item.allotedto);
+                                        const allotedToDisplay = allotedReviewer
+                                            ? `${allotedReviewer.firstname || ''} ${allotedReviewer.middlename || ''} ${allotedReviewer.lastname || ''}`.replace(/\s+/g, ' ').trim()
+                                            : item.allotedto;
 
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={selectedItems.includes(item.id)}
-                                                        onChange={() => handleSelectItem(item.id)}
-                                                        className="rounded focus:ring-blue-500"
+                                        return (
+                                            <tr key={item.id} className="border-b border-gray-200 hover:bg-gray-50">
+                                                <td className="p-3 text-center border border-gray-200">
+                                                    <div className="flex flex-col items-center gap-2">
+                                                        <span className="font-medium">{startIndex + itemIndex + 1}</span>
+
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={selectedItems.includes(item.id)}
+                                                            onChange={() => handleSelectItem(item.id)}
+                                                            className="rounded focus:ring-blue-500"
+                                                        />
+                                                    </div>
+                                                </td>
+                                                <td className="p-3 border border-gray-200">
+                                                    <div className="flex flex-col">
+                                                        {item.bookingrefno && (
+                                                            <span className="text-xs">
+                                                                <strong>BRN:</strong> {item.bookingrefno}
+                                                                {item.rev > 0 && `/R${item.rev}`}
+                                                            </span>
+                                                        )}
+                                                        {item.lrn && (
+                                                            <span className="text-xs">
+                                                                <strong>LRN:</strong> {item.lrn}
+                                                            </span>
+                                                        )}
+                                                        {item.ulrno && item.ulrno !== 'N.A' && (
+                                                            <span className="text-xs">
+                                                                <strong>ULR NO.:</strong> {item.ulrno}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                                <td className="p-3 border border-gray-200">
+                                                    <span className="font-medium">{item.name}</span>
+                                                </td>
+                                                <td className="p-3 border border-gray-200">
+                                                    {item.type_of_instrument || item.name}
+                                                </td>
+                                                <td className="p-3 text-center border border-gray-200">
+                                                    <span className="font-medium">{item.idno}</span>
+                                                </td>
+                                                <td className="p-3 text-center border border-gray-200">
+                                                    <span className="font-medium">{item.serialno}</span>
+                                                </td>
+                                                <td className="p-3 border border-gray-200">
+                                                    <span className="font-medium">{item.sop_method}</span>
+                                                </td>
+                                                <td className="p-3 border border-gray-200">
+                                                    {allotedToDisplay}
+                                                </td>
+                                                <td className="p-3 text-center border border-gray-200">
+                                                    <Button
+                                                        onClick={() => handleAction('matrix', item)}
+                                                        className="bg-indigo-500 hover:bg-fuchsia-500 text-white px-3 py-1 rounded text-xs font-medium transition-colors"
+                                                    >
+                                                        Matrix
+                                                    </Button>
+                                                </td>
+                                                <td className="p-3 text-center border border-gray-200">
+                                                    <PerformActions
+                                                        item={item}
+                                                        onAction={handleAction}
                                                     />
-                                                </div>
-                                            </td>
-                                            <td className="p-3 border border-gray-200">
-                                                <div className="text-xs whitespace-pre-line leading-relaxed">
-                                                    {item.bookingrefno && (
-                                                        <>
-                                                            <strong>BRN:</strong> {item.bookingrefno}
-                                                            {item.rev > 0 && `/R${item.rev}`}
-                                                            <br />
-                                                        </>
-                                                    )}
-                                                    {item.lrn && (
-                                                        <>
-                                                            <strong>LRN:</strong> {item.lrn}
-                                                            <br />
-                                                        </>
-                                                    )}
-                                                    {item.ulrno && (
-                                                        <>
-                                                            <strong>ULR NO.:</strong> {item.ulrno}
-                                                        </>
-                                                    )}
-                                                </div>
-                                            </td>
-                                            <td className="p-3 border border-gray-200">
-                                                <span className="font-medium">{item.name}</span>
-                                            </td>
-                                            <td className="p-3 border border-gray-200">
-                                                {item.type_of_instrument || item.name}
-                                            </td>
-                                            <td className="p-3 text-center border border-gray-200">
-                                                <span className="font-medium">{item.idno}</span>
-                                            </td>
-                                            <td className="p-3 text-center border border-gray-200">
-                                                <span className="font-medium">{item.serialno}</span>
-                                            </td>
-                                            <td className="p-3 border border-gray-200">
-                                                <span className="font-medium">{item.sop_method}</span>
-                                            </td>
-                                            <td className="p-3 border border-gray-200">
-                                                {item.allotedto}
-                                            </td>
-                                            <td className="p-3 text-center border border-gray-200">
-                                                <Button
-                                                    onClick={() => handleAction('matrix', item)}
-                                                    className="bg-indigo-500 hover:bg-fuchsia-500 text-white px-3 py-1 rounded text-xs font-medium transition-colors"
-                                                >
-                                                    Matrix
-                                                </Button>
-                                            </td>
-                                            <td className="p-3 text-center border border-gray-200">
-                                                <PerformActions
-                                                    item={item}
-                                                    onAction={handleAction}
-                                                />
-                                            </td>
-                                        </tr>
-                                    ))
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
                                 ) : (
                                     <tr>
                                         <td colSpan="10" className="p-4 text-center text-gray-500">

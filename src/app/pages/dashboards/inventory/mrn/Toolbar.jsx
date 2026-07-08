@@ -24,7 +24,7 @@ export function Toolbar({ table }) {
       <div
         className={clsx(
           "transition-content flex items-center justify-between gap-4",
-          isFullScreenEnabled ? "px-4 sm:px-5" : "px-(--margin-x) pt-4"
+          isFullScreenEnabled ? "px-4 sm:px-5" : "px-[var(--margin-x)] pt-4"
         )}
       >
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full gap-4 mb-2">
@@ -64,7 +64,7 @@ export function Toolbar({ table }) {
       <div
         className={clsx(
           "custom-scrollbar transition-content flex justify-between space-x-4 overflow-x-auto pb-1 pt-2",
-          isFullScreenEnabled ? "px-4 sm:px-5" : "px-(--margin-x)"
+          isFullScreenEnabled ? "px-4 sm:px-5" : "px-[var(--margin-x)]"
         )}
       >
         <div className="flex shrink-0 space-x-2">

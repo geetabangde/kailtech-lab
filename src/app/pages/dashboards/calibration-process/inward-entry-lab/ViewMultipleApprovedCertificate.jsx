@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
+import { JWT_HOST_API } from "configs/auth.config";
 
 export default function ViewCertificateWithlh() {
   const params = useParams();
@@ -52,7 +53,7 @@ export default function ViewCertificateWithlh() {
         }
 
         const instIdsParam = instIdsArray.join(",");
-        const apiUrl = `https://lims.kailtech.in/api/calibrationprocess/view-multipleapproved?inwardid=${inwardId}&instid=${encodeURIComponent(
+        const apiUrl = `${JWT_HOST_API}/calibrationprocess/view-multipleapproved?inwardid=${inwardId}&instid=${encodeURIComponent(
           instIdsParam
         )}&caliblocation=${caliblocation}&calibacc=${calibacc}`;
 

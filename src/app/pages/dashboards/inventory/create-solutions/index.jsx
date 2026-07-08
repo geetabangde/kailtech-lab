@@ -23,6 +23,9 @@ import { fuzzyFilter } from "utils/react-table/fuzzyFilter";
 import { useSkipper } from "utils/react-table/useSkipper";
 import { columns } from "./columns";
 import { PaginationSection } from "components/shared/table/PaginationSection";
+import { TableLoadingRow } from "components/shared/table/TableLoadingRow";
+
+import { TableConfig } from "./TableConfig";
 
 // ----------------------------------------------------------------------
 
@@ -69,7 +72,7 @@ export default function CreateSolutions() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const response = await axios.get("inventory/create-solution-data");
+      const response = await axios.get("inventory/get-solution-list");
       if (response.data.status && Array.isArray(response.data.data)) {
         setData(response.data.data);
       } else {
@@ -91,6 +94,7 @@ export default function CreateSolutions() {
       columnVisibility,
       columnPinning,
       pagination,
+      tableSettings,
     },
     meta: {
       updateData: (rowIndex, columnId, value) => {
@@ -161,6 +165,18 @@ export default function CreateSolutions() {
               </div>
 
               <div className="flex w-full flex-wrap items-center justify-end gap-3 sm:w-auto">
+                <div className="relative w-full sm:w-64">
+                  <input
+                    type="text"
+                    value={globalFilter ?? ""}
+                    onChange={(e) => setGlobalFilter(e.target.value)}
+                    placeholder="Search all columns..."
+                    className="form-input w-full rounded-lg border-gray-300 bg-white px-4 py-2 text-sm focus:border-primary-500 focus:ring-primary-500 dark:border-dark-400 dark:bg-dark-800"
+                  />
+                </div>
+
+                <TableConfig table={table} />
+
                 <Button
                   component={Link}
                   to="/dashboards/inventory"
@@ -195,7 +211,15 @@ export default function CreateSolutions() {
                       {headerGroup.headers.map((header) => (
                         <Th
                           key={header.id}
-                          className="bg-gray-50 px-4 py-3 text-xs font-bold uppercase text-gray-600 dark:bg-dark-800 dark:text-dark-200"
+                          className={clsx(
+                            "bg-gray-50 text-xs font-bold uppercase text-gray-600 dark:bg-dark-800 dark:text-dark-200 align-top",
+                            header.column.getCanPin() && [
+                              header.column.getIsPinned() === "left" &&
+                              "sticky z-2 ltr:left-0 rtl:right-0",
+                              header.column.getIsPinned() === "right" &&
+                              "sticky z-2 ltr:right-0 rtl:left-0",
+                            ]
+                          )}
                         >
                           {header.column.getCanSort() ? (
                             <div
@@ -223,11 +247,7 @@ export default function CreateSolutions() {
                 </THead>
                 <TBody>
                   {loading ? (
-                    <Tr>
-                      <Td colSpan={columns.length} className="h-24 text-center">
-                        Loading...
-                      </Td>
-                    </Tr>
+                    <TableLoadingRow colSpan={columns.length} />
                   ) : table.getRowModel().rows.length > 0 ? (
                     table.getRowModel().rows.map((row) => (
                       <Tr
@@ -235,7 +255,18 @@ export default function CreateSolutions() {
                         className="border-b border-gray-100 last:border-0 dark:border-dark-600"
                       >
                         {row.getVisibleCells().map((cell) => (
-                          <Td key={cell.id} className="px-4 py-3 text-sm">
+                          <Td 
+                            key={cell.id} 
+                            className={clsx(
+                              "bg-white dark:bg-dark-700 text-sm",
+                              cell.column.getCanPin() && [
+                                cell.column.getIsPinned() === "left" &&
+                                "sticky z-2 ltr:left-0 rtl:right-0",
+                                cell.column.getIsPinned() === "right" &&
+                                "sticky z-2 ltr:right-0 rtl:left-0",
+                              ]
+                            )}
+                          >
                             {flexRender(
                               cell.column.columnDef.cell,
                               cell.getContext(),

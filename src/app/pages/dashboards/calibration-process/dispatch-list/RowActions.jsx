@@ -119,6 +119,7 @@ import { Button } from "components/ui";
 import { Link } from "react-router-dom";
 import { EyeIcon, CheckBadgeIcon } from "@heroicons/react/24/outline";
 import axios from "axios";
+import { JWT_HOST_API } from "configs/auth.config";
 
 export function RowActions({ row }) {
   const permissions = JSON.parse(localStorage.getItem("userPermissions") || "[]");
@@ -173,7 +174,7 @@ export function RowActions({ row }) {
 
       // Make API call
       const response = await axios.post(
-        "https://lims.kailtech.in/api/calibrationprocess/approve-dispatch",
+        `${JWT_HOST_API}/calibrationprocess/approve-dispatch`,
         formData,
         {
           headers: {

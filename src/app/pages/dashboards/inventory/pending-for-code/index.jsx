@@ -21,6 +21,7 @@ import { fuzzyFilter } from "utils/react-table/fuzzyFilter";
 import { useSkipper } from "utils/react-table/useSkipper";
 import { columns } from "./columns";
 import { PaginationSection } from "components/shared/table/PaginationSection";
+import { TableLoadingRow } from "components/shared/table/TableLoadingRow";
 
 // ----------------------------------------------------------------------
 
@@ -63,9 +64,37 @@ export default function PendingForCode() {
   const fetchPendingForCoding = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await axios.get("inventory/pending-for-coding-data");
-      if (response.data.status && Array.isArray(response.data.data)) {
-        setOrders(response.data.data);
+      const response = await axios.get("inventory/pending-for-coding");
+      if ((response.data.status === "true" || response.data.status === true) && Array.isArray(response.data.data)) {
+        const items = response.data.data;
+        
+        // Collect unique numeric UOM IDs
+        const uomIdsToFetch = [...new Set(items.map(item => item.uom).filter(uom => /^\d+$/.test(String(uom))))];
+        
+        // Fetch the corresponding names for those numeric IDs concurrently
+        const uomMap = {};
+        await Promise.all(
+          uomIdsToFetch.map(async (id) => {
+            try {
+              const res = await axios.get(`master/get-unit-byid/${id}`);
+              if (res.data?.status === "true" && res.data?.data) {
+                uomMap[id] = res.data.data.name || res.data.data.description;
+              }
+            } catch (e) {
+              console.error(`Failed to fetch UOM for id ${id}`, e);
+            }
+          })
+        );
+
+        // Replace the numeric IDs with their actual names in the dataset
+        const updatedItems = items.map(item => {
+          if (/^\d+$/.test(String(item.uom)) && uomMap[item.uom]) {
+            return { ...item, uom: uomMap[item.uom] };
+          }
+          return item;
+        });
+
+        setOrders(updatedItems);
       } else {
         setOrders([]);
       }
@@ -91,10 +120,15 @@ export default function PendingForCode() {
 
     try {
       setSubmitting(true);
-      const response = await axios.post("/inventory/approve-instrument-to-coding", { ids });
-      alert(response.data.message || "Items approved for coding successfully");
-      fetchPendingForCoding();
-      table.resetRowSelection();
+      const response = await axios.post("inventory/approve-coading", { ids });
+      
+      if (response.data.success) {
+        alert(response.data.message || "Items approved for coding successfully");
+        fetchPendingForCoding();
+        table.resetRowSelection();
+      } else {
+        alert(response.data.message || "Failed to approve items");
+      }
     } catch (error) {
       const errorMessage = error.response?.data?.message || error.message || "Failed to approve items";
       alert(errorMessage);
@@ -238,11 +272,7 @@ export default function PendingForCode() {
                 </THead>
                 <TBody>
                   {loading ? (
-                    <Tr>
-                      <Td colSpan={columns.length} className="h-24 text-center text-gray-500 italic">
-                        Loading pending items...
-                      </Td>
-                    </Tr>
+                    <TableLoadingRow colSpan={columns.length} />
                   ) : table.getRowModel().rows.length > 0 ? (
                     table.getRowModel().rows.map((row) => (
                       <Tr

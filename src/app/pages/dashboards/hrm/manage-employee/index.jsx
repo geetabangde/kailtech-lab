@@ -11,7 +11,9 @@ import {
 } from "@tanstack/react-table";
 import clsx from "clsx";
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "utils/axios";
+import { getStoredPermissions } from "app/navigation/dashboards";
 
 // Local Imports
 import { Table, Card, THead, TBody, Th, Tr, Td } from "components/ui";
@@ -23,7 +25,6 @@ import { useSkipper } from "utils/react-table/useSkipper";
 import { Toolbar } from "./Toolbar";
 import { columns } from "./columns";
 import { PaginationSection } from "components/shared/table/PaginationSection";
-import { SelectedRowsActions } from "./SelectedRowsActions";
 import { useThemeContext } from "app/contexts/theme/context";
 import { getUserAgentBrowser } from "utils/dom/getUserAgentBrowser";
 
@@ -37,16 +38,29 @@ export default function EmployeeDatatableV1() {
 
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState("1");
+
+  const permissions = getStoredPermissions() || [];
+  const navigate = useNavigate();
+
+  // Redirect if unauthorized
+  useEffect(() => {
+    if (!permissions.includes(188) && !permissions.includes(233)) {
+      navigate("/");
+    }
+  }, [permissions, navigate]);
 
   // ✅ Fetch from API
   useEffect(() => {
     fetchEmployees();
-  }, []);
+  }, [statusFilter]);
 
   const fetchEmployees = async () => {
     try {
       setLoading(true); 
-      const response = await axios.get("/hrm/list-employee");
+      const response = await axios.get("/hrm/get-employee-list", {
+        params: { status: statusFilter }
+      });
       
       if (response.data.status && Array.isArray(response.data.data)) {
         setEmployees(response.data.data); 
@@ -170,13 +184,13 @@ export default function EmployeeDatatableV1() {
               "fixed inset-0 z-61 bg-white pt-3 dark:bg-dark-900",
           )}
         >
-          <Toolbar table={table} />
+          <Toolbar table={table} statusFilter={statusFilter} setStatusFilter={setStatusFilter} />
           <div
             className={clsx(
               "transition-content flex grow flex-col pt-3",
               tableSettings.enableFullScreen
                 ? "overflow-hidden"
-                : "px-(--margin-x)",
+                : "px-[var(--margin-x)]",
             )}
           >
             <Card
@@ -287,17 +301,11 @@ export default function EmployeeDatatableV1() {
                   </TBody>
                 </Table>
               </div>
-              <SelectedRowsActions table={table} />
-              {table.getCoreRowModel().rows.length && (
+              {table.getCoreRowModel().rows.length > 0 && (
                 <div
                   className={clsx(
                     "px-4 pb-4 sm:px-5 sm:pt-4",
-                    tableSettings.enableFullScreen &&
-                      "bg-gray-50 dark:bg-dark-800",
-                    !(
-                      table.getIsSomeRowsSelected() ||
-                      table.getIsAllRowsSelected()
-                    ) && "pt-4",
+                    tableSettings.enableFullScreen && "bg-gray-50 dark:bg-dark-800"
                   )}
                 >
                   <PaginationSection table={table} />

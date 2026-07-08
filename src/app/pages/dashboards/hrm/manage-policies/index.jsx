@@ -47,7 +47,7 @@ export default function PoliciesDatatable() {
       setLoading(true);
       const response = await axios.get("/hrm/policy-list");
 
-      if (response.data.status && Array.isArray(response.data.data)) {
+      if ((response.data.status === "success" || response.data.status === true) && Array.isArray(response.data.data)) {
         setPolicies(response.data.data);
       } else {
         console.warn("Unexpected response structure:", response.data);
@@ -181,7 +181,7 @@ export default function PoliciesDatatable() {
           <div
             className={clsx(
               "transition-content flex grow flex-col pt-3",
-              tableSettings.enableFullScreen ? "overflow-hidden" : "px-(--margin-x)",
+              tableSettings.enableFullScreen ? "overflow-hidden" : "px-[var(--margin-x)]",
             )}
           >
             <Card

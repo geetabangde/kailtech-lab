@@ -10,6 +10,7 @@ import {
 import clsx from "clsx";
 import { useState, useEffect, useCallback } from "react";
 import axios from "utils/axios";
+import { toast } from "react-hot-toast";
 
 // Local Imports
 import { Table, THead, TBody, Th, Tr, Td, Card } from "components/ui";
@@ -20,6 +21,7 @@ import { fuzzyFilter } from "utils/react-table/fuzzyFilter";
 import { useSkipper } from "utils/react-table/useSkipper";
 import { columns } from "./columns";
 import { PaginationSection } from "components/shared/table/PaginationSection";
+import { TableLoadingRow } from "components/shared/table/TableLoadingRow";
 
 // ----------------------------------------------------------------------
 
@@ -51,7 +53,7 @@ export default function DumpInstrument() {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await axios.get("inventory/dump-instrument-data");
+      const response = await axios.get("inventory/dump-instrument");
       if (response.data.status && Array.isArray(response.data.data)) {
         setData(response.data.data);
       } else {
@@ -94,6 +96,53 @@ export default function DumpInstrument() {
         );
       },
       setTableSettings,
+      deleteRow: async (id) => {
+        if (window.confirm("Are you sure you want to delete this dump record?")) {
+          try {
+            const response = await axios.delete(`inventory/delete-dump/${id}`);
+            if (response.data.status) {
+              toast.success(response.data.message || "Record deleted successfully");
+              setData((old) => old.filter((row) => row.id !== id));
+            } else {
+              toast.error(response.data.message || "Failed to delete record");
+            }
+          } catch (err) {
+            console.error("Error deleting item:", err);
+            toast.error("An error occurred while deleting");
+          }
+        }
+      },
+      updateStatus: async (row, status) => {
+        try {
+          const payload = {
+            id: Number(row.id),
+            status: Number(status),
+            typeofuse: Number(row.typeofuse_id || row.typeofuse),
+            mminstid: row.mminstid || row.mminstrument_id ? Number(row.mminstid || row.mminstrument_id) : undefined,
+            mlid: row.mlid || row.materiallocation_id ? Number(row.mlid || row.materiallocation_id) : undefined,
+            dumpqty: Number(row.dumpqty),
+          };
+          
+          const response = await axios.post("inventory/dump-approve-reject", payload);
+          if (response.data.status) {
+            toast.success(response.data.message || "Action successful");
+            fetchData(); // Refresh the table
+          } else {
+            toast.error(response.data.message || "Action failed");
+          }
+        } catch (err) {
+          console.error("Error updating status:", err);
+          if (err.response?.status === 422) {
+             // Let's show exactly what was in the row so we know what IDs are missing
+             alert("Validation Failed. Row data available: " + JSON.stringify(row, null, 2));
+             toast.error("Validation Error: Please check alert for missing IDs.");
+          } else if (err.response?.data?.message) {
+            toast.error(err.response.data.message);
+          } else {
+            toast.error("An error occurred while updating status");
+          }
+        }
+      },
     },
     filterFns: {
       fuzzy: fuzzyFilter,
@@ -170,11 +219,7 @@ export default function DumpInstrument() {
                 </THead>
                 <TBody>
                   {loading ? (
-                    <Tr>
-                      <Td colSpan={columns.length} className="h-24 text-center">
-                        Loading...
-                      </Td>
-                    </Tr>
+                    <TableLoadingRow colSpan={columns.length} />
                   ) : table.getRowModel().rows.length > 0 ? (
                     table.getRowModel().rows.map((row) => (
                       <Tr

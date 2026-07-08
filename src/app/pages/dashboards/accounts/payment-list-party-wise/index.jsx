@@ -178,7 +178,7 @@ export default function PartyWisePayment() {
           )}
         >
           {/* ── Toolbar ── */}
-          <div className="flex flex-wrap items-center justify-between gap-3 px-(--margin-x) pt-4 pb-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 px-[var(--margin-x)] pt-4 pb-3">
             <h2 className="dark:text-dark-50 text-xl font-semibold text-gray-800">
               Party Wise Payment List
             </h2>
@@ -193,7 +193,7 @@ export default function PartyWisePayment() {
 
           {/* ── Summary Badges ── */}
           {data.length > 0 && (
-            <div className="flex flex-wrap gap-3 px-(--margin-x) pb-3">
+            <div className="flex flex-wrap gap-3 px-[var(--margin-x)] pb-3">
               <SummaryBadge
                 label="Total Billing"
                 value={`₹${fmt(totalDebit)}`}
@@ -222,7 +222,7 @@ export default function PartyWisePayment() {
               "transition-content flex grow flex-col pt-1",
               tableSettings.enableFullScreen
                 ? "overflow-hidden"
-                : "px-(--margin-x)",
+                : "px-[var(--margin-x)]",
             )}
           >
             <Card

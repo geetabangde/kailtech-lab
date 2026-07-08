@@ -18,6 +18,7 @@ import axios from "utils/axios";
 import { Table, Card, THead, TBody, Th, Tr, Td } from "components/ui";
 import { TableSortIcon } from "components/shared/table/TableSortIcon";
 import { Page } from "components/shared/Page";
+import { FormatHeader } from "components/shared/FormatHeader";
 import { Toolbar } from "./Toolbar";
 import { useLockScrollbar, useDidUpdate, useLocalStorage } from "hooks";
 import { fuzzyFilter } from "utils/react-table/fuzzyFilter";
@@ -42,11 +43,13 @@ export default function StandardSolutionsList() {
 
   const [tableData, setTableData] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [reportInfo, setReportInfo] = useState(null);
+  const [searched, setSearched] = useState(false);
   
   // Filters matching PHP code
   const [filters, setFilters] = useState({
     category: "",
-    department: "",
+    department: [],
   });
   const [categories, setCategories] = useState([]);
   const [departments, setDepartments] = useState([]);
@@ -54,7 +57,7 @@ export default function StandardSolutionsList() {
   // Fetch categories dropdown data
   const fetchCategories = async () => {
     try {
-      const res = await axios.get("/master-data/category");
+      const res = await axios.get("/inventory/category-list");
       setCategories(res.data?.data || []);
     } catch (err) {
       console.error("Error fetching categories:", err);
@@ -64,7 +67,7 @@ export default function StandardSolutionsList() {
   // Fetch departments dropdown data
   const fetchDepartments = async () => {
     try {
-      const res = await axios.get("/master-data/labs", {
+      const res = await axios.get("/master/list-lab", {
         params: { status: 1 }
       });
       setDepartments(res.data?.data || []);
@@ -78,27 +81,29 @@ export default function StandardSolutionsList() {
     fetchDepartments();
   }, []);
 
-  // Fetch CRM list data using PHP endpoint
+  // Fetch CRM list data using standard API endpoint
   const fetchCrmData = async () => {
     try {
       setLoading(true);
+      setSearched(true);
       
-      // Use CRM list endpoint matching PHP logic
-      const res = await axios.get("/registers/crm-list", { params: filters });
+      // Use CRM list endpoint
+      const res = await axios.get("/register/crmlist", { params: filters });
       
-      // Handle DataTables server-side response format
       let rows = res.data?.data || [];
+      setReportInfo(res.data?.report_info || null);
       
-      // Map to PHP table structure: Sr. No, Name of Reference Material, Code No., Batch no, Source, Valid UpTo, Traceability
+      // Map to table structure: Sr. No, Name of Reference Material, Code No., Batch no, Source, Valid UpTo, Traceability
       rows = rows.map((row, index) => ({
         sno: index + 1,
-        name: row[0] || "",
-        code_no: row[1] || "",
-        batch_no: row[2] || "",
-        source: row[3] || "",
-        valid_up_to: row[4] || "",
-        traceability: row[5] || "",
-        id: row[6] || "",
+        name: row.reference_material_name || "",
+        code_no: row.code_no || "",
+        batch_no: row.batch_no || "",
+        source: row.source || "",
+        valid_up_to: row.valid_upto || "",
+        traceability: row.traceability || "",
+        id: row.id || "",
+        instrumentlocation: row.instrumentlocation || "",
       }));
       
       setTableData(rows);
@@ -116,34 +121,16 @@ export default function StandardSolutionsList() {
 
   const handleExport = (e) => {
     e?.preventDefault?.();
-    // Create form data for export request
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = '/registers/exportcrmlist';
-    
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value && (typeof value !== 'object' || value.length > 0)) {
-        if (Array.isArray(value)) {
-          value.forEach(val => {
-            const input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = `${key}[]`;
-            input.value = val;
-            form.appendChild(input);
-          });
-        } else {
-          const input = document.createElement('input');
-          input.type = 'hidden';
-          input.name = key;
-          input.value = value;
-          form.appendChild(input);
-        }
-      }
-    });
-    
-    document.body.appendChild(form);
-    form.submit();
-    document.body.removeChild(form);
+    const params = new URLSearchParams();
+    if (filters.category) {
+      params.append('category', filters.category);
+    }
+    if (filters.department && filters.department.length > 0) {
+      filters.department.forEach(dept => {
+        params.append('department[]', dept);
+      });
+    }
+    navigate(`export?${params.toString()}`);
   };
 
   const handleFilterChange = (name, value) => {
@@ -169,42 +156,68 @@ export default function StandardSolutionsList() {
 
   const [autoResetPageIndex] = useSkipper();
 
+  const safeRender = (val) => {
+    if (val === undefined || val === null || val === "" || val === "0000-00-00" || val === "0000-00-00 00:00") return "-";
+    return val;
+  };
+
   // Define columns matching PHP CRM list table exactly
   const crmColumns = [
     {
+      accessorKey: "sno",
       id: "sno",
       header: "Sr. No",
-      cell: (info) => info.getValue(),
+      cell: (info) => safeRender(info.getValue()),
     },
     {
+      accessorKey: "name",
       id: "name",
       header: "Name of Reference Material",
-      cell: (info) => info.getValue(),
+      cell: (info) => safeRender(info.getValue()),
     },
     {
+      accessorKey: "code_no",
       id: "code_no",
       header: "Code No.",
-      cell: (info) => info.getValue(),
+      cell: (info) => safeRender(info.getValue()),
     },
     {
+      accessorKey: "batch_no",
       id: "batch_no",
       header: "Batch no",
-      cell: (info) => info.getValue(),
+      cell: (info) => safeRender(info.getValue()),
     },
     {
+      accessorKey: "source",
       id: "source",
       header: "Source",
-      cell: (info) => info.getValue(),
+      cell: (info) => safeRender(info.getValue()),
     },
     {
+      accessorKey: "valid_up_to",
       id: "valid_up_to",
       header: "Valid UpTo",
-      cell: (info) => info.getValue(),
+      cell: (info) => safeRender(info.getValue()),
     },
     {
+      accessorKey: "traceability",
       id: "traceability",
       header: "Traceability",
-      cell: (info) => info.getValue(),
+      cell: (info) => safeRender(info.getValue()),
+    },
+    {
+      id: "actions",
+      header: "Action",
+      cell: ({ row }) => (
+        <div className="flex gap-2">
+          <a
+            href={`/dashboards/registers/consumablelogcrmwise/${row.original.id}?hakuna=${row.original.id}&matata=${row.original.instrumentlocation || ""}&batchno=${encodeURIComponent(row.original.batch_no || "")}`}
+            className="inline-flex items-center justify-center px-3 py-1 bg-cyan-500 hover:bg-cyan-600 text-white rounded text-xs font-semibold transition-colors shadow-xs"
+          >
+            View Logbook 1
+          </a>
+        </div>
+      ),
     },
   ];
 
@@ -281,92 +294,137 @@ export default function StandardSolutionsList() {
           <div
             className={clsx(
               "transition-content flex grow flex-col pt-3",
-              tableSettings.enableFullScreen ? "overflow-hidden" : "px-(--margin-x)"
+              tableSettings.enableFullScreen ? "overflow-hidden" : "px-[var(--margin-x)]"
             )}
           >
             <Card className={clsx("relative flex grow flex-col", tableSettings.enableFullScreen && "overflow-hidden")}>
-              <div className="table-wrapper min-w-full grow overflow-x-auto">
-                <Table hoverable dense={tableSettings.enableRowDense} sticky={tableSettings.enableFullScreen} className="w-full text-left rtl:text-right text-xs">
-                  <THead>
-                    {table.getHeaderGroups().map((headerGroup) => (
-                      <Tr key={headerGroup.id}>
-                        {headerGroup.headers.map((header) => (
-                          <Th
-                            key={header.id}
+              {searched ? (
+                <>
+                  <div className="p-4 pb-0 bg-white dark:bg-dark-900">
+                    <FormatHeader
+                      title={reportInfo?.title || "Standard Solutions List"}
+                      qfNo="KTRC/QF/0604/19"
+                      issueNo="01"
+                      issueDate="01/06/2019"
+                      revisionNo="01"
+                      revisionDate="20/08/2021"
+                    />
+                    <div className="flex justify-between text-sm font-medium text-gray-700 dark:text-gray-300 mt-2 mb-4">
+                      <div>Department :- {reportInfo?.department || "-"}</div>
+                      <div>Date :- {reportInfo?.report_date || new Date().toLocaleDateString("en-GB")}</div>
+                    </div>
+                  </div>
+                  <div className="table-wrapper min-w-full grow overflow-x-auto">
+                    <Table hoverable dense={tableSettings.enableRowDense} sticky={tableSettings.enableFullScreen} className="w-full text-left rtl:text-right text-xs">
+                      <THead>
+                        {table.getHeaderGroups().map((headerGroup) => (
+                          <Tr key={headerGroup.id}>
+                            {headerGroup.headers.map((header) => (
+                              <Th
+                                key={header.id}
+                                className={clsx(
+                                  "bg-gray-200 font-semibold uppercase text-gray-800 dark:bg-dark-800 dark:text-dark-100 first:ltr:rounded-tl-lg last:ltr:rounded-tr-lg first:rtl:rounded-tr-lg last:rtl:rounded-tl-lg whitespace-nowrap",
+                                  header.column.getCanPin() && [
+                                    header.column.getIsPinned() === "left" && "sticky z-2 ltr:left-0 rtl:right-0",
+                                    header.column.getIsPinned() === "right" && "sticky z-2 ltr:right-0 rtl:left-0",
+                                  ]
+                                )}
+                              >
+                                {header.column.getCanSort() ? (
+                                  <div className="flex cursor-pointer select-none items-center space-x-3" onClick={header.column.getToggleSortingHandler()}>
+                                    <span className="flex-1">{header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}</span>
+                                    <TableSortIcon sorted={header.column.getIsSorted()} />
+                                  </div>
+                                ) : header.isPlaceholder ? null : (
+                                  flexRender(header.column.columnDef.header, header.getContext())
+                                )}
+                              </Th>
+                            ))}
+                          </Tr>
+                        ))}
+                      </THead>
+                      <TBody>
+                        {table.getRowModel().rows.map((row) => (
+                          <Tr
+                            key={row.id}
                             className={clsx(
-                              "bg-gray-200 font-semibold uppercase text-gray-800 dark:bg-dark-800 dark:text-dark-100 first:ltr:rounded-tl-lg last:ltr:rounded-tr-lg first:rtl:rounded-tr-lg last:rtl:rounded-tl-lg whitespace-nowrap",
-                              header.column.getCanPin() && [
-                                header.column.getIsPinned() === "left" && "sticky z-2 ltr:left-0 rtl:right-0",
-                                header.column.getIsPinned() === "right" && "sticky z-2 ltr:right-0 rtl:left-0",
-                              ]
+                              "relative border-y border-transparent border-b-gray-200 dark:border-b-dark-500",
+                              row.getIsSelected() && !isSafari && "row-selected after:pointer-events-none after:absolute after:inset-0 after:z-2 after:h-full after:w-full after:border-3 after:border-transparent after:bg-primary-500/10 ltr:after:border-l-primary-500 rtl:after:border-r-primary-500"
                             )}
                           >
-                            {header.column.getCanSort() ? (
-                              <div className="flex cursor-pointer select-none items-center space-x-3" onClick={header.column.getToggleSortingHandler()}>
-                                <span className="flex-1">{header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}</span>
-                                <TableSortIcon sorted={header.column.getIsSorted()} />
-                              </div>
-                            ) : header.isPlaceholder ? null : (
-                              flexRender(header.column.columnDef.header, header.getContext())
-                            )}
-                          </Th>
+                            {row.getVisibleCells().map((cell) => (
+                              <Td
+                                key={cell.id}
+                                className={clsx(
+                                  "relative bg-white whitespace-nowrap",
+                                  cardSkin === "shadow" ? "dark:bg-dark-700" : "dark:bg-dark-900",
+                                  cell.column.getCanPin() && [
+                                    cell.column.getIsPinned() === "left" && "sticky z-2 ltr:left-0 rtl:right-0",
+                                    cell.column.getIsPinned() === "right" && "sticky z-2 ltr:right-0 rtl:left-0",
+                                  ]
+                                )}
+                              >
+                                {cell.column.getIsPinned() && (
+                                  <div
+                                    className={clsx(
+                                      "pointer-events-none absolute inset-0 border-gray-200 dark:border-dark-500",
+                                      cell.column.getIsPinned() === "left" ? "ltr:border-r rtl:border-l" : "ltr:border-l rtl:border-r"
+                                    )}
+                                  ></div>
+                                )}
+                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                              </Td>
+                            ))}
+                          </Tr>
                         ))}
-                      </Tr>
-                    ))}
-                  </THead>
-                  <TBody>
-                    {table.getRowModel().rows.map((row) => (
-                      <Tr
-                        key={row.id}
+                        {tableData.length === 0 && !loading && (
+                          <Tr>
+                            <Td colSpan={visibleColumns.length} className="py-10 text-center text-gray-500">
+                              No CRM items found for the selected criteria.
+                            </Td>
+                          </Tr>
+                        )}
+                      </TBody>
+                    </Table>
+                  </div>
+                  {table.getCoreRowModel().rows.length > 0 && (
+                    <>
+                      <div
                         className={clsx(
-                          "relative border-y border-transparent border-b-gray-200 dark:border-b-dark-500",
-                          row.getIsSelected() && !isSafari && "row-selected after:pointer-events-none after:absolute after:inset-0 after:z-2 after:h-full after:w-full after:border-3 after:border-transparent after:bg-primary-500/10 ltr:after:border-l-primary-500 rtl:after:border-r-primary-500"
+                          "px-4 pb-4 sm:px-5 sm:pt-4",
+                          tableSettings.enableFullScreen && "bg-gray-50 dark:bg-dark-800",
+                          !(table.getIsSomeRowsSelected() || table.getIsAllRowsSelected()) && "pt-4"
                         )}
                       >
-                        {row.getVisibleCells().map((cell) => (
-                          <Td
-                            key={cell.id}
-                            className={clsx(
-                              "relative bg-white whitespace-nowrap",
-                              cardSkin === "shadow" ? "dark:bg-dark-700" : "dark:bg-dark-900",
-                              cell.column.getCanPin() && [
-                                cell.column.getIsPinned() === "left" && "sticky z-2 ltr:left-0 rtl:right-0",
-                                cell.column.getIsPinned() === "right" && "sticky z-2 ltr:right-0 rtl:left-0",
-                              ]
-                            )}
-                          >
-                            {cell.column.getIsPinned() && (
-                              <div
-                                className={clsx(
-                                  "pointer-events-none absolute inset-0 border-gray-200 dark:border-dark-500",
-                                  cell.column.getIsPinned() === "left" ? "ltr:border-r rtl:border-l" : "ltr:border-l rtl:border-r"
-                                )}
-                              ></div>
-                            )}
-                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                          </Td>
-                        ))}
-                      </Tr>
-                    ))}
-                    {tableData.length === 0 && !loading && (
-                      <Tr>
-                        <Td colSpan={visibleColumns.length} className="py-10 text-center text-gray-500">
-                          No CRM items found for the selected criteria.
-                        </Td>
-                      </Tr>
-                    )}
-                  </TBody>
-                </Table>
-              </div>
-              {table.getCoreRowModel().rows.length > 0 && (
-                <div
-                  className={clsx(
-                    "px-4 pb-4 sm:px-5 sm:pt-4",
-                    tableSettings.enableFullScreen && "bg-gray-50 dark:bg-dark-800",
-                    !(table.getIsSomeRowsSelected() || table.getIsAllRowsSelected()) && "pt-4"
+                        <PaginationSection table={table} />
+                      </div>
+                      {/* Signature Footer matching PHP */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 border-t border-gray-200 dark:border-dark-500 p-6 text-sm text-gray-700 dark:text-gray-300">
+                        <div>
+                          <div className="font-semibold mb-1">Prepared by</div>
+                          <div>Sr. Engineer</div>
+                          <div className="mt-4">Name:</div>
+                          <div className="mt-2">Sign:</div>
+                        </div>
+                        <div>
+                          <div className="font-semibold mb-1">Reviewed by</div>
+                          <div>DTM</div>
+                          <div className="mt-4">Name:</div>
+                          <div className="mt-2">Sign:</div>
+                        </div>
+                        <div>
+                          <div className="font-semibold mb-1">Approved by</div>
+                          <div>TM</div>
+                          <div className="mt-4">Name:</div>
+                          <div className="mt-2">Sign:</div>
+                        </div>
+                      </div>
+                    </>
                   )}
-                >
-                  <PaginationSection table={table} />
+                </>
+              ) : (
+                <div className="py-10 text-center text-gray-500">
+                  Select a category or department/lab and click Search to view the Standard Solutions List.
                 </div>
               )}
             </Card>

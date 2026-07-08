@@ -30,7 +30,11 @@ export const columns = [
   columnHelper.accessor("description", {
     id: "description",
     header: "Description",
-    cell: (info) => info.getValue() || "N/A",
+    cell: (info) => (
+      <div className="whitespace-normal min-w-[250px] max-w-[400px]">
+        {info.getValue() || "N/A"}
+      </div>
+    ),
   }),
 
   // ✅ Quantity

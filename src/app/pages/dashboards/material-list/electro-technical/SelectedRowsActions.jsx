@@ -219,7 +219,7 @@ export function SelectedRowsActions({ table, title = "Material List" }) {
                   leave="transition ease-in"
                   leaveFrom="opacity-100 translate-y-0"
                   leaveTo="opacity-0 translate-y-2"
-                  className="absolute z-100 min-w-[10rem] rounded-lg border border-gray-300 bg-white py-1 text-xs-plus text-gray-600 shadow-soft outline-hidden focus-visible:outline-hidden dark:border-dark-500 dark:bg-dark-750 dark:text-dark-200 dark:shadow-none"
+                  className="absolute z-100 min-w-[10rem] rounded-lg border border-gray-300 bg-white py-1 text-xs-plus text-gray-600 shadow-soft outline-none focus-visible:outline-none dark:border-dark-500 dark:bg-dark-750 dark:text-dark-200 dark:shadow-none"
                   anchor={{ to: "top end", gap: 6 }}
                 >
                   <MenuItem>
@@ -227,7 +227,7 @@ export function SelectedRowsActions({ table, title = "Material List" }) {
                       <button
                         onClick={handleExportCSV}
                         className={clsx(
-                          "flex h-9 w-full items-center space-x-3 px-3 tracking-wide outline-hidden transition-colors ",
+                          "flex h-9 w-full items-center space-x-3 px-3 tracking-wide outline-none transition-colors ",
                           focus &&
                             "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
                         )}
@@ -242,7 +242,7 @@ export function SelectedRowsActions({ table, title = "Material List" }) {
                       <button
                         onClick={handleExportPDF}
                         className={clsx(
-                          "flex h-9 w-full items-center space-x-3 px-3 tracking-wide outline-hidden transition-colors ",
+                          "flex h-9 w-full items-center space-x-3 px-3 tracking-wide outline-none transition-colors ",
                           focus &&
                             "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
                         )}
@@ -257,7 +257,7 @@ export function SelectedRowsActions({ table, title = "Material List" }) {
                       <button
                         onClick={() => table.resetRowSelection()}
                         className={clsx(
-                          "flex h-9 w-full items-center space-x-3 px-3 tracking-wide outline-hidden transition-colors ",
+                          "flex h-9 w-full items-center space-x-3 px-3 tracking-wide outline-none transition-colors ",
                           focus &&
                             "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
                         )}

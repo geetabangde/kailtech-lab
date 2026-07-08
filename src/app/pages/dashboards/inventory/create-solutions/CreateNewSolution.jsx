@@ -42,15 +42,28 @@ export default function CreateNewSolution() {
     name: "mixedSolutions"
   });
 
+  const [maxQuantities, setMaxQuantities] = useState({});
+
   const categoryId = watch("category");
 
   const fetchInitialData = useCallback(async () => {
     try {
-      const response = await axios.get("inventory/get-solution-initial-data");
-      if (response.data.status) {
-        setCategories(response.data.categories || []);
-        setDepartments(response.data.departments || []);
-        setMasterInstruments(response.data.masterInstruments || []);
+      const [catRes, depRes, mixedRes] = await Promise.all([
+        axios.get("/inventory/category-list").catch(() => ({ data: {} })),
+        axios.get("/master/list-lab").catch(() => ({ data: {} })),
+        axios.get("/inventory/get-mixed-solution").catch(() => ({ data: {} }))
+      ]);
+
+      if (catRes.data?.data) {
+        setCategories(catRes.data.data);
+      }
+      
+      if (depRes.data?.data) {
+        setDepartments(depRes.data.data);
+      }
+
+      if (mixedRes.data?.status || mixedRes.data?.data) {
+        setMasterInstruments(mixedRes.data.data || []);
       }
     } catch (err) {
       console.error("Error fetching solution initial data:", err);
@@ -59,10 +72,10 @@ export default function CreateNewSolution() {
 
   const fetchSubcategories = useCallback(async (cid) => {
     try {
-      const response = await axios.get("inventory/get-subcategory", {
-        params: { category: cid, type: 'consumable' }
+      const response = await axios.get("/inventory/subcategory-list", {
+        params: { category: cid }
       });
-      if (response.data.status) {
+      if (response.data?.data) {
         setSubcategories(response.data.data || []);
       }
     } catch (err) {
@@ -82,12 +95,51 @@ export default function CreateNewSolution() {
     }
   }, [categoryId, fetchSubcategories]);
 
+  const handleItemChange = async (itemId, index) => {
+    if (!itemId) {
+      setMaxQuantities(prev => ({ ...prev, [index]: null }));
+      return;
+    }
+    try {
+      const response = await axios.get(`inventory/get-location`, {
+        params: { id: itemId, what: index }
+      });
+      if (response.data?.success && response.data?.data) {
+        setMaxQuantities(prev => ({ 
+          ...prev, 
+          [index]: Number(response.data.data.max_qty) 
+        }));
+      }
+    } catch (err) {
+      console.error("Error fetching max quantity:", err);
+    }
+  };
+
   const onSubmit = async (formData) => {
     try {
       setLoading(true);
-      const response = await axios.post("inventory/insert-create-solution", formData);
-      if (response.data.status) {
-        toast.success(response.data.message || "Solution added successfully");
+
+      // Format expiry date from YYYY-MM-DD to DD/MM/YYYY
+      let formattedExp = formData.exp;
+      if (formData.exp && formData.exp.includes("-")) {
+        const [year, month, day] = formData.exp.split("-");
+        formattedExp = `${day}/${month}/${year}`;
+      }
+
+      const payload = {
+        category: formData.category?.value || formData.category,
+        type: formData.type?.value || formData.type,
+        quantity: Number(formData.quantity),
+        exp: formattedExp,
+        department: formData.department?.value || formData.department,
+        subcatid: formData.mixedSolutions.map(item => item.subcatid?.value || item.subcatid),
+        qty: formData.mixedSolutions.map(item => Number(item.qty))
+      };
+
+      const response = await axios.post("inventory/add-solution", payload);
+      
+      if (response.data.success || response.data.status) {
+        toast.success(response.data.message || "Solution Created Successfully");
         navigate("/dashboards/inventory/create-solutions");
       } else {
         toast.error(response.data.message || "Failed to add solution");
@@ -227,6 +279,10 @@ export default function CreateNewSolution() {
                               value: m.id, 
                               label: `${m.name} (${m.newidno || ""}) (${m.department} ${m.qty}${m.udescription || ""})` 
                             }))}
+                            onChange={(val) => {
+                              field.onChange(val);
+                              handleItemChange(val?.value || val, index);
+                            }}
                             error={fieldState.error?.message}
                           />
                         )}
@@ -237,14 +293,35 @@ export default function CreateNewSolution() {
                       <Controller
                         name={`mixedSolutions.${index}.qty`}
                         control={control}
-                        rules={{ required: "Required" }}
-                        render={({ field }) => (
-                          <input
-                            {...field}
-                            type="number"
-                            placeholder="Qty"
-                            className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm focus:border-primary-500 focus:outline-none dark:border-dark-600 dark:bg-dark-800 dark:text-dark-100"
-                          />
+                        rules={{ 
+                          required: "Required",
+                          validate: (val) => {
+                            const maxQty = maxQuantities[index];
+                            if (maxQty !== undefined && maxQty !== null) {
+                              const numVal = Number(val);
+                              if (numVal <= 0) return "Must be > 0";
+                              if (numVal > maxQty) return `Max is ${maxQty}`;
+                            }
+                            return true;
+                          }
+                        }}
+                        render={({ field, fieldState }) => (
+                          <div className="flex flex-col gap-1">
+                            <input
+                              {...field}
+                              type="number"
+                              step="any"
+                              placeholder="Qty"
+                              className={`w-full rounded-lg border px-4 py-2 text-sm focus:border-primary-500 focus:outline-none dark:border-dark-600 dark:bg-dark-800 dark:text-dark-100 ${
+                                fieldState.error ? "border-red-500" : "border-gray-300"
+                              }`}
+                            />
+                            {fieldState.error && (
+                              <span className="text-xs text-red-500">
+                                {fieldState.error.message}
+                              </span>
+                            )}
+                          </div>
                         )}
                       />
                     </div>

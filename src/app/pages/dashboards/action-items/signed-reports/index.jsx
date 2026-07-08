@@ -131,7 +131,7 @@ export default function SignedReports() {
     getFilteredRowModel:      getFilteredRowModel(),
     getFacetedUniqueValues:   getFacetedUniqueValues(),
     getFacetedMinMaxValues:   getFacetedMinMaxValues(),
-    globalFilterFn:           fuzzyFilter,
+    globalFilterFn:           "includesString",
     onSortingChange:          setSorting,
     getSortedRowModel:        getSortedRowModel(),
     getPaginationRowModel:    getPaginationRowModel(),
@@ -188,7 +188,7 @@ export default function SignedReports() {
           <div
             className={clsx(
               "transition-content flex grow flex-col pt-3",
-              tableSettings.enableFullScreen ? "overflow-hidden" : "px-(--margin-x)",
+              tableSettings.enableFullScreen ? "overflow-hidden" : "px-[var(--margin-x)]",
             )}
           >
             {/* ── Table Card ───────────────────────────────────────────── */}

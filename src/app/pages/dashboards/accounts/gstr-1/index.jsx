@@ -110,7 +110,7 @@ export default function GSTR1() {
             onChange={handleFilterChange}
             onSearch={handleSearch}
           />
-          <div className="transition-content flex grow flex-col px-(--margin-x) pt-3">
+          <div className="transition-content flex grow flex-col px-[var(--margin-x)] pt-3">
             <Card className="relative flex grow flex-col">
               {loading ? (
                 <PageSpinner />

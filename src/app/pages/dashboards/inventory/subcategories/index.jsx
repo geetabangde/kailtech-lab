@@ -24,6 +24,7 @@ import { Toolbar } from "./Toolbar";
 import { columns } from "./columns";
 // import { ordersList } from "./data";
 import { PaginationSection } from "components/shared/table/PaginationSection";
+import { TableLoadingRow } from "components/shared/table/TableLoadingRow";
 import { SelectedRowsActions } from "./SelectedRowsActions";
 import { useThemeContext } from "app/contexts/theme/context";
 import { getUserAgentBrowser } from "utils/dom/getUserAgentBrowser";
@@ -74,12 +75,12 @@ export default function OrdersDatatableV1() {
   const [sorting, setSorting] = useState([]);
 
   const [columnVisibility, setColumnVisibility] = useLocalStorage(
-    "column-visibility-orders-1",
+    "column-visibility-subcategories-index",
     {},
   );
 
   const [columnPinning, setColumnPinning] = useLocalStorage(
-    "column-pinning-orders-1",
+    "column-pinning-subcategories-index",
     {},
   );
 
@@ -148,19 +149,7 @@ export default function OrdersDatatableV1() {
 
   useLockScrollbar(tableSettings.enableFullScreen);
   // ✅ Loading UI
-  if (loading) {
-    return (
-      <Page title="Sub Category List">
-        <div className="flex h-[60vh] items-center justify-center text-gray-600">
-          <svg className="animate-spin h-6 w-6 mr-2 text-blue-600" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 000 8v4a8 8 0 01-8-8z"></path>
-          </svg>
-          Loading Sub Category...
-        </div>
-      </Page>
-    );
-  }
+  
 
   return (
     <Page title="Sub Category List">
@@ -178,7 +167,7 @@ export default function OrdersDatatableV1() {
               "transition-content flex grow flex-col pt-3",
               tableSettings.enableFullScreen
                 ? "overflow-hidden"
-                : "px-(--margin-x)",
+                : "px-[var(--margin-x)]",
             )}
           >
             <Card
@@ -239,7 +228,15 @@ export default function OrdersDatatableV1() {
                     ))}
                   </THead>
                   <TBody>
-                    {table.getRowModel().rows.map((row) => {
+                    {loading ? (
+                      <TableLoadingRow colSpan={table.getAllColumns().length} />
+                    ) : table.getRowModel().rows.length === 0 ? (
+                      <Tr>
+                        <Td colSpan={table.getAllColumns().length} className="h-24 text-center text-gray-500">
+                          No records found
+                        </Td>
+                      </Tr>
+                    ) : table.getRowModel().rows.map((row) => {
                       return (
                         <Tr
                           key={row.id}

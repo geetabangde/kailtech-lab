@@ -94,7 +94,7 @@ export default function ViewRoleRequest() {
 
   return (
     <Page title="Role Request form">
-      <div className="px-(--margin-x) py-6 max-w-5xl mx-auto">
+      <div className="px-[var(--margin-x)] py-6 max-w-5xl mx-auto">
         {/* Actions Bar (No Print) */}
         <div className="flex items-center justify-between mb-6 no-print">
           <Button

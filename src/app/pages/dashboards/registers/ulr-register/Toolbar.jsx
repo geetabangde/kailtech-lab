@@ -35,7 +35,7 @@ export function Toolbar({ filters, onChange, onSearch }) {
   ];
 
   return (
-    <div className="px-(--margin-x) pt-4">
+    <div className="px-[var(--margin-x)] pt-4">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-xl font-semibold tracking-wide text-gray-800 dark:text-dark-50">
           ULR Register
@@ -50,9 +50,8 @@ export function Toolbar({ filters, onChange, onSearch }) {
         }}
         className="space-y-4"
       >
-        {/* Date inputs row */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
-          <div>
+        <div className="flex flex-col gap-4 md:flex-row md:items-end">
+          <div className="flex-1 sm:max-w-xs">
             <label className="dark:text-dark-300 mb-1 block text-sm font-medium text-gray-600">
               Start Date
             </label>
@@ -64,7 +63,7 @@ export function Toolbar({ filters, onChange, onSearch }) {
               className="h-10 w-full rounded border border-gray-300 px-3 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 dark:border-dark-500 dark:bg-dark-800"
             />
           </div>
-          <div>
+          <div className="flex-1 sm:max-w-xs">
             <label className="dark:text-dark-300 mb-1 block text-sm font-medium text-gray-600">
               End Date
             </label>
@@ -76,11 +75,7 @@ export function Toolbar({ filters, onChange, onSearch }) {
               className="h-10 w-full rounded border border-gray-300 px-3 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 dark:border-dark-500 dark:bg-dark-800"
             />
           </div>
-        </div>
-
-        {/* Type select row */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
-          <div>
+          <div className="flex-1 sm:max-w-xs">
             <label className="dark:text-dark-300 mb-1 block text-sm font-medium text-gray-600">
               Select Type
             </label>
@@ -93,16 +88,6 @@ export function Toolbar({ filters, onChange, onSearch }) {
               styles={selectStyles}
             />
           </div>
-        </div>
-
-        {/* Search button */}
-        <div className="flex justify-start">
-          <button
-            type="submit"
-            className="rounded bg-gray-600 px-6 py-2 text-sm font-medium text-white hover:bg-gray-700"
-          >
-            Search
-          </button>
         </div>
       </form>
     </div>

@@ -4,6 +4,17 @@ import { Button } from "components/ui";
 
 const columnHelper = createColumnHelper();
 
+function formatReturnDate(value) {
+  if (!value || value === "0000-00-00" || value === "0000-00-00 00:00:00") {
+    return "";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  return date.toLocaleDateString("en-GB");
+}
+
 export const columns = [
   columnHelper.accessor((row, index) => index + 1, {
     id: "srNo",
@@ -15,7 +26,7 @@ export const columns = [
     cell: (info) => (
       <Link 
         to={`/dashboards/inventory/issue-return/print-gatepass?hakuna=${info.getValue()}`}
-        className="text-primary-500 font-bold hover:underline"
+        className="text-red-500 font-medium hover:underline"
       >
         {info.getValue()}
       </Link>
@@ -25,7 +36,7 @@ export const columns = [
     header: "Basis",
     cell: (info) => info.getValue(),
   }),
-  columnHelper.accessor("name", {
+  columnHelper.accessor("instrument_name", {
     header: "Instrument Name",
     cell: (info) => info.getValue(),
   }),
@@ -37,7 +48,7 @@ export const columns = [
     header: "Qty",
     cell: (info) => info.getValue(),
   }),
-  columnHelper.accessor("uname", {
+  columnHelper.accessor("employee_name", {
     header: "Party Name",
     cell: (info) => info.getValue(),
   }),
@@ -55,20 +66,28 @@ export const columns = [
   }),
   columnHelper.accessor("added_on", {
     header: "Issue date",
-    cell: (info) => info.getValue(),
+    cell: (info) => {
+      const val = info.getValue();
+      if (!val) return "";
+      const d = new Date(val);
+      return Number.isNaN(d.getTime()) ? val : d.toLocaleDateString("en-GB");
+    },
   }),
   columnHelper.display({
     id: "return",
     header: "Return",
     cell: (info) => {
       const row = info.row.original;
-      if (row.status === "0" && row.basis === "Returnable") {
-        return <span className="text-red-500 font-medium">Not Returned</span>;
-      } else if (row.status === "1") {
+      const status = Number(row.status);
+      const isReturnable = row.basis === "Returnable";
+
+      if (status === 0 && isReturnable) {
+        return <span>Not Returned</span>;
+      } else if (status === 1) {
         return (
           <div className="flex flex-col gap-1">
-            <span className="text-xs">{row.returnby_name}</span>
-            <span className="text-xs text-gray-500">{row.returnon}</span>
+            <span className="text-xs">{row.returnby_name || row.returnbyname || row.returnby || "-"}</span>
+            <span className="text-xs text-gray-500">{formatReturnDate(row.returnon)}</span>
             <Button
               component={Link}
               to={`/dashboards/inventory/issue-return/view-checklist?hakuna=${row.gatpassnumber}`}
@@ -81,10 +100,10 @@ export const columns = [
             </Button>
           </div>
         );
-      } else if (row.status === "-1") {
-        return <span className="text-yellow-600 italic">checklist pending</span>;
-      } else if (row.basis !== "Returnable") {
-        return <span className="text-gray-400 italic">Non Returnable</span>;
+      } else if (status === -1) {
+        return <span>checklist pending</span>;
+      } else if (!isReturnable) {
+        return <span>Non Returnable</span>;
       }
       return null;
     },

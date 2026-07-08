@@ -30,9 +30,9 @@ export const columns = [
     cell: (info) => info.getValue(),
   }),
 
-  // PHP: UOM (column 3 in PHP output - from units table lookup)
-  columnHelper.accessor("uom_description", {
-    id: "uom_description",
+  // UOM (column 3)
+  columnHelper.accessor("uom", {
+    id: "uom",
     header: "UOM",
     cell: (info) => info.getValue(),
   }),

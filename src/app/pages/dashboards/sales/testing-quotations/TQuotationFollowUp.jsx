@@ -155,7 +155,7 @@ export default function TQuotationFollowUp() {
       <div className="flex flex-col grow h-full overflow-hidden transition-content">
 
         {/* Standard-style Header/Toolbar */}
-        <div className="px-(--margin-x) pt-4 pb-4 border-b border-gray-100 dark:border-dark-700 bg-white dark:bg-dark-800">
+        <div className="px-[var(--margin-x)] pt-4 pb-4 border-b border-gray-100 dark:border-dark-700 bg-white dark:bg-dark-800">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <button
@@ -210,7 +210,7 @@ export default function TQuotationFollowUp() {
         </div>
 
         {/* Content Area */}
-        <div className="px-(--margin-x) py-6 grow">
+        <div className="px-[var(--margin-x)] py-6 grow">
           <Card className="min-h-full flex flex-col p-6 sm:p-8">
             {data.length > 0 ? (
               <div className="relative">

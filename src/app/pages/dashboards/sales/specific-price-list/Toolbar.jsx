@@ -6,7 +6,7 @@ export function Toolbar({ table }) {
   const navigate = useNavigate();
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 px-(--margin-x) pt-4 pb-3">
+    <div className="flex flex-wrap items-center justify-between gap-3 px-[var(--margin-x)] pt-4 pb-3">
       <div className="flex flex-col gap-1">
         <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">
           Customer Specific Price List

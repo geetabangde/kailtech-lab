@@ -245,7 +245,7 @@ export default function EditPastInvoice() {
 
   return (
     <Page title="Edit Past Invoice">
-      <div className="px-(--margin-x) py-5">
+      <div className="px-[var(--margin-x)] py-5">
         {/* Header */}
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-xl font-semibold text-gray-800 dark:text-dark-50">

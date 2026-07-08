@@ -252,7 +252,7 @@ export default function AddEnquiry() {
 
   return (
     <Page title="Add Enquiry">
-      <div className="transition-content px-(--margin-x) pb-8">
+      <div className="transition-content px-[var(--margin-x)] pb-8">
         {/* Header */}
         <div className="mb-4 flex items-center justify-between">
           <h1 className="text-xl font-semibold text-gray-800 dark:text-gray-100">

@@ -131,7 +131,7 @@ export default function VerificationLimsPage() {
             )}
           </div>
 
-          <div className="px-(--margin-x) py-4">
+          <div className="px-[var(--margin-x)] py-4">
             <Table.Pagination table={table} />
           </div>
         </Card>

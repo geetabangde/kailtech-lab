@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { toast } from "sonner";
+import { JWT_HOST_API } from "configs/auth.config";
 
 function Review() {
   const [reviewDate, setReviewDate] = useState('2025-09-19');
@@ -102,7 +103,7 @@ function Review() {
 
       console.log('Sending payload:', payload);
 
-      const response = await fetch('https://lims.kailtech.in/api/calibrationprocess/review-certificate', {
+      const response = await fetch(`${JWT_HOST_API}/calibrationprocess/review-certificate`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

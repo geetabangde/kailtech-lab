@@ -5,12 +5,13 @@ import {
   getFacetedMinMaxValues,
   getFacetedUniqueValues,
   getFilteredRowModel,
+  getExpandedRowModel,
   getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
 import clsx from "clsx";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Fragment } from "react";
 import { useNavigate } from "react-router";
 import axios from "utils/axios";
 
@@ -57,8 +58,6 @@ export default function TestingTrackReport() {
     color: "",
   });
 
-  const [searched, setSearched] = useState(false);
-
   // Metadata for dropdowns
   const [bdList, setBdList] = useState([]);
   const [customers, setCustomers] = useState([]);
@@ -72,8 +71,8 @@ export default function TestingTrackReport() {
       const [bdRes, custRes, labRes, chemRes] = await Promise.allSettled([
         axios.get("/people/get-customer-bd"), // BDs
         axios.get("/people/get-all-customers"), // Customers
-        axios.get("/master/get-all-labs"), // Labs
-        axios.get("/people/get-all-users"), // Chemists
+        axios.get("/register/get-lab-by-vertical/2"), // Labs
+        axios.get("/register/get-lab-user"), // Chemists
       ]);
 
       if (bdRes.status === "fulfilled") setBdList(bdRes.value.data?.data || []);
@@ -85,16 +84,16 @@ export default function TestingTrackReport() {
     }
   }, []);
 
-  useEffect(() => {
-    fetchMetadata();
-  }, [fetchMetadata]);
-
   // Fetch report data
   const fetchReportData = async () => {
     try {
       setLoading(true);
-      setSearched(true);
-      const res = await axios.get("/testing/get-testing-track-report", { params: filters });
+      
+      const activeFilters = Object.fromEntries(
+        Object.entries(filters).filter((entry) => entry[1] !== "" && entry[1] !== null && entry[1] !== undefined)
+      );
+
+      const res = await axios.get("/register/testing-track-record", { params: activeFilters });
       
       let rows = res.data?.data || [];
       
@@ -134,20 +133,56 @@ export default function TestingTrackReport() {
           dispatch_date: r[30],
         }));
       } else {
-        // Fallback for object format
+        // Fallback for object format mapping from testing-track-record API
         rows = rows.map((r, i) => ({
           ...r,
           sr_no: r.sr_no || r.s_no || i + 1,
+          booking_date: r.date,
+          client_name: r.customername,
+          rep: r.ctypename,
+          concerned_bd: r.bdfullname,
+          brn_no: r.brn,
+          lrn_no: r.lrn,
+          is_code: r.description,
+          sample: r.reportname,
+          department: r.lab,
+          qr_code: r.qrcode,
+          sample_code: r.code,
+          civil_code: r.civil,
+          pvc_code: r.pvc,
+          mech_code: r.mech,
+          chem_code: r.chem,
+          tat: r.days,
+          hod_chemist_engineer: r.chemist_names,
+          long_term_test: r.longterm || r.longTermTest,
+          tentative_report_date_interim: r.interim_yes,
+          tentative_report_date_longterm: r.interim_no,
+          tentative_report_date: r.reportdate,
+          interim_issued_date: r.interim_issued_date || "",
+          final_report_date: r.finalreportDate,
+          ulr_no: r.ulr,
+          ulr_generate_date: r.updated_on || "",
+          approved_date: r.approved_on || r.approvedon,
+          bill_no: r.invoiceno,
+          bill_date: r.invoice,
+          dispatch: r.challanno,
+          dispatch_date: r.dispatch_date || "",
         }));
       }
       
-      setTableData(rows);
+      setTableData(rows.reverse());
     } catch (err) {
       console.error("Error fetching testing track report:", err);
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchMetadata();
+    fetchReportData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetchMetadata]);
 
   const handleFilterChange = (name, value) => {
     setFilters((prev) => ({ ...prev, [name]: value }));
@@ -167,8 +202,25 @@ export default function TestingTrackReport() {
   const [sorting, setSorting] = useState([]);
 
   const [columnVisibility, setColumnVisibility] = useLocalStorage(
-    "column-visibility-testing-track-report-1",
-    {},
+    "column-visibility-testing-track-report-2",
+    {
+      chem_code: false,
+      tat: false,
+      hod_chemist_engineer: false,
+      long_term_test: false,
+      tentative_report_date_interim: false,
+      tentative_report_date_longterm: false,
+      tentative_report_date: false,
+      interim_issued_date: false,
+      final_report_date: false,
+      ulr_no: false,
+      ulr_generate_date: false,
+      approved_date: false,
+      bill_no: false,
+      bill_date: false,
+      dispatch: false,
+      dispatch_date: false,
+    },
   );
   const [columnPinning, setColumnPinning] = useLocalStorage(
     "column-pinning-testing-track-report-1",
@@ -199,6 +251,8 @@ export default function TestingTrackReport() {
     globalFilterFn: fuzzyFilter,
     onSortingChange: setSorting,
     getSortedRowModel: getSortedRowModel(),
+    getExpandedRowModel: getExpandedRowModel(),
+    getRowCanExpand: () => true,
     getPaginationRowModel: getPaginationRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onColumnPinningChange: setColumnPinning,
@@ -251,7 +305,7 @@ export default function TestingTrackReport() {
           <div
             className={clsx(
               "transition-content flex grow flex-col pt-3",
-              tableSettings.enableFullScreen ? "overflow-hidden" : "px-(--margin-x)"
+              tableSettings.enableFullScreen ? "overflow-hidden" : "px-[var(--margin-x)]"
             )}
           >
             <Card className={clsx("relative flex grow flex-col", tableSettings.enableFullScreen && "overflow-hidden")}>
@@ -286,49 +340,78 @@ export default function TestingTrackReport() {
                   </THead>
                   <TBody>
                     {table.getRowModel().rows.map((row) => (
-                      <Tr
-                        key={row.id}
-                        className={clsx(
-                          "relative border-y border-transparent border-b-gray-200 dark:border-b-dark-500",
-                          row.getIsSelected() && !isSafari && "row-selected after:pointer-events-none after:absolute after:inset-0 after:z-2 after:h-full after:w-full after:border-3 after:border-transparent after:bg-primary-500/10 ltr:after:border-l-primary-500 rtl:after:border-r-primary-500"
+                      <Fragment key={row.id}>
+                        <Tr
+                          className={clsx(
+                            "relative border-y border-transparent border-b-gray-200 dark:border-b-dark-500",
+                            row.getIsSelected() && !isSafari && "row-selected after:pointer-events-none after:absolute after:inset-0 after:z-2 after:h-full after:w-full after:border-3 after:border-transparent after:bg-primary-500/10 ltr:after:border-l-primary-500 rtl:after:border-r-primary-500"
+                          )}
+                        >
+                          {row.getVisibleCells().map((cell) => (
+                            <Td
+                              key={cell.id}
+                              className={clsx(
+                                "relative bg-white whitespace-nowrap",
+                                cardSkin === "shadow" ? "dark:bg-dark-700" : "dark:bg-dark-900",
+                                cell.column.getCanPin() && [
+                                  cell.column.getIsPinned() === "left" && "sticky z-2 ltr:left-0 rtl:right-0",
+                                  cell.column.getIsPinned() === "right" && "sticky z-2 ltr:right-0 rtl:left-0",
+                                ]
+                              )}
+                            >
+                              {cell.column.getIsPinned() && (
+                                <div
+                                  className={clsx(
+                                    "pointer-events-none absolute inset-0 border-gray-200 dark:border-dark-500",
+                                    cell.column.getIsPinned() === "left" ? "ltr:border-r rtl:border-l" : "ltr:border-l rtl:border-r"
+                                  )}
+                                ></div>
+                              )}
+                              {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                            </Td>
+                          ))}
+                        </Tr>
+                        {row.getIsExpanded() && (
+                          <Tr>
+                            <Td colSpan={row.getVisibleCells().length} className="bg-gray-50 px-4 py-2 dark:bg-dark-800">
+                              <div className="flex flex-col text-xs">
+                                {row.getAllCells().map((cell) => {
+                                  const ignoredColumns = [
+                                    "sr_no",
+                                    "booking_date",
+                                    "client_name",
+                                    "rep",
+                                    "concerned_bd",
+                                    "brn_no",
+                                    "lrn_no",
+                                    "is_code",
+                                    "sample",
+                                    "department",
+                                    "qr_code",
+                                    "sample_code"
+                                  ];
+                                  if (ignoredColumns.includes(cell.column.id)) return null;
+                                  return (
+                                    <div key={cell.id} className="flex flex-col sm:flex-row sm:gap-2 py-[2px]">
+                                      <span className="font-semibold text-gray-800 w-52 dark:text-gray-200">
+                                        {typeof cell.column.columnDef.header === "string" ? cell.column.columnDef.header : cell.column.id}:
+                                      </span>
+                                      <span className="text-gray-700 dark:text-gray-400">
+                                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                      </span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </Td>
+                          </Tr>
                         )}
-                      >
-                        {row.getVisibleCells().map((cell) => (
-                          <Td
-                            key={cell.id}
-                            className={clsx(
-                              "relative bg-white whitespace-nowrap",
-                              cardSkin === "shadow" ? "dark:bg-dark-700" : "dark:bg-dark-900",
-                              cell.column.getCanPin() && [
-                                cell.column.getIsPinned() === "left" && "sticky z-2 ltr:left-0 rtl:right-0",
-                                cell.column.getIsPinned() === "right" && "sticky z-2 ltr:right-0 rtl:left-0",
-                              ]
-                            )}
-                          >
-                            {cell.column.getIsPinned() && (
-                              <div
-                                className={clsx(
-                                  "pointer-events-none absolute inset-0 border-gray-200 dark:border-dark-500",
-                                  cell.column.getIsPinned() === "left" ? "ltr:border-r rtl:border-l" : "ltr:border-l rtl:border-r"
-                                )}
-                              ></div>
-                            )}
-                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                          </Td>
-                        ))}
-                      </Tr>
+                      </Fragment>
                     ))}
-                    {searched && tableData.length === 0 && !loading && (
+                    {tableData.length === 0 && !loading && (
                       <Tr>
                         <Td colSpan={visibleColumns.length} className="py-10 text-center text-gray-500">
                           No data found for the selected criteria.
-                        </Td>
-                      </Tr>
-                    )}
-                    {!searched && (
-                      <Tr>
-                        <Td colSpan={visibleColumns.length} className="py-10 text-center text-gray-500">
-                          Use the filters above and click Search to view the Testing Track Report.
                         </Td>
                       </Tr>
                     )}

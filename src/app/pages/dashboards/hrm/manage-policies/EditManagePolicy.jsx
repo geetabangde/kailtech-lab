@@ -1,11 +1,13 @@
-import { useParams, useNavigate } from "react-router";
+import { useParams, useNavigate, Navigate } from "react-router";
 import { useEffect, useState } from "react";
 import { Button, Input } from "components/ui";
 import { Page } from "components/shared/Page";
 import axios from "utils/axios";
 import { toast } from "sonner";
+import { getStoredPermissions } from "app/navigation/dashboards";
 
 export default function EditManagePolicy() {
+  const permissions = getStoredPermissions();
   const { id } = useParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -13,20 +15,23 @@ export default function EditManagePolicy() {
 
   const [formData, setFormData] = useState({ 
     name: "", 
-    policy_number: "",
-    description: ""
+    policyno: "",
+    description: "",
+    time: "",
+    deadline: "",
+    file: null
   });
 
   // Error and touched states
   const [errors, setErrors] = useState({
     name: "",
-    policy_number: "",
+    policyno: "",
     description: "",
   });
 
   const [touched, setTouched] = useState({
     name: false,
-    policy_number: false,
+    policyno: false,
     description: false,
   });
 
@@ -34,15 +39,20 @@ export default function EditManagePolicy() {
     const fetchPolicy = async () => {
       try {
         setFetching(true);
-        const response = await axios.get(`/hrm/get-policy-byid/${id}`);
+        const response = await axios.get(`/hrm/policy-get-byid/${id}`);
         const result = response.data;
 
-        if (result.status === "true" && result.data) {
-          setFormData({
-            name: result.data.name || "",
-            policy_number: result.data.policy_number || "",
-            description: result.data.description || "",
-          });
+        if (result.status === "true" || result.status === "success" || result.status === true) {
+          if (result.data) {
+            setFormData({
+              name: result.data.name || "",
+              policyno: result.data.policyno || result.data.policy_number || "",
+              description: result.data.description || "",
+              time: result.data.time || "",
+              deadline: result.data.deadline || "",
+              file: null // cannot pre-fill a file input for security reasons
+            });
+          }
         } else {
           toast.error(result.message || "Failed to load policy data.");
         }
@@ -59,10 +69,10 @@ export default function EditManagePolicy() {
 
   // Input handler
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, files } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: type === "file" ? files[0] : value,
     }));
 
     // Clear error when user starts typing
@@ -112,8 +122,8 @@ export default function EditManagePolicy() {
       isValid = false;
     }
 
-    if (!formData.policy_number.trim()) {
-      newErrors.policy_number = "This field is required";
+    if (!formData.policyno.trim()) {
+      newErrors.policyno = "This field is required";
       isValid = false;
     }
 
@@ -125,7 +135,7 @@ export default function EditManagePolicy() {
     setErrors(newErrors);
     setTouched({
       name: true,
-      policy_number: true,
+      policyno: true,
       description: true,
     });
 
@@ -146,13 +156,20 @@ export default function EditManagePolicy() {
     try {
       const form = new FormData();
       form.append("name", formData.name);
-      form.append("policy_number", formData.policy_number);
+      form.append("policyno", formData.policyno);
       form.append("description", formData.description);
+      form.append("time", formData.time);
+      form.append("deadline", formData.deadline);
+      if (formData.file) {
+        form.append("file", formData.file);
+      }
 
-      const response = await axios.post(`/hrm/update-policy/${id}`, form);
+      const response = await axios.post(`/hrm/policy-update/${id}`, form, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
       const result = response.data;
 
-      if (result.status === "true") {
+      if (result.status === "true" || result.status === true || result.status === "success") {
         toast.success(result.message || "Policy updated successfully ✅", {
           duration: 2000,
           icon: "✅",
@@ -169,6 +186,10 @@ export default function EditManagePolicy() {
       setLoading(false);
     }
   };
+
+  if (!permissions.includes(222)) {
+    return <Navigate to="/dashboards" replace />;
+  }
 
   if (fetching) {
     return (
@@ -217,16 +238,37 @@ export default function EditManagePolicy() {
           <div>
             <Input
               label="Policy Number"
-              name="policy_number"
+              name="policyno"
               placeholder="Enter policy number"
-              value={formData.policy_number}
+              value={formData.policyno}
               onChange={handleChange}
               onBlur={handleBlur}
-              className={errors.policy_number && touched.policy_number ? "border-red-500" : ""}
+              className={errors.policyno && touched.policyno ? "border-red-500" : ""}
             />
-            {errors.policy_number && touched.policy_number && (
-              <p className="text-red-500 text-sm mt-1">{errors.policy_number}</p>
+            {errors.policyno && touched.policyno && (
+              <p className="text-red-500 text-sm mt-1">{errors.policyno}</p>
             )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Input
+                label="Time To read in minute"
+                name="time"
+                placeholder="Enter time"
+                value={formData.time}
+                onChange={handleChange}
+              />
+            </div>
+            <div>
+              <Input
+                label="Deadline To Complete(in days)"
+                name="deadline"
+                placeholder="Enter deadline"
+                value={formData.deadline}
+                onChange={handleChange}
+              />
+            </div>
           </div>
 
           <div>
@@ -247,6 +289,19 @@ export default function EditManagePolicy() {
             {errors.description && touched.description && (
               <p className="text-red-500 text-sm mt-1">{errors.description}</p>
             )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Policy Pdf
+            </label>
+            <input
+              type="file"
+              name="file"
+              accept=".pdf"
+              onChange={handleChange}
+              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-dark-700 dark:file:text-dark-100"
+            />
           </div>
 
           <div className="pt-2">

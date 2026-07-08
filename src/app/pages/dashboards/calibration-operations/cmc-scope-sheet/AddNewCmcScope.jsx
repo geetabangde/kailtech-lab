@@ -4,8 +4,9 @@ import Select from "react-select";
 import { Button, Input } from "components/ui";
 import { toast } from 'sonner';
 import axios from 'axios';
+import { JWT_HOST_API } from "configs/auth.config";
 
-const API_BASE_URL = "https://lims.kailtech.in/api";
+const API_BASE_URL = JWT_HOST_API;
 
 const getAuthToken = () => {
   return (

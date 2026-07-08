@@ -6,7 +6,7 @@ import { ConfirmModal } from "components/shared/ConfirmModal";
 import axios from "utils/axios";
 import { toast } from "sonner";
 import Select from "react-select";
-import { Plus, Trash2, ArrowLeft, Save } from "lucide-react";
+import { Plus, Trash2, Save } from "lucide-react";
 
 // ----------------------------------------------------------------------
 
@@ -394,15 +394,17 @@ export default function EditTQuotationItem() {
 
     return (
         <Page title="Edit Quotation Items (Testing)">
-            <div className="transition-content px-(--margin-x) pb-8">
+            <div className="transition-content px-[var(--margin-x)] pb-8">
                 {/* Header */}
                 <div className="mb-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <Link
                             to="/dashboards/sales/testing-quotations"
-                            className="rounded-full p-1.5 hover:bg-gray-100 dark:hover:bg-dark-700"
+                            className="rounded-full p-1.5 dark:hover:bg-dark-700"
                         >
-                            <ArrowLeft size={20} className="text-gray-600 dark:text-dark-300" />
+                            <Button variant="outline" className="flex items-center gap-2 border-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700">
+                                &lt;&lt; Back to List
+                            </Button>
                         </Link>
                         <h1 className="text-xl font-semibold text-gray-800 dark:text-gray-100">
                             Edit Quotation Items

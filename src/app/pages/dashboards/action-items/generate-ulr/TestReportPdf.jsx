@@ -99,7 +99,7 @@ function extractData(report) {
     test_results.some((r) => r.specification && r.specification !== "—");
 
   const nablLogo =
-    nablStatus === 1 ? (nablObj?.logo ?? "/images/nabltest.png") :
+    nablStatus === 1 ? (nablObj?.logo ?? "/images/nabl2348.png") :
     nablStatus === 3 ? "/images/qai.jpeg" : null;
 
   const customerName    = customer?.name           ?? "—";
@@ -409,12 +409,12 @@ function DocWithLH({ report }) {
 
         {/* ── LETTER HEAD ────────────────────────────────── */}
         <View style={S1.lhHeader} fixed>
-          <Image src="/images/ktrc_logo.png"     style={S1.logoLeft}   />
+          <Image src={`${window.location.origin}/images/ktrc_logo.png`}     style={S1.logoLeft}   />
           <View style={{ alignItems: "center" }}>
-            <Image src="/images/tc_stamp.png"    style={S1.logoCenter} />
+            <Image src={`${window.location.origin}/images/tc_stamp.png`}    style={S1.logoCenter} />
             <Text style={S1.tcText}>TC-7832</Text>
           </View>
-          <Image src="/images/kailtech_logo.png" style={S1.logoRight}  />
+          <Image src={`${window.location.origin}/images/kailtech_logo.png`} style={S1.logoRight}  />
         </View>
 
         {/* Page 1 of 1 */}
@@ -619,7 +619,7 @@ function DocWithoutLHTwoSign({ report }) {
         <View style={S3.topRow}>
           <View style={{ width: 120 }} />
           <View style={S3.tcBlock}>
-            <Image src="/images/tc_stamp.png" style={S3.tcStamp} />
+            <Image src={`${window.location.origin}/images/tc_stamp.png`} style={S3.tcStamp} />
             <Text style={S3.tcText}>TC-7832</Text>
           </View>
           <View style={{ width: 200, alignItems: "flex-end" }}>

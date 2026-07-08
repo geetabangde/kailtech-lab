@@ -7,11 +7,12 @@ import {
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
+  getExpandedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
 import clsx from "clsx";
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router";
+import { useState, useEffect, Fragment } from "react";
+import { useNavigate, useLocation } from "react-router";
 import axios from "utils/axios";
 
 // Local Imports
@@ -23,6 +24,7 @@ import { fuzzyFilter } from "utils/react-table/fuzzyFilter";
 import { useSkipper } from "utils/react-table/useSkipper";
 import { Toolbar } from "./Toolbar";
 import { columns } from "./columns";
+import { RowActions } from "./RowActions";
 import { PaginationSection } from "components/shared/table/PaginationSection";
 import { useThemeContext } from "app/contexts/theme/context";
 import { getUserAgentBrowser } from "utils/dom/getUserAgentBrowser";
@@ -45,10 +47,15 @@ export default function PendingForTestingLrnWiseList() {
 
   const [tableData, setTableData] = useState([]);
   const [loading, setLoading] = useState(false);
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const initialSearch = queryParams.get("search") || "";
+
   const [filters, setFilters] = useState({
-    startdate: "",
-    enddate: "",
+    startdate: "2025-01-01",
+    enddate: "2025-01-01",
     chemist: "",
+    search: initialSearch,
   });
   const [searched, setSearched] = useState(false);
   // Chemist dropdown — PHP: selectextrawhere("admin", "status=1")
@@ -63,35 +70,11 @@ export default function PendingForTestingLrnWiseList() {
       if (filters.startdate) params.startdate = filters.startdate;
       if (filters.enddate) params.enddate = filters.enddate;
       if (filters.chemist) params.chemist = filters.chemist;
+      if (filters.search) params.search = filters.search;
 
-      const res = await axios.get("/registers/get-pending-for-testing-lrn-wise", { params });
+      const res = await axios.get("/register/parameter-wise-list", { params });
 
-      let rows = res.data?.data || [];
-
-      // Handle legacy PHP DataTables response (array of arrays)
-      if (rows.length > 0 && Array.isArray(rows[0])) {
-        rows = rows.map((r) => ({
-          id: r[0],
-          product: r[1],
-          lrn: r[2],
-          brand_source: r[3],
-          grade_size: r[4],
-          chemist: r[5],
-          parameters: r[6],
-          // r[7] may be the action HTML — we handle it via RowActions instead
-        }));
-      } else {
-        rows = rows.map((r) => ({
-          ...r,
-          id: r.id,
-          product: r.product,
-          lrn: r.lrn || r.LRN,
-          brand_source: r.brand_source || r.brand || r.source,
-          grade_size: r.grade_size || r.grade || r.size,
-          chemist: r.chemist,
-          parameters: r.parameters,
-        }));
-      }
+      const rows = res.data?.data || [];
 
       setTableData(rows);
     } catch (err) {
@@ -113,6 +96,7 @@ export default function PendingForTestingLrnWiseList() {
 
   useEffect(() => {
     fetchChemists();
+    fetchRegisterData();
   }, []);
 
   const handleFilterChange = (name, value) => {
@@ -137,6 +121,7 @@ export default function PendingForTestingLrnWiseList() {
     {},
   );
 
+  const [expanded, setExpanded] = useState({});
   const [columnPinning, setColumnPinning] = useLocalStorage(
     "column-pinning-pending-testing-lrn-wise-1",
     {},
@@ -153,6 +138,7 @@ export default function PendingForTestingLrnWiseList() {
       columnVisibility,
       columnPinning,
       tableSettings,
+      expanded,
     },
     meta: {
       setTableSettings,
@@ -176,6 +162,9 @@ export default function PendingForTestingLrnWiseList() {
     getPaginationRowModel: getPaginationRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onColumnPinningChange: setColumnPinning,
+    onExpandedChange: setExpanded,
+    getExpandedRowModel: getExpandedRowModel(),
+    getRowCanExpand: () => true,
     autoResetPageIndex,
   });
 
@@ -226,7 +215,7 @@ export default function PendingForTestingLrnWiseList() {
               "transition-content flex grow flex-col pt-3",
               tableSettings.enableFullScreen
                 ? "overflow-hidden"
-                : "px-(--margin-x)",
+                : "px-[var(--margin-x)]",
             )}
           >
             <Card
@@ -289,49 +278,60 @@ export default function PendingForTestingLrnWiseList() {
                   <TBody>
                     {table.getRowModel().rows.map((row) => {
                       return (
-                        <Tr
-                          key={row.id}
-                          className={clsx(
-                            "relative border-y border-transparent border-b-gray-200 dark:border-b-dark-500",
-                            row.getIsSelected() && !isSafari &&
-                            "row-selected after:pointer-events-none after:absolute after:inset-0 after:z-2 after:h-full after:w-full after:border-3 after:border-transparent after:bg-primary-500/10 ltr:after:border-l-primary-500 rtl:after:border-r-primary-500",
-                          )}
-                        >
-                          {row.getVisibleCells().map((cell) => {
-                            return (
-                              <Td
-                                key={cell.id}
-                                className={clsx(
-                                  "relative bg-white",
-                                  cardSkin === "shadow"
-                                    ? "dark:bg-dark-700"
-                                    : "dark:bg-dark-900",
-                                  cell.column.getCanPin() && [
-                                    cell.column.getIsPinned() === "left" &&
-                                    "sticky z-2 ltr:left-0 rtl:right-0",
-                                    cell.column.getIsPinned() === "right" &&
-                                    "sticky z-2 ltr:right-0 rtl:left-0",
-                                  ],
-                                )}
-                              >
-                                {cell.column.getIsPinned() && (
-                                  <div
-                                    className={clsx(
-                                      "pointer-events-none absolute inset-0 border-gray-200 dark:border-dark-500",
-                                      cell.column.getIsPinned() === "left"
-                                        ? "ltr:border-r rtl:border-l"
-                                        : "ltr:border-l rtl:border-r",
-                                    )}
-                                  ></div>
-                                )}
-                                {flexRender(
-                                  cell.column.columnDef.cell,
-                                  cell.getContext(),
-                                )}
+                        <Fragment key={row.id}>
+                          <Tr
+                            className={clsx(
+                              "relative border-y border-transparent border-b-gray-200 dark:border-b-dark-500",
+                              row.getIsSelected() && !isSafari &&
+                              "row-selected after:pointer-events-none after:absolute after:inset-0 after:z-2 after:h-full after:w-full after:border-3 after:border-transparent after:bg-primary-500/10 ltr:after:border-l-primary-500 rtl:after:border-r-primary-500",
+                            )}
+                          >
+                            {row.getVisibleCells().map((cell) => {
+                              return (
+                                <Td
+                                  key={cell.id}
+                                  className={clsx(
+                                    "relative bg-white",
+                                    cardSkin === "shadow"
+                                      ? "dark:bg-dark-700"
+                                      : "dark:bg-dark-900",
+                                    cell.column.getCanPin() && [
+                                      cell.column.getIsPinned() === "left" &&
+                                      "sticky z-2 ltr:left-0 rtl:right-0",
+                                      cell.column.getIsPinned() === "right" &&
+                                      "sticky z-2 ltr:right-0 rtl:left-0",
+                                    ],
+                                  )}
+                                >
+                                  {cell.column.getIsPinned() && (
+                                    <div
+                                      className={clsx(
+                                        "pointer-events-none absolute inset-0 border-gray-200 dark:border-dark-500",
+                                        cell.column.getIsPinned() === "left"
+                                          ? "ltr:border-r rtl:border-l"
+                                          : "ltr:border-l rtl:border-r",
+                                      )}
+                                    ></div>
+                                  )}
+                                  {flexRender(
+                                    cell.column.columnDef.cell,
+                                    cell.getContext(),
+                                  )}
+                                </Td>
+                              );
+                            })}
+                          </Tr>
+                          {row.getIsExpanded() && (
+                            <Tr>
+                              <Td colSpan={row.getVisibleCells().length} className="bg-gray-50/50 p-4 dark:bg-dark-800/50">
+                                <div className="flex items-center gap-4 py-2 pl-4">
+                                  <span className="font-semibold text-gray-700 dark:text-gray-300">Action:</span>
+                                  <RowActions row={row} />
+                                </div>
                               </Td>
-                            );
-                          })}
-                        </Tr>
+                            </Tr>
+                          )}
+                        </Fragment>
                       );
                     })}
                     {searched && tableData.length === 0 && !loading && (

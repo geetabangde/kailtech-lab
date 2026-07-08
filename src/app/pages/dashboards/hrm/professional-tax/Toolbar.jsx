@@ -13,7 +13,7 @@ export function Toolbar({ table }) {
   const canAdd = permissions.includes(229); // Using 229 as module access implies editing here
 
   return (
-    <div className="table-toolbar px-(--margin-x) pt-4">
+    <div className="table-toolbar px-[var(--margin-x)] pt-4">
       <div
         className={clsx(
           "transition-content flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4",

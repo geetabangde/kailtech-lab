@@ -6,14 +6,11 @@ import axios from "utils/axios";
 import { toast } from "react-hot-toast";
 
 // Local Imports
-import {
-    Card,
-    Button,
-    ReactSelect as Select,
-} from "components/ui";
+import { Card, Button, ReactSelect as Select } from "components/ui";
 import { Page } from "components/shared/Page";
-
-// ----------------------------------------------------------------------
+import ReturnTRFInst from "./ReturnTRFInst";
+import ReturnInwardInst from "./ReturnInwardInst";
+import ReturnInsta from "./ReturnInsta";
 
 function usePermissions() {
     const p = localStorage.getItem("userPermissions");
@@ -27,7 +24,7 @@ function usePermissions() {
 export default function ReturnInstrument() {
     const permissions = usePermissions();
     const navigate = useNavigate();
-    const { control, handleSubmit, watch } = useForm({
+    const { control, handleSubmit, watch, register, setValue } = useForm({
         defaultValues: {
             purpose: "",
             returnby: "",
@@ -43,12 +40,18 @@ export default function ReturnInstrument() {
     const [inwardDins, setInwardDins] = useState([]);
     const [trfDins, setTrfDins] = useState([]);
     const [masterDins, setMasterDins] = useState([]);
-    const [issueItems, setIssueItems] = useState(""); // This will hold the HTML or component data from AJAX
+    
+    // State for the loaded table data
+    const [issueItems, setIssueItems] = useState([]); 
+    const [inwardItems, setInwardItems] = useState([]);
+    const [trfItems, setTrfItems] = useState([]);
 
     const purpose = watch("purpose");
 
     useEffect(() => {
-        setIssueItems("");
+        setIssueItems([]);
+        setInwardItems([]);
+        setTrfItems([]);
     }, [purpose]);
 
     useEffect(() => {
@@ -57,28 +60,26 @@ export default function ReturnInstrument() {
 
     const fetchInitialData = async () => {
         try {
-            const [purpRes, empRes, inwardRes, trfRes, masterRes] = await Promise.all([
-                axios.get("inventory/din-purpose-data"), // Assuming these endpoints exist
-                axios.get("hrm/employee-list-data"),
-                axios.get("inventory/din-list-data", { params: { purpose: 7, status: 1 } }),
-                axios.get("inventory/din-list-data", { params: { purpose: 6, status: 1 } }),
-                axios.get("inventory/din-list-data", { params: { purpose: '1,2,3,4,5', status: 1, has_issued_items: true } })
-            ]);
-
-            if (purpRes.data.status) {
-                setPurposes(purpRes.data.data.filter(p => ![8, 9, 10, 11].includes(p.id)));
-            }
-            if (empRes.data.status) {
-                setEmployees(empRes.data.data);
-            }
-            if (inwardRes.data.status) {
-                setInwardDins(inwardRes.data.data);
-            }
-            if (trfRes.data.status) {
-                setTrfDins(trfRes.data.data);
-            }
-            if (masterRes.data.status) {
-                setMasterDins(masterRes.data.data);
+            const response = await axios.get("inventory/get-add-dispatch-data");
+            
+            if (response.data.status && response.data.data) {
+                const { purposes, employees, inward_din, trf_din, din_master } = response.data.data;
+                
+                if (purposes) {
+                    setPurposes(purposes.filter(p => ![8, 9, 10, 11].includes(p.id)));
+                }
+                if (employees) {
+                    setEmployees(employees);
+                }
+                if (inward_din) {
+                    setInwardDins(inward_din);
+                }
+                if (trf_din) {
+                    setTrfDins(trf_din);
+                }
+                if (din_master) {
+                    setMasterDins(din_master);
+                }
             }
         } catch (err) {
             console.error("Error fetching initial data:", err);
@@ -87,26 +88,104 @@ export default function ReturnInstrument() {
 
     const handleDinChange = async (dinId) => {
         if (!dinId) {
-            setIssueItems("");
+            setIssueItems([]);
             return;
         }
         try {
-            const response = await axios.get("inventory/return-inst-data", { params: { hakuna: dinId } });
-            if (response.data.status) {
-                setIssueItems(response.data.html || ""); // PHP used AJAX to load HTML
+            const response = await axios.get(`inventory/return-inward-inst/${dinId}`);
+            if (response.data.status && Array.isArray(response.data.data)) {
+                setIssueItems(response.data.data);
             }
         } catch (err) {
             console.error("Error fetching issue items:", err);
         }
     };
 
+    const handleInwardDinChange = async (dinId) => {
+        if (!dinId) {
+            setInwardItems([]);
+            return;
+        }
+        try {
+            const response = await axios.get(`inventory/return-inward-inst/${dinId}`);
+            if (response.data.status && Array.isArray(response.data.data)) {
+                setInwardItems(response.data.data);
+            }
+        } catch (err) {
+            console.error("Error fetching inward items:", err);
+        }
+    };
+
+    const handleTrfDinChange = async (dinId) => {
+        if (!dinId) {
+            setTrfItems([]);
+            return;
+        }
+        try {
+            const response = await axios.get(`inventory/return-trf-inst/${dinId}`);
+            if (response.data.status && Array.isArray(response.data.data)) {
+                setTrfItems(response.data.data);
+            }
+        } catch (err) {
+            console.error("Error fetching TRF items:", err);
+        }
+    };
+
     const onSubmit = async (formData) => {
+        // Validation checks
+        const notfillreturn = document.querySelectorAll('.item-chklist').length;
+        const totalmasterid = document.getElementById('totalmasterid')?.value;
+        const items = document.querySelectorAll('.item-issue').length;
+        
+        if (items === 0 && notfillreturn === 0) {
+            toast.error("No Item is Added");
+            return;
+        } else if (totalmasterid && notfillreturn === parseInt(totalmasterid)) {
+            toast.error("Please Fill Atleast One Checklist Return");
+            return;
+        }
+
+        // Prepare payload exactly as requested by backend
+        let activeDinId = formData.dinid;
+        if (String(formData.purpose) === "7") activeDinId = formData.inwarddinid;
+        if (String(formData.purpose) === "6") activeDinId = formData.trfdinid;
+
+        // Helper to ensure value is an array
+        const parseArray = (val) => {
+            if (val === undefined || val === null || val === '') return [];
+            return Array.isArray(val) ? val : [val];
+        };
+
+        const payload = {
+            ...formData,
+            dinid: activeDinId,
+            returnqty: parseArray(formData['qty[]']),
+            itemid: parseArray(formData['itemid[]']),
+            issuedto: parseArray(formData['issuedto[]']),
+            issueid: parseArray(formData['issueid[]']),
+            returnlocation: parseArray(formData['returnlocation[]']),
+            instissuetype: parseArray(formData['instissuetype[]']),
+            ids: parseArray(formData.ids || formData['ids[]']),
+        };
+
+        // Clean up UI-specific or raw bracketed keys
+        Object.keys(payload).forEach(key => {
+            if (key.endsWith('[]')) {
+                delete payload[key];
+            }
+        });
+        delete payload.qty;
+        delete payload.inwarddinid;
+        delete payload.trfdinid;
+
         try {
             setLoading(true);
-            const response = await axios.post("inventory/insert-instrument-return", formData);
+            const response = await axios.post("inventory/add-dispatch-return", payload);
             if (response.data.status) {
                 toast.success(response.data.message || "Return submitted successfully");
-                navigate("/dashboards/inventory/dispatch-return");
+                setTimeout(() => {
+                    navigate("/dashboards/inventory/dispatch-return");
+                }, 1500);
             } else {
                 toast.error(response.data.message || "Failed to submit return");
             }
@@ -177,7 +256,7 @@ export default function ReturnInstrument() {
                                                 {...field}
                                                 id="returnby"
                                                 label="Employee Name"
-                                                options={employees.map(e => ({ value: e.id, label: `${e.firstname} ${e.lastname}` }))}
+                                                options={employees.map(e => ({ value: e.id, label: e.employee_name }))}
                                                 placeholder="Select"
                                                 error={fieldState.error?.message}
                                             />
@@ -187,7 +266,7 @@ export default function ReturnInstrument() {
                             )}
                         </div>
 
-                        {purpose === "7" && (
+                        {String(purpose) === "7" && (
                             <div className="flex flex-col gap-2 max-w-md">
                                 <Controller
                                     name="inwarddinid"
@@ -200,6 +279,10 @@ export default function ReturnInstrument() {
                                             label="Inward Din"
                                             options={inwardDins.map(d => ({ value: d.id, label: `${d.id} ${d.customername} (${d.challanno})` }))}
                                             placeholder="Select"
+                                            onChange={(val) => {
+                                                field.onChange(val);
+                                                handleInwardDinChange(val);
+                                            }}
                                             error={fieldState.error?.message}
                                         />
                                     )}
@@ -207,7 +290,7 @@ export default function ReturnInstrument() {
                             </div>
                         )}
 
-                        {purpose === "6" && (
+                        {String(purpose) === "6" && (
                             <div className="flex flex-col gap-2 max-w-md">
                                 <Controller
                                     name="trfdinid"
@@ -220,6 +303,10 @@ export default function ReturnInstrument() {
                                             label="TRF Din"
                                             options={trfDins.map(d => ({ value: d.id, label: `${d.id} ${d.customername} (${d.challanno})` }))}
                                             placeholder="Select"
+                                            onChange={(val) => {
+                                                field.onChange(val);
+                                                handleTrfDinChange(val);
+                                            }}
                                             error={fieldState.error?.message}
                                         />
                                     )}
@@ -251,15 +338,38 @@ export default function ReturnInstrument() {
                             </div>
                         )}
 
-                        <div
-                            className="mt-6 border-t border-gray-100 pt-6"
-                            dangerouslySetInnerHTML={{ __html: issueItems }}
-                        />
+                        {/* Renders the correct child component based on loaded state arrays */}
+                        {String(purpose) === "7" && inwardItems.length > 0 && (
+                            <ReturnInwardInst 
+                                inwardItems={inwardItems} 
+                                setInwardItems={setInwardItems} 
+                                register={register} 
+                                setValue={setValue}
+                                watch={watch}
+                            />
+                        )}
+
+                        {String(purpose) === "6" && trfItems.length > 0 && (
+                            <ReturnTRFInst 
+                                trfItems={trfItems} 
+                                setTrfItems={setTrfItems} 
+                                register={register} 
+                                setValue={setValue}
+                            />
+                        )}
+
+                        {[1, 2, 3, 4, 5].includes(Number(purpose)) && issueItems.length > 0 && (
+                            <ReturnInsta 
+                                issueItems={issueItems} 
+                                register={register} 
+                            />
+                        )}
+
                     </form>
                 </div>
                 <div className="flex justify-end border-t border-gray-100 p-4 sm:p-5">
                     <Button
-                        type="submit"
+                        type="button" 
                         color="success"
                         size="lg"
                         className="font-bold"

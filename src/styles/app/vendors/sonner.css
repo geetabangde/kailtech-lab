@@ -1,5 +1,5 @@
 [data-sonner-toaster] {
-  @apply max-[425px]:[--width:calc(100%-calc(var(--margin-x)*2))]!;
+  @apply max-[425px]:[--width:!calc(100%-calc(var(--margin-x)*2))];
 }
 
 [data-sonner-toaster][data-sonner-theme="light"] {
@@ -57,9 +57,9 @@
 }
 
 [data-sonner-toast] [data-button]:first-of-type {
-  @apply rtl:mr-auto! rtl:ml-0!;
+  @apply rtl:!mr-auto rtl:!ml-0;
 }
 
 [data-sonner-toast] [data-icon] {
-  @apply rtl:mr-[-3px]! rtl:ml-1!;
+  @apply rtl:!mr-[-3px] rtl:!ml-1;
 }

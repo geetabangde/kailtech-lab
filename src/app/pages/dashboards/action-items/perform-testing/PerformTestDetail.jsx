@@ -20,7 +20,7 @@ import { Page } from "components/shared/Page";
 import { PaginationSection } from "components/shared/table/PaginationSection";
 import { Table, Card, THead, TBody, Th, Tr, Td } from "components/ui";
 import { fuzzyFilter } from "utils/react-table/fuzzyFilter";
-
+import { Link } from "react-router-dom"
 // ─── Column helper ─────────────────────────────────────────────────────────────
 const columnHelper = createColumnHelper();
 
@@ -444,6 +444,7 @@ function ActionCell({ row, onRefresh }) {
       ? Boolean(raw.has_documents)
       : (raw.document_count !== undefined ? Number(raw.document_count) > 0 : false);
 
+  const [searchParams, setSearchParams] = useSearchParams();
   const [startDateModal, setStartDateModal] = useState(false);
   const [uploadModal, setUploadModal] = useState(false);
   const [viewDocsModal, setViewDocsModal] = useState(false);
@@ -478,7 +479,7 @@ function ActionCell({ row, onRefresh }) {
   // ── Direct start (no docs case) ───────────────────────────────────────────
   // PHP: href="starttest.php?hakuna={teid}" (GET, sets startdate = now server-side)
   // We replicate by POSTing today's date directly
-  const handleDirectStart = async () => {
+  const handleDirectStart = useCallback(async () => {
     try {
       setSubmitting(true);
       const today = new Date();
@@ -497,7 +498,22 @@ function ActionCell({ row, onRefresh }) {
     } finally {
       setSubmitting(false);
     }
-  };
+  }, [testeventdata_id, onRefresh]);
+
+  useEffect(() => {
+    if (searchParams.get("start") === String(testeventdata_id)) {
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete("start");
+      setSearchParams(newParams, { replace: true });
+      handleDirectStart();
+    }
+    if (searchParams.get("startModal") === String(testeventdata_id)) {
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete("startModal");
+      setSearchParams(newParams, { replace: true });
+      setStartDateModal(true);
+    }
+  }, [searchParams, testeventdata_id, setSearchParams, handleDirectStart]);
 
   // ── PHP exact status flag logic ───────────────────────────────────────────
   const renderFlag = () => {
@@ -518,14 +534,20 @@ function ActionCell({ row, onRefresh }) {
               // → <a href="starttest.php?hakuna=..."> Start</a>  (direct link = GET)
               // → <button onclick="UploadItemDoc(...)">Upload Document</button>
               elements.push(
-                <button
+                <Link
                   key="start-direct"
-                  onClick={handleDirectStart}
-                  disabled={submitting}
-                  className="inline-flex items-center gap-1 rounded bg-green-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-green-700 disabled:opacity-60"
+                  to={`?start=${testeventdata_id}`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (!submitting) handleDirectStart();
+                  }}
+                  className={clsx(
+                    "inline-flex items-center gap-1 rounded bg-green-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-green-700",
+                    submitting && "opacity-60 cursor-not-allowed"
+                  )}
                 >
                   {submitting ? "Starting..." : "Start"}
-                </button>
+                </Link>
               );
               elements.push(
                 <button
@@ -539,13 +561,17 @@ function ActionCell({ row, onRefresh }) {
             } else {
               // PHP: has docs → <button onclick="setStartDate(teid)"> Start</button>
               elements.push(
-                <button
+                <Link
                   key="start-modal"
-                  onClick={() => setStartDateModal(true)}
+                  to={`?startModal=${testeventdata_id}`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setStartDateModal(true);
+                  }}
                   className="inline-flex items-center gap-1 rounded bg-green-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-green-700"
                 >
                   Start
-                </button>
+                </Link>
               );
             }
           } else {
@@ -951,7 +977,7 @@ export default function PerformTestDetail() {
 
   return (
     <Page title="Tests List">
-      <div className="transition-content w-full pb-8 px-(--margin-x)">
+      <div className="transition-content w-full pb-8 px-[var(--margin-x)]">
 
         {/* ── Page Header ─────────────────────────────────────────────────── */}
         <div className="mb-4 flex items-center justify-between">

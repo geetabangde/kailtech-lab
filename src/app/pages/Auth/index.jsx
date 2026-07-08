@@ -7,7 +7,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router";
 
 // Local Imports
-import { Button, Card, Checkbox, Input, InputErrorMsg } from "components/ui";
+import { Card, Checkbox, Input, InputErrorMsg } from "components/ui";
 import { schema } from "./schema";
 import { Page } from "components/shared/Page";
 import appLogo from "assets/logo.png";
@@ -101,8 +101,8 @@ export default function SignIn() {
 
       setErrorMessage(
         err?.response?.data?.message ||
-          err?.message ||
-          "Login failed. Please try again.",
+        err?.message ||
+        "Login failed. Please try again.",
       );
     }
   };
@@ -192,14 +192,13 @@ export default function SignIn() {
                 </a>
               </div>
 
-              <Button
+              <button
                 type="submit"
-                className="mt-5 w-full"
-                color="primary"
+                className="mt-5 w-full bg-primary-600 hover:bg-primary-700 rounded-md px-5 py-2 text-sm font-medium text-white transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                 disabled={isLocked}
               >
                 {isLocked ? `Locked (${timeLeft}s)` : "Sign In"}
-              </Button>
+              </button>
             </form>
           </Card>
         </div>

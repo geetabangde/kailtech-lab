@@ -35,7 +35,7 @@ export function Toolbar({
   const permissions = JSON.parse(localStorage.getItem("userPermissions") || "[]");
 
   return (
-    <div className="px-(--margin-x) pt-4 pb-3 border-b border-gray-100 dark:border-dark-700 bg-white dark:bg-dark-800">
+    <div className="px-[var(--margin-x)] pt-4 pb-3 border-b border-gray-100 dark:border-dark-700 bg-white dark:bg-dark-800">
       {/* Header Row */}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
         <h2 className="dark:text-dark-50 text-xl font-bold text-gray-800 tracking-tight">

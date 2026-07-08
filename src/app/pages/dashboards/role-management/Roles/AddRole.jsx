@@ -28,20 +28,51 @@ export default function AddRole() {
         setFetching(true);
         const [modulesRes, permissionsRes] = await Promise.all([
           axios.get("rolemanagment/get-module"),
-          axios.get("/roles/view-permissions-list"),
+          axios.get("/rolemanagment/get-permissions"),
         ]);
 
-        if (modulesRes.data.status) {
-          setModules(modulesRes.data.data);
+        let modulesList = [];
+        if (modulesRes.data.status || modulesRes.data.success) {
+          modulesList = [...(modulesRes.data.data || [])];
         }
-        if (permissionsRes.data.status) {
-          // Group permissions by module ID
-          const grouped = permissionsRes.data.data.reduce((acc, perm) => {
-            const moduleId = perm.module || perm.module_id;
-            if (!acc[moduleId]) acc[moduleId] = [];
-            acc[moduleId].push(perm);
-            return acc;
-          }, {});
+
+        if (permissionsRes.data.success || permissionsRes.data.status) {
+          const newModules = [];
+          const grouped = (permissionsRes.data.data || [])
+            .filter(perm => perm.status == 1 || perm.status === "1" || perm.status === undefined)
+            .sort((a, b) => Number(a.id || 0) - Number(b.id || 0))
+            .reduce((acc, perm) => {
+              let moduleId = perm.module || perm.module_id;
+
+              if (!moduleId && perm.module_name) {
+                const matched = modulesList.find(
+                  m => m.name?.trim().toLowerCase() === perm.module_name?.trim().toLowerCase()
+                );
+                if (matched) {
+                  moduleId = matched.id;
+                } else {
+                  const nameKey = perm.module_name.trim();
+                  const matchedNew = newModules.find(m => m.name?.trim().toLowerCase() === nameKey.toLowerCase());
+                  if (matchedNew) {
+                    moduleId = matchedNew.id;
+                  } else {
+                    const newId = nameKey;
+                    newModules.push({ id: newId, name: nameKey });
+                    moduleId = newId;
+                  }
+                }
+              }
+
+              if (!moduleId) {
+                moduleId = "Other";
+              }
+
+              if (!acc[moduleId]) acc[moduleId] = [];
+              acc[moduleId].push(perm);
+              return acc;
+            }, {});
+
+          setModules([...modulesList, ...newModules]);
           setGroupedPermissions(grouped);
         }
       } catch (err) {
@@ -86,7 +117,7 @@ export default function AddRole() {
   const handleSelectAllModule = (moduleId, isChecked) => {
     const modulePerms = groupedPermissions[moduleId] || [];
     const modulePermIds = modulePerms.map(p => p.id);
-    
+
     setFormData((prev) => {
       if (isChecked) {
         // Add all from this module that aren't already selected
@@ -122,20 +153,21 @@ export default function AddRole() {
 
     setLoading(true);
     try {
-      const payload = new FormData();
-      payload.append("name", formData.name);
-      payload.append("description", formData.description);
-      payload.append("description_text", formData.description);
-      
-      // Append permissions array
-      formData.selectedPermissions.forEach(id => {
-        payload.append("permissions[]", id);
-      });
+      const payload = {
+        name: formData.name,
+        description: formData.description,
+        permissions: formData.selectedPermissions
+      };
 
-      await axios.post("/roles/add-role", payload);
+      const response = await axios.post("/rolemanagment/add-roles", payload);
+      const result = response.data;
 
-      toast.success("Role created successfully ✅");
-      navigate("/dashboards/role-management/roles");
+      if (result.success === "true" || result.success === true || result.status === "true" || result.status === true) {
+        toast.success(result.message || "Role created successfully ✅");
+        navigate("/dashboards/role-management/roles");
+      } else {
+        toast.error(result.message || "Failed to create role");
+      }
     } catch (err) {
       console.error("Error creating role:", err);
       toast.error(err?.response?.data?.message || "Failed to create role");
@@ -205,7 +237,7 @@ export default function AddRole() {
                 <h3 className="text-lg font-bold text-gray-800 dark:text-white border-b pb-2">
                   Module Permissions
                 </h3>
-                
+
                 {modules.map((module) => {
                   const modulePerms = groupedPermissions[module.id] || [];
                   if (modulePerms.length === 0) return null;
@@ -245,8 +277,8 @@ export default function AddRole() {
                               checked={formData.selectedPermissions.includes(perm.id)}
                               onChange={() => handlePermissionChange(perm.id)}
                             />
-                            <label 
-                              htmlFor={`perm-${perm.id}`} 
+                            <label
+                              htmlFor={`perm-${perm.id}`}
                               className="text-sm text-gray-600 dark:text-gray-400 cursor-pointer leading-tight group-hover:text-gray-900 dark:group-hover:text-white transition-colors"
                             >
                               {perm.name}
@@ -266,7 +298,7 @@ export default function AddRole() {
                 <Button
                   type="submit"
                   color="primary"
-                  className="w-full justify-center py-4 text-lg font-bold shadow-lg shadow-blue-200 dark:shadow-none mb-4"
+                  className="w-full justify-center py-2 text-sm font-bold shadow-lg shadow-blue-200 dark:shadow-none mb-4"
                   disabled={loading}
                 >
                   {loading ? (
@@ -278,7 +310,7 @@ export default function AddRole() {
                     "Add Role"
                   )}
                 </Button>
-                
+
                 <div className="space-y-4">
                   <div className="pt-4 border-t dark:border-dark-700">
                     <h4 className="text-sm font-bold text-gray-700 dark:text-gray-200 mb-2">Summary</h4>

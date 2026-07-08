@@ -3,6 +3,7 @@
 // ==========================================
 import axios from 'utils/axios';
 import { toast } from 'sonner';
+import { JWT_HOST_API } from "configs/auth.config";
 
 export const FormSubmitHandler = ({
   inwardId,
@@ -133,7 +134,7 @@ export const FormSubmitHandler = ({
 
     try {
       const response = await axios.post(
-        'https://lims.kailtech.in/api/calibrationprocess/insert-calibration-step3',
+        `${JWT_HOST_API}/calibrationprocess/insert-calibration-step3`,
         payloadStep3,
         {
           headers: {

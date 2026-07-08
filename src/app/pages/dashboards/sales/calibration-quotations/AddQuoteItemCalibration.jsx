@@ -101,6 +101,19 @@ export default function AddQuoteItemCalibration() {
 
       if (quoteRes.data?.status === "true" || quoteRes.data?.status === true) {
         const q = quoteRes.data.quotation?.[0];
+        
+        // Fetch customer details to get the actual gstno
+        if (q && q.customer) {
+          try {
+            const custRes = await axios.get(`/people/get-single-customer/${q.customer}`);
+            if (custRes.data?.data?.gstno) {
+              q.gstno = custRes.data.data.gstno;
+            }
+          } catch (e) {
+            console.error("Failed to fetch customer details", e);
+          }
+        }
+        
         setQuoteData(q || null);
         
         // Map existing items
@@ -260,7 +273,7 @@ export default function AddQuoteItemCalibration() {
 
   return (
     <Page title="Add Quotation Items (Calibration)">
-      <div className="transition-content px-(--margin-x) pb-8">
+      <div className="transition-content px-[var(--margin-x)] pb-8">
         {/* Header */}
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -280,6 +293,14 @@ export default function AddQuoteItemCalibration() {
               <div className="font-semibold text-gray-800 dark:text-gray-200">
                 {quoteData.quotationno}
               </div>
+              {quoteData.enquiry_description && (
+                <div className="mt-2 text-left">
+                  <div className="text-xs font-medium text-gray-500">Enquiry Description</div>
+                  <div className="text-sm text-gray-700 dark:text-gray-300">
+                    {quoteData.enquiry_description}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -349,7 +370,14 @@ export default function AddQuoteItemCalibration() {
                 ) : (
                   items.map((item) => (
                     <Tr key={item._key} className="border-b dark:border-dark-600">
-                      <Td className="px-4 py-2 font-medium text-gray-700 dark:text-dark-200">{item.name}</Td>
+                      <Td className="px-2 py-2">
+                        <input
+                          type="text"
+                          value={item.name}
+                          onChange={(e) => handleItemChange(item._key, "name", e.target.value)}
+                          className={`${inputCls} min-w-[150px]`}
+                        />
+                      </Td>
                       <Td className="px-4 py-2">{item.accreditation}</Td>
                       <Td className="px-4 py-2">
                         <textarea

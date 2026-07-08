@@ -11,30 +11,33 @@ export default function AddManagePolicy() {
   // State for form and loading
   const [formData, setFormData] = useState({ 
     name: "", 
-    policy_number: "",
-    description: ""
+    policyno: "",
+    description: "",
+    time: "",
+    deadline: "",
+    file: null
   });
   const [loading, setLoading] = useState(false);
 
   // Error and touched states
   const [errors, setErrors] = useState({
     name: "",
-    policy_number: "",
+    policyno: "",
     description: "",
   });
 
   const [touched, setTouched] = useState({
     name: false,
-    policy_number: false,
+    policyno: false,
     description: false,
   });
 
   // Input handler
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type, files } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: type === "file" ? files[0] : value,
     }));
 
     // Clear error when user starts typing
@@ -84,8 +87,8 @@ export default function AddManagePolicy() {
       isValid = false;
     }
 
-    if (!formData.policy_number.trim()) {
-      newErrors.policy_number = "This field is required";
+    if (!formData.policyno.trim()) {
+      newErrors.policyno = "This field is required";
       isValid = false;
     }
 
@@ -97,7 +100,7 @@ export default function AddManagePolicy() {
     setErrors(newErrors);
     setTouched({
       name: true,
-      policy_number: true,
+      policyno: true,
       description: true,
     });
 
@@ -118,17 +121,27 @@ export default function AddManagePolicy() {
     try {
       const form = new FormData();
       form.append("name", formData.name);
-      form.append("policy_number", formData.policy_number);
+      form.append("policyno", formData.policyno);
       form.append("description", formData.description);
+      form.append("time", formData.time);
+      form.append("deadline", formData.deadline);
+      if (formData.file) {
+        form.append("file", formData.file);
+      }
 
-      await axios.post("/hrm/add-policy", form);
-
-      toast.success("Policy created successfully ✅", {
-        duration: 2000,
-        icon: "✅",
+      const res = await axios.post("/hrm/add-policy", form, {
+        headers: { "Content-Type": "multipart/form-data" },
       });
 
-      navigate("/dashboards/hrm/manage-policies");
+      if (res.data.status) {
+        toast.success(res.data.message || "Policy created successfully ✅", {
+          duration: 2000,
+          icon: "✅",
+        });
+        navigate("/dashboards/hrm/manage-policies");
+      } else {
+        toast.error(res.data.message || "Failed to create policy ❌");
+      }
     } catch (err) {
       console.error("Error creating policy:", err);
       toast.error(err?.response?.data?.message || "Failed to create policy ❌");
@@ -174,16 +187,37 @@ export default function AddManagePolicy() {
           <div>
             <Input
               label="Policy Number"
-              name="policy_number"
+              name="policyno"
               placeholder="Enter policy number"
-              value={formData.policy_number}
+              value={formData.policyno}
               onChange={handleChange}
               onBlur={handleBlur}
-              className={errors.policy_number && touched.policy_number ? "border-red-500" : ""}
+              className={errors.policyno && touched.policyno ? "border-red-500" : ""}
             />
-            {errors.policy_number && touched.policy_number && (
-              <p className="text-red-500 text-sm mt-1">{errors.policy_number}</p>
+            {errors.policyno && touched.policyno && (
+              <p className="text-red-500 text-sm mt-1">{errors.policyno}</p>
             )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Input
+                label="Time (e.g. 15)"
+                name="time"
+                placeholder="Enter time"
+                value={formData.time}
+                onChange={handleChange}
+              />
+            </div>
+            <div>
+              <Input
+                label="Deadline (e.g. 7)"
+                name="deadline"
+                placeholder="Enter deadline"
+                value={formData.deadline}
+                onChange={handleChange}
+              />
+            </div>
           </div>
 
           <div>
@@ -204,6 +238,18 @@ export default function AddManagePolicy() {
             {errors.description && touched.description && (
               <p className="text-red-500 text-sm mt-1">{errors.description}</p>
             )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Upload File
+            </label>
+            <input
+              type="file"
+              name="file"
+              onChange={handleChange}
+              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-dark-700 dark:file:text-dark-100"
+            />
           </div>
 
           <div className="pt-2">

@@ -19,6 +19,7 @@ import { Table, Card, THead, TBody, Th, Tr, Td } from "components/ui";
 import { TableSortIcon } from "components/shared/table/TableSortIcon";
 import { Page } from "components/shared/Page";
 import { Toolbar } from "./Toolbar";
+import { columns } from "./columns";
 import { useLockScrollbar, useDidUpdate, useLocalStorage } from "hooks";
 import { fuzzyFilter } from "utils/react-table/fuzzyFilter";
 import { useSkipper } from "utils/react-table/useSkipper";
@@ -43,7 +44,8 @@ export default function BisDisposalRegister() {
   const [tableData, setTableData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [, setSearched] = useState(false);
-  
+  const [companyInfo, setCompanyInfo] = useState(null);
+
   // Filters matching PHP code
   const [filters, setFilters] = useState({
     startdate: "",
@@ -57,14 +59,22 @@ export default function BisDisposalRegister() {
   const [specificPurposes, setSpecificPurposes] = useState([]);
   const [products, setProducts] = useState([]);
 
+  // Fetch company info
+  const fetchCompanyInfo = async () => {
+    try {
+      const res = await axios.get("/get-company-info");
+      if (res.data?.status) {
+        setCompanyInfo(res.data.data);
+      }
+    } catch (err) {
+      console.error("Error fetching company info:", err);
+    }
+  };
+
   // Fetch departments dropdown data
   const fetchDepartments = async () => {
     try {
-      const res = await axios.get("/master/get-all-labs", {
-        params: {
-          status: 1
-        }
-      });
+      const res = await axios.get("register/get-lab-by-vertical/2");
       setDepartments(res.data?.data || []);
     } catch (err) {
       console.error("Error fetching departments:", err);
@@ -74,9 +84,7 @@ export default function BisDisposalRegister() {
   // Fetch specific purposes dropdown data
   const fetchSpecificPurposes = async () => {
     try {
-      const res = await axios.get("/master/get-specific-purposes", {
-        params: { status: 1 }
-      });
+      const res = await axios.get("/people/get-specific-purpose-list");
       setSpecificPurposes(res.data?.data || []);
     } catch (err) {
       console.error("Error fetching specific purposes:", err);
@@ -86,7 +94,7 @@ export default function BisDisposalRegister() {
   // Fetch products dropdown data
   const fetchProducts = async () => {
     try {
-      const res = await axios.get("/master/get-products", {
+      const res = await axios.get("testing/get-prodcut-list", {
         params: { status: 1 }
       });
       setProducts(res.data?.data || []);
@@ -96,6 +104,7 @@ export default function BisDisposalRegister() {
   };
 
   useEffect(() => {
+    fetchCompanyInfo();
     fetchDepartments();
     fetchSpecificPurposes();
     fetchProducts();
@@ -106,13 +115,17 @@ export default function BisDisposalRegister() {
     try {
       setLoading(true);
       setSearched(true);
-      
-      // Use bisDisposalRegisterData.php endpoint matching PHP ajax URL
-      const res = await axios.get("/registers/bisDisposalRegisterData", { params: filters });
-      
+
+      const activeFilters = Object.fromEntries(
+        Object.entries(filters).filter((entry) => entry[1] !== "" && entry[1] !== null && entry[1] !== undefined)
+      );
+
+      // Use bis-disposal-register endpoint matching backend API
+      const res = await axios.get("/register/big-disposal-register", { params: activeFilters });
+
       // Handle DataTables server-side response format
       let rows = res.data?.data || [];
-      
+
       // Map to PHP table structure: S no, Date, LRN/BRN, Nature of Sample, Indian Standards, Quantity Recieved, Received, Parameters, Allocated To, Reporting Date, Signature, Approx Qty After Test, Signature of Sample Receiver With Date
       rows = rows.map((row) => ({
         sno: row[0] || "",
@@ -129,7 +142,7 @@ export default function BisDisposalRegister() {
         approx_qty_after_test: row[11] || "",
         signature_receiver_date: row[12] || "",
       }));
-      
+
       setTableData(rows);
     } catch (err) {
       console.error("Error fetching received data:", err);
@@ -153,7 +166,7 @@ export default function BisDisposalRegister() {
   });
 
   const [globalFilter, setGlobalFilter] = useState("");
-  const [sorting, setSorting] = useState([{ id: "lrn", desc: true }]); // PHP: order: [[0, "desc"]]
+  const [sorting, setSorting] = useState([{ id: "sno", desc: true }]); // PHP: order: [[0, "desc"]]
 
   const [columnVisibility, setColumnVisibility] = useLocalStorage(
     "column-visibility-alloted-items-1",
@@ -166,78 +179,9 @@ export default function BisDisposalRegister() {
 
   const [autoResetPageIndex] = useSkipper();
 
-  // Define columns matching PHP BIS disposal register table exactly
-  const bisDisposalColumns = [
-    {
-      id: "sno",
-      header: "S no",
-      cell: (info) => info.getValue(),
-    },
-    {
-      id: "date",
-      header: "Date",
-      cell: (info) => info.getValue(),
-    },
-    {
-      id: "lrn_brn",
-      header: "LRN/BRN",
-      cell: (info) => info.getValue(),
-    },
-    {
-      id: "nature_of_sample",
-      header: "Nature of Sample",
-      cell: (info) => info.getValue(),
-    },
-    {
-      id: "indian_standards",
-      header: "Indian Standards",
-      cell: (info) => info.getValue(),
-    },
-    {
-      id: "quantity_received",
-      header: "Quantity Recieved",
-      cell: (info) => info.getValue(),
-    },
-    {
-      id: "received",
-      header: "Received",
-      cell: (info) => info.getValue(),
-    },
-    {
-      id: "parameters",
-      header: "Parameters",
-      cell: (info) => info.getValue(),
-    },
-    {
-      id: "allocated_to",
-      header: "Allocated To",
-      cell: (info) => info.getValue(),
-    },
-    {
-      id: "reporting_date",
-      header: "Reporting Date",
-      cell: (info) => info.getValue(),
-    },
-    {
-      id: "signature",
-      header: "Signature",
-      cell: (info) => info.getValue(),
-    },
-    {
-      id: "approx_qty_after_test",
-      header: "Approx Qty After Test",
-      cell: (info) => info.getValue(),
-    },
-    {
-      id: "signature_receiver_date",
-      header: "Signature of Sample Receiver With Date",
-      cell: (info) => info.getValue(),
-    },
-  ];
-
   const table = useReactTable({
     data: tableData,
-    columns: bisDisposalColumns,
+    columns,
     state: {
       globalFilter,
       sorting,
@@ -308,10 +252,49 @@ export default function BisDisposalRegister() {
           <div
             className={clsx(
               "transition-content flex grow flex-col pt-3",
-              tableSettings.enableFullScreen ? "overflow-hidden" : "px-(--margin-x)"
+              tableSettings.enableFullScreen ? "overflow-hidden" : "px-[var(--margin-x)]"
             )}
           >
             <Card className={clsx("relative flex grow flex-col", tableSettings.enableFullScreen && "overflow-hidden")}>
+              {/* ISO Letterhead Table */}
+              <div className="p-4 overflow-x-auto">
+                <table className="w-full border-collapse border border-gray-300 text-sm text-gray-800 dark:border-dark-500 dark:text-dark-50">
+                  <tbody>
+                    <tr>
+                      <td rowSpan="6" className="w-1/5 border border-gray-300 p-2 align-top dark:border-dark-500">
+                        <img src={companyInfo?.branding?.logo || "/images/letterhead.jpg"} alt="Letterhead" className="w-[150px] mx-auto" />
+                        <div className="text-center text-[10px] font-bold mt-2">{companyInfo?.company?.name || "Kailtech Test And Research Centre Pvt. Ltd."}</div>
+                      </td>
+                      <th rowSpan="6" className="w-1/2 border border-gray-300 p-2 text-center text-lg font-bold dark:border-dark-500">
+                        BIS Disposal Register
+                      </th>
+                      <th className="w-[15%] border border-gray-300 p-2 text-left dark:border-dark-500">QF. No.</th>
+                      <td className="border border-gray-300 p-2 dark:border-dark-500">{companyInfo?.company?.short_name || "KTRC"}/QF/0704/03</td>
+                    </tr>
+                    <tr>
+                      <th className="w-[15%] border border-gray-300 p-2 text-left dark:border-dark-500">Issue No.</th>
+                      <td className="border border-gray-300 p-2 dark:border-dark-500">01</td>
+                    </tr>
+                    <tr>
+                      <th className="w-[15%] border border-gray-300 p-2 text-left dark:border-dark-500">Issue Date</th>
+                      <td className="border border-gray-300 p-2 dark:border-dark-500">01/06/2019</td>
+                    </tr>
+                    <tr>
+                      <th className="w-[15%] border border-gray-300 p-2 text-left dark:border-dark-500">Revision No.</th>
+                      <td className="border border-gray-300 p-2 dark:border-dark-500">-</td>
+                    </tr>
+                    <tr>
+                      <th className="w-[15%] border border-gray-300 p-2 text-left dark:border-dark-500">Revision Date</th>
+                      <td className="border border-gray-300 p-2 dark:border-dark-500">-</td>
+                    </tr>
+                    <tr>
+                      <th className="w-[15%] border border-gray-300 p-2 text-left dark:border-dark-500">Page</th>
+                      <td className="border border-gray-300 p-2 dark:border-dark-500">1 of 1</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
               <div className="table-wrapper min-w-full grow overflow-x-auto">
                 <Table hoverable dense={tableSettings.enableRowDense} sticky={tableSettings.enableFullScreen} className="w-full text-left rtl:text-right text-xs">
                   <THead>
@@ -396,6 +379,28 @@ export default function BisDisposalRegister() {
                   <PaginationSection table={table} />
                 </div>
               )}
+
+              {/* Signature Block */}
+              <div className="grid grid-cols-3 gap-4 p-4 text-sm text-gray-800 dark:text-dark-50 border-t border-gray-200 dark:border-dark-500">
+                <div>
+                  <p className="font-semibold mb-4">Prepared by</p>
+                  <p>Sr. Engineer</p>
+                  <p>Name:</p>
+                  <p className="mt-4">Sign:</p>
+                </div>
+                <div>
+                  <p className="font-semibold mb-4">Reviewed by</p>
+                  <p>DTM</p>
+                  <p>Name:</p>
+                  <p className="mt-4">Sign:</p>
+                </div>
+                <div>
+                  <p className="font-semibold mb-4">Approved by</p>
+                  <p>TM</p>
+                  <p>Name:</p>
+                  <p className="mt-4">Sign:</p>
+                </div>
+              </div>
             </Card>
           </div>
         </div>

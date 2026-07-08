@@ -743,7 +743,7 @@ export default function EditTestPackage() {
 
   return (
     <Page title={isClone ? "Clone Test Price" : "Update Test Price"}>
-      <div className="transition-content px-(--margin-x) pb-8">
+      <div className="transition-content px-[var(--margin-x)] pb-8">
         <div className="mb-5 flex items-center justify-between">
           <h2 className="dark:text-dark-50 text-xl font-semibold text-gray-800">
             Update Test Price

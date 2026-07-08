@@ -108,7 +108,7 @@ export default function GSTR1IGST() {
             onChange={handleFilterChange}
             onSearch={handleSearch}
           />
-          <div className="transition-content flex grow flex-col px-(--margin-x) pt-3">
+          <div className="transition-content flex grow flex-col px-[var(--margin-x)] pt-3">
             <Card className="relative flex grow flex-col">
               {loading ? (
                 <div className="flex h-40 items-center justify-center text-sm text-gray-500">

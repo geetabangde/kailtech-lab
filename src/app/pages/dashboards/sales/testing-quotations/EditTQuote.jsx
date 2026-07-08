@@ -30,6 +30,9 @@ export default function EditTestingQuotation() {
         customername: "",
         customeraddress: "",
         contactpersonname: "",
+        concernpersondesignation: "",
+        concernpersonemail: "",
+        concernpersonmobile: "",
         gstno: "",
         country: "",
         state: "",
@@ -51,6 +54,7 @@ export default function EditTestingQuotation() {
     const [specificPurposes, setSpecificPurposes] = useState([]);
     const [addresses, setAddresses] = useState([]);
     const [contacts, setContacts] = useState([]);
+    const [countries, setCountries] = useState([]);
 
     const MODE_OPTIONS = [
         { value: "0", label: "Telephone" },
@@ -62,27 +66,32 @@ export default function EditTestingQuotation() {
     ];
 
     const fetchDependencies = useCallback(async (customerId) => {
-        if (!customerId) return;
+        if (!customerId) return { addresses: [], contacts: [] };
         try {
             const [addrRes, contactRes] = await Promise.all([
                 axios.get(`/people/get-customers-address/${customerId}`),
                 axios.get(`/get-concern-person/${customerId}`),
             ]);
-            setAddresses(addrRes.data?.data || []);
-            setContacts(contactRes.data?.data || []);
+            const addrs = addrRes.data?.data || [];
+            const conts = contactRes.data?.data || [];
+            setAddresses(addrs);
+            setContacts(conts);
+            return { addresses: addrs, contacts: conts };
         } catch (err) {
             console.error("Error fetching dependencies:", err);
+            return { addresses: [], contacts: [] };
         }
     }, []);
 
     const fetchData = useCallback(async () => {
         try {
             setLoading(true);
-            const [quoteRes, custRes, ctypeRes, purposeRes] = await Promise.all([
+            const [quoteRes, custRes, ctypeRes, purposeRes, countryRes] = await Promise.all([
                 axios.get(`/sales/get-testing-quotation-byid/${id}`),
                 axios.get("/people/get-all-customers"),
                 axios.get("/people/get-customer-type-list"),
                 axios.get("/people/get-specific-purpose-list"),
+                axios.get("/people/get-country"),
             ]);
 
             const quote = quoteRes.data?.data?.quotation;
@@ -95,17 +104,48 @@ export default function EditTestingQuotation() {
             setCustomers(custRes.data?.Data || custRes.data?.data || []);
             setCustomerTypes(ctypeRes.data?.Data || ctypeRes.data?.data || []);
             setSpecificPurposes(purposeRes.data?.Data || purposeRes.data?.data || []);
+            setCountries(countryRes.data?.Data || countryRes.data?.data || []);
+
+            let addrs = [];
+            let conts = [];
+            if (quote.customer && quote.customer !== "new") {
+                const deps = await fetchDependencies(quote.customer);
+                addrs = deps.addresses;
+                conts = deps.contacts;
+            }
+
+            let newCperson = String(quote.cperson || "");
+            let newCaddress = String(quote.caddress || "");
+
+            // Fallback: match cperson by contactpersonname
+            if ((!newCperson || newCperson === "0") && quote.contactpersonname) {
+                const matchedContact = conts.find(
+                    (c) => c.name?.trim().toLowerCase() === quote.contactpersonname.trim().toLowerCase()
+                );
+                if (matchedContact) newCperson = String(matchedContact.id);
+            }
+
+            // Fallback: match caddress by customeraddress
+            if ((!newCaddress || newCaddress === "0") && quote.customeraddress) {
+                const matchedAddress = addrs.find(
+                    (a) => quote.customeraddress.includes(a.address) || quote.customeraddress.includes(a.city)
+                );
+                if (matchedAddress) newCaddress = String(matchedAddress.id);
+            }
 
             setFormData({
-                customer: quote.customer || "",
+                customer: String(quote.customer || "new"),
                 customername: quote.customername || "",
                 customeraddress: quote.customeraddress || "",
                 contactpersonname: quote.contactpersonname || "",
+                concernpersondesignation: quote.concernpersondesignation || "",
+                concernpersonemail: quote.concernpersonemail || "",
+                concernpersonmobile: quote.concernpersonmobile || "",
                 gstno: quote.gstno || "",
-                country: quote.country || "",
+                country: String(quote.country || ""),
                 state: quote.stateid || quote.state || "",
-                ctype: quote.ctype || "",
-                specificpurpose: quote.specificpurpose || "",
+                ctype: String(quote.ctype || ""),
+                specificpurpose: String(quote.specificpurpose || ""),
                 enquirydate: quote.enquirydate ? dayjs(quote.enquirydate).format("YYYY-MM-DD") : "",
                 modeof: String(quote.modeof || "0"),
                 customterms: quote.customterms || "",
@@ -113,13 +153,9 @@ export default function EditTestingQuotation() {
                 ourscope: quote.ourscope || "",
                 yourscope: quote.yourscope || "",
                 vertical: String(quote.vertical || "2"),
-                caddress: quote.caddress || "",
-                cperson: quote.cperson || "",
+                caddress: newCaddress,
+                cperson: newCperson,
             });
-
-            if (quote.customer) {
-                fetchDependencies(quote.customer);
-            }
         } catch (err) {
             console.error("Error loading data:", err);
             toast.error("Failed to load quotation details");
@@ -152,6 +188,11 @@ export default function EditTestingQuotation() {
         }));
     };
 
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setFormData((prev) => ({ ...prev, [name]: value }));
+    };
+
     const handleEditorChange = (name, val, quill) => {
         setFormData(prev => ({
             ...prev,
@@ -176,7 +217,16 @@ export default function EditTestingQuotation() {
                 ourscope: formData.ourscope,
                 yourscope: formData.yourscope,
                 revise: isRevision,
-                id: Number(id)
+                id: Number(id),
+                customername: formData.customername,
+                customeraddress: formData.customeraddress,
+                contactpersonname: formData.contactpersonname,
+                concernpersondesignation: formData.concernpersondesignation,
+                concernpersonemail: formData.concernpersonemail,
+                concernpersonmobile: formData.concernpersonmobile,
+                gstno: formData.gstno,
+                country: formData.country,
+                state: formData.state,
             };
 
             const res = await axios.post("/sales/update-testing-quotation", payload);
@@ -207,7 +257,7 @@ export default function EditTestingQuotation() {
 
     return (
         <Page title="Edit Testing Quotation">
-            <div className="transition-content px-(--margin-x) pb-8">
+            <div className="transition-content px-[var(--margin-x)] pb-8">
                 {/* Header */}
                 <div className="mb-6 flex items-center justify-between">
                     <div>
@@ -274,6 +324,83 @@ export default function EditTestingQuotation() {
                                     onChange={(opt) => handleSelectChange("cperson", opt)}
                                     placeholder="Select Contact..."
                                     noOptionsMessage={() => "No contacts found for this customer"}
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label className="mb-2 block text-sm font-semibold text-gray-700">
+                                    Contact Person Designation
+                                </label>
+                                <input
+                                    name="concernpersondesignation"
+                                    value={formData.concernpersondesignation}
+                                    onChange={handleChange}
+                                    className="h-10 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                                    placeholder="Enter designation"
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label className="mb-2 block text-sm font-semibold text-gray-700">
+                                    Contact Person Email
+                                </label>
+                                <input
+                                    name="concernpersonemail"
+                                    value={formData.concernpersonemail}
+                                    onChange={handleChange}
+                                    className="h-10 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                                    placeholder="Enter email"
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label className="mb-2 block text-sm font-semibold text-gray-700">
+                                    Contact Person Mobile
+                                </label>
+                                <input
+                                    name="concernpersonmobile"
+                                    value={formData.concernpersonmobile}
+                                    onChange={handleChange}
+                                    className="h-10 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                                    placeholder="Enter mobile"
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label className="mb-2 block text-sm font-semibold text-gray-700">
+                                    GST NO
+                                </label>
+                                <input
+                                    name="gstno"
+                                    value={formData.gstno}
+                                    onChange={handleChange}
+                                    className="h-10 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                                    placeholder="Enter GST"
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label className="mb-2 block text-sm font-semibold text-gray-700">
+                                    Country
+                                </label>
+                                <Select
+                                    options={countries.map((c) => ({
+                                        value: c.id,
+                                        label: c.country_name,
+                                    }))}
+                                    value={countries
+                                        .map((c) => ({ value: c.id, label: c.country_name }))
+                                        .find((opt) => String(opt.value) === String(formData.country))}
+                                    onChange={(opt) => handleSelectChange("country", opt)}
+                                    placeholder="Select Country..."
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label className="mb-2 block text-sm font-semibold text-gray-700">
+                                    State / Province
+                                </label>
+                                <input
+                                    name="state"
+                                    value={formData.state}
+                                    onChange={handleChange}
+                                    className="h-10 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                                    placeholder="Enter state"
                                 />
                             </div>
 

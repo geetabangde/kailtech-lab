@@ -31,36 +31,43 @@ export const columns = [
   }),
 
   // PHP: Id no
-  columnHelper.accessor("id_no", {
-    id: "id_no",
+  columnHelper.accessor("idno", {
+    id: "idno",
     header: "Id no",
     cell: (info) => info.getValue(),
   }),
 
   // PHP: Category
-  columnHelper.accessor("category", {
-    id: "category",
+  columnHelper.accessor("cname", {
+    id: "cname",
     header: "Category",
     cell: (info) => info.getValue(),
   }),
 
   // PHP: Type
-  columnHelper.accessor("type", {
-    id: "type",
+  columnHelper.accessor("typeofuse", {
+    id: "typeofuse",
     header: "Type",
     cell: (info) => info.getValue(),
   }),
 
+  // Unit
+  columnHelper.accessor("unit", {
+    id: "unit",
+    header: "Unit",
+    cell: (info) => info.getValue(),
+  }),
+
   // PHP: Quantity
-  columnHelper.accessor("quantity", {
-    id: "quantity",
+  columnHelper.accessor("qty", {
+    id: "qty",
     header: "Quantity",
     cell: (info) => info.getValue(),
   }),
 
   // PHP: Batch No
-  columnHelper.accessor("batch_no", {
-    id: "batch_no",
+  columnHelper.accessor("batchno", {
+    id: "batchno",
     header: "Batch No",
     cell: (info) => info.getValue(),
   }),

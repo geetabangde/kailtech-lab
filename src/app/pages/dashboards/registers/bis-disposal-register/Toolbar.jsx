@@ -34,7 +34,7 @@ export function Toolbar({ filters, onChange, onSearch, departments, specificPurp
   };
 
   return (
-    <div className="px-(--margin-x) pt-4">
+    <div className="px-[var(--margin-x)] pt-4">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-xl font-semibold tracking-wide text-gray-800 dark:text-dark-50">
           All Bis Disposal Register
@@ -63,7 +63,14 @@ export function Toolbar({ filters, onChange, onSearch, departments, specificPurp
                   label: product.name,
                 })),
               ]}
-              value={products?.find((p) => p.id === product) || null}
+              value={
+                product
+                  ? {
+                      value: product,
+                      label: products?.find((p) => p.id === product)?.name || "",
+                    }
+                  : null
+              }
               onChange={(opt) => handleInput("product", opt ? opt.value : "")}
               isClearable
               placeholder="Select Product"
@@ -87,7 +94,11 @@ export function Toolbar({ filters, onChange, onSearch, departments, specificPurp
               Start Date
             </label>
             <DatePicker
-              options={{ dateFormat: "Y-m-d", allowInput: true }}
+              options={{ 
+                dateFormat: "Y-m-d", 
+                allowInput: true,
+                maxDate: endDate || new Date()
+              }}
               value={startDate}
               onChange={(_dates, str) => handleInput("startdate", str)}
               placeholder="Start Date"
@@ -99,7 +110,11 @@ export function Toolbar({ filters, onChange, onSearch, departments, specificPurp
               End Date
             </label>
             <DatePicker
-              options={{ dateFormat: "Y-m-d", allowInput: true }}
+              options={{ 
+                dateFormat: "Y-m-d", 
+                allowInput: true,
+                minDate: startDate || null
+              }}
               value={endDate}
               onChange={(_dates, str) => handleInput("enddate", str)}
               placeholder="End Date"
@@ -122,7 +137,14 @@ export function Toolbar({ filters, onChange, onSearch, departments, specificPurp
                   label: dept.name,
                 })),
               ]}
-              value={departments?.find((d) => d.id === department) || null}
+              value={
+                department
+                  ? {
+                      value: department,
+                      label: departments?.find((d) => d.id === department)?.name || "",
+                    }
+                  : null
+              }
               onChange={(opt) => handleInput("department", opt ? opt.value : "")}
               isClearable
               placeholder="Select Department"
@@ -141,7 +163,15 @@ export function Toolbar({ filters, onChange, onSearch, departments, specificPurp
                   label: purpose.name,
                 })),
               ]}
-              value={specificPurposes?.find((s) => s.id === specificpurpose) || null}
+              value={
+                specificpurpose
+                  ? {
+                      value: specificpurpose,
+                      label:
+                        specificPurposes?.find((s) => s.id === specificpurpose)?.name || "",
+                    }
+                  : null
+              }
               onChange={(opt) => handleInput("specificpurpose", opt ? opt.value : "")}
               isClearable
               placeholder="Select Specific Purpose"
@@ -157,7 +187,12 @@ export function Toolbar({ filters, onChange, onSearch, departments, specificPurp
             </button>
             <button
               type="button"
-              onClick={() => window.open('/registers/exportbisregister?' + new URLSearchParams(filters), '_blank')}
+              onClick={() => {
+                const activeFilters = Object.fromEntries(
+                  Object.entries(filters).filter((entry) => entry[1] !== "" && entry[1] !== null && entry[1] !== undefined)
+                );
+                window.open('/registers/exportbisregister?' + new URLSearchParams(activeFilters), '_blank');
+              }}
               className="h-10 rounded border border-primary-600 bg-white px-6 py-2 text-sm font-medium text-primary-600 hover:bg-primary-50"
             >
               Export

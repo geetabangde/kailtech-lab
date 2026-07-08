@@ -3,7 +3,7 @@
   > .table-tr:hover:not(.row-selected)
   > .table-td,
 .table.is-zebra > .table-tbody > .table-tr:nth-child(even) > .table-td {
-  @apply bg-gray-100 dark:bg-surface-2/50;
+  @apply bg-gray-100 opacity-100 dark:bg-surface-2 dark:opacity-50;
 }
 
 .table-td,

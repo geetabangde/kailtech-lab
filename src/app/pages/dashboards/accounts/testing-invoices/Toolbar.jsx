@@ -21,7 +21,7 @@ export function Toolbar({ table }) {
       <div
         className={clsx(
           "transition-content flex flex-wrap items-center justify-between gap-3",
-          isFullScreen ? "px-4 sm:px-5" : "px-(--margin-x) pt-4",
+          isFullScreen ? "px-4 sm:px-5" : "px-[var(--margin-x)] pt-4",
         )}
       >
         <h2 className="dark:text-dark-50 text-xl font-semibold tracking-wide text-gray-800">
@@ -72,7 +72,7 @@ export function Toolbar({ table }) {
       <div
         className={clsx(
           "transition-content flex items-center justify-between gap-3 pt-4",
-          isFullScreen ? "px-4 sm:px-5" : "px-(--margin-x)",
+          isFullScreen ? "px-4 sm:px-5" : "px-[var(--margin-x)]",
         )}
       >
         <SearchInput table={table} />

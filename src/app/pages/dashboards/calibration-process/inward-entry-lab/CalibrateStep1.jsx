@@ -4,6 +4,7 @@ import axios from 'axios';
 import { Page } from "components/shared/Page";
 import { Button } from "components/ui";
 import { toast } from "sonner";
+import { JWT_HOST_API } from "configs/auth.config";
 
 const Calibratestep1 = () => {
     const navigate = useNavigate();
@@ -148,7 +149,7 @@ const Calibratestep1 = () => {
                 setLoading(true);
                 setError(null);
                 
-                const apiUrl = `https://lims.kailtech.in/api/calibrationprocess/get-firststep-required-details`;
+                const apiUrl = `${JWT_HOST_API}/calibrationprocess/get-firststep-required-details`;
                 
                 const params = {
                     inward_id: id,
@@ -370,7 +371,7 @@ const Calibratestep1 = () => {
         console.log('Form submitted:', formData);
 
         try {
-            const apiUrl = 'https://lims.kailtech.in/api/calibrationprocess/add_step_one';
+            const apiUrl = `${JWT_HOST_API}/calibrationprocess/add_step_one`;
             
             // Format calibrated date - convert datetime-local to DD/MM/YYYY HH:MM:SS format
             let formattedCalibratedOn = '';

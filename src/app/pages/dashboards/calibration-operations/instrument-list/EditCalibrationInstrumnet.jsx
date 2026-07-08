@@ -11,9 +11,9 @@ import CustomFormatFields from "./components/CustomFormatFields";
 import EnvironmentalFields from "./components/EnvironmentalFields";
 import PriceListSection from "./components/PriceListSection";
 import AddCalibration from "./components/AddCalibration";
-import AddUncertainty from "./components/AddUncertainty";
-import AddCertificateSetting from "./components/AddCertificateSetting";
-
+// import AddUncertainty from "./components/AddUncertainty";
+import UncertainitySetting from "./components/UncertainitySetting";
+import CertificateSetting from "./components/CertificateSetting";
 export default function EditCalibrationInstrumnet() {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -27,6 +27,7 @@ export default function EditCalibrationInstrumnet() {
 
   const [currentStep, setCurrentStep] = useState(1);
   const [savedFormatId, setSavedFormatId] = useState(null);
+  // eslint-disable-next-line no-unused-vars
   const [savedUncertaintyId, setSavedUncertaintyId] = useState(null);
   const [savedInstrumentId, setSavedInstrumentId] = useState(null);
 
@@ -912,10 +913,10 @@ export default function EditCalibrationInstrumnet() {
                           : "Complete Step 1 first"
                         : step === 3
                           ? isClickable
-                            ? "Go to Step 3: Uncertainty Settings"
+                            ? "Go to Step 3: Uncertainty"
                             : "Complete previous steps first"
                           : isClickable
-                            ? "Go to Step 4: Certificate Settings"
+                            ? "Go to Step 4: "
                             : "Complete previous steps first"
                   }
                 >
@@ -974,8 +975,8 @@ export default function EditCalibrationInstrumnet() {
           <h2 className="text-lg font-semibold">
             {currentStep === 1 && "Step 1: Edit Instrument"}
             {currentStep === 2 && "Step 2: Calibration Results Settings"}
-            {currentStep === 3 && "Step 3: Uncertainty Settings"}
-            {currentStep === 4 && "Step 4: Certificate Settings"}
+            {currentStep === 3 && "Step 3: Uncertainty"}
+            {currentStep === 4 && "Step 4: "}
           </h2>
 
           <Button
@@ -1102,6 +1103,7 @@ export default function EditCalibrationInstrumnet() {
                 instrumentId={savedInstrumentId}
                 instid={savedInstrumentId}
                 formatId={savedFormatId}
+                formatValue={formData.suffix}
                 onNext={() => setCurrentStep(3)}
                 onBack={() => setCurrentStep(1)}
               />
@@ -1122,14 +1124,25 @@ export default function EditCalibrationInstrumnet() {
         {currentStep === 3 && (
           <div>
             {savedInstrumentId && savedFormatId ? (
-              <AddUncertainty
-                instrumentId={savedInstrumentId}
-                instid={savedInstrumentId}
-                formatId={savedFormatId}
-                uncertaintyId={savedUncertaintyId}
-                onComplete={() => setCurrentStep(4)}
-                onBack={() => setCurrentStep(2)}
-              />
+              <>
+                {/* 
+                <AddUncertainty
+                  instrumentId={savedInstrumentId}
+                  instid={savedInstrumentId}
+                  formatId={savedFormatId}
+                  uncertaintyId={savedUncertaintyId}
+                  onComplete={() => setCurrentStep(4)}
+                  onBack={() => setCurrentStep(2)}
+                /> 
+                */}
+                <UncertainitySetting
+                  instid={savedInstrumentId}
+                  formatId={savedFormatId}
+                  formatValue={formData.suffix}
+                  onComplete={() => setCurrentStep(4)}
+                  onBack={() => setCurrentStep(2)}
+                />
+              </>
             ) : (
               <div className="p-8 text-center">
                 <p className="text-red-600">
@@ -1146,15 +1159,13 @@ export default function EditCalibrationInstrumnet() {
         {currentStep === 4 && (
           <div>
             {savedInstrumentId && savedFormatId ? (
-              <AddCertificateSetting
+              <CertificateSetting
                 instid={savedInstrumentId}
-                instrumentId={savedInstrumentId}
                 formatId={savedFormatId}
+                formatValue={formData.suffix}
                 onComplete={() => {
                   toast.success("All steps completed successfully!");
-                  navigate(
-                    "/dashboards/calibration-operations/instrument-list",
-                  );
+                  navigate("/dashboards/calibration-operations/instrument-list");
                 }}
                 onBack={() => setCurrentStep(3)}
               />

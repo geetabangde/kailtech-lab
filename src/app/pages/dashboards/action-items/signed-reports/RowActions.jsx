@@ -16,9 +16,22 @@ export function RowActions({ row, table }) {
   const {
     id,
     trf,
+    hid,
+    pack_type,
+    package: packageType,
+    report,
+    tid,
     view_report,       // "https://…/testreports/testreport{id}.pdf"
     view_report_with,  // "https://…/testreports/testreportlh{id}.pdf"
+    report_link,
   } = row.original;
+
+  const actualPackType = pack_type ?? packageType;
+  const actualTid = tid ?? id;
+  const actualHid = hid ?? "";
+
+  const finalReportUrl = `/dashboards/action-items/final-reports-unsigned/view?tid=${actualTid}&hid=${actualHid}`;
+  const uploadReportUrl = `/dashboards/action-items/pending-upload-reports/${id}`;
 
   const [regenerating, setRegenerating] = useState(false);
   const [regenResult, setRegenResult] = useState(null);
@@ -51,6 +64,34 @@ export function RowActions({ row, table }) {
 
   return (
     <div className="flex flex-col gap-1.5 min-w-[150px]">
+      {/* ── Final Report / Upload Report ────────────────────────────── */}
+      {(actualPackType === 0 || actualPackType === "0") ? (
+        (!report || report === 0 || report === "0") ? (
+          <Link
+            to={uploadReportUrl}
+            className="rounded-md bg-primary-600 px-3 py-1.5 text-center text-xs font-semibold text-white shadow-sm transition hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-400"
+          >
+            Upload Report
+          </Link>
+        ) : (
+          <a
+            href={report_link || view_report || "#"}
+            target="_blank"
+            rel="noreferrer"
+            className="rounded-md bg-green-600 px-3 py-1.5 text-center text-xs font-semibold text-white shadow-sm transition hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-400"
+          >
+            Final Report
+          </a>
+        )
+      ) : (
+        <Link
+          to={finalReportUrl}
+          className="rounded-md bg-green-600 px-3 py-1.5 text-center text-xs font-semibold text-white shadow-sm transition hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-400"
+        >
+          Final Report
+        </Link>
+      )}
+
       {/* ── Upload Amended Report — perm 267 ──────────────────────── */}
       {permissions.includes(267) && (
         <Link

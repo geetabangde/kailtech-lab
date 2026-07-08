@@ -58,22 +58,27 @@ export default function ULRRegister() {
       setLoading(true);
       setSearched(true);
       
-      // Use ulrregisterdata.php endpoint matching PHP ajax URL
-      const res = await axios.get("/registers/ulrregisterdata", { params: filters });
+      // Filter out empty parameters so they aren't sent in the API request
+      const activeFilters = Object.fromEntries(
+        Object.entries(filters).filter(([, v]) => v !== null && v !== "")
+      );
+      
+      // Fetch data from new API endpoint (removed extra /api prefix)
+      const res = await axios.get("/register/ulr-register-list", { params: activeFilters });
       
       // Handle DataTables server-side response format
       let rows = res.data?.data || [];
       
       // Map to exact PHP output structure: [id, ulr, sname, reportdate, brn, added_on, customername, pname]
       rows = rows.map((row) => ({
-        id: row[0] || "",
-        ulr: row[1] || "",
-        sname: row[2] || "",
-        reportdate: row[3] || "",
-        brn: row[4] || "",
-        added_on: row[5] || "",
-        customername: row[6] || "",
-        pname: row[7] || "",
+        id: row.id || "",
+        ulr: row.ulr || "",
+        sname: row.sname || "",
+        reportdate: row.reportdate || "",
+        brn: row.brn || "",
+        added_on: row.added_on || "",
+        customername: row.customername || "",
+        pname: row.pname || "",
       }));
       
       setTableData(rows);
@@ -92,6 +97,11 @@ export default function ULRRegister() {
     e?.preventDefault?.();
     fetchULRData();
   };
+
+  useEffect(() => {
+    fetchULRData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [tableSettings, setTableSettings] = useState({
     enableFullScreen: false,
@@ -112,45 +122,45 @@ export default function ULRRegister() {
 
   const [autoResetPageIndex] = useSkipper();
 
-  // Define columns matching PHP ulrregisterdata.php output exactly
+  // Define columns matching API output exactly
   const ulrColumns = [
     {
-      id: "id",
+      accessorKey: "id",
       header: "ID",
       cell: (info) => info.getValue(),
     },
     {
-      id: "ulr",
+      accessorKey: "ulr",
       header: "ULR",
       cell: (info) => info.getValue(),
     },
     {
-      id: "sname",
+      accessorKey: "sname",
       header: "Specific Purpose",
       cell: (info) => info.getValue(),
     },
     {
-      id: "reportdate",
+      accessorKey: "reportdate",
       header: "Report Date",
       cell: (info) => info.getValue(),
     },
     {
-      id: "brn",
+      accessorKey: "brn",
       header: "BRN",
       cell: (info) => info.getValue(),
     },
     {
-      id: "added_on",
+      accessorKey: "added_on",
       header: "Added On",
       cell: (info) => info.getValue(),
     },
     {
-      id: "customername",
+      accessorKey: "customername",
       header: "Customer Name",
       cell: (info) => info.getValue(),
     },
     {
-      id: "pname",
+      accessorKey: "pname",
       header: "Product Name",
       cell: (info) => info.getValue(),
     },
@@ -226,10 +236,32 @@ export default function ULRRegister() {
           <div
             className={clsx(
               "transition-content flex grow flex-col pt-3",
-              tableSettings.enableFullScreen ? "overflow-hidden" : "px-(--margin-x)"
+              tableSettings.enableFullScreen ? "overflow-hidden" : "px-[var(--margin-x)]"
             )}
           >
             <Card className={clsx("relative flex grow flex-col", tableSettings.enableFullScreen && "overflow-hidden")}>
+              <div className="flex items-center justify-between px-4 py-3 sm:px-5">
+                <div>
+                  <button
+                    onClick={handleSearch}
+                    className="h-10 rounded bg-gray-600 px-6 py-2 text-sm font-medium text-white hover:bg-gray-700"
+                  >
+                    Search
+                  </button>
+                </div>
+                <div className="flex items-center gap-2">
+                  <label htmlFor="table-search" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Search:
+                  </label>
+                  <input
+                    id="table-search"
+                    type="text"
+                    value={globalFilter ?? ""}
+                    onChange={(e) => setGlobalFilter(e.target.value)}
+                    className="h-8 w-64 rounded border border-gray-300 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-dark-500 dark:bg-dark-800"
+                  />
+                </div>
+              </div>
               <div className="table-wrapper min-w-full grow overflow-x-auto">
                 <Table hoverable dense={tableSettings.enableRowDense} sticky={tableSettings.enableFullScreen} className="w-full text-left rtl:text-right text-xs">
                   <THead>

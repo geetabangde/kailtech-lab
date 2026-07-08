@@ -223,7 +223,7 @@ export default function CalibrationQuotationList() {
               "transition-content flex grow flex-col pt-1",
               tableSettings.enableFullScreen
                 ? "overflow-hidden"
-                : "px-(--margin-x)",
+                : "px-[var(--margin-x)]",
             )}
           >
             <Card

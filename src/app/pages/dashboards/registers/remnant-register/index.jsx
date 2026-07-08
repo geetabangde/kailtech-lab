@@ -42,6 +42,7 @@ export default function RemnantRegister() {
 
   const [tableData, setTableData] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [searched, setSearched] = useState(false);
   
   // Filters matching PHP code
   const [filters, setFilters] = useState({
@@ -61,10 +62,9 @@ export default function RemnantRegister() {
     try {
       // PHP logic: if (!(in_array(346, $permissions) || in_array(391, $permissions))) { $search1 = " and id in ($employeedepartment) "; }
       const hasPermission = permissions.includes(346) || permissions.includes(391);
-      const res = await axios.get("/master/get-all-labs", {
+      const res = await axios.get("/register/get-lab-by-vertical/2", {
         params: {
           vertical: 2,
-          status: 1,
           // Add employee department filter if no permission
           ...(hasPermission ? {} : { employee_department: true })
         }
@@ -75,25 +75,21 @@ export default function RemnantRegister() {
     }
   };
 
-  // Fetch customer types dropdown data
   const fetchCustomerTypes = async () => {
     try {
-      const res = await axios.get("/master/get-customer-types", {
-        params: { status: 1 }
-      });
-      setCustomerTypes(res.data?.data || []);
+      const res = await axios.get("/people/get-customer-type-list");
+      const data = res.data?.Data || res.data?.data || res.data || [];
+      setCustomerTypes(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error("Error fetching customer types:", err);
     }
   };
 
-  // Fetch specific purposes dropdown data
   const fetchSpecificPurposes = async () => {
     try {
-      const res = await axios.get("/master/get-specific-purposes", {
-        params: { status: 1 }
-      });
-      setSpecificPurposes(res.data?.data || []);
+      const res = await axios.get("/people/get-specific-purpose-list");
+      const data = res.data?.Data || res.data?.data || res.data || [];
+      setSpecificPurposes(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error("Error fetching specific purposes:", err);
     }
@@ -105,36 +101,38 @@ export default function RemnantRegister() {
     fetchSpecificPurposes();
   }, [fetchDepartments, fetchCustomerTypes, fetchSpecificPurposes]);
 
-  // Fetch remnant register data using PHP endpoint
   const fetchReceivedData = async () => {
     try {
       setLoading(true);
+      setSearched(true);
       
-      // Use remnantregisterData.php endpoint matching PHP ajax URL
-      const res = await axios.get("/registers/remnantregisterData", { params: filters });
+      const apiParams = {};
+      if (filters.startdate) apiParams.startdate = filters.startdate;
+      if (filters.enddate) apiParams.enddate = filters.enddate;
+      if (filters.department) apiParams.department = filters.department;
       
-      // Handle DataTables server-side response format
+      const res = await axios.get("/register/remnant-register", { params: apiParams });
+      
       let rows = res.data?.data || [];
       
-      // Map to PHP table structure: S.No, LRN, Nature Of Sample, Date Of Sample, Quantity, Reporting Date, Disposal Date, Checked By, Dispatch Qty, Disposed Qty, Remark, Actions
-      rows = rows.map((row) => ({
-        sno: row[0] || "",
-        lrn: row[1] || "",
-        nature_of_sample: row[2] || "",
-        date_of_sample: row[3] || "",
-        quantity: row[4] || "",
-        reporting_date: row[5] || "",
-        disposal_date: row[6] || "",
-        checked_by: row[7] || "",
-        dispatch_qty: row[8] || "",
-        disposed_qty: row[9] || "",
-        remark: row[10] || "",
-        actions: row[11] || "",
+      rows = rows.map((row, index) => ({
+        sno: index + 1,
+        lrn: row.lrn || "",
+        nature_of_sample: row.natureofsample || "",
+        date_of_sample: row.dateofsample || row.date || "",
+        quantity: row.remnant || "",
+        reporting_date: row.reportdate || "",
+        disposal_date: row.disposaldate || "",
+        checked_by: row.checkedBy || "",
+        dispatch_qty: row.purpose8 || "",
+        disposed_qty: row.purpose10 || "",
+        remark: row.remark || "",
+        actions: "",
       }));
       
       setTableData(rows);
     } catch (err) {
-      console.error("Error fetching received data:", err);
+      console.error("Error fetching remnant data:", err);
     } finally {
       setLoading(false);
     }
@@ -168,43 +166,24 @@ export default function RemnantRegister() {
 
   const [autoResetPageIndex] = useSkipper();
 
-  // Define columns matching PHP alloted-items table exactly
-  const allotedColumns = [
-    {
-      id: "lrn",
-      header: "LRN",
-      cell: (info) => info.getValue(),
-    },
-    {
-      id: "date",
-      header: "Date",
-      cell: (info) => info.getValue(),
-    },
-    {
-      id: "product",
-      header: "Product",
-      cell: (info) => info.getValue(),
-    },
-    {
-      id: "department",
-      header: "Department",
-      cell: (info) => info.getValue(),
-    },
-    {
-      id: "package",
-      header: "Package",
-      cell: (info) => info.getValue(),
-    },
-    {
-      id: "quantity",
-      header: "Quantity",
-      cell: (info) => info.getValue(),
-    },
+  const remnantColumns = [
+    { accessorKey: "sno", header: "S.No", cell: (info) => info.getValue() },
+    { accessorKey: "lrn", header: "LRN", cell: (info) => info.getValue() },
+    { accessorKey: "nature_of_sample", header: "Nature Of Sample", cell: (info) => info.getValue() },
+    { accessorKey: "date_of_sample", header: "Date Of Sample", cell: (info) => info.getValue() },
+    { accessorKey: "quantity", header: "Quantity", cell: (info) => info.getValue() },
+    { accessorKey: "reporting_date", header: "Reporting Date", cell: (info) => info.getValue() },
+    { accessorKey: "disposal_date", header: "Disposal Date", cell: (info) => info.getValue() },
+    { accessorKey: "checked_by", header: "Checked By", cell: (info) => info.getValue() },
+    { accessorKey: "dispatch_qty", header: "Dispatch Qty", cell: (info) => info.getValue() },
+    { accessorKey: "disposed_qty", header: "Disposed Qty", cell: (info) => info.getValue() },
+    { accessorKey: "remark", header: "Remark", cell: (info) => info.getValue() },
+    { accessorKey: "actions", header: "Actions", cell: (info) => info.getValue() },
   ];
 
   const table = useReactTable({
     data: tableData,
-    columns: allotedColumns,
+    columns: remnantColumns,
     state: {
       globalFilter,
       sorting,
@@ -275,7 +254,7 @@ export default function RemnantRegister() {
           <div
             className={clsx(
               "transition-content flex grow flex-col pt-3",
-              tableSettings.enableFullScreen ? "overflow-hidden" : "px-(--margin-x)"
+              tableSettings.enableFullScreen ? "overflow-hidden" : "px-[var(--margin-x)]"
             )}
           >
             <Card className={clsx("relative flex grow flex-col", tableSettings.enableFullScreen && "overflow-hidden")}>
@@ -342,10 +321,17 @@ export default function RemnantRegister() {
                         ))}
                       </Tr>
                     ))}
-                    {tableData.length === 0 && !loading && (
+                    {searched && tableData.length === 0 && !loading && (
                       <Tr>
                         <Td colSpan={visibleColumns.length} className="py-10 text-center text-gray-500">
                           No remnant items found.
+                        </Td>
+                      </Tr>
+                    )}
+                    {!searched && (
+                      <Tr>
+                        <Td colSpan={visibleColumns.length} className="py-10 text-center text-gray-500">
+                          Use the filters above and click Search to view the Remnant Register.
                         </Td>
                       </Tr>
                     )}

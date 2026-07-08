@@ -894,7 +894,7 @@ export default function ViewProformaInvoice() {
 
   return (
     <Page title="View Proforma Invoice">
-      <div className="transition-content px-(--margin-x) pb-8">
+      <div className="transition-content px-[var(--margin-x)] pb-8">
         {/* Action Buttons */}
         <div className="mb-4 flex items-center gap-2">
           <button

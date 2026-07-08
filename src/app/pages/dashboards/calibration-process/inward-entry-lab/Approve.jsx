@@ -3,6 +3,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Button } from 'components/ui';
 import { toast } from "sonner";
 import axios from 'axios';
+import { JWT_HOST_API } from "configs/auth.config";
 
 function Approve() {
   const [approveDate, setApproveDate] = useState('');
@@ -21,7 +22,7 @@ function Approve() {
 
   // Create axios instance with base configuration
   const apiClient = axios.create({
-    baseURL: 'https://lims.kailtech.in/api',
+    baseURL: JWT_HOST_API,
     headers: {
       'Content-Type': 'application/json',
       'Accept': 'application/json',

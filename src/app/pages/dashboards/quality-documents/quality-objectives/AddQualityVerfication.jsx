@@ -99,7 +99,7 @@ export default function AddQualityVerfication() {
 
   return (
     <Page title="Add Quality Objectives Verification">
-      <div className="px-(--margin-x) py-6 max-w-6xl mx-auto">
+      <div className="px-[var(--margin-x)] py-6 max-w-6xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-3">
             <Button

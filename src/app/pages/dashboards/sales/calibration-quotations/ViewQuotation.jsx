@@ -101,7 +101,7 @@ export default function ViewQuotation() {
 
   return (
     <Page title={`Quotation - ${quotation_no}`}>
-      <div className="transition-content px-(--margin-x) pb-12">
+      <div className="transition-content px-[var(--margin-x)] pb-12">
 
         {/* Actions Header (No Print) */}
         <div className="mb-6 flex items-center justify-between no-print">

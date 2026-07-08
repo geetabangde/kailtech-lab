@@ -106,12 +106,12 @@ function ActionMenu() {
         leaveFrom="opacity-100 translate-y-0"
         leaveTo="opacity-0 translate-y-2"
       >
-        <MenuItems className="absolute z-100 mt-1.5 min-w-[10rem] rounded-lg border border-gray-300 bg-white py-1 shadow-lg shadow-gray-200/50 outline-hidden focus-visible:outline-hidden dark:border-dark-500 dark:bg-dark-700 dark:shadow-none ltr:right-0 rtl:left-0">
+        <MenuItems className="absolute z-100 mt-1.5 min-w-[10rem] rounded-lg border border-gray-300 bg-white py-1 shadow-lg shadow-gray-200/50 outline-none focus-visible:outline-none dark:border-dark-500 dark:bg-dark-700 dark:shadow-none ltr:right-0 rtl:left-0">
           <MenuItem>
             {({ focus }) => (
               <button
                 className={clsx(
-                  "flex h-9 w-full items-center px-3 tracking-wide outline-hidden transition-colors",
+                  "flex h-9 w-full items-center px-3 tracking-wide outline-none transition-colors",
                   focus &&
                     "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
                 )}
@@ -124,7 +124,7 @@ function ActionMenu() {
             {({ focus }) => (
               <button
                 className={clsx(
-                  "flex h-9 w-full items-center px-3 tracking-wide outline-hidden transition-colors",
+                  "flex h-9 w-full items-center px-3 tracking-wide outline-none transition-colors",
                   focus &&
                     "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
                 )}
@@ -137,7 +137,7 @@ function ActionMenu() {
             {({ focus }) => (
               <button
                 className={clsx(
-                  "flex h-9 w-full items-center px-3 tracking-wide outline-hidden transition-colors",
+                  "flex h-9 w-full items-center px-3 tracking-wide outline-none transition-colors",
                   focus &&
                     "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
                 )}
@@ -153,7 +153,7 @@ function ActionMenu() {
             {({ focus }) => (
               <button
                 className={clsx(
-                  "flex h-9 w-full items-center px-3 tracking-wide outline-hidden transition-colors",
+                  "flex h-9 w-full items-center px-3 tracking-wide outline-none transition-colors",
                   focus &&
                     "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
                 )}

@@ -768,7 +768,7 @@ export default function AddTrfStartJob() {
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
     <Page title="Add TRF Entry">
-      <div className="transition-content w-full px-(--margin-x) pb-5">
+      <div className="transition-content w-full px-[var(--margin-x)] pb-5">
         {/* Back link */}
         <div className="mb-4">
           <a

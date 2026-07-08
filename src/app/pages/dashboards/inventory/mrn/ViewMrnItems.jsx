@@ -20,28 +20,42 @@ export default function ViewMrnItems() {
       try {
         setLoading(true);
         // API Endpoint: inventory/get-mrn-item?id=163
-        const response = await axios.get(`/inventory/get-mrn-item?id=${id}`);
+        const response = await axios.get(`/inventory/get-mrn-item?id=${id}&_t=${Date.now()}`);
         
-        // Handle standard status check (status can be true/false or "true"/"false")
-        if (response.data.status === true || response.data.status === "true") {
-          const resData = response.data.data || response.data;
+        let itemsArray = [];
+        if (Array.isArray(response.data)) {
+          itemsArray = response.data;
+        } else if (response.data && Array.isArray(response.data.items)) {
+          itemsArray = response.data.items;
+        } else if (response.data && response.data.data && Array.isArray(response.data.data)) {
+          itemsArray = response.data.data;
+        } else if (response.data && response.data.data && Array.isArray(response.data.data.items)) {
+          itemsArray = response.data.data.items;
+        }
+        
+        if (itemsArray.length > 0) {
+          const enrichedItems = itemsArray.map(item => {
+             const qty = parseFloat(item.qty) || 0;
+             const received = parseFloat(item.receiveqty || item.received_qty) || 0;
+             const rate = parseFloat(item.rate) || 0;
+             return {
+               ...item,
+               remainingqty: item.remainingqty !== undefined ? item.remainingqty : (qty - received),
+               amount: item.amount !== undefined ? item.amount : (received * rate)
+             };
+          });
+          setItems(enrichedItems);
           
-          if (resData) {
-            // Handle if API returns { mrn: {...}, items: [...] }
-            if (resData.mrn) {
-              setMrnDetails((prev) => prev || resData.mrn);
-              setItems(resData.items || []);
-            } else if (resData.items) {
-              setItems(resData.items);
-            } else if (Array.isArray(resData)) {
-              // Handle if API returns items list directly
-              setItems(resData);
-            } else {
-              setItems(resData.items || []);
-            }
+          if (response.data && response.data.mrn) {
+            setMrnDetails((prev) => prev || response.data.mrn);
+          } else if (response.data && response.data.data && response.data.data.mrn) {
+            setMrnDetails((prev) => prev || response.data.data.mrn);
           }
         } else {
-          toast.error("Failed to load MRN items");
+          // If no items were found but there's a message, show it
+          if (response.data && response.data.message) {
+             toast.error(response.data.message);
+          }
         }
       } catch (err) {
         console.error("Error fetching MRN items:", err);
