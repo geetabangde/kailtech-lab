@@ -672,8 +672,8 @@ function SummaryRow({ label, value, bold = false }) {
       </span>
       <span
         className={`text-right tabular-nums ${bold
-            ? "dark:text-dark-100 font-bold text-gray-900"
-            : "dark:text-dark-200 text-gray-800"
+          ? "dark:text-dark-100 font-bold text-gray-900"
+          : "dark:text-dark-200 text-gray-800"
           }`}
         style={{ flex: "0 0 30%" }}
       >
