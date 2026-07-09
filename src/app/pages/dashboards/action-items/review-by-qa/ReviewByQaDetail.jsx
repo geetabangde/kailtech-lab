@@ -15,9 +15,9 @@ import clsx from "clsx";
 import { Page } from "components/shared/Page";
 import {
   PrintWithLHButton,
-  PrintWithoutLHButton,
   PrintWithoutLHTwoSignButton,
 } from "./TestReportPdf";
+import { PrintExportTestingReportWOLHButton } from "../signed-reports/exporttestingreportwolh";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -165,6 +165,24 @@ export default function ReviewByQaDetail() {
       const res  = await axios.get(`/actionitem/view-test-report?${params.toString()}`);
       const data = res.data?.data ?? res.data ?? null;
       if (!data) throw new Error("No report data returned");
+
+      // Fetch customer address if address_id exists
+      const custId = data?.customer?.id;
+      const addrId = data?.customer?.address_id;
+      if (custId && addrId) {
+        try {
+          const addrRes = await axios.get(`/people/get-customers-address/${custId}`);
+          const addrList = addrRes.data?.data ?? [];
+          const found = addrList.find((a) => String(a.id) === String(addrId));
+          if (found) {
+            if (!data.customer) data.customer = {};
+            data.customer.address = found.address;
+          }
+        } catch (e) {
+          console.error("Failed to fetch customer address:", e);
+        }
+      }
+
       setReport(data);
     } catch (err) {
       console.error("fetchReport error:", err);
@@ -327,7 +345,7 @@ export default function ReviewByQaDetail() {
           {/* PHP: Print buttons */}
           <div className="no-print flex flex-wrap items-center gap-2">
             <PrintWithLHButton           report={report} />
-            <PrintWithoutLHButton        report={report} />
+            <PrintExportTestingReportWOLHButton report={report} />
             <PrintWithoutLHTwoSignButton report={report} />
           </div>
         </div>
@@ -362,7 +380,7 @@ export default function ReviewByQaDetail() {
                     <td className="w-2/5 border-r border-gray-200 p-3 align-top dark:border-gray-700" rowSpan={8}>
                       <p className="mb-1 font-semibold text-gray-700 dark:text-gray-300">Name and Address of Customer</p>
                       <p className="text-gray-800 dark:text-gray-200">{customerName}</p>
-                      <p className="text-gray-600 dark:text-gray-400">{customerAddress}</p>
+                      <p className="text-gray-800 dark:text-gray-200">{customerAddress}</p>
                       {showContact && contactPerson && (
                         <p className="mt-1 text-gray-700 dark:text-gray-300">Contact Person: {contactPerson}</p>
                       )}
@@ -489,7 +507,11 @@ export default function ReviewByQaDetail() {
                         {signer.sign_image_url       && <img src={signer.sign_image_url}       alt="" className="mb-1 h-6 w-auto object-contain" />}
                         {signer.digital_signature_url && <img src={signer.digital_signature_url} alt={`Signed by ${signer.display_name ?? ""}`} className="h-14 object-contain" />}
                         <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
-                          Electronically signed by<br />{signer.display_name ?? signer.name ?? ""}
+                          {!signer.digital_signature_url && (
+                            <>
+                              Electronically signed by<br />{signer.display_name ?? signer.name ?? ""}
+                            </>
+                          )}
                         </p>
                       </div>
                     ) : (

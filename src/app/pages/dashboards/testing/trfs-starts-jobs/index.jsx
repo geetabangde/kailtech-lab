@@ -7,10 +7,11 @@ import {
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
+  getExpandedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
 import clsx from "clsx";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Fragment } from "react";
 import { useNavigate } from "react-router";
 import axios from "utils/axios";
 export { columns } from "./columns";
@@ -27,6 +28,7 @@ import { fuzzyFilter } from "utils/react-table/fuzzyFilter";
 import { useSkipper } from "utils/react-table/useSkipper";
 import { Toolbar } from "./Toolbar";
 import { columns } from "./columns";
+import { RowActions } from "./RowActions";
 import { PaginationSection } from "components/shared/table/PaginationSection";
 import { SelectedRowsActions } from "components/shared/table/SelectedRowsActions";
 import { useThemeContext } from "app/contexts/theme/context";
@@ -204,12 +206,12 @@ export default function TrfEntryList() {
   );
 
   const [columnPinning, setColumnPinning] = useLocalStorage(
-    "column-pinning-trf-entries",
-    { right: ["actions"] },
-  
+    "column-pinning-trf-entries-v2",
+    {},
   );
 
   const [columnFilters, setColumnFilters] = useState([]);
+  const [expanded, setExpanded] = useState({});
 
   const [autoResetPageIndex, skipAutoResetPageIndex] = useSkipper();
 
@@ -240,6 +242,7 @@ export default function TrfEntryList() {
       columnPinning,
       tableSettings,
       columnFilters,
+      expanded,
     },
     meta: {
       updateData: (rowIndex, columnId, value) => {
@@ -295,13 +298,16 @@ export default function TrfEntryList() {
     getFilteredRowModel: getFilteredRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
     getFacetedMinMaxValues: getFacetedMinMaxValues(),
-    globalFilterFn: fuzzyFilter,
+    globalFilterFn: "textContains",
     onSortingChange: setSorting,
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
     onColumnPinningChange: setColumnPinning,
+    onExpandedChange: setExpanded,
+    getRowCanExpand: () => true,
+    getExpandedRowModel: getExpandedRowModel(),
     autoResetPageIndex,
   });
 
@@ -497,50 +503,73 @@ export default function TrfEntryList() {
                   <TBody>
                     {table.getRowModel().rows.map((row) => {
                       return (
-                        <Tr
-                          key={row.id}
-                          className={clsx(
-                            "dark:border-b-dark-500 relative border-y border-transparent border-b-gray-200",
-                            row.getIsSelected() &&
-                              !isSafari &&
-                              "row-selected after:bg-primary-500/10 ltr:after:border-l-primary-500 rtl:after:border-r-primary-500 after:pointer-events-none after:absolute after:inset-0 after:z-2 after:h-full after:w-full after:border-3 after:border-transparent",
-                          )}
-                        >
-                          {row.getVisibleCells().map((cell) => {
-                            return (
+                        <Fragment key={row.id}>
+                          <Tr
+                            className={clsx(
+                              "dark:border-b-dark-500 relative border-y border-transparent border-b-gray-200",
+                              row.getIsSelected() &&
+                                !isSafari &&
+                                "row-selected after:bg-primary-500/10 ltr:after:border-l-primary-500 rtl:after:border-r-primary-500 after:pointer-events-none after:absolute after:inset-0 after:z-2 after:h-full after:w-full after:border-3 after:border-transparent",
+                            )}
+                          >
+                            {row.getVisibleCells().map((cell) => {
+                              return (
+                                <Td
+                                  key={cell.id}
+                                  className={clsx(
+                                    "relative bg-white",
+                                    cardSkin === "shadow"
+                                      ? "dark:bg-dark-700"
+                                      : "dark:bg-dark-900",
+                                    cell.column.getCanPin() && [
+                                      cell.column.getIsPinned() === "left" &&
+                                        "sticky z-2 ltr:left-0 rtl:right-0",
+                                      cell.column.getIsPinned() === "right" &&
+                                        "sticky z-2 ltr:right-0 rtl:left-0",
+                                    ],
+                                  )}
+                                >
+                                  {cell.column.getIsPinned() && (
+                                    <div
+                                      className={clsx(
+                                        "dark:border-dark-500 pointer-events-none absolute inset-0 border-gray-200",
+                                        cell.column.getIsPinned() === "left"
+                                          ? "ltr:border-r rtl:border-l"
+                                          : "ltr:border-l rtl:border-r",
+                                      )}
+                                    ></div>
+                                  )}
+                                  {flexRender(
+                                    cell.column.columnDef.cell,
+                                    cell.getContext(),
+                                  )}
+                                </Td>
+                              );
+                            })}
+                          </Tr>
+                          {row.getIsExpanded() && (
+                            <Tr>
                               <Td
-                                key={cell.id}
+                                colSpan={row.getVisibleCells().length}
                                 className={clsx(
-                                  "relative bg-white",
+                                  "bg-gray-50 p-4 dark:bg-dark-800",
                                   cardSkin === "shadow"
                                     ? "dark:bg-dark-700"
-                                    : "dark:bg-dark-900",
-                                  cell.column.getCanPin() && [
-                                    cell.column.getIsPinned() === "left" &&
-                                      "sticky z-2 ltr:left-0 rtl:right-0",
-                                    cell.column.getIsPinned() === "right" &&
-                                      "sticky z-2 ltr:right-0 rtl:left-0",
-                                  ],
+                                    : "dark:bg-dark-900"
                                 )}
                               >
-                                {cell.column.getIsPinned() && (
-                                  <div
-                                    className={clsx(
-                                      "dark:border-dark-500 pointer-events-none absolute inset-0 border-gray-200",
-                                      cell.column.getIsPinned() === "left"
-                                        ? "ltr:border-r rtl:border-l"
-                                        : "ltr:border-l rtl:border-r",
-                                    )}
-                                  ></div>
-                                )}
-                                {flexRender(
-                                  cell.column.columnDef.cell,
-                                  cell.getContext(),
-                                )}
+                                <div className="ml-8 border-l-2 border-primary-500 pl-4">
+                                  <h4 className="mb-2 text-sm font-semibold text-gray-700 dark:text-dark-100">
+                                    Quick Actions for {row.original.trf_entry_no}
+                                  </h4>
+                                  <div className="w-[450px]">
+                                    <RowActions row={row} table={table} wrap={true} />
+                                  </div>
+                                </div>
                               </Td>
-                            );
-                          })}
-                        </Tr>
+                            </Tr>
+                          )}
+                        </Fragment>
                       );
                     })}
                   </TBody>

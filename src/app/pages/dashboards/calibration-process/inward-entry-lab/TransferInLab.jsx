@@ -332,26 +332,50 @@ export default function EditBdPerson() {
         );
         const result = res.data;
         console.log("API Response:", result); // Debug log
-        if (result.status === "true" && result.data) {
-          const items = result.data.items || [];
-          setData(
-            items.map((item) => ({
-              ...item,
-              allottolab: item.allottolab || (result.data.labs?.[0]?.id || ""),
-              target_start:
-                item.target_start ||
-                new Date().toISOString().split("T")[0],
-              target_end:
-                item.target_end ||
-                new Date(new Date().setDate(new Date().getDate() + 5))
-                  .toISOString()
-                  .split("T")[0],
-            }))
-          );
-          setLabs(result.data.labs || []);
-        } else {
-          toast.error(result.message || "Failed to load data.");
+
+        let fetchedItems = [];
+        let fetchedLabs = [];
+
+        if ((result.status === "true" || result.status === true || result.success === true) && result.data) {
+          fetchedItems = Array.isArray(result.data) ? result.data : (result.data.items || []);
+          fetchedLabs = result.data.labs || [];
         }
+
+        // PHP logic explicitly checks status=-2. We'll filter if the status field exists.
+        fetchedItems = fetchedItems.filter(item => {
+          if (item.status !== undefined) return String(item.status) === "-2";
+          if (item.inst_status !== undefined) return String(item.inst_status) === "-2";
+          return true; // if no status field, assume backend already filtered
+        });
+
+        if (fetchedLabs.length === 0) {
+          try {
+            const labsRes = await axios.get("/registers/labs");
+            if (labsRes.data && Array.isArray(labsRes.data.data)) {
+              fetchedLabs = labsRes.data.data;
+            } else if (labsRes.data && Array.isArray(labsRes.data)) {
+              fetchedLabs = labsRes.data;
+            }
+          } catch (e) {
+            console.error("Failed to fetch labs fallback", e);
+          }
+        }
+
+        setData(
+          fetchedItems.map((item) => ({
+            ...item,
+            allottolab: item.allottolab || (fetchedLabs[0]?.id || ""),
+            target_start:
+              item.target_start ||
+              new Date().toISOString().split("T")[0],
+            target_end:
+              item.target_end ||
+              new Date(new Date().setDate(new Date().getDate() + (parseInt(item.daysrequired) || 5)))
+                .toISOString()
+                .split("T")[0],
+          }))
+        );
+        setLabs(fetchedLabs);
       } catch (err) {
         console.error("Fetch error:", err);
         toast.error("Something went wrong while loading data.");
@@ -384,11 +408,7 @@ export default function EditBdPerson() {
     //   return;
     // }
 
-    // Validate data array
-    if (!data.length) {
-      toast.error("No items available to transfer.");
-      return;
-    }
+    // Removed !data.length validation so empty arrays can be submitted.
 
     // Validate that all items have valid inwarditemid and allottolab
     const invalidItems = data.filter(
@@ -419,7 +439,7 @@ export default function EditBdPerson() {
       );
       const result = res.data;
 
-      if (result.status === "true") {
+      if (result.status === "true" || result.status === true || result.success === true) {
         toast.success("Transfer Lab updated successfully ");
         setTimeout(() => {
           navigate(
@@ -482,9 +502,9 @@ export default function EditBdPerson() {
               ></path>
             </svg>
           </div>
-        ) : !data.length || !labs.length ? (
+        ) : !labs.length ? (
           <div className="text-center text-gray-600">
-            No items or labs available to display.
+            No labs available to allocate. Please check master data.
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -597,7 +617,7 @@ export default function EditBdPerson() {
               type="submit"
               color="success"
               className="float-right"
-              disabled={loading || !data.length || !labs.length}
+              disabled={loading || !labs.length}
             >
               {loading ? (
                 <div className="flex items-center gap-2">

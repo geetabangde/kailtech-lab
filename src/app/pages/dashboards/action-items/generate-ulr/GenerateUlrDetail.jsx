@@ -29,9 +29,9 @@ import clsx from "clsx";
 import { Page } from "components/shared/Page";
 import {
   PrintWithLHButton,
-  PrintWithoutLHButton,
   PrintWithoutLHTwoSignButton,
 } from "./TestReportPdf";
+import { PrintExportTestingReportWOLHButton } from "../signed-reports/exporttestingreportwolh";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -551,7 +551,7 @@ export default function GenerateUlrDetail() {
             {report && (
               <>
                 <PrintWithLHButton report={report} />
-                <PrintWithoutLHButton report={report} />
+                <PrintExportTestingReportWOLHButton report={report} />
                 <PrintWithoutLHTwoSignButton report={report} />
               </>
             )}

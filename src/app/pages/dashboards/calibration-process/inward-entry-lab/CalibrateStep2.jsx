@@ -51,9 +51,9 @@ const Calibratestep2 = () => {
     // Select For All Point state
     const [selectForAllPoint, setSelectForAllPoint] = useState({
         unit: null,
-        mode: 'Not Specified',
+        mode: '',
         masters: [],
-        supportMode: 'Not Specified',
+        supportMode: '',
         supportMasters: [],
         repeatable: '3'
     });
@@ -152,23 +152,23 @@ const Calibratestep2 = () => {
     }, []);
 
     useEffect(() => {
-        // Check from navigation state OR localStorage
+        // Check from navigation state, localStorage, or API response
         const storedStep1Data = localStorage.getItem('calibrateStep1Data');
         const parsedStoredData = storedStep1Data ? JSON.parse(storedStep1Data) : null;
 
-        // Agar dono me se koi bhi valid hai to proceed karo
-        const isValidFromState = step1Data?.suggestedDueDate && step1Data?.temperature && step1Data?.humidity;
-        const isValidFromStorage = parsedStoredData?.suggestedDueDate && parsedStoredData?.temperature && parsedStoredData?.humidity;
+        const isValidFromState = step1Data?.temperature && step1Data?.humidity;
+        const isValidFromStorage = parsedStoredData?.temperature && parsedStoredData?.humidity;
+        const isValidFromApi = instrumentData?.temperature && instrumentData?.humidity;
 
-        const isValid = isValidFromState || isValidFromStorage;
+        const isValid = isValidFromState || isValidFromStorage || isValidFromApi;
 
-        setHasValidStep1Data(isValid);
-
-        // Toast sirf tab show karo jab dono invalid ho aur loading complete ho
-        if (!isValid && !loading) {
+        if (isValid) {
+            setHasValidStep1Data(true);
+        } else if (!loading) {
+            setHasValidStep1Data(false);
             toast.error('Please complete Step 1 first');
         }
-    }, [step1Data, loading]);
+    }, [step1Data, loading, instrumentData]);
 
     // Configure axios defaults
     useEffect(() => {
@@ -278,9 +278,9 @@ const Calibratestep2 = () => {
                                 calibpointid: point.id,
                                 label: `(${index + 1}). ${point.point} ${unitName} (${unitType})${point.matrixtype && point.matrixtype !== 'N.A.' ? ' ' + point.matrixtype : ''}`,
                                 masterUnit: unitId, // This value will be pre-set
-                                masterMode: point.mastermode || 'Not Specified',
+                                masterMode: point.mastermode || '',
                                 masters: [],
-                                supportMasterMode: point.supportmastermode || 'Not Specified',
+                                supportMasterMode: point.supportmastermode || '',
                                 supportMasters: [],
                                 // matrixMasters: [],
                                 // validityid: point.validityid,

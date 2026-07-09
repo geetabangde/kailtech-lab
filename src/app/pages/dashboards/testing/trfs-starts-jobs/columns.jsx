@@ -10,20 +10,24 @@ export const columns = [
   columnHelper.accessor((_row, index) => index + 1, {
     id: "s_no",
     header: "S No",
-    cell: (info) => (
-      <span className="text-sm text-gray-700 dark:text-dark-200">
-        {info.row.index + 1}
-      </span>
+    cell: ({ row, getValue }) => (
+      <div className="flex items-center gap-2">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            row.toggleExpanded();
+          }}
+          className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full font-bold text-white shadow-sm transition-colors ${row.getIsExpanded() ? "bg-red-500 hover:bg-red-600" : "bg-green-500 hover:bg-green-600"
+            }`}
+        >
+          {row.getIsExpanded() ? "−" : "+"}
+        </button>
+        <span className="text-sm text-gray-700 dark:text-dark-200">
+          {getValue()}
+        </span>
+      </div>
     ),
     filterFn: "textContains",
-  }),
-
-  // ✅ Actions — moved after S No
-  columnHelper.display({
-    id: "actions",
-    header: "Actions",
-    cell: RowActions,
-    filterFn: "alwaysTrue",
   }),
 
   // ✅ TRF Entry No — kept only one
@@ -309,5 +313,17 @@ export const columns = [
         {info.getValue() || "-"}
       </div>
     ),
+  }),
+
+  // ✅ Actions
+  columnHelper.display({
+    id: "actions",
+    header: "Actions",
+    cell: ({ row, table }) => (
+      <div className="w-[450px]">
+        <RowActions row={row} table={table} />
+      </div>
+    ),
+    filterFn: "alwaysTrue",
   }),
 ];

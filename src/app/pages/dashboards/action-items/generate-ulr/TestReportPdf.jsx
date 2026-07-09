@@ -423,6 +423,13 @@ function DocWithLH({ report }) {
           <Text>Page 1 of 1</Text>
         </View>
 
+        {/* NABL/QAI logo */}
+        {data.nablLogo && (
+          <View style={{ alignItems: "center", marginBottom: 4 }}>
+            <Image src={data.nablLogo} style={{ width: 80, height: 32, objectFit: "contain" }} />
+          </View>
+        )}
+
         {/* TEST REPORT */}
         <Text style={S1.title}>TEST REPORT</Text>
 
@@ -431,13 +438,6 @@ function DocWithLH({ report }) {
           <Text><Text style={SS.bold}>ULR:</Text>{data.nablStatus === 1 && data.ulr ? data.ulr : ""}</Text>
           <Text style={SS.bold}>{data.ktrcRef}</Text>
         </View>
-
-        {/* NABL/QAI logo */}
-        {data.nablLogo && (
-          <View style={{ alignItems: "center", marginBottom: 4 }}>
-            <Image src={data.nablLogo} style={{ width: 80, height: 32, objectFit: "contain" }} />
-          </View>
-        )}
 
         {/* Customer info */}
         <View style={SS.infoWrap}>

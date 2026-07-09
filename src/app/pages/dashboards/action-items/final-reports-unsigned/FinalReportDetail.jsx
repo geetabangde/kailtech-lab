@@ -8,10 +8,10 @@ import { Page } from "components/shared/Page";
 import { Card } from "components/ui";
 import {
   //PrintWithLHButton, // Keeping for reference if needed
-  PrintWithoutLHButton,
   PrintWithoutLHTwoSignButton,
 } from "./TestReportPdf";
 import { PrintExportTestingReportButton } from "../signed-reports/ExportTestingReport";
+import { PrintExportTestingReportWOLHButton } from "../signed-reports/exporttestingreportwolh";
 
 // ----------------------------------------------------------------------
 // Route: /dashboards/action-items/final-reports/view?tid=49506&hid=52927
@@ -39,6 +39,24 @@ export default function FinalReportDetail() {
         if (hid) params.append("hid", hid);
         const res = await axios.get(`/actionitem/view-test-report?${params.toString()}`);
         const d = res.data?.data ?? res.data ?? null;
+
+        // Fetch customer address if address_id exists
+        const custId = d?.customer?.id;
+        const addrId = d?.customer?.address_id;
+        if (custId && addrId) {
+          try {
+            const addrRes = await axios.get(`/people/get-customers-address/${custId}`);
+            const addrList = addrRes.data?.data ?? [];
+            const found = addrList.find((a) => String(a.id) === String(addrId));
+            if (found) {
+              if (!d.customer) d.customer = {};
+              d.customer.address = found.address;
+            }
+          } catch (e) {
+            console.error("Failed to fetch customer address:", e);
+          }
+        }
+
         setReport(d);
       } catch (err) {
         setError(err?.response?.data?.message ?? "Failed to load report.");
@@ -82,8 +100,9 @@ export default function FinalReportDetail() {
   const product = report.product ?? {};
   const customer = report.customer ?? {};
   const dates = report.dates ?? {};
-  const testResults = report.test_results ?? [];
-  const signatories = report.signatories ?? [];
+  const toArray = (val) => Array.isArray(val) ? val : (val && typeof val === 'object' ? Object.values(val) : []);
+  const testResults = toArray(report.test_results);
+  const signatories = toArray(report.signatories);
   const remarks = report.remarks ?? {};
   const nablStatus = report.nabl?.status ?? 0;
   const hasSpecs = testResults.some((r) => r.specification && r.specification !== "—");
@@ -103,7 +122,7 @@ export default function FinalReportDetail() {
               {/* PHP: Print Report With Letter Head */}
               <PrintExportTestingReportButton report={report} />
               {/* PHP: Print Report Without Letter Head */}
-              <PrintWithoutLHButton report={report} />
+              <PrintExportTestingReportWOLHButton report={report} />
               {/* PHP: Print Report Without Letter Head (2 Signs) */}
               <PrintWithoutLHTwoSignButton report={report} />
             </div>
@@ -114,12 +133,12 @@ export default function FinalReportDetail() {
             {/* ── NABL / QAI logo ─────────────────────────────────────── */}
             {nablStatus === 1 && (
               <div className="mb-4 flex justify-center">
-                <img src="/images/nabl2348.png" alt="NABL" className="h-14 w-auto object-contain" />
+                <img src={report.nabl?.logo || "/images/nabl2348.png"} alt="NABL" className="h-24 w-auto object-contain" />
               </div>
             )}
             {nablStatus === 3 && (
               <div className="mb-4 flex justify-center">
-                <img src="/images/qai.jpeg" alt="QAI" className="h-14 w-auto object-contain" />
+                <img src="/images/qai.jpeg" alt="QAI" className="h-24 w-auto object-contain" />
               </div>
             )}
 
@@ -142,7 +161,7 @@ export default function FinalReportDetail() {
                     <td className="w-[40%] border-r border-gray-300 p-3 align-top dark:border-dark-500" rowSpan={8}>
                       <p className="mb-1 font-semibold">Name and Address of Customer</p>
                       <p>{customer.name ?? "—"}</p>
-                      <p className="text-xs text-gray-500">{customer.address ?? ""}</p>
+                      <p>{customer.address ?? ""}</p>
                       {Number(report.trf?.specificpurpose) === 2 && customer.contact_person && (
                         <p className="mt-1 text-xs">Contact Person: {customer.contact_person}</p>
                       )}
@@ -159,19 +178,19 @@ export default function FinalReportDetail() {
 
                   {/* Sample rows full width */}
                   <tr>
-                    <td colSpan={2} className="border-t border-gray-300 p-2 text-sm dark:border-dark-500">
+                    <td colSpan={3} className="border-t border-gray-300 p-2 text-sm dark:border-dark-500">
                       <strong>Sample Identification: </strong>{product.description ?? trfProduct.size ?? "—"}
                     </td>
                   </tr>
                   {customer.letterrefno && customer.letterrefno !== "-" && (
                     <tr>
-                      <td colSpan={2} className="border-t border-gray-300 p-2 text-sm dark:border-dark-500">
+                      <td colSpan={3} className="border-t border-gray-300 p-2 text-sm dark:border-dark-500">
                         <strong>Customer Reference :- </strong>{customer.letterrefno}
                       </td>
                     </tr>
                   )}
                   <tr>
-                    <td colSpan={2} className="border-t border-gray-300 p-2 text-sm dark:border-dark-500">
+                    <td colSpan={3} className="border-t border-gray-300 p-2 text-sm dark:border-dark-500">
                       <strong>Sample Particulars: </strong>
                       {product.name ?? "—"} &nbsp; Grade: {report.grade ?? "—"} &nbsp;
                       {(report.batchno ?? "").replace(/<br\s*\/?>/gi, " ")}
@@ -259,21 +278,18 @@ export default function FinalReportDetail() {
             {signatories.length > 0 && (
               <div className="mt-6 flex flex-wrap gap-10">
                 {signatories.map((s, i) => (
-                  <div key={i} className="min-w-[160px]">
+                  <div key={i} className="min-w-[200px]">
                     {s.title && (
-                      <p className="mb-1 text-xs text-gray-500 dark:text-dark-400">{s.title}</p>
+                      <p className="mb-2 text-sm font-semibold text-gray-600 dark:text-dark-300">{s.title}</p>
                     )}
                     {s.is_signed ? (
                       <>
                         {s.sign_image_url && (
-                          <img src={s.sign_image_url} alt="signature" className="mb-1 h-10 w-28 object-contain" />
+                          <img src={s.sign_image_url} alt="signature" className="mb-2 h-16 w-36 object-contain object-left" />
                         )}
                         {s.digital_signature_url && (
-                          <img src={s.digital_signature_url} alt="digital-sig" className="mb-1 h-14 w-36 object-contain" />
+                          <img src={s.digital_signature_url} alt="digital-sig" className="mb-1 h-28 w-56 object-contain object-left" />
                         )}
-                        <p className="text-xs text-gray-600 dark:text-dark-300">
-                          Electronically signed by<br />{s.display_name ?? s.name ?? ""}
-                        </p>
                       </>
                     ) : (
                       <>

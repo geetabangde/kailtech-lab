@@ -38,7 +38,7 @@ function fmtDate(d) {
 // e.g. "background:#008d4c!important;color:#ffffff;text-align:center"
 function parseColorFlag(styleStr) {
   if (!styleStr) return { bg: null, color: null };
-  const bg    = styleStr.match(/background\s*:\s*([^;!]+)/i)?.[1]?.trim() ?? null;
+  const bg = styleStr.match(/background\s*:\s*([^;!]+)/i)?.[1]?.trim() ?? null;
   const color = styleStr.match(/(?:^|;)\s*color\s*:\s*([^;!]+)/i)?.[1]?.trim() ?? null;
   return { bg, color };
 }
@@ -48,41 +48,41 @@ function parseColorFlag(styleStr) {
 // ─────────────────────────────────────────────────────────────────────────────
 function extractData(report) {
   const {
-    trf_product    = {},
-    nabl: nablObj  = {},
+    trf_product = {},
+    nabl: nablObj = {},
     size,
     grade,
-    batchno        = "",
+    batchno = "",
     report_status: rsObj = {},
-    dates          = {},
-    customer       = {},
-    product        = {},
-    trf            = {},
+    dates = {},
+    customer = {},
+    product = {},
+    trf = {},
     received_items = [],
-    test_results   = [],
+    test_results = [],
     remarks: remarksObj = {},
-    signatories    = [],
-    meta           = {},
+    signatories = [],
+    meta = {},
   } = report;
 
   const { brn, ulr, condition_name, sealed_name, reportdate, lrn } = trf_product;
-  const nablStatus   = (typeof nablObj === "object" ? nablObj?.status : Number(nablObj)) ?? 0;
+  const nablStatus = (typeof nablObj === "object" ? nablObj?.status : Number(nablObj)) ?? 0;
   const reportStatus = typeof rsObj === "object" ? (rsObj?.code ?? 0) : (Number(rsObj) || 0);
-  const isDraft      = reportStatus < 9;
+  const isDraft = reportStatus < 9;
 
   const { start_date, end_date } = dates;
 
-  const hodRemark     = remarksObj?.hod_remark    ?? "";
-  const witnessVal    = remarksObj?.witness        ?? "";
+  const hodRemark = remarksObj?.hod_remark ?? "";
+  const witnessVal = remarksObj?.witness ?? "";
   const witnessDetail = remarksObj?.witness_detail ?? "";
-  const bdlRemark     = remarksObj?.bdl_remark     ?? "";
-  const adlRemark     = remarksObj?.adl_remark     ?? "";
+  const bdlRemark = remarksObj?.bdl_remark ?? "";
+  const adlRemark = remarksObj?.adl_remark ?? "";
 
   const remarkLines = [];
-  if (hodRemark?.trim())                   remarkLines.push(hodRemark.trim());
+  if (hodRemark?.trim()) remarkLines.push(hodRemark.trim());
   if (witnessVal === "1" && witnessDetail) remarkLines.push(`The test was witnessed by ${witnessDetail}`);
-  if (bdlRemark)                           remarkLines.push(bdlRemark);
-  if (adlRemark)                           remarkLines.push(adlRemark);
+  if (bdlRemark) remarkLines.push(bdlRemark);
+  if (adlRemark) remarkLines.push(adlRemark);
 
   const qtyStr = received_items
     .filter((q) => (q.received ?? 0) > 0)
@@ -100,19 +100,19 @@ function extractData(report) {
 
   const nablLogo =
     nablStatus === 1 ? (nablObj?.logo ?? "/images/nabl2348.png") :
-    nablStatus === 3 ? "/images/qai.jpeg" : null;
+      nablStatus === 3 ? "/images/qai.jpeg" : null;
 
-  const customerName    = customer?.name           ?? "—";
-  const customerAddress = customer?.address        ?? "";
-  const contactPerson   = customer?.contact_person ?? "";
-  const showContact     = Number(trf?.specificpurpose ?? customer?.specific_purpose) === 2;
-  const customerRef     = customer?.letterrefno    ?? "";
-  const productName     = product?.name            ?? "—";
-  const productDesc     = product?.description     ?? size ?? "—";
-  const displayLRN      = lrn ?? brn               ?? "—";
-  const ktrcRef         = meta?.ktrc_ref           ?? "KTRC/QF/0708/01";
-  const batchnoClean    = batchno.replace(/<br\s*\/?>/gi, " ").trim();
-  const receiptDate     = fmtDate(trf?.date ?? dates?.receipt_date);
+  const customerName = customer?.name ?? "—";
+  const customerAddress = customer?.address ?? "";
+  const contactPerson = customer?.contact_person ?? "";
+  const showContact = Number(trf?.specificpurpose ?? customer?.specific_purpose) === 2;
+  const customerRef = customer?.letterrefno ?? "";
+  const productName = product?.name ?? "—";
+  const productDesc = product?.description ?? size ?? "—";
+  const displayLRN = lrn ?? brn ?? "—";
+  const ktrcRef = meta?.ktrc_ref ?? "KTRC/QF/0708/01";
+  const batchnoClean = batchno.replace(/<br\s*\/?>/gi, " ").trim();
+  const receiptDate = fmtDate(trf?.date ?? dates?.receipt_date);
 
   return {
     ulr, ktrcRef, displayLRN, receiptDate,
@@ -131,60 +131,60 @@ function extractData(report) {
 const BC = "#999"; // border colour
 
 const SS = StyleSheet.create({
-  bold:        { fontFamily: "Helvetica-Bold" },
+  bold: { fontFamily: "Helvetica-Bold" },
 
   // Info table
-  infoWrap:    { borderWidth: 0.5, borderColor: BC, marginBottom: 6 },
-  infoRow:     { flexDirection: "row", borderBottomWidth: 0.5, borderBottomColor: BC },
-  infoLeft:    { width: "42%", padding: 5, borderRightWidth: 0.5, borderRightColor: BC },
-  infoRight:   { flex: 1 },
-  infoLabel:   { width: "52%", padding: 3, fontFamily: "Helvetica-Bold", borderRightWidth: 0.5, borderRightColor: BC, fontSize: 7.5 },
-  infoVal:     { flex: 1, padding: 3, fontSize: 7.5 },
-  infoFull:    { padding: 4, borderTopWidth: 0.5, borderTopColor: BC, fontSize: 7.5 },
+  infoWrap: { borderWidth: 0.5, borderColor: BC, marginBottom: 6 },
+  infoRow: { flexDirection: "row", borderBottomWidth: 0.5, borderBottomColor: BC },
+  infoLeft: { width: "42%", padding: 5, borderRightWidth: 0.5, borderRightColor: BC },
+  infoRight: { flex: 1 },
+  infoLabel: { width: "52%", padding: 3, fontFamily: "Helvetica-Bold", borderRightWidth: 0.5, borderRightColor: BC, fontSize: 7.5 },
+  infoVal: { flex: 1, padding: 3, fontSize: 7.5 },
+  infoFull: { padding: 4, borderTopWidth: 0.5, borderTopColor: BC, fontSize: 7.5 },
 
   // Results table — portrait
-  rTable:      { borderWidth: 0.5, borderColor: BC, marginBottom: 8 },
-  thead:       { flexDirection: "row", backgroundColor: "#e8ecf0" },
-  tr:          { flexDirection: "row", borderTopWidth: 0.5, borderTopColor: BC },
+  rTable: { borderWidth: 0.5, borderColor: BC, marginBottom: 8 },
+  thead: { flexDirection: "row", backgroundColor: "#e8ecf0" },
+  tr: { flexDirection: "row", borderTopWidth: 0.5, borderTopColor: BC },
 
-  thSno:    { width: "5%",  padding: 3, fontFamily: "Helvetica-Bold", textAlign: "center", fontSize: 7.5, borderRightWidth: 0.5, borderRightColor: BC },
-  thParam:  { width: "30%", padding: 3, fontFamily: "Helvetica-Bold", fontSize: 7.5, borderRightWidth: 0.5, borderRightColor: BC },
-  thUnit:   { width: "8%",  padding: 3, fontFamily: "Helvetica-Bold", textAlign: "center", fontSize: 7.5, borderRightWidth: 0.5, borderRightColor: BC },
+  thSno: { width: "5%", padding: 3, fontFamily: "Helvetica-Bold", textAlign: "center", fontSize: 7.5, borderRightWidth: 0.5, borderRightColor: BC },
+  thParam: { width: "30%", padding: 3, fontFamily: "Helvetica-Bold", fontSize: 7.5, borderRightWidth: 0.5, borderRightColor: BC },
+  thUnit: { width: "8%", padding: 3, fontFamily: "Helvetica-Bold", textAlign: "center", fontSize: 7.5, borderRightWidth: 0.5, borderRightColor: BC },
   thResult: { width: "14%", padding: 3, fontFamily: "Helvetica-Bold", textAlign: "center", fontSize: 7.5, borderRightWidth: 0.5, borderRightColor: BC },
   thMethod: { width: "25%", padding: 3, fontFamily: "Helvetica-Bold", textAlign: "center", fontSize: 7.5, borderRightWidth: 0.5, borderRightColor: BC },
-  thSpec:   { width: "18%", padding: 3, fontFamily: "Helvetica-Bold", textAlign: "center", fontSize: 7.5 },
-  tdSno:    { width: "5%",  padding: 3, textAlign: "center", fontSize: 7.5, borderRightWidth: 0.5, borderRightColor: BC },
-  tdParam:  { width: "30%", padding: 3, fontSize: 7.5, borderRightWidth: 0.5, borderRightColor: BC },
-  tdUnit:   { width: "8%",  padding: 3, textAlign: "center", fontSize: 7.5, borderRightWidth: 0.5, borderRightColor: BC },
+  thSpec: { width: "18%", padding: 3, fontFamily: "Helvetica-Bold", textAlign: "center", fontSize: 7.5 },
+  tdSno: { width: "5%", padding: 3, textAlign: "center", fontSize: 7.5, borderRightWidth: 0.5, borderRightColor: BC },
+  tdParam: { width: "30%", padding: 3, fontSize: 7.5, borderRightWidth: 0.5, borderRightColor: BC },
+  tdUnit: { width: "8%", padding: 3, textAlign: "center", fontSize: 7.5, borderRightWidth: 0.5, borderRightColor: BC },
   tdResult: { width: "14%", padding: 3, textAlign: "center", fontSize: 7.5, borderRightWidth: 0.5, borderRightColor: BC },
   tdMethod: { width: "25%", padding: 3, textAlign: "center", fontSize: 7.5, borderRightWidth: 0.5, borderRightColor: BC },
-  tdSpec:   { width: "18%", padding: 3, textAlign: "center", fontSize: 7.5 },
+  tdSpec: { width: "18%", padding: 3, textAlign: "center", fontSize: 7.5 },
 
   // Results table — landscape (wider cols)
-  lsThSno:    { width: "4%",  padding: 3, fontFamily: "Helvetica-Bold", textAlign: "center", fontSize: 7, borderRightWidth: 0.5, borderRightColor: BC },
-  lsThParam:  { width: "28%", padding: 3, fontFamily: "Helvetica-Bold", fontSize: 7, borderRightWidth: 0.5, borderRightColor: BC },
-  lsThUnit:   { width: "8%",  padding: 3, fontFamily: "Helvetica-Bold", textAlign: "center", fontSize: 7, borderRightWidth: 0.5, borderRightColor: BC },
+  lsThSno: { width: "4%", padding: 3, fontFamily: "Helvetica-Bold", textAlign: "center", fontSize: 7, borderRightWidth: 0.5, borderRightColor: BC },
+  lsThParam: { width: "28%", padding: 3, fontFamily: "Helvetica-Bold", fontSize: 7, borderRightWidth: 0.5, borderRightColor: BC },
+  lsThUnit: { width: "8%", padding: 3, fontFamily: "Helvetica-Bold", textAlign: "center", fontSize: 7, borderRightWidth: 0.5, borderRightColor: BC },
   lsThResult: { width: "12%", padding: 3, fontFamily: "Helvetica-Bold", textAlign: "center", fontSize: 7, borderRightWidth: 0.5, borderRightColor: BC },
   lsThMethod: { width: "28%", padding: 3, fontFamily: "Helvetica-Bold", textAlign: "center", fontSize: 7, borderRightWidth: 0.5, borderRightColor: BC },
-  lsThSpec:   { width: "20%", padding: 3, fontFamily: "Helvetica-Bold", textAlign: "center", fontSize: 7 },
-  lsTdSno:    { width: "4%",  padding: 3, textAlign: "center", fontSize: 7, borderRightWidth: 0.5, borderRightColor: BC },
-  lsTdParam:  { width: "28%", padding: 3, fontSize: 7, borderRightWidth: 0.5, borderRightColor: BC },
-  lsTdUnit:   { width: "8%",  padding: 3, textAlign: "center", fontSize: 7, borderRightWidth: 0.5, borderRightColor: BC },
+  lsThSpec: { width: "20%", padding: 3, fontFamily: "Helvetica-Bold", textAlign: "center", fontSize: 7 },
+  lsTdSno: { width: "4%", padding: 3, textAlign: "center", fontSize: 7, borderRightWidth: 0.5, borderRightColor: BC },
+  lsTdParam: { width: "28%", padding: 3, fontSize: 7, borderRightWidth: 0.5, borderRightColor: BC },
+  lsTdUnit: { width: "8%", padding: 3, textAlign: "center", fontSize: 7, borderRightWidth: 0.5, borderRightColor: BC },
   lsTdResult: { width: "12%", padding: 3, textAlign: "center", fontSize: 7, borderRightWidth: 0.5, borderRightColor: BC },
   lsTdMethod: { width: "28%", padding: 3, textAlign: "center", fontSize: 7, borderRightWidth: 0.5, borderRightColor: BC },
-  lsTdSpec:   { width: "20%", padding: 3, textAlign: "center", fontSize: 7 },
+  lsTdSpec: { width: "20%", padding: 3, textAlign: "center", fontSize: 7 },
 
-  secTitle:    { fontFamily: "Helvetica-Bold", fontSize: 9, marginBottom: 3, marginTop: 4 },
+  secTitle: { fontFamily: "Helvetica-Bold", fontSize: 9, marginBottom: 3, marginTop: 4 },
   endOfReport: { textAlign: "center", fontFamily: "Helvetica-Bold", marginVertical: 10, fontSize: 8 },
-  remarkBox:   { marginBottom: 6, fontSize: 7.5 },
+  remarkBox: { marginBottom: 6, fontSize: 7.5 },
 
   // Signatories
-  sigRow:  { flexDirection: "row", flexWrap: "wrap", marginTop: 22, marginBottom: 8 },
-  sigBox:  { minWidth: 150, marginRight: 20, fontSize: 7.5 },
-  sigImg:  { width: 100, height: 38, objectFit: "contain", marginBottom: 2 },
-  sigDig:  { width: 130, height: 52, objectFit: "contain" },
+  sigRow: { flexDirection: "row", flexWrap: "wrap", marginTop: 22, marginBottom: 8 },
+  sigBox: { minWidth: 150, marginRight: 20, fontSize: 7.5 },
+  sigImg: { width: 100, height: 38, objectFit: "contain", marginBottom: 2 },
+  sigDig: { width: 130, height: 52, objectFit: "contain" },
   sigElec: { fontSize: 7, color: "#444", marginTop: 1 },
-  sigTit:  { fontSize: 7, color: "#555", marginBottom: 2 },
+  sigTit: { fontSize: 7, color: "#555", marginBottom: 2 },
   sigName: { fontFamily: "Helvetica-Bold", fontSize: 7.5 },
   sigAuth: { fontSize: 7, color: "#666" },
 
@@ -209,7 +209,7 @@ function PdfCustomerLeft({ data }) {
     <View style={SS.infoLeft}>
       <Text style={[SS.bold, { fontSize: 7.5, marginBottom: 2 }]}>Name and Address of Customer</Text>
       <Text style={{ fontSize: 7.5 }}>{data.customerName}</Text>
-      <Text style={{ fontSize: 7, color: "#444", marginTop: 1 }}>{data.customerAddress}</Text>
+      <Text style={{ fontSize: 7.5 }}>{data.customerAddress}</Text>
       {data.showContact && data.contactPerson
         ? <Text style={{ fontSize: 7, marginTop: 2 }}>Contact Person: {data.contactPerson}</Text>
         : null}
@@ -220,13 +220,13 @@ function PdfCustomerLeft({ data }) {
 function PdfInfoRows({ data }) {
   const rows = [
     ["Laboratory Reference Number (LRN)", data.displayLRN],
-    ["Date of Receipt",                   data.receiptDate],
-    ["Condition, When Received",           data.condition_name  ?? "—"],
-    ["Packing, When Received",             data.sealed_name     ?? "—"],
-    ["Quantity Received (Approx.)",        data.qtyStr],
-    ["Date of Start Of Test",              fmtDate(data.start_date)],
-    ["Date of Completion",                 fmtDate(data.end_date)],
-    ["Date of Reporting",                  fmtDate(data.reportdate ?? data.dates?.report_date)],
+    ["Date of Receipt", data.receiptDate],
+    ["Condition, When Received", data.condition_name ?? "—"],
+    ["Packing, When Received", data.sealed_name ?? "—"],
+    ["Quantity Received (Approx.)", data.qtyStr],
+    ["Date of Start Of Test", fmtDate(data.start_date)],
+    ["Date of Completion", fmtDate(data.end_date)],
+    ["Date of Reporting", fmtDate(data.reportdate ?? data.dates?.report_date)],
   ];
   return (
     <View style={SS.infoRight}>
@@ -265,10 +265,10 @@ function PdfResultsTable({ data, landscape = false }) {
   const { test_results, hasSpecs } = data;
   const th = landscape
     ? { sno: SS.lsThSno, param: SS.lsThParam, unit: SS.lsThUnit, result: SS.lsThResult, method: SS.lsThMethod, spec: SS.lsThSpec }
-    : { sno: SS.thSno,   param: SS.thParam,   unit: SS.thUnit,   result: SS.thResult,   method: SS.thMethod,   spec: SS.thSpec };
+    : { sno: SS.thSno, param: SS.thParam, unit: SS.thUnit, result: SS.thResult, method: SS.thMethod, spec: SS.thSpec };
   const td = landscape
     ? { sno: SS.lsTdSno, param: SS.lsTdParam, unit: SS.lsTdUnit, result: SS.lsTdResult, method: SS.lsTdMethod, spec: SS.lsTdSpec }
-    : { sno: SS.tdSno,   param: SS.tdParam,   unit: SS.tdUnit,   result: SS.tdResult,   method: SS.tdMethod,   spec: SS.tdSpec };
+    : { sno: SS.tdSno, param: SS.tdParam, unit: SS.tdUnit, result: SS.tdResult, method: SS.tdMethod, spec: SS.tdSpec };
 
   return (
     <View style={SS.rTable}>
@@ -287,11 +287,11 @@ function PdfResultsTable({ data, landscape = false }) {
       ) : (
         test_results.map((row, idx) => {
           const displayResult = row.result?.display_value ?? row.result?.value ?? row.result ?? "—";
-          const unitDisplay   = row.unit?.description     ?? row.unit?.name    ?? row.unit   ?? "—";
-          const methodName    = row.method?.name          ?? row.method        ?? "—";
+          const unitDisplay = row.unit?.description ?? row.unit?.name ?? row.unit ?? "—";
+          const methodName = row.method?.name ?? row.method ?? "—";
           const { bg, color } = parseColorFlag(row.compliance_style);
-          const resultStyles  = [td.result];
-          if (bg)    resultStyles.push({ backgroundColor: bg });
+          const resultStyles = [td.result];
+          if (bg) resultStyles.push({ backgroundColor: bg });
           if (color) resultStyles.push({ color });
 
           return (
@@ -328,9 +328,9 @@ function PdfSignatories({ signatories }) {
           {s.is_signed ? (
             <>
               {s.title ? <Text style={SS.sigTit}>{s.title}</Text> : null}
-              {s.sign_image_url      ? <Image src={s.sign_image_url}      style={SS.sigImg} /> : null}
+              {s.sign_image_url ? <Image src={s.sign_image_url} style={SS.sigImg} /> : null}
               {s.digital_signature_url ? <Image src={s.digital_signature_url} style={SS.sigDig} /> : null}
-              <Text style={SS.sigElec}>Electronically signed by{"\n"}{s.display_name ?? s.name ?? ""}</Text>
+              {!s.digital_signature_url && <Text style={SS.sigElec}>Electronically signed by{"\n"}{s.display_name ?? s.name ?? ""}</Text>}
             </>
           ) : (
             <>
@@ -369,13 +369,13 @@ const S1 = StyleSheet.create({
     paddingBottom: 6,
     marginBottom: 5,
   },
-  logoLeft:   { width: 90, height: 36, objectFit: "contain" },
-  logoCenter: { width: 52, height: 42, objectFit: "contain" },
-  logoRight:  { width: 90, height: 36, objectFit: "contain" },
-  tcText:     { textAlign: "center", fontSize: 7.5, marginTop: 1 },
-  pageRow:    { flexDirection: "row", justifyContent: "space-between", marginBottom: 3, fontSize: 7.5 },
-  title:      { textAlign: "center", fontSize: 13, fontFamily: "Helvetica-Bold", textDecoration: "underline", marginBottom: 5 },
-  ulrRow:     { flexDirection: "row", justifyContent: "space-between", marginBottom: 6, fontSize: 8 },
+  logoLeft: { width: 140, height: 50, objectFit: "contain" },
+  logoCenter: { width: 70, height: 55, objectFit: "contain" },
+  logoRight: { width: 140, height: 50, objectFit: "contain" },
+  tcText: { textAlign: "center", fontSize: 8.5, marginTop: 1 },
+  pageRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 3, fontSize: 7.5 },
+  title: { textAlign: "center", fontSize: 13, fontFamily: "Helvetica-Bold", textDecoration: "underline", marginBottom: 5 },
+  ulrRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 6, fontSize: 8 },
   isoSide: {
     position: "absolute",
     right: -46, bottom: 110,
@@ -409,12 +409,12 @@ function DocWithLH({ report }) {
 
         {/* ── LETTER HEAD ────────────────────────────────── */}
         <View style={S1.lhHeader} fixed>
-          <Image src={`${window.location.origin}/images/ktrc_logo.png`}     style={S1.logoLeft}   />
+          <Image src={`${window.location.origin}/images/krtc.jpg`} style={S1.logoLeft} />
           <View style={{ alignItems: "center" }}>
-            <Image src={`${window.location.origin}/images/tc_stamp.png`}    style={S1.logoCenter} />
+            <Image src={`${window.location.origin}/images/nabl2348.png`} style={S1.logoCenter} />
             <Text style={S1.tcText}>TC-7832</Text>
           </View>
-          <Image src={`${window.location.origin}/images/kailtech_logo.png`} style={S1.logoRight}  />
+          <Image src={`${window.location.origin}/images/logo.png`} style={S1.logoRight} />
         </View>
 
         {/* Page 1 of 1 */}
@@ -431,13 +431,6 @@ function DocWithLH({ report }) {
           <Text><Text style={SS.bold}>ULR:</Text>{data.nablStatus === 1 && data.ulr ? data.ulr : ""}</Text>
           <Text style={SS.bold}>{data.ktrcRef}</Text>
         </View>
-
-        {/* NABL/QAI logo */}
-        {data.nablLogo && (
-          <View style={{ alignItems: "center", marginBottom: 4 }}>
-            <Image src={data.nablLogo} style={{ width: 80, height: 32, objectFit: "contain" }} />
-          </View>
-        )}
 
         {/* Customer info */}
         <View style={SS.infoWrap}>
@@ -497,8 +490,8 @@ const S2 = StyleSheet.create({
     color: "#111",
   },
   pageRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 4, fontSize: 7.5 },
-  title:   { textAlign: "center", fontSize: 13, fontFamily: "Helvetica-Bold", textDecoration: "underline", marginBottom: 6 },
-  ulrRow:  { flexDirection: "row", justifyContent: "space-between", marginBottom: 6, fontSize: 8 },
+  title: { textAlign: "center", fontSize: 13, fontFamily: "Helvetica-Bold", textDecoration: "underline", marginBottom: 6 },
+  ulrRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 6, fontSize: 8 },
 });
 
 function DocWithoutLH({ report }) {
@@ -511,6 +504,21 @@ function DocWithoutLH({ report }) {
           <Text> </Text>
           <Text>Page 1 of 1</Text>
         </View>
+
+        {data.nablStatus === 1 && (
+          <View style={{ alignItems: "center", marginBottom: 4 }}>
+            <Image
+              src={
+                data.nablLogo
+                  ? (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+                    ? window.location.origin + data.nablLogo.replace("https://lims.kailtech.in", "/pdf-proxy")
+                    : data.nablLogo)
+                  : `${window.location.origin}/images/nabl2348.png`
+              }
+              style={{ width: 140, height: 50, objectFit: "contain" }}
+            />
+          </View>
+        )}
 
         <Text style={S2.title}>TEST REPORT</Text>
 
@@ -555,27 +563,27 @@ const S3 = StyleSheet.create({
     paddingHorizontal: 20,
     color: "#111",
   },
-  topRow:  { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 },
+  topRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 },
   tcBlock: { alignItems: "center" },
   tcStamp: { width: 44, height: 44, objectFit: "contain" },
-  tcText:  { fontSize: 7, textAlign: "center", marginTop: 1 },
+  tcText: { fontSize: 7, textAlign: "center", marginTop: 1 },
   titleRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 5,
   },
-  title:   { flex: 1, textAlign: "center", fontSize: 12, fontFamily: "Helvetica-Bold", textDecoration: "underline" },
+  title: { flex: 1, textAlign: "center", fontSize: 12, fontFamily: "Helvetica-Bold", textDecoration: "underline" },
   ulrKtrc: { fontSize: 7.5, width: 160 },
-  twoSigRow:  { flexDirection: "row", justifyContent: "space-between", marginTop: 24 },
-  sigLeft:    { width: "45%" },
-  sigRight:   { width: "45%", alignItems: "flex-end" },
-  sigTitle:   { fontSize: 7.5, fontFamily: "Helvetica-Bold", marginBottom: 2 },
-  sigName:    { fontSize: 7.5, fontFamily: "Helvetica-Bold" },
-  sigAuth:    { fontSize: 7, color: "#555" },
-  sigImgSm:   { width: 100, height: 38, objectFit: "contain" },
-  sigDigSm:   { width: 120, height: 48, objectFit: "contain" },
-  sigElec:    { fontSize: 7, color: "#444" },
+  twoSigRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 24 },
+  sigLeft: { width: "45%" },
+  sigRight: { width: "45%", alignItems: "flex-end" },
+  sigTitle: { fontSize: 7.5, fontFamily: "Helvetica-Bold", marginBottom: 2 },
+  sigName: { fontSize: 7.5, fontFamily: "Helvetica-Bold" },
+  sigAuth: { fontSize: 7, color: "#555" },
+  sigImgSm: { width: 100, height: 38, objectFit: "contain" },
+  sigDigSm: { width: 120, height: 48, objectFit: "contain" },
+  sigElec: { fontSize: 7, color: "#444" },
 });
 
 function DocWithoutLHTwoSign({ report }) {
@@ -584,8 +592,8 @@ function DocWithoutLHTwoSign({ report }) {
 
   // Split: reviewed = signatories with "review" in title OR even-indexed
   // authorized = signatories with "authoriz" in title OR odd-indexed
-  const reviewed   = signatories.filter((s, i) =>
-    (s.title ?? "").toLowerCase().includes("review") || (!( (s.title ?? "").toLowerCase().includes("authoriz")) && i % 2 === 0)
+  const reviewed = signatories.filter((s, i) =>
+    (s.title ?? "").toLowerCase().includes("review") || (!((s.title ?? "").toLowerCase().includes("authoriz")) && i % 2 === 0)
   );
   const authorized = signatories.filter((s, i) =>
     (s.title ?? "").toLowerCase().includes("authoriz") || (!((s.title ?? "").toLowerCase().includes("review")) && i % 2 !== 0)
@@ -596,9 +604,9 @@ function DocWithoutLHTwoSign({ report }) {
     return s.is_signed ? (
       <View>
         {s.title ? <Text style={S3.sigTitle}>{s.title}</Text> : null}
-        {s.sign_image_url       ? <Image src={s.sign_image_url}       style={S3.sigImgSm} /> : null}
+        {s.sign_image_url ? <Image src={s.sign_image_url} style={S3.sigImgSm} /> : null}
         {s.digital_signature_url ? <Image src={s.digital_signature_url} style={S3.sigDigSm} /> : null}
-        <Text style={S3.sigElec}>Electronically signed by{"\n"}{s.display_name ?? s.name ?? ""}</Text>
+        {!s.digital_signature_url && <Text style={S3.sigElec}>Electronically signed by{"\n"}{s.display_name ?? s.name ?? ""}</Text>}
       </View>
     ) : (
       <View>
@@ -619,8 +627,12 @@ function DocWithoutLHTwoSign({ report }) {
         <View style={S3.topRow}>
           <View style={{ width: 120 }} />
           <View style={S3.tcBlock}>
-            <Image src={`${window.location.origin}/images/tc_stamp.png`} style={S3.tcStamp} />
-            <Text style={S3.tcText}>TC-7832</Text>
+            {data.nablStatus === 1 && (
+              <>
+                <Image src={`${window.location.origin}/images/nabl2348.png`} style={S3.tcStamp} />
+                <Text style={S3.tcText}>TC-7832</Text>
+              </>
+            )}
           </View>
           <View style={{ width: 200, alignItems: "flex-end" }}>
             <Text style={[{ fontSize: 8 }, SS.bold]}>LRN: {data.displayLRN}</Text>
@@ -668,17 +680,7 @@ DocWithoutLHTwoSign.propTypes = { report: PropTypes.object.isRequired };
 // ─────────────────────────────────────────────────────────────────────────────
 // Download helper
 // ─────────────────────────────────────────────────────────────────────────────
-async function downloadPdf(DocComp, report, suffix) {
-  const blob = await pdf(<DocComp report={report} />).toBlob();
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement("a");
-  a.href     = url;
-  a.download = `Test_Report_${suffix}_${
-    report?.trf_product?.lrn ?? report?.trf_product?.brn ?? "report"
-  }.pdf`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // EXPORTED BUTTONS
@@ -687,17 +689,25 @@ async function downloadPdf(DocComp, report, suffix) {
 // Button 1 — With Letter Head (cyan)
 export function PrintWithLHButton({ report, className }) {
   const [loading, setLoading] = useState(false);
-  const handleClick = async () => {
+  const btnClass = className ?? "rounded bg-cyan-500 px-3 py-1.5 text-xs font-semibold text-white shadow transition hover:bg-cyan-600 inline-block";
+
+  const handlePrint = async () => {
     setLoading(true);
-    try { await downloadPdf(DocWithLH, report, "WithLH"); }
-    finally { setLoading(false); }
+    try {
+      const doc = <DocWithLH report={report} />;
+      const asPdf = pdf(doc);
+      const blob = await asPdf.toBlob();
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank");
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+    } finally {
+      setLoading(false);
+    }
   };
+
   return (
-    <button
-      onClick={handleClick}
-      disabled={loading}
-      className={className ?? "rounded bg-cyan-500 px-3 py-1.5 text-xs font-semibold text-white shadow transition hover:bg-cyan-600 disabled:opacity-60"}
-    >
+    <button onClick={handlePrint} className={btnClass} disabled={loading} style={{ opacity: loading ? 0.6 : 1, cursor: loading ? "wait" : "pointer" }}>
       {loading ? "Generating..." : "Print Report With Letter Head"}
     </button>
   );
@@ -707,17 +717,25 @@ PrintWithLHButton.propTypes = { report: PropTypes.object.isRequired, className: 
 // Button 2 — Without Letter Head (amber)
 export function PrintWithoutLHButton({ report, className }) {
   const [loading, setLoading] = useState(false);
-  const handleClick = async () => {
+  const btnClass = className ?? "rounded bg-amber-500 px-3 py-1.5 text-xs font-semibold text-white shadow transition hover:bg-amber-600 inline-block";
+
+  const handlePrint = async () => {
     setLoading(true);
-    try { await downloadPdf(DocWithoutLH, report, "WoLH"); }
-    finally { setLoading(false); }
+    try {
+      const doc = <DocWithoutLH report={report} />;
+      const asPdf = pdf(doc);
+      const blob = await asPdf.toBlob();
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank");
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+    } finally {
+      setLoading(false);
+    }
   };
+
   return (
-    <button
-      onClick={handleClick}
-      disabled={loading}
-      className={className ?? "rounded bg-amber-500 px-3 py-1.5 text-xs font-semibold text-white shadow transition hover:bg-amber-600 disabled:opacity-60"}
-    >
+    <button onClick={handlePrint} className={btnClass} disabled={loading} style={{ opacity: loading ? 0.6 : 1, cursor: loading ? "wait" : "pointer" }}>
       {loading ? "Generating..." : "Print Report Without Letter Head"}
     </button>
   );
@@ -727,17 +745,25 @@ PrintWithoutLHButton.propTypes = { report: PropTypes.object.isRequired, classNam
 // Button 3 — Without Letter Head 2 Signs / Landscape (blue)
 export function PrintWithoutLHTwoSignButton({ report, className }) {
   const [loading, setLoading] = useState(false);
-  const handleClick = async () => {
+  const btnClass = className ?? "rounded bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow transition hover:bg-blue-700 inline-block";
+
+  const handlePrint = async () => {
     setLoading(true);
-    try { await downloadPdf(DocWithoutLHTwoSign, report, "WoLH_2Sign"); }
-    finally { setLoading(false); }
+    try {
+      const doc = <DocWithoutLHTwoSign report={report} />;
+      const asPdf = pdf(doc);
+      const blob = await asPdf.toBlob();
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank");
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+    } finally {
+      setLoading(false);
+    }
   };
+
   return (
-    <button
-      onClick={handleClick}
-      disabled={loading}
-      className={className ?? "rounded bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow transition hover:bg-blue-700 disabled:opacity-60"}
-    >
+    <button onClick={handlePrint} className={btnClass} disabled={loading} style={{ opacity: loading ? 0.6 : 1, cursor: loading ? "wait" : "pointer" }}>
       {loading ? "Generating..." : "Print Report Without Letter Head (2 Signs)"}
     </button>
   );

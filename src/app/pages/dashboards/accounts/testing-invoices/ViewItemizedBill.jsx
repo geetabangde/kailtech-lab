@@ -132,10 +132,10 @@ const f2 = (v) => parseFloat(v ?? 0).toFixed(2);
 const fmtDate = (d) =>
   d && d !== "0000-00-00 00:00:00"
     ? new Date(d).toLocaleDateString("en-IN", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      })
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    })
     : "";
 
 // ─── Number to words ──────────────────────────────────────────────────────────
@@ -221,7 +221,7 @@ function ItemizedBillPrintTemplate({
   const status = Number(inv.status);
 
   return (
-    <div style={S.wrap}>
+    <div style={{ ...S.wrap, paddingTop: !withLH ? 130 : 16 }}>
       {/* Letterhead */}
       {withLH && (
         <div
@@ -671,11 +671,10 @@ function SummaryRow({ label, value, bold = false }) {
         {label}
       </span>
       <span
-        className={`text-right tabular-nums ${
-          bold
+        className={`text-right tabular-nums ${bold
             ? "dark:text-dark-100 font-bold text-gray-900"
             : "dark:text-dark-200 text-gray-800"
-        }`}
+          }`}
         style={{ flex: "0 0 30%" }}
       >
         {value}
@@ -871,7 +870,17 @@ export default function ViewItemizedBill() {
           Pos: isNaN(Number(statecode)) ? "96" : String(statecode).padStart(2, '0'),
           Addr1: (invoice._address?.address || invoice.address || "").replace(/[\r\n]+/g, ' ').substring(0, 99),
           Loc: invoice._address?.city || "",
-          Pin: Number(invoice._address?.pincode) || 999999,
+          Pin: (() => {
+            const rawPin = String(invoice._address?.pincode || "");
+            const match = rawPin.match(/\b\d{6}\b/);
+            if (match) return Number(match[0]);
+
+            const addressStr = invoice.address || "";
+            const addrMatch = addressStr.match(/\b\d{6}\b/);
+            if (addrMatch) return Number(addrMatch[0]);
+
+            return 999999;
+          })(),
           Stcd: isNaN(Number(statecode)) ? "96" : String(statecode).padStart(2, '0')
         },
         ItemList: computedItems.map((item, index) => ({
@@ -999,9 +1008,8 @@ export default function ViewItemizedBill() {
 
         {/* ── Invoice Body ── */}
         <div
-          className={`dark:border-dark-600 dark:bg-dark-900 relative overflow-hidden rounded-lg border border-gray-300 bg-white p-6 text-sm ${
-            isDraft ? "draft-watermark" : ""
-          }`}
+          className={`dark:border-dark-600 dark:bg-dark-900 relative overflow-hidden rounded-lg border border-gray-300 bg-white p-6 text-sm ${isDraft ? "draft-watermark" : ""
+            }`}
         >
           {/* DRAFT watermark */}
           {isDraft && (

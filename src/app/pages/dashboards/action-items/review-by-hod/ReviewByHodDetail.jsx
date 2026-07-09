@@ -15,9 +15,9 @@ import clsx from "clsx";
 import { Page } from "components/shared/Page";
 import {
   PrintWithLHButton,
-  PrintWithoutLHButton,
   PrintWithoutLHTwoSignButton,
 } from "./TestReportPdf";
+import { PrintExportTestingReportWOLHButton } from "../signed-reports/exporttestingreportwolh";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -265,7 +265,26 @@ export default function ReviewByHodDetail() {
       const params = new URLSearchParams({ tid });
       if (hid) params.append("hid", hid);
       const res = await axios.get(`/actionitem/view-test-report?${params}`);
-      setReport(res.data?.data ?? res.data ?? null);
+      const data = res.data?.data ?? res.data ?? null;
+
+      // Fetch customer address if address_id exists
+      const custId = data?.customer?.id;
+      const addrId = data?.customer?.address_id;
+      if (custId && addrId) {
+        try {
+          const addrRes = await axios.get(`/people/get-customers-address/${custId}`);
+          const addrList = addrRes.data?.data ?? [];
+          const found = addrList.find((a) => String(a.id) === String(addrId));
+          if (found) {
+            if (!data.customer) data.customer = {};
+            data.customer.address = found.address;
+          }
+        } catch (e) {
+          console.error("Failed to fetch customer address:", e);
+        }
+      }
+
+      setReport(data);
     } catch (err) {
       setError(err?.response?.data?.message ?? "Failed to load report.");
     } finally {
@@ -447,7 +466,7 @@ export default function ReviewByHodDetail() {
             {report && (
               <div className="flex items-center gap-2 no-print">
                 <PrintWithLHButton report={report} />
-                <PrintWithoutLHButton report={report} />
+                <PrintExportTestingReportWOLHButton report={report} />
                 <PrintWithoutLHTwoSignButton report={report} />
               </div>
             )}
@@ -486,7 +505,7 @@ export default function ReviewByHodDetail() {
                         Name and Address of Customer
                       </p>
                       <p className="text-gray-800 dark:text-gray-200">{customerName}</p>
-                      <p className="text-gray-600 dark:text-gray-400">{customerAddress}</p>
+                      <p className="text-gray-800 dark:text-gray-200">{customerAddress}</p>
                       {/* PHP: if ($specificpurpose == 2) */}
                       {showContact && contactPerson && (
                         <p className="mt-1 text-gray-700 dark:text-gray-300">

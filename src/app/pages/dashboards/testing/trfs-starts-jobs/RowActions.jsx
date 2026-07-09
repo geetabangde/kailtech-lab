@@ -96,7 +96,7 @@ function ActionPill({
   );
 }
 
-export function RowActions({ row, table }) {
+export function RowActions({ row, table, wrap = false }) {
   const navigate = useNavigate();
 
   const trfId = row.original.id;
@@ -373,7 +373,7 @@ export function RowActions({ row, table }) {
 
   return (
     <>
-      <div className="flex flex-wrap gap-1.5 py-1">
+      <div className={clsx("flex flex-wrap gap-1.5 py-1", wrap && "flex-wrap")}>
         {filteredActions.map((action, index) => (
           <ActionPill
             key={index}

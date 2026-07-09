@@ -11,7 +11,7 @@ export default function EditWorkOrder() {
   const location = useLocation();
 
   // query params preserve karne ke liye
-  const searchParams = location.search; 
+  const searchParams = location.search;
 
   const [loading, setLoading] = useState(false);
   const [ponumber, setPonumber] = useState("");
@@ -23,9 +23,7 @@ export default function EditWorkOrder() {
     if (!ponumber.trim()) {
       newErrors.ponumber = "Work Order No is required";
     }
-    if (!wupload) {
-      newErrors.wupload = "Work Order file is required";
-    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -84,7 +82,7 @@ export default function EditWorkOrder() {
           </Button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">  
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Input
               label="Work Order No"

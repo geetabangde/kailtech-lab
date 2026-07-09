@@ -213,7 +213,7 @@ function DetailedInvoicePrintTemplate({
   const status = Number(inv.status);
 
   return (
-    <div style={S.wrap}>
+    <div style={{ ...S.wrap, paddingTop: !withLH ? 130 : 16 }}>
       {/* Letterhead */}
       {withLH && (
         <div
@@ -883,7 +883,17 @@ export default function ViewDetailedInvoice() {
           Pos: isNaN(Number(statecode)) ? "96" : String(statecode).padStart(2, '0'),
           Addr1: (invoice._address?.address || invoice.address || "").replace(/[\r\n]+/g, ' ').substring(0, 99),
           Loc: invoice._address?.city || "",
-          Pin: Number(invoice._address?.pincode) || 999999,
+          Pin: (() => {
+            const rawPin = String(invoice._address?.pincode || "");
+            const match = rawPin.match(/\b\d{6}\b/);
+            if (match) return Number(match[0]);
+
+            const addressStr = invoice.address || "";
+            const addrMatch = addressStr.match(/\b\d{6}\b/);
+            if (addrMatch) return Number(addrMatch[0]);
+
+            return 999999;
+          })(),
           Stcd: isNaN(Number(statecode)) ? "96" : String(statecode).padStart(2, '0')
         },
         ItemList: computedItems.map((item, index) => ({

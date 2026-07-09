@@ -45,11 +45,15 @@ function printInvoice(templateProps, withLH, logoSrc, pageTitle) {
   <title>${pageTitle || templateProps.inv?.invoiceno || "Invoice"}</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
-    @page { size: A4; margin: 10mm; }
-    body  { margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #111; background: #fff; }
-    @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+    @page { size: A4; margin: 10mm; margin-top: 10mm; }
+    @page :first { margin-top: 10mm; }
+    body  { margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; font-size: 14px; color: #111; background: #fff; }
+    @media print { 
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      head { display: none; }
+    }
     table  { border-collapse: collapse; width: 100%; margin-bottom: 8px; table-layout: fixed; }
-    th, td { border: 1px solid #000; padding: 5px 7px; font-size: 11px; vertical-align: middle; word-break: break-word; overflow: hidden; }
+    th, td { border: 1px solid #000; padding: 6px 8px; font-size: 13px; vertical-align: middle; word-break: break-word; overflow: hidden; }
     th     { background: #f3f4f6; text-align: center; font-weight: bold; }
     td.right  { text-align: right; }
     td.center { text-align: center; }
@@ -86,7 +90,7 @@ function printInvoice(templateProps, withLH, logoSrc, pageTitle) {
 // NOTE: border / padding / font-size / vertical-align are handled by the
 // print-window <style> block — only layout-specific overrides go here.
 const S = {
-  wrap: { fontFamily: "Arial,Helvetica,sans-serif", fontSize: 12, color: "#111", backgroundColor: "#fff", padding: "16px 20px", width: "100%" },
+  wrap: { fontFamily: "Arial,Helvetica,sans-serif", fontSize: 13, color: "#111", backgroundColor: "#fff", padding: "16px 20px", width: "100%" },
   table: { width: "100%", borderCollapse: "collapse", marginBottom: 8, tableLayout: "fixed" },
   // These are used only for on-screen preview; for print the CSS class handles alignment
   th: { textAlign: "center", backgroundColor: "#f3f4f6" },
@@ -138,273 +142,302 @@ function InvoicePrintTemplate({ inv, addr, items, qrUrl, signUrl, digitalSignUrl
   const isNormalPo = inv.potype === "Normal";
   // hasMeter removed to standardize on "Nos."
   const status = Number(inv.status);
-  // Only use qrUrl if it's a base64 data URL — raw URLs will CORS-block html2canvas
-  const safeQrUrl = qrUrl && qrUrl.startsWith("data:") ? qrUrl : null;
+  // html2canvas is no longer used, so we can safely use remote URLs directly.
+  const safeQrUrl = qrUrl || null;
 
   // Per-item calculations (same PHP logic)
   const totalQty = items.reduce((s, it) => s + (parseFloat(it.qty) || 0), 0);
   const otherCharges = (parseFloat(inv.witnesscharges) || 0) + (parseFloat(inv.samplehandling) || 0) +
     (parseFloat(inv.sampleprep) || 0) + (parseFloat(inv.freight) || 0) + (parseFloat(inv.mobilisation) || 0);
 
-  return (
-    <div style={S.wrap}>
+  const HeaderSection = () => (
+    <>
       {/* Letterhead */}
       {withLH && (
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 8, gap: 4 }}>
-          <div style={{ display: "flex", alignItems: "flex-start", gap: 12, width: "100%" }}>
-            <img src={logoSrc || companyInfo?.branding?.logo || logo} alt="Logo" style={{ height: 60, width: "auto" }} />
-            <div style={{ flex: 1, textAlign: "right" }}>
-              <p style={{ fontFamily: "monospace", fontSize: 10, fontStyle: "italic", color: "#555", margin: 0 }}>
-                NABL Accredited as per IS/ISO/IEC 17025 (Certificate Nos. TC-7832 &amp; CC-2348),<br />
-                BIS Recognized &amp; ISO 9001 Certified Test &amp; Calibration Laboratory
-              </p>
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 12, width: "100%", marginBottom: 8 }}>
+          <img src={logoSrc || companyInfo?.branding?.logo || logo} alt="Logo" style={{ height: 60, width: "auto", flexShrink: 0 }} />
+          <div style={{ flex: 1 }}>
+            <p style={{ fontFamily: "serif", fontSize: 11, fontStyle: "italic", color: "#555", margin: 0, textAlign: "right" }}>
+              NABL Accredited as per IS/ISO/IEC 17025 (Certificate Nos. TC-7832 &amp; CC-2348),<br />
+              BIS Recognized &amp; ISO 9001 Certified Test &amp; Calibration Laboratory
+            </p>
+            <div style={{ fontSize: 20, fontWeight: "bold", color: "navy", textAlign: "left", marginTop: 8, paddingLeft: 12 }}>
+              {companyInfo?.company?.name || "Kailtech Test And Research Centre Pvt. Ltd."}
             </div>
-          </div>
-          <div style={{ fontSize: 20, fontWeight: "bold", color: "navy", textAlign: "left", marginTop: 4 }}>
-            {companyInfo?.company?.name || "Kailtech Test And Research Centre Pvt. Ltd."}
           </div>
         </div>
       )}
 
       <div style={{ textAlign: "center", marginBottom: 8 }}>
         <div style={{ fontSize: 14, fontWeight: "bold", textTransform: "uppercase" }}>TAX INVOICE</div>
-        <div style={{ fontSize: 11, fontWeight: "bold", textTransform: "uppercase", marginTop: 4 }}>For {inv.typeofinvoice || ""} Charges</div>
-        <div style={{ fontSize: 11, fontWeight: "bold", textTransform: "uppercase", marginTop: 2 }}>ORIGINAL FOR RECIPIENT</div>
+        <div style={{ fontSize: 12, textTransform: "uppercase", marginTop: 4 }}>FOR {inv.typeofinvoice || ""} CHARGES</div>
+        <div style={{ fontSize: 12, textTransform: "uppercase", marginTop: 2 }}>ORIGINAL FOR RECIPIENT</div>
       </div>
+    </>
+  );
 
-      {/* Customer + Invoice meta */}
-      <table style={S.table}>
-        <tbody>
-          <tr>
-            <td style={{ ...S.td, width: "64%" }} colSpan={2}>
-              <div style={S.label}>Customer:</div>
-              <strong>{inv.customername}</strong><br />
-              <div style={{ marginTop: 2 }}>
-                {addr.address ? (
-                  <>
-                    {addr.address}<br />
-                    {[addr.city, addr.pincode].filter(Boolean).join(", ")}
-                  </>
-                ) : (
-                  inv.address
-                )}
-              </div>
-              <div style={{ marginTop: 4 }}>
-                <span style={S.label}>State name: </span>{stateLabel}&nbsp;&nbsp;
-                <span style={S.label}>State code: </span>{!isNaN(inv.statecode) ? statecode : "NA"}
-              </div>
-              <div>
-                <span style={S.label}>GSTIN/UIN: </span>{inv.gstno}&nbsp;&nbsp;
-                <span style={S.label}>PAN: </span>{inv.pan}
-              </div>
-              {inv.concern_person && <div style={{ fontSize: 10, color: "#555" }}>Kind Attn. {inv.concern_person}</div>}
-            </td>
-            <td style={{ ...S.td, width: status === 2 && safeQrUrl ? "26%" : "36%", borderRight: status === 2 && safeQrUrl ? "none" : undefined }}
-              colSpan={status === 2 && safeQrUrl ? 2 : 3}>
-              <div><span style={S.label}>Invoice No.: </span>{inv.invoiceno}</div>
-              <div><span style={S.label}>Date: </span>{fmtDate(inv.approved_on)}</div>
-              <div><span style={S.label}>P.O. No. / Date: </span>{inv.ponumber}</div>
-            </td>
-            {status === 2 && safeQrUrl && (
-              <td style={{ ...S.td, borderLeft: "none", width: "10%" }}>
-                <div style={{ border: "2px solid #000", overflow: "hidden" }}>
-                  <img src={safeQrUrl} alt="QR" style={{ width: "100%" }} crossOrigin="anonymous" />
-                </div>
-              </td>
-            )}
-          </tr>
-        </tbody>
-      </table>
+  return (
+    <div style={S.wrap}>
+      {/* Page 1 wrapper: flex column so footer sticks to bottom */}
+      <div style={{ display: "flex", flexDirection: "column", minHeight: "257mm" }}>
+        <div style={{ flex: 1 }}>
+          <HeaderSection />
 
-      {/* Items — colgroup locks column widths for table-layout:fixed */}
-      <table style={S.table}>
-        <colgroup>
-          <col style={{ width: "8%" }} />
-          <col style={{ width: isNormalPo ? "56%" : "80%" }} />
-          <col style={{ width: "10%" }} />
-          {isNormalPo && <>
-            <col style={{ width: "12%" }} />
-            <col style={{ width: "14%" }} />
-          </>}
-        </colgroup>
-        <thead>
-          <tr>
-            <th>S. No.</th>
-            <th>Description</th>
-            <th>{"No's"}</th>
-            {isNormalPo && <>
-              <th>Rate</th>
-              <th>Amount</th>
-            </>}
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((item, idx) => {
-            // Per-item calc (skip for FOC)
-            let displayAmount = f2(item.amount);
-            if (!isFoc && isNormalPo) {
-              const itemAmountOld = parseFloat(item.amount) || 0;
-              const itemOtherCharge = otherCharges > 0 && totalQty > 0
-                ? parseFloat(((otherCharges / totalQty) * parseFloat(item.qty || 0)).toFixed(2)) : 0;
-              displayAmount = f2(itemAmountOld + itemOtherCharge);
-            }
-            return (
-              <tr key={item.id ?? idx} style={{ backgroundColor: idx % 2 === 1 ? "#f9fafb" : "#fff" }}>
-                <td className="center">{idx + 1}</td>
-                <td dangerouslySetInnerHTML={{ __html: item.description }} />
-                <td className="center">{item.meter_option == 1 ? item.meter : item.qty}</td>
-                {isNormalPo && <>
-                  <td className="center">{item.rate}</td>
-                  <td className="right">{displayAmount}</td>
-                </>}
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-
-      {/* Totals + BRN + Bank — colgroup: 60% left info, 25% label, 15% value */}
-      <table style={S.table}>
-        <colgroup>
-          <col style={{ width: "60%" }} />
-          <col style={{ width: "25%" }} />
-          <col style={{ width: "15%" }} />
-        </colgroup>
-        <tbody>
-          <tr>
-            {/* Left: IRN / BRN / company info */}
-            <td style={{ verticalAlign: "top" }} colSpan={1}
-              rowSpan={4 + (parseFloat(inv.discnumber) > 0 ? 1 : 0) +
-                (parseFloat(inv.witnesscharges) > 0 ? 1 : 0) +
-                (parseFloat(inv.samplehandling) > 0 ? 1 : 0) +
-                (parseFloat(inv.sampleprep) > 0 ? 1 : 0) +
-                (parseFloat(inv.freight) > 0 ? 1 : 0) +
-                (parseFloat(inv.mobilisation) > 0 ? 1 : 0) +
-                (isSGST ? 2 : 1)}>
-              {status === 2 && (<div style={{ marginBottom: 6, fontSize: 10 }}>
-                {inv.irn && <div><strong>Irn No:</strong> {inv.irn}</div>}
-                {inv.ack_no && <div><strong>Acknowledgment No:</strong> {inv.ack_no}</div>}
-                {inv.ack_dt && <div><strong>Acknowledgement Date:</strong> {inv.ack_dt}</div>}
-              </div>)}
-              {inv.brnnos?.trim() && <div><strong>BRN No :</strong> {inv.brnnos}</div>}
-              {inv.remark?.trim() && <div><strong>Remark :</strong> {inv.remark}</div>}
-              <div>PAN : {companyInfo?.company?.pan_no || "AADCK0799A"}</div>
-              <div>GSTIN : {companyInfo?.company?.gst_no || "23AADCK0799A1ZV"}</div>
-              <div>SAC Code : {companyInfo?.company?.sac_code || "998394"} Category : Scientific and Technical Consultancy Services</div>
-              <div>Udhyam Registeration No. Type of MSME : 230262102537</div>
-              <div>CIN NO. {companyInfo?.company?.cin_no || "U73100MP2006PTC019006"}</div>
-            </td>
-            <td>Subtotal</td>
-            <td className="right">{f2(inv.subtotal)}</td>
-          </tr>
-          {parseFloat(inv.discnumber) > 0 && <tr>
-            <td>Discount ({inv.discnumber}{inv.disctype === "%" ? "%" : ""})</td>
-            <td className="right">{f2(inv.discount)}</td>
-          </tr>}
-          {parseFloat(inv.witnesscharges) > 0 && <tr>
-            <td>Witness Charges ({inv.witnessnumber}{inv.witnesstype === "%" ? "%" : ""})</td>
-            <td className="right">{f2(inv.witnesscharges)}</td>
-          </tr>}
-          {parseFloat(inv.samplehandling) > 0 && <tr>
-            <td>Sample Handling</td>
-            <td className="right">{f2(inv.samplehandling)}</td>
-          </tr>}
-          {parseFloat(inv.sampleprep) > 0 && <tr>
-            <td>Sample Preparation Charges</td>
-            <td className="right">{f2(inv.sampleprep)}</td>
-          </tr>}
-          {parseFloat(inv.freight) > 0 && <tr>
-            <td>Freight Charges</td>
-            <td className="right">{f2(inv.freight)}</td>
-          </tr>}
-          {parseFloat(inv.mobilisation) > 0 && <tr>
-            <td>Mobilization and Demobilization Charges</td>
-            <td className="right">{f2(inv.mobilisation)}</td>
-          </tr>}
-          <tr>
-            <td>Total</td>
-            <td className="right">{f2(inv.subtotal2)}</td>
-          </tr>
-          {isSGST ? (<>
-            <tr><td>CGST {inv.cgstper}%</td><td className="right">{f2(inv.cgstamount)}</td></tr>
-            <tr><td>SGST {inv.sgstper}%</td><td className="right">{f2(inv.sgstamount)}</td></tr>
-          </>) : (
-            <tr><td>IGST {inv.igstper}%</td><td className="right">{f2(inv.igstamount)}</td></tr>
-          )}
-          <tr>
-            <td>Total Charges With tax</td>
-            <td className="right">{f2(inv.total)}</td>
-          </tr>
-          <tr>
-            <td>Round off</td>
-            <td className="right">{f2(inv.roundoff)}</td>
-          </tr>
-          {/* In words + final total */}
-          <tr>
-            <td colSpan={2} style={{ borderRight: "none" }}>
-              <strong>(IN WORDS):</strong> Rs. {numberToWords(Math.round(finalTotal))} Only
-            </td>
-            <td style={{ fontWeight: "bold" }} className="right">{f2(Math.round(finalTotal))}</td>
-          </tr>
-        </tbody>
-      </table>
-
-      {/* Bank + Signatory */}
-      <table style={S.table}>
-        <colgroup>
-          <col style={{ width: "60%" }} />
-          <col style={{ width: "40%" }} />
-        </colgroup>
-        <tbody>
-          <tr>
-            <td style={{ verticalAlign: "top" }}>
-              <div>For online payments - {inv.bankaccountname || companyInfo?.bank?.account_name || ""}</div>
-              <div>Bank Name : {inv.bankname || companyInfo?.bank?.bank_name || ""}, Branch Name : {inv.bankbranch || companyInfo?.bank?.branch || ""}</div>
-              <div>Bank Account No. : {inv.bankaccountno || companyInfo?.bank?.account_no || ""}, A/c Type : {inv.bankactype || companyInfo?.bank?.account_type || ""}</div>
-              <div>IFSC CODE: {inv.bankifsccode || companyInfo?.bank?.ifsc || ""}, MICR CODE: {inv.bankmicr || companyInfo?.bank?.micr || ""}</div>
-              <div style={{ marginTop: 6, fontSize: 10 }}>
-                Certified that the particulars given above are true and correct.
-                The commercial values in this document are as per contract/Agreement/Purchase order terms with the customer.<br />
-                <strong> Declaration u/s 206 AB of Income Tax Act:</strong> We have filed our Income Tax Return for previous two years with in specified due dates.
-              </div>
-            </td>
-            <td style={{ ...S.td, borderLeft: "none", textAlign: "right" }} colSpan={2}>
-              <div style={{ height: 120, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-                <div>For {companyInfo?.company?.name || "Kailtech Test And Research Centre Pvt. Ltd."}</div>
-                {(status === 1 || status === 2) && (
-                  <div>
-                    {signUrl && (
-                      <img src={signUrl} alt="Sign" crossOrigin="anonymous"
-                        style={{ width: 100, height: 40, objectFit: "contain" }} />
-                    )}
-                    {digitalSignUrl && (
-                      <img src={digitalSignUrl} alt="DigSign" crossOrigin="anonymous"
-                        style={{ maxHeight: 50, objectFit: "contain" }} />
+          {/* Customer + Invoice meta */}
+          <table style={S.table}>
+            <colgroup>
+              <col style={{ width: status === 2 && safeQrUrl ? "45%" : "60%" }} />
+              <col style={{ width: status === 2 && safeQrUrl ? "30%" : "40%" }} />
+              {status === 2 && safeQrUrl && <col style={{ width: "25%" }} />}
+            </colgroup>
+            <tbody>
+              <tr>
+                <td style={{ ...S.td, verticalAlign: "top" }}>
+                  <div style={S.label}>Customer:</div>
+                  <strong>M / s . {inv.customername}</strong><br />
+                  <div style={{ marginTop: 4 }}>
+                    {addr.address ? (
+                      <>
+                        {addr.address}<br />
+                        {[addr.city, addr.pincode].filter(Boolean).join(", ")}
+                      </>
+                    ) : (
+                      inv.address
                     )}
                   </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", columnGap: "12px", rowGap: "4px", marginTop: 4 }}>
+                    <div style={{ minWidth: "45%" }}><span style={S.label}>State name : </span>{stateLabel}</div>
+                    <div style={{ minWidth: "40%" }}><span style={S.label}>State code : </span>{!isNaN(inv.statecode) ? statecode : "NA"}</div>
+                    <div style={{ minWidth: "45%" }}><span style={S.label}>GSTIN/UIN : </span>{inv.gstno}</div>
+                    <div style={{ minWidth: "40%" }}><span style={S.label}>PAN : </span>{inv.pan}</div>
+                  </div>
+                  {inv.concern_person && <div style={{ marginTop: 8 }}>Kind Attn. {inv.concern_person}</div>}
+                </td>
+                <td style={{ ...S.td, verticalAlign: "top" }}>
+                  <div><span style={S.label}>Invoice No. : </span>{inv.invoiceno}</div>
+                  <div style={{ marginTop: 4 }}><span style={S.label}>Date : </span>{fmtDate(inv.approved_on)}</div>
+                  <div style={{ marginTop: 4 }}><span style={S.label}>P.O. No./ Date : </span>{inv.ponumber}</div>
+                </td>
+                {status === 2 && safeQrUrl && (
+                  <td style={{ ...S.td, verticalAlign: "middle", textAlign: "center", padding: 2 }}>
+                    <img src={safeQrUrl} alt="QR" style={{ width: "100%", maxWidth: 180, margin: "0 auto" }} />
+                  </td>
                 )}
-                <div><u>Authorised Signatory</u></div>
-              </div>
-            </td>
-          </tr>
-          <tr>
-            <td colSpan={2} style={{ fontSize: 10 }}>
-              <strong><u>Terms &amp; Conditions:</u></strong>
-              <ol style={{ paddingLeft: 18, marginTop: 4, lineHeight: 1.6 }}>
-                <li>Cross Cheque/DD should be drawn in favour of {companyInfo?.company?.name || "Kailtech Test And Research Centre Pvt. Ltd."} Payable at Indore</li>
-                <li>Please attached bill details indicating Invoice No. Quotation no &amp; TDS deductions if any along with your payment.</li>
-                <li>As per existing GST rules. the GSTR-1 has to be filed in the immediate next month of billing. So if you have any issue in this tax invoice viz customer Name, Address, GST No., Amount etc, please inform positively in writing before 5th of next month, otherwise no such request will be entertained.</li>
-                <li>Payment not made with in 15 days from the date of issued bill will attract interest @ 24% P.A.</li>
-                <li>If the payment is to be paid in Cash pay to UPI <strong>0795933A0099960.bqr@kotak</strong> only and take official receipt. Else claim of payment, shall not be accepted</li>
-                <li>Subject to exclusive jurisdiction of courts at Indore only.</li>
-                <li>Errors &amp; omissions accepted.</li>
-              </ol>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <div style={{ textAlign: "center", fontSize: 10, color: "#999", marginTop: 8 }}>
-        This is a system generated invoice
+              </tr>
+            </tbody>
+          </table>
+
+          {/* Items — colgroup locks column widths for table-layout:fixed */}
+          <table style={S.table}>
+            <colgroup>
+              <col style={{ width: "8%" }} />
+              <col style={{ width: isNormalPo ? "52%" : "80%" }} />
+              <col style={{ width: "12%" }} />
+              {isNormalPo && <>
+                <col style={{ width: "13%" }} />
+                <col style={{ width: "15%" }} />
+              </>}
+            </colgroup>
+            <thead>
+              <tr>
+                <th>S. No.</th>
+                <th>Description</th>
+                <th>{"No's"}</th>
+                {isNormalPo && <>
+                  <th>Rate</th>
+                  <th>Amount</th>
+                </>}
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((item, idx) => {
+                // Per-item calc (skip for FOC)
+                let displayAmount = f2(item.amount);
+                if (!isFoc && isNormalPo) {
+                  const itemAmountOld = parseFloat(item.amount) || 0;
+                  const itemOtherCharge = otherCharges > 0 && totalQty > 0
+                    ? parseFloat(((otherCharges / totalQty) * parseFloat(item.qty || 0)).toFixed(2)) : 0;
+                  displayAmount = f2(itemAmountOld + itemOtherCharge);
+                }
+                return (
+                  <tr key={item.id ?? idx}>
+                    <td className="center">{idx + 1}</td>
+                    <td dangerouslySetInnerHTML={{ __html: item.description }} />
+                    <td className="center">{item.meter_option == 1 ? item.meter : item.qty}</td>
+                    {isNormalPo && <>
+                      <td className="center">{item.rate}</td>
+                      <td className="right">{displayAmount}</td>
+                    </>}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+
+          {/* Totals + BRN + Bank — colgroup: 60% left info, 25% label, 15% value */}
+          <table style={S.table}>
+            <colgroup>
+              <col style={{ width: "60%" }} />
+              <col style={{ width: "22%" }} />
+              <col style={{ width: "18%" }} />
+            </colgroup>
+            <tbody>
+              <tr>
+                {/* Left: IRN / BRN / company info */}
+                <td style={{ verticalAlign: "top" }} colSpan={1}
+                  rowSpan={4 + (parseFloat(inv.discnumber) > 0 ? 1 : 0) +
+                    (parseFloat(inv.witnesscharges) > 0 ? 1 : 0) +
+                    (parseFloat(inv.samplehandling) > 0 ? 1 : 0) +
+                    (parseFloat(inv.sampleprep) > 0 ? 1 : 0) +
+                    (parseFloat(inv.freight) > 0 ? 1 : 0) +
+                    (parseFloat(inv.mobilisation) > 0 ? 1 : 0) +
+                    (isSGST ? 2 : 1)}>
+                  {status === 2 && (<div style={{ marginBottom: 6, fontSize: 10 }}>
+                    {inv.irn && <div><strong>Irn No:</strong> {inv.irn}</div>}
+                    {inv.ack_no && <div><strong>Acknowledgment No:</strong> {inv.ack_no}</div>}
+                    {inv.ack_dt && <div><strong>Acknowledgement Date:</strong> {inv.ack_dt}</div>}
+                  </div>)}
+                  {inv.brnnos?.trim() && <div><strong>BRN No :</strong> {inv.brnnos}</div>}
+                  {inv.remark?.trim() && <div><strong>Remark :</strong> {inv.remark}</div>}
+                  <div style={{ marginTop: 8 }}>PAN : {companyInfo?.company?.pan_no || "AADCK0799A"}</div>
+                  <div>GSTIN : {companyInfo?.company?.gst_no || "23AADCK0799A1ZV"}</div>
+                  <div>SAC Code : {companyInfo?.company?.sac_code || "998394"} Category : Scientific and Technical Consultancy Services</div>
+                  <div>Udhyam Registration No. Type of MSME : 230262102537</div>
+                  <div>CIN NO.{companyInfo?.company?.cin_no || "U73100MP2006PTC019006"}</div>
+                </td>
+                <td>Subtotal</td>
+                <td className="right">{f2(inv.subtotal)}</td>
+              </tr>
+              {parseFloat(inv.discnumber) > 0 && <tr>
+                <td>Discount ({inv.discnumber}{inv.disctype === "%" ? "%" : ""})</td>
+                <td className="right">{f2(inv.discount)}</td>
+              </tr>}
+              {parseFloat(inv.witnesscharges) > 0 && <tr>
+                <td>Witness Charges ({inv.witnessnumber}{inv.witnesstype === "%" ? "%" : ""})</td>
+                <td className="right">{f2(inv.witnesscharges)}</td>
+              </tr>}
+              {parseFloat(inv.samplehandling) > 0 && <tr>
+                <td>Sample Handling</td>
+                <td className="right">{f2(inv.samplehandling)}</td>
+              </tr>}
+              {parseFloat(inv.sampleprep) > 0 && <tr>
+                <td>Sample Preparation Charges</td>
+                <td className="right">{f2(inv.sampleprep)}</td>
+              </tr>}
+              {parseFloat(inv.freight) > 0 && <tr>
+                <td>Freight Charges</td>
+                <td className="right">{f2(inv.freight)}</td>
+              </tr>}
+              {parseFloat(inv.mobilisation) > 0 && <tr>
+                <td>Mobilization and Demobilization Charges</td>
+                <td className="right">{f2(inv.mobilisation)}</td>
+              </tr>}
+              <tr>
+                <td>Total</td>
+                <td className="right">{f2(inv.subtotal2)}</td>
+              </tr>
+              {isSGST ? (<>
+                <tr><td>CGST {inv.cgstper}%</td><td className="right">{f2(inv.cgstamount)}</td></tr>
+                <tr><td>SGST {inv.sgstper}%</td><td className="right">{f2(inv.sgstamount)}</td></tr>
+              </>) : (
+                <tr><td>IGST {inv.igstper}%</td><td className="right">{f2(inv.igstamount)}</td></tr>
+              )}
+              <tr>
+                <td>Total Charges With tax</td>
+                <td className="right">{f2(inv.total)}</td>
+              </tr>
+              <tr>
+                <td>Round off</td>
+                <td className="right">{f2(inv.roundoff)}</td>
+              </tr>
+              {/* In words + final total */}
+              <tr>
+                <td colSpan={1}>
+                  (IN WORDS): Rs. {numberToWords(Math.round(finalTotal))} Only
+                </td>
+                <td style={{ fontWeight: "bold" }}>Total Testing Charges</td>
+                <td style={{ fontWeight: "bold" }} className="right">{f2(Math.round(finalTotal))}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>{/* end flex:1 */}
+
+        {/* Page 1 Footer: Company Address — pushed to bottom */}
+        <div style={{ textAlign: "center", fontSize: 11, paddingTop: 8, borderTop: "1px solid #000", marginTop: "auto" }}>
+          <div style={{ fontWeight: "bold" }}>
+            Plot No.141 C, Electronic Complex, Pardeshipura, Indore-452010 (INDIA) Ph. +91-4787555 (30 Lines), 4046055,4048055
+          </div>
+          <div>
+            Email : contact@kailtech.net,calibration@kailtech.net, Web: www.kailtech.net, CIN-U73100MP2006PTC019006
+          </div>
+        </div>
+      </div>{/* end page 1 wrapper */}
+
+      {/* Page 2: Bank + Signatory */}
+      <div style={{ pageBreakBefore: "always", paddingTop: 10 }}>
+        <HeaderSection />
+        <table style={S.table}>
+          <colgroup>
+            <col style={{ width: "50%" }} />
+            <col style={{ width: "50%" }} />
+          </colgroup>
+          <tbody>
+            <tr>
+              <td style={{ verticalAlign: "top" }}>
+                <div>For online payments - {inv.bankaccountname || companyInfo?.bank?.account_name || "Kailtech Test And Research Centre Pvt. Ltd."}</div>
+                <div>Bank Name : {inv.bankname || companyInfo?.bank?.bank_name || ""}, Branch Name : {inv.bankbranch || companyInfo?.bank?.branch || ""}</div>
+                <div>Bank Account No. : {inv.bankaccountno || companyInfo?.bank?.account_no || ""}, A/c Type : {inv.bankactype || companyInfo?.bank?.account_type || ""}</div>
+                <div>IFSC CODE: {inv.bankifsccode || companyInfo?.bank?.ifsc || ""}, MICR CODE: {inv.bankmicr || companyInfo?.bank?.micr || ""}</div>
+                <div style={{ marginTop: 6, fontSize: 11 }}>
+                  Certified that the particulars given above are true and correct. The commercial values in this document are as per contract/ Agreement/ Purchase order terms with the customer.<br />
+                  <strong>Declaration u/s 206AB of Income Tax Act:</strong> We have filed our Income Tax Return for previous two years with in specified due dates.
+                </div>
+              </td>
+              <td style={{ ...S.td, verticalAlign: "top" }} colSpan={1}>
+                <div style={{ minHeight: 120, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+                  <div style={{ textAlign: "right", marginBottom: 10, whiteSpace: "nowrap", textTransform: "uppercase", fontSize: 12 }}>For {companyInfo?.company?.name || "Kailtech Test And Research Centre Pvt. Ltd."}</div>
+
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+                    {/* Left: Signature + Digital Signature Image */}
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", textAlign: "left", paddingLeft: 10 }}>
+                      {(status === 1 || status === 2) && signUrl && (
+                        <img src={signUrl} alt="Sign" style={{ width: 100, height: 40, objectFit: "contain", marginBottom: 4 }} />
+                      )}
+                      {(status === 1 || status === 2) && digitalSignUrl && (
+                        <img src={digitalSignUrl} alt="Digital Sign" style={{ width: 160, objectFit: "contain" }} />
+                      )}
+                    </div>
+
+                    {/* Right: Seal + Authorised Signatory */}
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "right" }}>
+                      <img src="https://kailtech.in/images/seal.png" alt="Seal" style={{ height: 70, width: 70, objectFit: "contain", marginBottom: 10 }} />
+                      <div>
+                        <u>Authorised</u><br /><u>Signatory</u>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td colSpan={2} style={{ fontSize: 10 }}>
+                <strong><u>Terms &amp; Conditions:</u></strong>
+                <ol style={{ paddingLeft: 18, marginTop: 4, lineHeight: 1.6 }}>
+                  <li>Cross Cheque/DD should be drawn in favour of {companyInfo?.company?.name || "Kailtech Test And Research Centre Pvt. Ltd."} Payable at Indore</li>
+                  <li>Please attached bill details indicating Invoice No. Quotation no &amp; TDS deductions if any along with your payment.</li>
+                  <li>As per existing GST rules. the GSTR-1 has to be filed in the immediate next month of billing. So if you have any issue in this tax invoice viz customer Name, Address, GST No., Amount etc, please inform positively in writing before 5th of next month, otherwise no such request will be entertained.</li>
+                  <li>Payment not made with in 15 days from the date of issued bill will attract interest @ 24% P.A.</li>
+                  <li>If the payment is to be paid in Cash pay to UPI <strong>0795933A0099960.bqr@kotak</strong> only and take official receipt. Else claim of payment, shall not be accepted</li>
+                  <li>Subject to exclusive jurisdiction of courts at Indore only.</li>
+                  <li>Errors &amp; omissions accepted.</li>
+                </ol>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div style={{ textAlign: "left", fontSize: 10, marginTop: 4 }}>
+          This is a system generated invoice //
+        </div>
       </div>
     </div>
   );
@@ -672,7 +705,17 @@ export default function ViewInvoiceCalibration() {
           Pos: isNaN(Number(statecode)) ? "96" : String(statecode).padStart(2, '0'),
           Addr1: (invoice._address?.address || invoice.address || "").replace(/[\r\n]+/g, ' ').substring(0, 99),
           Loc: invoice._address?.city || "",
-          Pin: Number(invoice._address?.pincode) || 999999,
+          Pin: (() => {
+            const rawPin = String(invoice._address?.pincode || "");
+            const match = rawPin.match(/\b\d{6}\b/);
+            if (match) return Number(match[0]);
+
+            const addressStr = invoice.address || "";
+            const addrMatch = addressStr.match(/\b\d{6}\b/);
+            if (addrMatch) return Number(addrMatch[0]);
+
+            return 999999;
+          })(),
           Stcd: isNaN(Number(statecode)) ? "96" : String(statecode).padStart(2, '0')
         },
         ItemList: computedItems.map((item, index) => ({
@@ -710,7 +753,7 @@ export default function ViewInvoiceCalibration() {
       setEinvModal(false);
       load();
     } catch (err) {
-      toast.error(err?.response?.data?.message || "Failed to generate E-Invoice");
+      toast.error(err?.response?.data?.message || err.message || "Failed to generate E-Invoice");
     } finally {
       setBusy(false);
     }
@@ -809,7 +852,7 @@ export default function ViewInvoiceCalibration() {
               <img src={companyInfo?.branding?.logo || logo} alt="KRTC Logo" className="h-16 w-auto object-contain" />
             </div>
             <div className="col-span-9">
-              <p className="font-mono text-xs italic text-gray-500 text-right">
+              <p className="font-mono text-sm italic text-gray-500 text-right">
                 NABL Accredited as per IS/ISO/IEC 17025 (Certificate Nos. TC-7832 &amp; CC-2348),<br />
                 BIS Recognized &amp; ISO 9001 Certified Test &amp; Calibration Laboratory
               </p>
@@ -828,48 +871,52 @@ export default function ViewInvoiceCalibration() {
           </div>
 
           {/* ── Customer + Invoice Info table ── */}
-          <table className="w-full border-collapse border border-gray-400 text-xs dark:border-dark-500">
+          <table className="w-full border-collapse border border-gray-400 text-sm dark:border-dark-500 table-fixed">
+            <colgroup>
+              <col style={{ width: isEinvoice && invoice._qr_image ? "45%" : "60%" }} />
+              <col style={{ width: isEinvoice && invoice._qr_image ? "30%" : "40%" }} />
+              {isEinvoice && invoice._qr_image && <col style={{ width: "25%" }} />}
+            </colgroup>
             <tbody>
               <tr>
                 {/* Customer info */}
-                <td className="w-3/5 border border-gray-400 p-3 align-top dark:border-dark-500">
+                <td className="border border-gray-400 p-3 align-top dark:border-dark-500 overflow-hidden">
                   <div className="font-bold">Customer:</div>
-                  <div>M / s . {invoice.customername}</div>
-                  <div className="mt-1">{invoice._address ? `${invoice._address.address}, ${invoice._address.city}, ${invoice._address.pincode}` : invoice.address}</div>
-                  <div className="mt-2 flex flex-wrap gap-x-4">
-                    <span>
-                      <b>State name: </b>
-                      {invoice.statename ?? states.find(s => String(s.gst_code).padStart(2, "0") === String(statecode).padStart(2, "0"))?.state ?? statecode}
-                    </span>
-                    <span><b>State code: </b>{isNaN(Number(statecode)) ? "NA" : statecode}</span>
+                  <strong>M / s . {invoice.customername}</strong><br />
+                  <div className="mt-1">
+                    {invoice._address ? (
+                      <>
+                        {invoice._address.address}<br />
+                        {[invoice._address.city, invoice._address.pincode].filter(Boolean).join(", ")}
+                      </>
+                    ) : (
+                      invoice.address
+                    )}
                   </div>
-                  <div className="flex flex-wrap gap-x-4">
-                    <span><b>GSTIN/UIN: </b>{invoice.gstno || "—"}</span>
-                    <span><b>PAN: </b>{invoice.pan || "—"}</span>
+                  <div className="flex flex-wrap mt-1 gap-y-1" style={{ columnGap: "12px" }}>
+                    <div className="min-w-[45%]"><span className="font-bold">State name : </span>{invoice.statename ?? states.find(s => String(s.gst_code).padStart(2, "0") === String(statecode).padStart(2, "0"))?.state ?? statecode}</div>
+                    <div className="min-w-[40%]"><span className="font-bold">State code : </span>{!isNaN(Number(statecode)) ? statecode : "NA"}</div>
+                    <div className="min-w-[45%]"><span className="font-bold">GSTIN/UIN : </span>{invoice.gstno}</div>
+                    <div className="min-w-[40%]"><span className="font-bold">PAN : </span>{invoice.pan}</div>
                   </div>
-                  {invoice.concern_person && (
-                    <div className="mt-1 text-gray-500">Kind Attn. {invoice.concern_person}</div>
-                  )}
+                  {invoice.concern_person && <div className="mt-2 text-gray-500">Kind Attn. {invoice.concern_person}</div>}
                 </td>
 
                 {/* Invoice meta */}
-                <td className="border border-gray-400 p-3 align-top dark:border-dark-500" style={{ borderRight: isEinvoice ? "none" : undefined }}>
-                  <div><b>Invoice No.: </b>{invoice.invoiceno}</div>
-                  <div>
-                    <b>Date: </b>
+                <td className="border border-gray-400 p-3 align-top dark:border-dark-500 overflow-hidden">
+                  <div><span className="font-bold">Invoice No. : </span>{invoice.invoiceno}</div>
+                  <div className="mt-1"><span className="font-bold">Date : </span>
                     {invoice.approved_on && invoice.approved_on !== "0000-00-00 00:00:00"
                       ? new Date(invoice.approved_on).toLocaleDateString("en-IN")
                       : ""}
                   </div>
-                  <div><b>P.O. No. / Date: </b>{invoice.ponumber}</div>
+                  <div className="mt-1"><span className="font-bold">P.O. No./ Date : </span>{invoice.ponumber}</div>
                 </td>
 
                 {/* QR code (status == 2) */}
                 {isEinvoice && invoice._qr_image && (
-                  <td className="w-24 border border-gray-400 p-1 align-top dark:border-dark-500" style={{ borderLeft: "none" }}>
-                    <div className="border-2 border-black overflow-hidden">
-                      <img src={invoice._qr_image} alt="QR Code" className="w-full" />
-                    </div>
+                  <td className="border border-gray-400 p-1 align-middle text-center dark:border-dark-500">
+                    <img src={invoice._qr_image} alt="QR Code" className="w-full max-w-[180px] mx-auto" />
                   </td>
                 )}
               </tr>
@@ -877,7 +924,7 @@ export default function ViewInvoiceCalibration() {
           </table>
 
           {/* ── Items table ── */}
-          <table className="mt-2 w-full border-collapse border border-gray-400 text-xs dark:border-dark-500">
+          <table className="mt-2 w-full border-collapse border border-gray-400 text-sm dark:border-dark-500">
             <thead>
               <tr className="bg-gray-100 dark:bg-dark-700">
                 <th className="border border-gray-400 px-2 py-1.5 text-center dark:border-dark-500" style={{ width: "8%" }}>S. No.</th>
@@ -914,7 +961,7 @@ export default function ViewInvoiceCalibration() {
           </table>
 
           {/* ── Bottom table: BRN/remarks + summary ── */}
-          <table className="mt-2 w-full border-collapse border border-gray-400 text-xs dark:border-dark-500">
+          <table className="mt-2 w-full border-collapse border border-gray-400 text-sm dark:border-dark-500">
             <tbody>
               <tr>
                 {/* Left: IRN, BRN, Remark, company info */}
@@ -951,10 +998,9 @@ export default function ViewInvoiceCalibration() {
                       value={fmt(invoice.discount)}
                     />
                   )}
-
                   {parseFloat(invoice.witnesscharges) > 0 && (
                     <SummaryRow
-                      label={`Witness Charges (${invoice.witnessnumber}${invoice.witnesstype === "%" ? "%" : ""})`}
+                      label={`Witness Charges(${invoice.witnessnumber}${invoice.witnesstype === "%" ? "%" : ""})`}
                       value={fmt(invoice.witnesscharges)}
                     />
                   )}
@@ -962,29 +1008,42 @@ export default function ViewInvoiceCalibration() {
                     <SummaryRow label="Sample Handling" value={fmt(invoice.samplehandling)} />
                   )}
                   {parseFloat(invoice.sampleprep) > 0 && (
-                    <SummaryRow label="Sample Preparation Charges" value={fmt(invoice.sampleprep)} />
+                    <SummaryRow label="Sample Preparation" value={fmt(invoice.sampleprep)} />
                   )}
                   {parseFloat(invoice.freight) > 0 && (
-                    <SummaryRow label="Freight Charges" value={fmt(invoice.freight)} />
+                    <SummaryRow label="Freight" value={fmt(invoice.freight)} />
                   )}
                   {parseFloat(invoice.mobilisation) > 0 && (
-                    <SummaryRow label="Mobilization and Demobilization Charges" value={fmt(invoice.mobilisation)} />
+                    <SummaryRow label="Mobilization" value={fmt(invoice.mobilisation)} />
                   )}
 
                   <SummaryRow label="Total" value={fmt(invoice.subtotal2)} />
 
-                  {/* Tax */}
                   {isSgst ? (
                     <>
-                      <SummaryRow label={`CGST ${invoice.cgstper}%`} value={fmt(invoice.cgstamount)} />
-                      <SummaryRow label={`SGST ${invoice.sgstper}%`} value={fmt(invoice.sgstamount)} />
+                      <SummaryRow
+                        label={`CGST (${invoice.cgstper}%)`}
+                        value={fmt(invoice.cgstamount)}
+                      />
+                      <SummaryRow
+                        label={`SGST (${invoice.sgstper}%)`}
+                        value={fmt(invoice.sgstamount)}
+                      />
                     </>
                   ) : (
-                    <SummaryRow label={`IGST ${invoice.igstper}%`} value={fmt(invoice.igstamount)} />
+                    <SummaryRow
+                      label={`IGST (${invoice.igstper}%)`}
+                      value={fmt(invoice.igstamount)}
+                    />
                   )}
 
                   <SummaryRow label="Total Charges With tax" value={fmt(invoice.total)} />
                   <SummaryRow label="Round off" value={fmt(invoice.roundoff)} />
+                  <SummaryRow
+                    label="Total Testing Charges"
+                    value={fmt(Math.round(parseFloat(invoice.finaltotal) || 0))}
+                    bold
+                  />
                 </td>
               </tr>
 

@@ -188,7 +188,7 @@ function InvoicePrintTemplate({
   const safeQrUrl = qrUrl && qrUrl.startsWith("data:") ? qrUrl : null;
 
   return (
-    <div style={S.wrap}>
+    <div style={{ ...S.wrap, paddingTop: !withLH ? 130 : 16 }}>
       {withLH && (
         <div
           style={{
