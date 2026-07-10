@@ -331,9 +331,7 @@ export default function DraftReportView() {
   const hasADL = results.some(r => r.nabl_adl);
   if (hasBDL) remarkLines.push("BDL : Below Detection Limit");
   if (hasADL) remarkLines.push("ADL : Above Detection Limit");
-  const hasSpecs = results.some(
-    (r) => r.specification && r.specification !== "—",
-  );
+  const hasSpecs = Number(typeof trf_product !== "undefined" ? trf_product?.specification_flag : null) === 2 ? false : ((typeof trf_product !== "undefined" && Number(trf_product?.specification_flag) === 1) || results.some((r) => r.specification && r.specification !== "-" && r.specification !== "—"));
 
   return (
     <Page title={`Draft Report — ${lrn ?? id}`}>

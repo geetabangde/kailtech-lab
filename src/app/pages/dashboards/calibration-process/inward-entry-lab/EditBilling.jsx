@@ -4,6 +4,7 @@ import { Button, Input } from "components/ui";
 import { Page } from "components/shared/Page";
 import axios from "utils/axios";
 import { toast } from "sonner";
+import Select from "react-select";
 
 export default function EditBillingDetails() {
   const { id: inward_id } = useParams(); // dynamic inward id from route
@@ -17,28 +18,53 @@ export default function EditBillingDetails() {
   const [selectedCustomer, setSelectedCustomer] = useState("");
   const [selectedAddress, setSelectedAddress] = useState("");
   const [selectedCustomerData, setSelectedCustomerData] = useState(null);
+  const [initialBillingAddress, setInitialBillingAddress] = useState("");
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
 
-  // Fetch all customers
+  // Fetch initial data (customers and inward entry details)
   useEffect(() => {
-    const fetchCustomers = async () => {
+    const fetchInitialData = async () => {
       setLoading(true);
       try {
-        const res = await axios.get("/people/get-all-customers");
-        if (res.data.status === "true" && res.data.data) {
-          setCustomers(res.data.data);
+        // 1. Fetch Customers
+        const resCustomers = await axios.get("/people/get-all-customers");
+        if (resCustomers.data.status === "true" && resCustomers.data.data) {
+          setCustomers(resCustomers.data.data);
         } else {
           toast.error("Failed to load customers.");
         }
+
+        // 2. Fetch Inward Entry Details to prefill
+        if (inward_id) {
+          const resInward = await axios.get(
+            `/calibrationprocess/get-inward-entry_byid/${inward_id}`
+          );
+          if (
+            (resInward.data.status === "true" || resInward.data.status === true) &&
+            resInward.data.data
+          ) {
+            const entryData = resInward.data.data;
+            // Prefer billingname if available, otherwise fallback to customerid
+            const customerIdToSelect = entryData.billingname || entryData.customerid;
+            if (customerIdToSelect) {
+              setSelectedCustomer(String(customerIdToSelect));
+            }
+            // Capture the address if it's provided by the API
+            const addressIdToSelect = entryData.billingaddress || entryData.reportaddress;
+            if (addressIdToSelect && addressIdToSelect !== "nothing") {
+              setInitialBillingAddress(String(addressIdToSelect));
+            }
+          }
+        }
       } catch {
-        toast.error("Error fetching customers.");
+        toast.error("Error fetching initial data.");
       } finally {
         setLoading(false);
       }
     };
-    fetchCustomers();
-  }, []);
+    fetchInitialData();
+  }, [inward_id]);
 
   // Fetch addresses when customer changes
   useEffect(() => {
@@ -53,7 +79,17 @@ export default function EditBillingDetails() {
       try {
         const res = await axios.get(`/people/get-customers-address/${selectedCustomer}`);
         if (res.data.status === "true" && res.data.data) {
-          setAddresses(res.data.data);
+          const loadedAddresses = res.data.data;
+          setAddresses(loadedAddresses);
+          
+          // Auto-select address
+          if (initialBillingAddress) {
+            setSelectedAddress(initialBillingAddress);
+            setInitialBillingAddress(""); // Clear so it doesn't override manual changes later
+          } else if (loadedAddresses.length === 1) {
+            // Fallback: auto-select if there's only one address available
+            setSelectedAddress(String(loadedAddresses[0].id));
+          }
         } else {
           toast.error("Failed to load customer addresses.");
         }
@@ -67,7 +103,7 @@ export default function EditBillingDetails() {
 
     const customerData = customers.find(c => String(c.id) === selectedCustomer);
     setSelectedCustomerData(customerData || null);
-  }, [selectedCustomer, customers]);
+  }, [selectedCustomer, customers, initialBillingAddress]);
 
   // Form validation
   const validateForm = () => {
@@ -110,6 +146,18 @@ export default function EditBillingDetails() {
     }
   };
 
+  const customerOptions = customers
+    .filter((c) => c.id != null)
+    .map((c) => ({
+      value: String(c.id),
+      label: `${c.name} (${c.pnumber || "N/A"})`,
+    }));
+
+  const addressOptions = addresses.map((a) => ({
+    value: String(a.id),
+    label: `${a.name} - ${a.address}`,
+  }));
+
   return (
     <Page title="Edit Billing Details">
       <div className="p-6">
@@ -133,22 +181,19 @@ export default function EditBillingDetails() {
             <label className="mb-1 block text-sm font-medium text-gray-700">
               Customer Name
             </label>
-            <select
-              className="w-full border border-gray-300 p-2 rounded focus:outline-none focus:ring focus:border-blue-500"
-              value={selectedCustomer}
-              onChange={(e) => {
-                setSelectedCustomer(e.target.value);
+            <Select
+              options={customerOptions}
+              value={customerOptions.find((o) => o.value === selectedCustomer) || null}
+              onChange={(option) => {
+                setSelectedCustomer(option ? option.value : "");
                 setSelectedAddress("");
                 setErrors({});
               }}
-            >
-              <option value="">Select Customer</option>
-              {customers.filter(c => c.id != null).map(c => (
-                <option key={c.id} value={c.id}>
-                  {c.name} ({c.pnumber})
-                </option>
-              ))}
-            </select>
+              placeholder="Select Customer"
+              isClearable
+              className="react-select-container"
+              classNamePrefix="react-select"
+            />
             {errors.customer && (
               <span className="text-red-500 text-sm">{errors.customer}</span>
             )}
@@ -158,21 +203,18 @@ export default function EditBillingDetails() {
             <label className="mb-1 block text-sm font-medium text-gray-700">
               Select Address
             </label>
-            <select
-              className="w-full border border-gray-300 p-2 rounded focus:outline-none focus:ring focus:border-blue-500"
-              value={selectedAddress}
-              onChange={(e) => {
-                setSelectedAddress(e.target.value);
+            <Select
+              options={addressOptions}
+              value={addressOptions.find((o) => o.value === selectedAddress) || null}
+              onChange={(option) => {
+                setSelectedAddress(option ? option.value : "");
                 setErrors({});
               }}
-            >
-              <option value="">Select Address</option>
-              {addresses.map(a => (
-                <option key={a.id} value={a.id}>
-                  {a.name} - {a.address}
-                </option>
-              ))}
-            </select>
+              placeholder="Select Address"
+              isClearable
+              className="react-select-container"
+              classNamePrefix="react-select"
+            />
             {errors.address && (
               <span className="text-red-500 text-sm">{errors.address}</span>
             )}

@@ -17,7 +17,7 @@ import {
   PrintWithLHButton,
   PrintWithoutLHTwoSignButton,
 } from "./TestReportPdf";
-import { PrintExportTestingReportWOLHButton } from "../signed-reports/exporttestingreportwolh";
+import { PrintExportTestingReportWOLHButton } from "../signed-reports/ExportTestingReportWOLH";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -282,10 +282,7 @@ export default function ReviewByQaDetail() {
   const showQaApprove = reportStatus === 8 && canQa && !!effectiveHid;
 
   // PHP: if ($specs==1)
-  const hasSpecs =
-    trfProduct?.specification_flag === 1 ||
-    Number(trfProduct?.specification) === 1 ||
-    test_results.some((r) => r.specification && r.specification !== "—");
+  const hasSpecs = Number(trfProduct?.specification_flag) === 2 ? false : (Number(trfProduct?.specification_flag) === 1 || Number(trfProduct?.specification) === 1 || test_results.some((r) => r.specification && r.specification !== "-" && r.specification !== "—"));
 
   const nablLogo = nablObj?.logo || (
     nablStatus === 1 ? "/images/nabl2348.png" :

@@ -93,10 +93,7 @@ function extractData(report) {
     })
     .join(", ") || "—";
 
-  const hasSpecs =
-    trf_product?.specification_flag === 1 ||
-    Number(trf_product?.specification) === 1 ||
-    test_results.some((r) => r.specification && r.specification !== "—");
+  const hasSpecs = Number(trf_product?.specification_flag) === 2 ? false : (Number(trf_product?.specification_flag) === 1 || Number(trf_product?.specification) === 1 || test_results.some((r) => r.specification && r.specification !== "-" && r.specification !== "—"));
 
   const nablLogo = nablObj?.logo || (
     nablStatus === 1 ? "/images/nabl2348.png" :

@@ -80,148 +80,165 @@ export function RowActions({ row, table }) {
     )}&calibacc=${encodeURIComponent(calibacc)}`;
   };
 
-  // Actions list with permission property - converted to use 'to' for Link support
+  // Actions list with permissions checked inline
   const actions = [
-    ...(row.original.status === -1
+    ...(row.original.status === -1 && permissions.includes(98)
       ? [
-        {
-          label: "Add Inward Item",
-          color:
-            "bg-emerald-100 text-emerald-800 hover:bg-emerald-200",
-          permission: 98,
-          to: getNavigationUrl(
-            `/dashboards/calibration-process/inward-entry-lab/add-inward-item/${row.original.id}`
-          ),
-        },
-      ]
+          {
+            label: "Add Inward Item",
+            color: "bg-emerald-100 text-emerald-800 hover:bg-emerald-200",
+            to: getNavigationUrl(
+              `/dashboards/calibration-process/inward-entry-lab/add-inward-item/${row.original.id}`
+            ),
+          },
+        ]
       : []),
-    {
-      label: "Edit CRF Entry Detail",
-      color:
-        "bg-indigo-100 text-indigo-800 hover:bg-indigo-200",
-      to: getNavigationUrl(
-        `/dashboards/calibration-process/inward-entry-lab/edit-inward-entry/${row.original.id}`
-      ),
-    },
-    ...(row.original.status === 0
+    ...(permissions.includes(201)
       ? [
-        {
-          label: "Review Inward",
-          color:
-            "bg-amber-100 text-amber-800 hover:bg-amber-200",
-          permission: 99,
-          to: getNavigationUrl(
-            `/dashboards/calibration-process/inward-entry-lab/review-inward/${row.original.id}`
-          ),
-        },
-      ]
+          {
+            label: "Edit CRF Entry Detail",
+            color: "bg-indigo-100 text-indigo-800 hover:bg-indigo-200",
+            to: getNavigationUrl(
+              `/dashboards/calibration-process/inward-entry-lab/edit-inward-entry/${row.original.id}`
+            ),
+          },
+        ]
       : []),
-    ...(row.original.status === 1
+    ...(row.original.status === 0 && permissions.includes(99)
       ? [
-        {
-          label: "Technical Acceptance",
-          color:
-            "bg-cyan-100 text-cyan-800 hover:bg-cyan-200",
-          permission: 100,
-          to: getNavigationUrl(
-            `/dashboards/calibration-process/inward-entry-lab/technical-acceptance/${row.original.id}`
-          ),
-        },
-      ]
+          {
+            label: "Review Inward",
+            color: "bg-amber-100 text-amber-800 hover:bg-amber-200",
+            to: getNavigationUrl(
+              `/dashboards/calibration-process/inward-entry-lab/review-inward/${row.original.id}`
+            ),
+          },
+        ]
       : []),
-    ...(row.original.status === 4
+    ...(row.original.status === 1 && permissions.includes(100)
       ? [
-        {
-          label: "Perform Calibration",
-          color:
-            "bg-fuchsia-100 text-fuchsia-800 hover:bg-fuchsia-200",
-          permission: 97,
-          to: getNavigationUrl(
-            `/dashboards/calibration-process/inward-entry-lab/perform-calibration/${row.original.id}`
-          ),
-        },
-      ]
+          {
+            label: "Technical Acceptance",
+            color: "bg-cyan-100 text-cyan-800 hover:bg-cyan-200",
+            to: getNavigationUrl(
+              `/dashboards/calibration-process/inward-entry-lab/technical-acceptance/${row.original.id}`
+            ),
+          },
+        ]
       : []),
-    {
-      label: "Edit Bd Person",
-      color:
-        "bg-rose-100 text-rose-800 hover:bg-rose-200",
-      permission: 406,
-      to: getNavigationUrl(
-        `/dashboards/calibration-process/inward-entry-lab/edit-bd-person/${row.original.id}`
-      ),
-    },
-    ...(row.original.status === 2
+    ...(row.original.status === 4 && permissions.includes(97)
       ? [
-        {
-          label: "Transfer In lab",
-          color:
-            "bg-violet-100 text-violet-800 hover:bg-violet-200",
-          to: getNavigationUrl(
-            `/dashboards/calibration-process/inward-entry-lab/sample-transfer-in-lab/${row.original.id}`
-          ),
-        },
-      ]
+          {
+            label: "Perform Calibration",
+            color: "bg-fuchsia-100 text-fuchsia-800 hover:bg-fuchsia-200",
+            to: getNavigationUrl(
+              `/dashboards/calibration-process/inward-entry-lab/perform-calibration/${row.original.id}`
+            ),
+          },
+        ]
       : []),
-    {
-      label: "SRF View",
-      color:
-        "bg-blue-100 text-blue-800 hover:bg-blue-200",
-      permission: 372,
-      to: getNavigationUrl(
-        `/dashboards/calibration-process/inward-entry-lab/srf-view/${row.original.id}`
-      ),
-    },
-    {
-      label: "CRF View",
-      color:
-        "bg-emerald-100 text-emerald-800 hover:bg-emerald-200",
-      permission: 373,
-      to: getNavigationUrl(
-        `/dashboards/calibration-process/inward-entry-lab/crf-view/${row.original.id}`
-      ),
-    },
-    {
-      label: "Edit Work Order detail",
-      color:
-        "bg-cyan-100 text-cyan-800 hover:bg-cyan-200",
-      to: getNavigationUrl(
-        `/dashboards/calibration-process/inward-entry-lab/edit-work-order/${row.original.id}`
-      ),
-    },
-    {
-      label: "Edit Customer Responsible for payment",
-      color:
-        "bg-orange-100 text-orange-800 hover:bg-orange-200",
-      permission: 297,
-      to: getNavigationUrl(
-        `/dashboards/calibration-process/inward-entry-lab/edit-customer/${row.original.id}`
-      ),
-    },
-    {
-      label: "Edit Billing Detail",
-      color:
-        "bg-lime-200 text-lime-900 hover:bg-lime-300",
-      permission: 407,
-      to: getNavigationUrl(
-        `/dashboards/calibration-process/inward-entry-lab/edit-billing/${row.original.id}`
-      ),
-    },
-    {
-      label: "Fill Feedback form",
-      color:
-        "bg-sky-100 text-sky-800 hover:bg-sky-200",
-      to: getNavigationUrl(
-        `/dashboards/calibration-process/inward-entry-lab/edit-billing/${row.original.id}`
-      ),
-    },
+    ...(permissions.includes(374) && row.original.status >= 3
+      ? [
+          {
+            label: "Work Completion Report",
+            color: "bg-teal-100 text-teal-800 hover:bg-teal-200",
+            to: getNavigationUrl(
+              `/dashboards/calibration-process/inward-entry-lab/service-report-form/${row.original.id}`
+            ),
+          },
+        ]
+      : []),
+    ...(permissions.includes(406)
+      ? [
+          {
+            label: "Edit Bd Person",
+            color: "bg-rose-100 text-rose-800 hover:bg-rose-200",
+            to: getNavigationUrl(
+              `/dashboards/calibration-process/inward-entry-lab/edit-bd-person/${row.original.id}`
+            ),
+          },
+        ]
+      : []),
+    ...(row.original.status === 2 && permissions.includes(101)
+      ? [
+          {
+            label: "Transfer In lab",
+            color: "bg-violet-100 text-violet-800 hover:bg-violet-200",
+            to: getNavigationUrl(
+              `/dashboards/calibration-process/inward-entry-lab/sample-transfer-in-lab/${row.original.id}`
+            ),
+          },
+        ]
+      : []),
+    ...(permissions.includes(372)
+      ? [
+          {
+            label: "SRF View",
+            color: "bg-blue-100 text-blue-800 hover:bg-blue-200",
+            to: getNavigationUrl(
+              `/dashboards/calibration-process/inward-entry-lab/srf-view/${row.original.id}`
+            ),
+          },
+        ]
+      : []),
+    ...(permissions.includes(373)
+      ? [
+          {
+            label: "CRF View",
+            color: "bg-emerald-100 text-emerald-800 hover:bg-emerald-200",
+            to: getNavigationUrl(
+              `/dashboards/calibration-process/inward-entry-lab/crf-view/${row.original.id}`
+            ),
+          },
+        ]
+      : []),
+    ...(permissions.includes(286)
+      ? [
+          {
+            label: "Edit Work Order detail",
+            color: "bg-cyan-100 text-cyan-800 hover:bg-cyan-200",
+            to: getNavigationUrl(
+              `/dashboards/calibration-process/inward-entry-lab/edit-work-order/${row.original.id}`
+            ),
+          },
+        ]
+      : []),
+    ...(permissions.includes(286) && permissions.includes(297)
+      ? [
+          {
+            label: "Edit Customer Responsible for payment",
+            color: "bg-orange-100 text-orange-800 hover:bg-orange-200",
+            to: getNavigationUrl(
+              `/dashboards/calibration-process/inward-entry-lab/edit-customer/${row.original.id}`
+            ),
+          },
+        ]
+      : []),
+    ...(permissions.includes(286) && (permissions.includes(407) || !row.original.invoicecount)
+      ? [
+          {
+            label: "Edit Billing Detail",
+            color: "bg-lime-200 text-lime-900 hover:bg-lime-300",
+            to: getNavigationUrl(
+              `/dashboards/calibration-process/inward-entry-lab/edit-billing/${row.original.id}`
+            ),
+          },
+        ]
+      : []),
+    ...(permissions.includes(283) && (!row.original.feedbackid)
+      ? [
+          {
+            label: "Fill Feedback form",
+            color: "bg-sky-100 text-sky-800 hover:bg-sky-200",
+            to: getNavigationUrl(
+              `/dashboards/calibration-process/inward-entry-lab/fill-feedback/${row.original.id}`
+            ),
+          },
+        ]
+      : []),
   ];
 
-  // Filter actions based on permission (if defined)
-  const filteredActions = actions.filter(
-    (action) =>
-      !action.permission || permissions.includes(action.permission)
-  );
+  const filteredActions = actions;
 
   return (
     <>

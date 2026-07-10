@@ -11,7 +11,7 @@ import {
   PrintWithoutLHTwoSignButton,
 } from "./TestReportPdf";
 import { PrintExportTestingReportButton } from "../signed-reports/ExportTestingReport";
-import { PrintExportTestingReportWOLHButton } from "../signed-reports/exporttestingreportwolh";
+import { PrintExportTestingReportWOLHButton } from "../signed-reports/ExportTestingReportWOLH";
 
 // ----------------------------------------------------------------------
 // Route: /dashboards/action-items/final-reports/view?tid=49506&hid=52927
@@ -105,7 +105,7 @@ export default function FinalReportDetail() {
   const signatories = toArray(report.signatories);
   const remarks = report.remarks ?? {};
   const nablStatus = report.nabl?.status ?? 0;
-  const hasSpecs = testResults.some((r) => r.specification && r.specification !== "—");
+  const hasSpecs = Number(trfProduct?.specification_flag) === 2 ? false : (Number(trfProduct?.specification_flag) === 1 || Number(trfProduct?.specification) === 1 || testResults.some((r) => r.specification && r.specification !== "—" && r.specification !== "-"));
   const reportStatus = report.report_status?.code ?? 0;
 
   return (

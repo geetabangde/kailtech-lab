@@ -89,10 +89,7 @@ export function extractData(report) {
     })
     .join(", ") || "—";
 
-  const hasSpecs =
-    trf_product?.specification_flag === 1 ||
-    Number(trf_product?.specification) === 1 ||
-    toArray(test_results).some((r) => r.specification && r.specification !== "—");
+  const hasSpecs = Number(trf_product?.specification_flag) === 2 ? false : (Number(trf_product?.specification_flag) === 1 || Number(trf_product?.specification) === 1 || toArray(test_results).some((r) => r.specification && r.specification !== "—" && r.specification !== "-"));
 
   const customerName = customer?.name ?? "—";
   const customerAddress = [customer?.address, customer?.city, customer?.pincode].filter(Boolean).join(", ");

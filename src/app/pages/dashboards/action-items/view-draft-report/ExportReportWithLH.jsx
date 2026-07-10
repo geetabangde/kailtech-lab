@@ -244,9 +244,7 @@ export function ReportDocWithLH({ data }) {
 
   const { lrn, brn, ulr, condition, sealed, reportdate } = trf_product;
   const { start_date, end_date } = dates;
-  const hasSpecs = results.some(
-    (r) => r.specification && r.specification !== "—",
-  );
+  const hasSpecs = Number(typeof trf_product !== "undefined" ? trf_product?.specification_flag : null) === 2 ? false : ((typeof trf_product !== "undefined" && Number(trf_product?.specification_flag) === 1) || results.some((r) => r.specification && r.specification !== "-" && r.specification !== "—"));
 
   const sealedMap = ["Unsealed", "Sealed", "Packed", "NA"];
   const conditionMap = { 1: "Good", 2: "Fair", 3: "Poor" };

@@ -17,7 +17,7 @@ import {
   PrintWithLHButton,
   PrintWithoutLHTwoSignButton,
 } from "./TestReportPdf";
-import { PrintExportTestingReportWOLHButton } from "../signed-reports/exporttestingreportwolh";
+import { PrintExportTestingReportWOLHButton } from "../signed-reports/ExportTestingReportWOLH";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -393,10 +393,7 @@ export default function ReviewByHodDetail() {
   const showHodApprove = reportStatus === 7 && canHod && !!hid;
 
   // PHP: $specs==1 → show SPECIFICATIONS column
-  const hasSpecs =
-    trf_product?.specification_flag === 1 ||
-    Number(trf_product?.specification) === 1 ||
-    test_results.some((r) => r.specification && r.specification !== "—");
+  const hasSpecs = Number(trf_product?.specification_flag) === 2 ? false : (Number(trf_product?.specification_flag) === 1 || Number(trf_product?.specification) === 1 || test_results.some((r) => r.specification && r.specification !== "-" && r.specification !== "—"));
 
   // PHP: nabl==1 → nabltest.png, nabl==3 → qai.jpeg
   const nablLogo = nablObj?.logo || (

@@ -31,7 +31,7 @@ import {
   PrintWithLHButton,
   PrintWithoutLHTwoSignButton,
 } from "./TestReportPdf";
-import { PrintExportTestingReportWOLHButton } from "../signed-reports/exporttestingreportwolh";
+import { PrintExportTestingReportWOLHButton } from "../signed-reports/ExportTestingReportWOLH";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -488,10 +488,7 @@ export default function GenerateUlrDetail() {
       available_actions.some((a) => (typeof a === "object" ? a.id : a) === row.id)
     );
 
-  const hasSpecs =
-    trf_product?.specification_flag === 1 ||
-    Number(trf_product?.specification) === 1 ||
-    test_results.some((r) => r.specification && r.specification !== "—");
+  const hasSpecs = Number(trf_product?.specification_flag) === 2 ? false : (Number(trf_product?.specification_flag) === 1 || Number(trf_product?.specification) === 1 || test_results.some((r) => r.specification && r.specification !== "-" && r.specification !== "—"));
 
   const nablLogo =
     nablStatus === 1 ? (nablObj?.logo ?? "/images/nabl2348.png") :
