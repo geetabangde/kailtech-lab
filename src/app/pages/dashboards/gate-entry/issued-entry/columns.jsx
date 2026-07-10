@@ -67,9 +67,9 @@ export const columns = [
       let color = "secondary";
       if (status === "1") color = "primary"; // Alloted
       if (status === "2") color = "success"; // Lrn Done
-      
+
       return (
-        <Badge variant="flat" color={color}>
+        <Badge variant="soft" color={color}>
           {info.getValue() || "N/A"}
         </Badge>
       );

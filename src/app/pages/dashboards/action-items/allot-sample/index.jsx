@@ -71,12 +71,12 @@ export default function AllotSample() {
     }
   }, [navigate, permissions]);
 
-  const [products,         setProducts]         = useState([]);
-  const [loading,          setLoading]          = useState(true);
-  const [customerTypes,    setCustomerTypes]    = useState([]);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [customerTypes, setCustomerTypes] = useState([]);
   const [specificPurposes, setSpecificPurposes] = useState([]);
-  const [ctype,            setCtype]            = useState("");
-  const [specificpurpose,  setSpecificpurpose]  = useState("");
+  const [ctype, setCtype] = useState("");
+  const [specificpurpose, setSpecificpurpose] = useState("");
 
   // ── Fetch dropdowns ───────────────────────────────────────────────────────
   useEffect(() => {
@@ -84,7 +84,7 @@ export default function AllotSample() {
       if (canViewCustomerType) {
         try {
           const res = await axios.get("/people/get-customer-type-list");
-          const d   = res.data?.Data ?? res.data?.data ?? res.data ?? [];
+          const d = res.data?.Data ?? res.data?.data ?? res.data ?? [];
           setCustomerTypes(Array.isArray(d) ? d : []);
         } catch { setCustomerTypes([]); }
       }
@@ -92,7 +92,7 @@ export default function AllotSample() {
       if (canViewSpecificPurpose) {
         try {
           const res = await axios.get("/people/get-specific-purpose-list");
-          const d   = res.data?.data ?? res.data?.Data ?? res.data ?? [];
+          const d = res.data?.data ?? res.data?.Data ?? res.data ?? [];
           setSpecificPurposes(Array.isArray(d) ? d : []);
         } catch { setSpecificPurposes([]); }
       }
@@ -115,9 +115,9 @@ export default function AllotSample() {
       );
 
       if (response.data && Array.isArray(response.data)) {
-        setProducts([...response.data].reverse());
+        setProducts(response.data);
       } else if (response.data?.data && Array.isArray(response.data.data)) {
-        setProducts([...response.data.data].reverse());
+        setProducts(response.data.data);
       } else {
         setProducts([]);
       }
@@ -134,11 +134,12 @@ export default function AllotSample() {
   // ── Table setup ───────────────────────────────────────────────────────────
   const [tableSettings, setTableSettings] = useState({
     enableFullScreen: false,
-    enableRowDense:   false,
+    enableRowDense: false,
   });
 
   const [globalFilter, setGlobalFilter] = useState("");
-  const [sorting,      setSorting]      = useState([]);
+  // Default sort: newest first (highest ID at top)
+  const [sorting, setSorting] = useState([{ id: "id", desc: true }]);
 
   const [columnVisibility, setColumnVisibility] = useLocalStorage(
     "column-visibility-allot-sample-1", {}
@@ -184,20 +185,20 @@ export default function AllotSample() {
       setTableSettings,
       refreshData: fetchProducts,
     },
-    filterFns:              { fuzzy: fuzzyFilter },
-    enableSorting:          tableSettings.enableSorting,
-    enableColumnFilters:    tableSettings.enableColumnFilters,
-    getCoreRowModel:        getCoreRowModel(),
-    onGlobalFilterChange:   setGlobalFilter,
-    getFilteredRowModel:    getFilteredRowModel(),
+    filterFns: { fuzzy: fuzzyFilter },
+    enableSorting: tableSettings.enableSorting,
+    enableColumnFilters: tableSettings.enableColumnFilters,
+    getCoreRowModel: getCoreRowModel(),
+    onGlobalFilterChange: setGlobalFilter,
+    getFilteredRowModel: getFilteredRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
     getFacetedMinMaxValues: getFacetedMinMaxValues(),
-    globalFilterFn:         fuzzyFilter,
-    onSortingChange:        setSorting,
-    getSortedRowModel:      getSortedRowModel(),
-    getPaginationRowModel:  getPaginationRowModel(),
+    globalFilterFn: fuzzyFilter,
+    onSortingChange: setSorting,
+    getSortedRowModel: getSortedRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
-    onColumnPinningChange:    setColumnPinning,
+    onColumnPinningChange: setColumnPinning,
     autoResetPageIndex,
   });
 
@@ -226,7 +227,7 @@ export default function AllotSample() {
           className={clsx(
             "flex h-full w-full flex-col",
             tableSettings.enableFullScreen &&
-              "fixed inset-0 z-61 bg-white pt-3 dark:bg-dark-900",
+            "fixed inset-0 z-61 bg-white pt-3 dark:bg-dark-900",
           )}
         >
           <Toolbar table={table} />
@@ -239,52 +240,52 @@ export default function AllotSample() {
           >
             {/* ── Filters ── */}
             {canUseAnyFilter && (
-            <div className="mb-4 flex flex-wrap items-end gap-4 rounded-xl border border-gray-200 bg-white px-5 py-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
-              {/* Customer Type */}
-              {canViewCustomerType && (
-              <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                  Customer type:
-                </label>
-                <Select
-                  value={customerTypes.find(ct => ct.id === ctype) ? { value: ctype, label: customerTypes.find(ct => ct.id === ctype).name } : null}
-                  onChange={(selectedOption) => setCtype(selectedOption ? selectedOption.value : "")}
-                  options={customerTypes.map(ct => ({ value: ct.id, label: ct.name }))}
-                  placeholder="Select Customer Type"
-                  isClearable
-                  styles={customSelectStyles}
-                  menuPortalTarget={document.body}
-                  menuPosition="fixed"
-                />
-              </div>
-              )}
+              <div className="mb-4 flex flex-wrap items-end gap-4 rounded-xl border border-gray-200 bg-white px-5 py-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
+                {/* Customer Type */}
+                {canViewCustomerType && (
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                      Customer type:
+                    </label>
+                    <Select
+                      value={customerTypes.find(ct => ct.id === ctype) ? { value: ctype, label: customerTypes.find(ct => ct.id === ctype).name } : null}
+                      onChange={(selectedOption) => setCtype(selectedOption ? selectedOption.value : "")}
+                      options={customerTypes.map(ct => ({ value: ct.id, label: ct.name }))}
+                      placeholder="Select Customer Type"
+                      isClearable
+                      styles={customSelectStyles}
+                      menuPortalTarget={document.body}
+                      menuPosition="fixed"
+                    />
+                  </div>
+                )}
 
-              {/* Specific Purpose */}
-              {canViewSpecificPurpose && (
-              <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                  Specific Purpose:
-                </label>
-                <Select
-                  value={specificPurposes.find(sp => sp.id === specificpurpose) ? { value: specificpurpose, label: specificPurposes.find(sp => sp.id === specificpurpose).name } : null}
-                  onChange={(selectedOption) => setSpecificpurpose(selectedOption ? selectedOption.value : "")}
-                  options={specificPurposes.map(sp => ({ value: sp.id, label: sp.name }))}
-                  placeholder="Select Specific purpose"
-                  isClearable
-                  styles={customSelectStyles}
-                  menuPortalTarget={document.body}
-                  menuPosition="fixed"
-                />
-              </div>
-              )}
+                {/* Specific Purpose */}
+                {canViewSpecificPurpose && (
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                      Specific Purpose:
+                    </label>
+                    <Select
+                      value={specificPurposes.find(sp => sp.id === specificpurpose) ? { value: specificpurpose, label: specificPurposes.find(sp => sp.id === specificpurpose).name } : null}
+                      onChange={(selectedOption) => setSpecificpurpose(selectedOption ? selectedOption.value : "")}
+                      options={specificPurposes.map(sp => ({ value: sp.id, label: sp.name }))}
+                      placeholder="Select Specific purpose"
+                      isClearable
+                      styles={customSelectStyles}
+                      menuPortalTarget={document.body}
+                      menuPosition="fixed"
+                    />
+                  </div>
+                )}
 
-              <button
-                onClick={() => { setCtype(""); setSpecificpurpose(""); }}
-                className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-600 transition hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800"
-              >
-                Clear Filters
-              </button>
-            </div>
+                <button
+                  onClick={() => { setCtype(""); setSpecificpurpose(""); }}
+                  className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-600 transition hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800"
+                >
+                  Clear Filters
+                </button>
+              </div>
             )}
 
             <Card
@@ -309,7 +310,7 @@ export default function AllotSample() {
                             className={clsx(
                               "bg-gray-200 font-semibold uppercase text-gray-800 dark:bg-dark-800 dark:text-dark-100 first:ltr:rounded-tl-lg last:ltr:rounded-tr-lg first:rtl:rounded-tr-lg last:rtl:rounded-tl-lg",
                               header.column.getCanPin() && [
-                                header.column.getIsPinned() === "left"  && "sticky z-2 ltr:left-0 rtl:right-0",
+                                header.column.getIsPinned() === "left" && "sticky z-2 ltr:left-0 rtl:right-0",
                                 header.column.getIsPinned() === "right" && "sticky z-2 ltr:right-0 rtl:left-0",
                               ],
                             )}
@@ -339,7 +340,7 @@ export default function AllotSample() {
                         className={clsx(
                           "relative border-y border-transparent border-b-gray-200 dark:border-b-dark-500",
                           row.getIsSelected() && !isSafari &&
-                            "row-selected after:pointer-events-none after:absolute after:inset-0 after:z-2 after:h-full after:w-full after:border-3 after:border-transparent after:bg-primary-500/10 ltr:after:border-l-primary-500 rtl:after:border-r-primary-500",
+                          "row-selected after:pointer-events-none after:absolute after:inset-0 after:z-2 after:h-full after:w-full after:border-3 after:border-transparent after:bg-primary-500/10 ltr:after:border-l-primary-500 rtl:after:border-r-primary-500",
                         )}
                       >
                         {row.getVisibleCells().map((cell) => (
@@ -349,7 +350,7 @@ export default function AllotSample() {
                               "relative bg-white",
                               cardSkin === "shadow" ? "dark:bg-dark-700" : "dark:bg-dark-900",
                               cell.column.getCanPin() && [
-                                cell.column.getIsPinned() === "left"  && "sticky z-2 ltr:left-0 rtl:right-0",
+                                cell.column.getIsPinned() === "left" && "sticky z-2 ltr:left-0 rtl:right-0",
                                 cell.column.getIsPinned() === "right" && "sticky z-2 ltr:right-0 rtl:left-0",
                               ],
                             )}

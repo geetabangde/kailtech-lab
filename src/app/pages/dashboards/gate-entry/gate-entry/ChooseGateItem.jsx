@@ -40,9 +40,9 @@ export function ChooseGateItem({ show, onClose, row, onSuccess }) {
   const fetchEmployees = async () => {
     try {
       setFetchingEmployees(true);
-      const res = await axios.get("hrm/get-employee-list");
+      const res = await axios.get("hrm/get-users-name");
       if (res.data.status && Array.isArray(res.data.data)) {
-        setEmployees(res.data.data.map(emp => ({ value: emp.id, label: `${emp.firstname} ${emp.lastname}` })));
+        setEmployees(res.data.data.map(emp => ({ value: emp.id, label: emp.name })));
       }
     } catch (err) {
       console.error("Failed to fetch employees", err);
@@ -65,9 +65,9 @@ export function ChooseGateItem({ show, onClose, row, onSuccess }) {
         id: row.original.id,
         allotedto: selectedPerson,
       };
-      
+
       const res = await axios.post("/gate-entry/issue-gate-item", payload);
-      
+
       if (res.data.status) {
         toast.success(res.data.message || "Item issued successfully");
         onSuccess && onSuccess();
@@ -86,7 +86,7 @@ export function ChooseGateItem({ show, onClose, row, onSuccess }) {
   if (!row) return null;
 
   return (
-    <Transition appear show={show} as={Dialog} onClose={loading ? () => {} : onClose} className="fixed inset-0 z-100 flex flex-col items-center justify-center overflow-hidden px-4 py-6 sm:px-5">
+    <Transition appear show={show} as={Dialog} onClose={loading ? () => { } : onClose} className="fixed inset-0 z-100 flex flex-col items-center justify-center overflow-hidden px-4 py-6 sm:px-5">
       <TransitionChild as="div" enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0" className="absolute inset-0 bg-gray-900/50 transition-opacity dark:bg-black/40" />
 
       <TransitionChild as={DialogPanel} enter="ease-out duration-300" enterFrom="opacity-0" enterTo="opacity-100" leave="ease-in duration-200" leaveFrom="opacity-100" leaveTo="opacity-0" className="scrollbar-sm relative flex w-full max-w-md flex-col overflow-y-auto rounded-lg bg-white px-6 py-6 text-left transition-opacity duration-300 dark:bg-dark-700 sm:px-6">

@@ -25,8 +25,13 @@ function DashboardPermissionGuard() {
     return null; // Or a loading spinner, but null is fine to defer rendering
   }
 
+  const isApprovalRoute =
+    pathname.startsWith("/dashboards/approvals/approve-signature") ||
+    pathname.startsWith("/dashboards/approvals/ApproveSignatureReport");
+
   if (
     pathname.startsWith("/dashboards") &&
+    !isApprovalRoute &&
     !canAccessDashboardsRoute({ pathname, search, permissions })
   ) {
     throw new Response("Unauthorized", { status: 401 });
@@ -47,7 +52,6 @@ function DashboardPermissionGuard() {
 
   return <>{outlet}</>;
 }
-
 const protectedRoutes = {
   id: "protected",
   Component: AuthGuard,

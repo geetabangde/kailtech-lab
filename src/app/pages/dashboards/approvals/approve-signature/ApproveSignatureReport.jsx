@@ -23,6 +23,7 @@ import axios from "utils/axios";
 import { toast } from "sonner";
 import clsx from "clsx";
 import { Page } from "components/shared/Page";
+import { getStoredPermissions } from "app/navigation/dashboards";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -47,7 +48,7 @@ function parseComplianceStyle(styleStr) {
     const idx = part.indexOf(":");
     if (idx === -1) return;
     const prop = part.slice(0, idx).trim();
-    const val  = part.slice(idx + 1).trim().replace("!important", "").trim();
+    const val = part.slice(idx + 1).trim().replace("!important", "").trim();
     if (!prop || !val) return;
     result[prop.replace(/-([a-z])/g, (_, c) => c.toUpperCase())] = val;
   });
@@ -219,16 +220,16 @@ SignatoryBlock.propTypes = { signer: PropTypes.object };
 // Main Page
 // ─────────────────────────────────────────────────────────────────────────────
 export default function ApproveSignatureReport() {
-  const { id: tid }    = useParams();           // PHP: $tid = $_GET['hakuna'] = trfProducts.id
+  const { id: tid } = useParams();           // PHP: $tid = $_GET['hakuna'] = trfProducts.id
   const [searchParams] = useSearchParams();
-  const navigate       = useNavigate();
+  const navigate = useNavigate();
   const sid = searchParams.get("sid") ?? "";    // pendingsignatures.id
 
-  const [report,     setReport]     = useState(null);
-  const [loading,    setLoading]    = useState(true);
-  const [error,      setError]      = useState(null);
-  const [modalOpen,  setModalOpen]  = useState(false);
-  const [approving,  setApproving]  = useState(false);
+  const [report, setReport] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [approving, setApproving] = useState(false);
   const [isApproved, setIsApproved] = useState(false);
 
   // ── Fetch ─────────────────────────────────────────────────────────────────
@@ -295,22 +296,21 @@ export default function ApproveSignatureReport() {
 
   // ── Destructure — same field names as view-test-report ───────────────────
   const {
-    trf_product:  trf_product  = {},
-    nabl: nablObj              = {},
+    trf_product: trf_product = {},
+    nabl: nablObj = {},
     grade,
     batchno,
-    report_status: rsObj       = {},
-    dates                      = {},
-    customer                   = {},
-    product                    = {},
-    trf                        = {},
-    received_items             = [],
-    test_results               = [],
-    remarks: remarksObj        = {},
-    signatories                = [],
-    counts                     = {},
-    permissions: permsObj      = {},
-    meta                       = {},
+    report_status: rsObj = {},
+    dates = {},
+    customer = {},
+    product = {},
+    trf = {},
+    received_items = [],
+    test_results = [],
+    remarks: remarksObj = {},
+    signatories = [],
+    counts = {},
+    meta = {},
   } = report;
 
   const { ulr, condition_name, sealed_name, reportdate } = trf_product;
@@ -320,7 +320,7 @@ export default function ApproveSignatureReport() {
   // PHP: if ($nabl == 1) → nabltest.png, elseif ($nabl == 3) → qai.jpeg
   const nablLogo =
     nablStatus === 1 ? (nablObj?.logo ?? "/images/nabl2348.png") :
-    nablStatus === 3 ? "/images/qai.jpeg" : null;
+      nablStatus === 3 ? "/images/qai.jpeg" : null;
 
   // PHP: $reportstatus = hodrequests.status (if hid) OR trfProducts.status
   const reportStatus = typeof rsObj === "object"
@@ -335,33 +335,35 @@ export default function ApproveSignatureReport() {
   const { start_date, end_date } = dates;
 
   // PHP: $hodremark, $witness, $wdetail, $remark (BDL), $remark1 (ADL)
-  const hodRemark     = remarksObj?.hod_remark    ?? "";
-  const witnessVal    = remarksObj?.witness        ?? "";
+  const hodRemark = remarksObj?.hod_remark ?? "";
+  const witnessVal = remarksObj?.witness ?? "";
   const witnessDetail = remarksObj?.witness_detail ?? "";
-  const bdlRemark     = remarksObj?.bdl_remark     ?? "";
-  const adlRemark     = remarksObj?.adl_remark     ?? "";
+  const bdlRemark = remarksObj?.bdl_remark ?? "";
+  const adlRemark = remarksObj?.adl_remark ?? "";
 
   // PHP: in_array(180, $permissions) || in_array(181, $permissions)
-  // Actions column shown when reportstatus < 9
-  const canHod = permsObj?.has_hod_permission === true;  // perm 180
-  const canQa  = permsObj?.has_qa_permission  === true;  // perm 181
+  // Read permissions from localStorage (same source as DashboardPermissionGuard)
+  // API does not return permissions field, so we read from stored permissions
+  const storedPerms = getStoredPermissions();
+  const canHod = storedPerms.includes(180);  // perm 180 = HOD
+  const canQa = storedPerms.includes(181);  // perm 181 = QA
   const showActionsCol = (canHod || canQa) && reportStatus < 9;
 
-  const customerName    = customer?.name           ?? "—";
-  const customerAddress = customer?.address        ?? "";
-  const contactPerson   = customer?.contact_person ?? "";
+  const customerName = customer?.name ?? "—";
+  const customerAddress = customer?.address ?? "";
+  const contactPerson = customer?.contact_person ?? "";
   // PHP: if ($specificpurpose == 2) → show contact person
-  const showContact     = Number(trf?.specificpurpose ?? customer?.specific_purpose) === 2;
+  const showContact = Number(trf?.specificpurpose ?? customer?.specific_purpose) === 2;
   // PHP: if ($trfrow['letterrefno'] != "-") → show customer reference row
-  const customerRef     = customer?.letterrefno    ?? "";
-  const productName     = product?.name            ?? "—";
+  const customerRef = customer?.letterrefno ?? "";
+  const productName = product?.name ?? "—";
   // PHP: $prodesc = selectfieldwhere("products", "description", "id=$product")
-  const productDesc     = product?.description     ?? "—";
+  const productDesc = product?.description ?? "—";
   // PHP: LRN = $trfprow['brn']
-  const displayLRN      = trf_product?.lrn ?? trf_product?.brn ?? "—";
-  const ktrcRef         = meta?.ktrc_ref   ?? "KTRC/QF/0708/01";
+  const displayLRN = trf_product?.lrn ?? trf_product?.brn ?? "—";
+  const ktrcRef = meta?.ktrc_ref ?? "KTRC/QF/0708/01";
   // PHP: $batchno = technical.brand + "<br/>" + trfProducts.brand
-  const batchnoClean    = (batchno ?? "").replace(/<br\s*\/?>/gi, " ").trim();
+  const batchnoClean = (batchno ?? "").replace(/<br\s*\/?>/gi, " ").trim();
 
   // PHP: receiveditems where trfProduct=$tid and status=1
   const qtyStr = received_items
@@ -374,14 +376,14 @@ export default function ApproveSignatureReport() {
 
   // PHP: Remark section → hodremark + witness + BDL + ADL
   const remarkLines = [];
-  if (hodRemark?.trim())                   remarkLines.push(hodRemark.trim());
+  if (hodRemark?.trim()) remarkLines.push(hodRemark.trim());
   if (witnessVal === "1" && witnessDetail) remarkLines.push(`The test was witnessed by ${witnessDetail}`);
-  if (bdlRemark)                           remarkLines.push(bdlRemark);
-  if (adlRemark)                           remarkLines.push(adlRemark);
+  if (bdlRemark) remarkLines.push(bdlRemark);
+  if (adlRemark) remarkLines.push(adlRemark);
 
   // PHP: $leftcount, $donecount, $paramcount
-  const leftCount  = counts?.left_count  ?? 0;
-  const doneCount  = counts?.done_count  ?? 0;
+  const leftCount = counts?.left_count ?? 0;
+  const doneCount = counts?.done_count ?? 0;
   const paramCount = counts?.param_count ?? 0;
 
   return (
@@ -483,19 +485,19 @@ export default function ApproveSignatureReport() {
                     <td className="p-2 text-gray-800 dark:text-gray-200">{displayLRN}</td>
                   </tr>
                   {/* PHP: date("d.m.Y", strtotime($trfrow['date'])) */}
-                  <InfoRow label="Date of Receipt"             value={fmtDate(trf?.date ?? dates?.receipt_date)} />
+                  <InfoRow label="Date of Receipt" value={fmtDate(trf?.date ?? dates?.receipt_date)} />
                   {/* PHP: conditions.name where id=$condition */}
-                  <InfoRow label="Condition, When Received"    value={condition_name ?? "—"} />
+                  <InfoRow label="Condition, When Received" value={condition_name ?? "—"} />
                   {/* PHP: $sealed = array("Unsealed","Sealed","Packed","NA") */}
-                  <InfoRow label="Packing, When Received"      value={sealed_name    ?? "—"} />
+                  <InfoRow label="Packing, When Received" value={sealed_name ?? "—"} />
                   {/* PHP: receiveditems → qty + unit name, or "NA" */}
                   <InfoRow label="Quantity Received (Approx.)" value={qtyStr} />
                   {/* PHP: min(startdate) from testeventdata */}
-                  <InfoRow label="Date of Start Of Test"       value={fmtDate(start_date)} />
+                  <InfoRow label="Date of Start Of Test" value={fmtDate(start_date)} />
                   {/* PHP: max(enddate) from testeventdata */}
-                  <InfoRow label="Date of Completion"          value={fmtDate(end_date)} />
+                  <InfoRow label="Date of Completion" value={fmtDate(end_date)} />
                   {/* PHP: $trfprow['reportdate'] */}
-                  <InfoRow label="Date of Reporting"           value={fmtDate(reportdate ?? dates?.report_date)} />
+                  <InfoRow label="Date of Reporting" value={fmtDate(reportdate ?? dates?.report_date)} />
                 </tbody>
                 <tbody>
                   {/* PHP: colspan=3 rowspan=2 → Sample Identification + Date of Reporting */}
@@ -559,13 +561,13 @@ export default function ApproveSignatureReport() {
                     ) : (
                       test_results.map((row, idx) => {
                         // PHP: $sflag → green (#008d4c) / red (#ff0000) / neutral
-                        const cellStyle     = parseComplianceStyle(row.compliance_style);
-                        // PHP: $rresult → BDL/ADL override or raw result
-                        const displayResult = row.result?.display_value ?? row.result?.value ?? "—";
+                        const cellStyle = parseComplianceStyle(row.compliance_style);
+                        // PHP: $rresult → raw result without rounding
+                        const displayResult = row.result?.value ?? row.result?.original_value ?? "—";
                         // PHP: units.description where id=resultunit
-                        const unitDisplay   = row.unit?.description ?? row.unit?.name ?? "—";
+                        const unitDisplay = row.unit?.description ?? row.unit?.name ?? "—";
                         // PHP: methods.name where id=tmethod
-                        const methodName    = row.method?.name ?? "—";
+                        const methodName = row.method?.name ?? "—";
                         return (
                           <tr key={row.id ?? idx} className="border-b border-gray-100 last:border-0 dark:border-gray-700">
                             <td className="px-3 py-2 text-center text-gray-700 dark:text-gray-300">
@@ -586,9 +588,7 @@ export default function ApproveSignatureReport() {
                             {/* PHP: <button onclick="view($rows['id'], 'catid', 'requestretest.php', ...)">Request Re-test</button> */}
                             {showActionsCol && (
                               <td className="px-3 py-2 text-center no-print">
-                                {(row.can_retest === true) && (
-                                  <ReTestButton testEventId={row.id} onSuccess={fetchReport} />
-                                )}
+                                <ReTestButton testEventId={row.id} onSuccess={fetchReport} />
                               </td>
                             )}
                           </tr>

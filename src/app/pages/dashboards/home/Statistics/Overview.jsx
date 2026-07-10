@@ -9,12 +9,13 @@ import {
 
 // Local Imports
 import { Avatar, Card } from "components/ui";
+import { PendingSignatures } from "./PendingSignatures";
 
 // ----------------------------------------------------------------------
 
 export function Overview() {
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-4 lg:gap-6">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-5 lg:gap-6">
       <Card className="flex justify-between p-5">
         <div>
           <p>Sales</p>
@@ -106,6 +107,8 @@ export function Overview() {
           <CurrencyDollarIcon className="size-6" />
         </Avatar>
       </Card>
+
+      <PendingSignatures />
     </div>
   );
 }

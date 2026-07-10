@@ -277,7 +277,7 @@ export default function ReviewByHodDetail() {
           const found = addrList.find((a) => String(a.id) === String(addrId));
           if (found) {
             if (!data.customer) data.customer = {};
-            data.customer.address = found.address;
+            data.customer.address = [found.address, found.city, found.pincode].filter(Boolean).join(", ");
           }
         } catch (e) {
           console.error("Failed to fetch customer address:", e);

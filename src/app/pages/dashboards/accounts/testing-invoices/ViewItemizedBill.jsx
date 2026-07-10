@@ -269,7 +269,7 @@ function ItemizedBillPrintTemplate({
       )}
 
       {/* Title */}
-      <div style={{ textAlign: "center", marginBottom: 8 }}>
+      <div style={{ textAlign: "center", marginBottom: 8, marginTop: 80 }}>
         <div
           style={{
             fontSize: 14,
@@ -1046,7 +1046,7 @@ export default function ViewItemizedBill() {
                   "KAILTECH TEST AND RESEARCH CENTRE PVT LTD."}
               </h2>
             </div>
-            <div className="col-span-12 text-center font-bold uppercase">
+            <div className="col-span-12 mt-[80px] text-center font-bold uppercase">
               TAX INVOICE
               <br />
               <span className="text-xs font-semibold">

@@ -71,7 +71,7 @@ export default function ApproveSignature() {
   });
 
   const [globalFilter, setGlobalFilter] = useState("");
-  const [sorting,      setSorting]      = useState([{ id: "id", desc: true }]);
+  const [sorting,      setSorting]      = useState([]);
 
   const [columnVisibility, setColumnVisibility] = useLocalStorage(
     "column-visibility-approvals-approve-signature-1", {}

@@ -15,52 +15,52 @@ export const columns = [
   }),
 
   // ✅ Date
-  columnHelper.accessor("entry_date", {
-    id: "entry_date",
+  columnHelper.accessor("added_on", {
+    id: "added_on",
     header: "Date",
-    cell: (info) => info.getValue() || "N/A",
+    cell: (info) => info.getValue() || " ",
   }),
 
   // ✅ Purpose
-  columnHelper.accessor("purpose", {
-    id: "purpose",
+  columnHelper.accessor("purpose_name", {
+    id: "purpose_name",
     header: "Purpose",
-    cell: (info) => info.getValue() || "N/A",
+    cell: (info) => info.getValue() || " ",
   }),
 
   // ✅ Description
   columnHelper.accessor("description", {
     id: "description",
     header: "Description",
-    cell: (info) => info.getValue() || "N/A",
+    cell: (info) => info.getValue() || " ",
   }),
 
   // ✅ Quantity
   columnHelper.accessor("quantity", {
     id: "quantity",
     header: "Quantity",
-    cell: (info) => info.getValue() || "N/A",
+    cell: (info) => info.getValue() || " ",
   }),
 
   // ✅ Source
   columnHelper.accessor("source", {
     id: "source",
     header: "Source",
-    cell: (info) => info.getValue() || "N/A",
+    cell: (info) => info.getValue() || " ",
   }),
 
   // ✅ Issued To
-  columnHelper.accessor("employee_name", {
-    id: "employee_name",
+  columnHelper.accessor("uname", {
+    id: "uname",
     header: "Issued To",
-    cell: (info) => info.getValue() || "N/A",
+    cell: (info) => info.getValue() || " ",
   }),
 
   // ✅ Remark
   columnHelper.accessor("remark", {
     id: "remark",
     header: "Remark",
-    cell: (info) => info.getValue() || "N/A",
+    cell: (info) => info.getValue() || " ",
   }),
 
   // ✅ Actions

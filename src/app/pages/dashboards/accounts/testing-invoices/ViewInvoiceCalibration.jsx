@@ -38,11 +38,15 @@ function printInvoice(templateProps, withLH, logoSrc, pageTitle) {
     <InvoicePrintTemplate {...templateProps} withLH={withLH} logoSrc={logoSrc} />
   );
 
+  // Sanitize title — replace filename-illegal chars for Chrome PDF save dialog
+  const safeTitle = (pageTitle || templateProps.inv?.invoiceno || "Invoice")
+    .replace(/[/\\:*?"<>|]/g, "_");
+
   const full = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>${pageTitle || templateProps.inv?.invoiceno || "Invoice"}</title>
+  <title>${safeTitle}</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     @page { size: A4; margin: 10mm; margin-top: 10mm; }
@@ -168,7 +172,7 @@ function InvoicePrintTemplate({ inv, addr, items, qrUrl, signUrl, digitalSignUrl
         </div>
       )}
 
-      <div style={{ textAlign: "center", marginBottom: 8 }}>
+      <div style={{ textAlign: "center", marginBottom: 8, marginTop: 80 }}>
         <div style={{ fontSize: 14, fontWeight: "bold", textTransform: "uppercase" }}>TAX INVOICE</div>
         <div style={{ fontSize: 12, textTransform: "uppercase", marginTop: 4 }}>FOR {inv.typeofinvoice || ""} CHARGES</div>
         <div style={{ fontSize: 12, textTransform: "uppercase", marginTop: 2 }}>ORIGINAL FOR RECIPIENT</div>
@@ -778,7 +782,9 @@ export default function ViewInvoiceCalibration() {
       companyInfo,
       states,
     };
-    const pageTitle = withLH ? "invoice" : "invoice without LetterHead";
+    // Sanitize invoice number — replace filename-illegal chars (/ \ : * ? " < > |) with _
+    const safeInvoiceNo = (invoice.invoiceno || "invoice").replace(/[/\\:*?"<>|]/g, "_");
+    const pageTitle = withLH ? safeInvoiceNo : `${safeInvoiceNo}_without_LetterHead`;
     printInvoice(templateProps, withLH, logo, pageTitle);
   };
 

@@ -82,10 +82,11 @@ export default function AddInwardEntry() {
     deadline: "",
     specialrequest: "",
     notes: "",
-    nablrequired: "Yes",
-    calibacc: "Nabl",
-    instrumentlocation: "Lab",
-    caliblocation: "Lab",
+    nablrequired: calibacc === "Non Nabl" ? "No" : "Yes",
+    nonnabl: calibacc === "Non Nabl" ? "Yes" : "No",
+    calibacc: calibacc || "Nabl",
+    instrumentlocation: caliblocation || "Lab",
+    caliblocation: caliblocation || "Lab",
     customername: "",
     customeraddress: "",
     gstno: "",
@@ -515,25 +516,9 @@ export default function AddInwardEntry() {
       newErrors.billingaddress = "Billing Address is required";
     if (!formData.concernpersonname)
       newErrors.concernpersonname = "Concern Person Name is required";
-    if (!formData.certcollectionremark)
-      newErrors.certcollectionremark = "Description is  required";
-
-    if (!formData.modeofdispatch)
-      newErrors.modeofdispatch = "Mode of dispatch is required";
-
-    if (!formData.notes)
-      newErrors.notes = "Notes is required";
-    if (!formData.additionalemail)
-      newErrors.additionalemail = "Additional Email Ids is required";
-    if (!formData.specialrequest)
-      newErrors.specialrequest = " Any Special request is required";
 
     if (!formData.modeofreciept)
       newErrors.modeofreciept = " Mode Of Receipt is required";
-    if (!formData.ponumber)
-      newErrors.ponumber = " Work Order No is required";
-    if (!formData.pcharges)
-      newErrors.pcharges = " Priority Testing Charges is required";
 
 
     if (Object.keys(newErrors).length > 0) {

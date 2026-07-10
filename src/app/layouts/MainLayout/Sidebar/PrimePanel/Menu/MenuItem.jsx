@@ -23,46 +23,46 @@ export function MenuItem({ data }) {
   const handleMenuItemClick = () => lgAndDown && close();
 
   return (
-  path && path !== '#' ? (
-    <NavLink
-      to={path}
-      onClick={handleMenuItemClick}
-      className={({ isActive }) =>
-        clsx(
-          "outline-none transition-colors duration-300 ease-in-out",
-          isActive
-            ? "font-medium text-primary-600 dark:text-primary-400"
-            : "text-gray-600 hover:text-gray-900 dark:text-dark-200 dark:hover:text-dark-50",
-        )
-      }
-    >
-      {({ isActive }) => (
-        <div
-          data-menu-active={isActive}
-          style={{ height: "34px" }}
-          className="flex items-center justify-between text-xs-plus tracking-wide"
-        >
-          <span className="mr-1 truncate"> {title}</span>
-          {info && info.val && (
-            <Badge
-              color={info.color}
-              variant="soft"
-              className="h-4.5 min-w-[1rem] shrink-0 p-[5px] text-tiny-plus"
-            >
-              {info.val}
-            </Badge>
-          )}
-        </div>
-      )}
-    </NavLink>
-  ) : (
-    <div
-      style={{ height: "34px", cursor: "not-allowed" }}
-      className="flex items-center justify-between text-xs-plus tracking-wide text-gray-400 px-2">
-      <span className="mr-1 truncate">{title}</span>
-    </div>
-  )
-);
+    path && path !== '#' ? (
+      <NavLink
+        to={path}
+        onClick={handleMenuItemClick}
+        className={({ isActive }) =>
+          clsx(
+            "outline-none transition-colors duration-300 ease-in-out",
+            isActive
+              ? "font-medium text-primary-600 dark:text-primary-400"
+              : "text-gray-600 hover:text-gray-900 dark:text-dark-200 dark:hover:text-dark-50",
+          )
+        }
+      >
+        {({ isActive }) => (
+          <div
+            data-menu-active={isActive}
+            style={{ height: "34px" }}
+            className="flex items-center justify-between text-xs-plus tracking-wide"
+          >
+            <span className="mr-1 truncate"> {title}</span>
+            {info && info.val && (
+              <Badge
+                color={info.color}
+                variant="soft"
+                className="h-4.5 min-w-[1rem] shrink-0 p-[5px] text-tiny-plus"
+              >
+                {info.val}
+              </Badge>
+            )}
+          </div>
+        )}
+      </NavLink>
+    ) : (
+      <div
+        style={{ height: "34px", cursor: "not-allowed" }}
+        className="flex items-center justify-between text-xs-plus tracking-wide text-gray-400 px-2">
+        <span className="mr-1 truncate">{title}</span>
+      </div>
+    )
+  );
 }
 
 MenuItem.propTypes = {

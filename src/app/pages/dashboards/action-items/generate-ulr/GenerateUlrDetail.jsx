@@ -398,7 +398,7 @@ export default function GenerateUlrDetail() {
           const addrList = addrRes.data?.data ?? [];
           const found = addrList.find((a) => String(a.id) === String(rAddrId));
           if (found) {
-            setReportAddr(found.address);
+            setReportAddr([found.address, found.city, found.pincode].filter(Boolean).join(", "));
           }
         } catch (e) {
           console.error("Failed to fetch reporting address:", e);

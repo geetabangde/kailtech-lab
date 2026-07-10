@@ -79,7 +79,7 @@ function extractDataTwoSign(report) {
         toArray(test_results).some((r) => r.specification && r.specification !== "—");
 
     const customerName = customer?.name ?? "—";
-    const customerAddress = customer?.address ?? "";
+    const customerAddress = [customer?.address, customer?.city, customer?.pincode].filter(Boolean).join(", ");
     const contactPerson = customer?.contact_person ?? "";
     const showContact = Number(trf?.specificpurpose ?? customer?.specific_purpose) === 2;
     const customerRef = customer?.letterrefno ?? "";

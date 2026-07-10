@@ -50,7 +50,7 @@ export default function FinalReportDetail() {
             const found = addrList.find((a) => String(a.id) === String(addrId));
             if (found) {
               if (!d.customer) d.customer = {};
-              d.customer.address = found.address;
+              d.customer.address = [found.address, found.city, found.pincode].filter(Boolean).join(", ");
             }
           } catch (e) {
             console.error("Failed to fetch customer address:", e);
