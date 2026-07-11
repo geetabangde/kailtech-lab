@@ -225,22 +225,76 @@ export default function ViewTQuotation() {
                             </tbody>
                         </table>
 
+                        {/* Billing Summary Table */}
+                        <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 30 }}>
+                            <tbody>
+                                <tr style={{ fontSize: 12 }}>
+                                    <td colSpan={9} style={{ borderRight: border, borderBottom: border, padding: cellPad, textAlign: "right", fontWeight: "bold" }}>Subtotal</td>
+                                    <td style={{ borderBottom: border, padding: cellPad, textAlign: "right" }}>{parseFloat(quote.subtotal || 0).toLocaleString()}</td>
+                                </tr>
+                                <tr style={{ fontSize: 12 }}>
+                                    <td colSpan={9} style={{ borderRight: border, borderBottom: border, padding: cellPad, textAlign: "right", fontWeight: "bold" }}>Discount</td>
+                                    <td style={{ borderBottom: border, padding: cellPad, textAlign: "right" }}>{parseFloat(quote.discount || 0).toLocaleString()}</td>
+                                </tr>
+                                <tr style={{ fontSize: 12 }}>
+                                    <td colSpan={9} style={{ borderRight: border, borderBottom: border, padding: cellPad, textAlign: "right", fontWeight: "bold" }}>Mobilization & Demobilization Charges</td>
+                                    <td style={{ borderBottom: border, padding: cellPad, textAlign: "right" }}>{parseFloat(quote.mobilisation || 0).toLocaleString()}</td>
+                                </tr>
+                                <tr style={{ fontSize: 12 }}>
+                                    <td colSpan={9} style={{ borderRight: border, borderBottom: border, padding: cellPad, textAlign: "right", fontWeight: "bold" }}>Freight Charges</td>
+                                    <td style={{ borderBottom: border, padding: cellPad, textAlign: "right" }}>{parseFloat(quote.freight || 0).toLocaleString()}</td>
+                                </tr>
+                                <tr style={{ fontSize: 12, background: "#fdfdfd" }}>
+                                    <td colSpan={9} style={{ borderRight: border, borderBottom: border, padding: cellPad, textAlign: "right", fontWeight: "bold" }}>Subtotal 2</td>
+                                    <td style={{ borderBottom: border, padding: cellPad, textAlign: "right" }}>{parseFloat(quote.subtotal2 || quote.subtotal || 0).toLocaleString()}</td>
+                                </tr>
+                                <tr style={{ fontSize: 12 }}>
+                                    <td colSpan={9} style={{ borderRight: border, borderBottom: border, padding: cellPad, textAlign: "right", fontWeight: "bold" }}>CGST {quote.cgst_percent || (quote.gstnumber ? quote.gstnumber/2 : 9)}%</td>
+                                    <td style={{ borderBottom: border, padding: cellPad, textAlign: "right" }}>{parseFloat(quote.cgst || 0).toLocaleString()}</td>
+                                </tr>
+                                <tr style={{ fontSize: 12 }}>
+                                    <td colSpan={9} style={{ borderRight: border, borderBottom: border, padding: cellPad, textAlign: "right", fontWeight: "bold" }}>SGST {quote.sgst_percent || (quote.gstnumber ? quote.gstnumber/2 : 9)}%</td>
+                                    <td style={{ borderBottom: border, padding: cellPad, textAlign: "right" }}>{parseFloat(quote.sgst || 0).toLocaleString()}</td>
+                                </tr>
+                                <tr style={{ fontSize: 13, background: "#f9fafb", fontWeight: "bold" }}>
+                                    <td colSpan={9} style={{ borderRight: border, borderBottom: "2px solid #000", padding: cellPad, textAlign: "right" }}>Total</td>
+                                    <td style={{ borderBottom: "2px solid #000", padding: cellPad, textAlign: "right" }}>{parseFloat(quote.total || 0).toLocaleString()}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        {/* Scopes */}
+                        {(quote.ourscope || quote.yourscope) && (
+                            <div style={{ marginBottom: 20, fontSize: 13 }}>
+                                {quote.ourscope && (
+                                    <div style={{ marginBottom: 15 }}>
+                                        <p style={{ fontWeight: "bold", textDecoration: "underline", margin: "0 0 5px" }}>Our Scope:</p>
+                                        <div dangerouslySetInnerHTML={{ __html: quote.ourscope }} />
+                                    </div>
+                                )}
+                                {quote.yourscope && (
+                                    <div>
+                                        <p style={{ fontWeight: "bold", textDecoration: "underline", margin: "0 0 5px" }}>Your Scope:</p>
+                                        <div dangerouslySetInnerHTML={{ __html: quote.yourscope }} />
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                        {/* Notes Section */}
+                        {quote?.notes && quote.notes !== "<p><br></p>" && (
+                            <div style={{ marginTop: 20 }}>
+                                <p style={{ margin: "0 0 5px", fontWeight: "bold", fontSize: 12 }}>Note :-</p>
+                                <div style={{ fontSize: 11, lineHeight: 1.6, color: "#444" }} dangerouslySetInnerHTML={{ __html: quote.notes }}></div>
+                            </div>
+                        )}
+
                         {/* Terms and Conditions (Full Width) */}
                         <div style={{ marginTop: 40, borderTop: "1px solid #eee", paddingTop: 20 }}>
                             <p style={{ margin: "0 0 10px", fontWeight: "bold", textDecoration: "underline", fontSize: 12 }}>Terms & Conditions:</p>
                             <div style={{ fontSize: 11, lineHeight: 1.6, color: "#444" }}>
-                                <p style={{ margin: "0 0 4px" }}>1. Rates are for the tests conducted at our Lab at Indore (Madhya Pradesh) India.</p>
-                                <p style={{ margin: "0 0 4px" }}>2. Cross Cheque/Demand Draft/NEFT/RTGS should be drawn in favour of Kailtech Test And Research Centre Pvt. Ltd. Payable at Indore (Madhya Pradesh).</p>
-                                <p style={{ margin: "0 0 4px" }}>3. Please attach bill details indicating Quotation No. / Invoice No. & TDS deductions if any, along with your payment.</p>
-                                <p style={{ margin: "0 0 4px" }}>4. Taxes are applicable as per the prevailing rates at the time of Invoicing-Currently GST of 18% is applicable on all invoices.</p>
-                                <p style={{ margin: "0 0 4px" }}>5. For GST registered Customer the GST No. is mandatory for sample registration in order for the same to be included in the tax invoices.</p>
-                                <p style={{ margin: "0 0 4px" }}>6. Validity : 30 days from the date of issued of this quotation.</p>
                                 {quote.customterms && (
-                                    <p style={{ margin: "0 0 4px" }} dangerouslySetInnerHTML={{ __html: `7. ${quote.customterms.replace(/<p>/g, '').replace(/<\/p>/g, '')}` }} />
+                                    <div dangerouslySetInnerHTML={{ __html: quote.customterms }} />
                                 )}
-                                <p style={{ margin: "0 0 4px" }}>8. If the payment is to be paid in Cash pay to UPI <b>0795933A0099960.bqr@kotak</b> only and take official receipt. Else claim of payment, shall not be accepted.</p>
-                                <p style={{ margin: "0 0 4px" }}>9. Subject to exclusive jurisdiction of courts at Indore (Madhya Pradesh) only.</p>
-                                <p style={{ margin: "0 0 4px" }}>10. Due to COVID-19, problem or situation beyond control there may be delay in Testing and Reporting.</p>
                             </div>
                         </div>
 

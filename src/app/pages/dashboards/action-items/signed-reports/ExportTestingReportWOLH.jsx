@@ -21,8 +21,8 @@ const S1 = {
     color: "#111",
     lineHeight: "1.3",
     position: 'relative',
-    paddingLeft: "16px",
-    paddingRight: "16px",
+    paddingLeft: "0px",
+    paddingRight: "0px",
     paddingTop: "10px",
     paddingBottom: "10px",
   },
@@ -64,7 +64,7 @@ const S1 = {
   },
   isoSide: {
     position: "absolute",
-    right: "-46px", bottom: "110px",
+    right: "-30px", bottom: "110px",
     fontSize: "8.5px", color: "#555",
     transform: "rotate(90deg)",
     width: "165px",
@@ -218,7 +218,7 @@ function printReportWOLH(report, title) {
   <title>${title || 'Test Report'}</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
-    @page { size: A4; margin: 12mm 14mm; }
+    @page { size: A4; margin: 8mm 6mm; }
     body  { margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; font-size: 8.5px; color: #111; background: #fff; }
     @media print { 
       body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }

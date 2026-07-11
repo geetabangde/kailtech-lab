@@ -47,6 +47,7 @@ export default function EditTestingQuotation() {
         vertical: "2",
         caddress: "",
         cperson: "",
+        notes: "",
     });
 
     const [customers, setCustomers] = useState([]);
@@ -155,6 +156,7 @@ export default function EditTestingQuotation() {
                 vertical: String(quote.vertical || "2"),
                 caddress: newCaddress,
                 cperson: newCperson,
+                notes: quote.notes || "",
             });
         } catch (err) {
             console.error("Error loading data:", err);
@@ -216,6 +218,7 @@ export default function EditTestingQuotation() {
                 statutory: formData.statutory,
                 ourscope: formData.ourscope,
                 yourscope: formData.yourscope,
+                notes: formData.notes,
                 revise: isRevision,
                 id: Number(id),
                 customername: formData.customername,
@@ -472,6 +475,16 @@ export default function EditTestingQuotation() {
                             Terms & Scope of Work
                         </h3>
                         <div className="space-y-5">
+                            <div className="form-group">
+                                <label className="mb-2 block text-sm font-semibold text-gray-700">
+                                    Note :-
+                                </label>
+                                <TextEditor
+                                    value={formData.notes}
+                                    onChange={(val, quill) => handleEditorChange("notes", val, quill)}
+                                    className="min-h-[100px] bg-white rounded-md border border-gray-300"
+                                />
+                            </div>
                             <div className="form-group">
                                 <label className="mb-2 block text-sm font-semibold text-gray-700">
                                     Custom Terms

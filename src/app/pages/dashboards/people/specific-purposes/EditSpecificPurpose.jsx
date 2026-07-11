@@ -97,7 +97,7 @@ export default function EditSpecificPurpose() {
 
       const res = await axios.post(`/people/update-specific-purpose/${id}`, form);
 
-      if (res.data.status === "true") {
+      if (res.data.status === true || res.data.status === "true") {
         toast.success(res.data?.message || "Specific purpose updated ✅");
         navigate("/dashboards/people/specific-purposes");
       } else {

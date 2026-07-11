@@ -1,4 +1,6 @@
 // EditTrfStartJob.jsx - Fixed with full customer details block (matches AddTrfStartJob)
+// All dropdowns converted to searchable react-select components.
+// "Any Deadline" field is now optional (validation removed, asterisk removed).
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import axios from "utils/axios";
@@ -6,7 +8,7 @@ import { toast } from "sonner";
 
 import { Page } from "components/shared/Page";
 import { Button } from "components/ui";
-import { Input, Textarea, Select as FormSelect } from "components/ui/Form";
+import { Input, Textarea } from "components/ui/Form";
 import { Card } from "components/ui/Card";
 import ReactSelect from "react-select";
 
@@ -160,7 +162,7 @@ export default function EditTrfStartJob() {
       borderColor: state.isFocused ? "#3b82f6" : "rgb(209 213 219)",
       boxShadow: state.isFocused ? "0 0 0 2px rgb(59 130 246 / 0.5)" : "none",
       "&:hover": { borderColor: "#3b82f6" },
-      backgroundColor: "white",
+      backgroundColor: state.isDisabled ? "#f3f4f6" : "white",
       borderRadius: "0.5rem",
     }),
     menu: (base) => ({ ...base, borderRadius: "0.5rem", zIndex: 9999 }),
@@ -171,6 +173,13 @@ export default function EditTrfStartJob() {
       ...base, color: "#3b82f6",
       "&:hover": { backgroundColor: "#3b82f6", color: "white" },
     }),
+  };
+
+  // ── Generic helper: adapt a react-select onChange into the existing
+  //    e.target.{name,value}-based handlers used throughout this file ────────
+  const handleSelectChange = (selectedOption, handler, fieldName) => {
+    const value = selectedOption ? selectedOption.value : "";
+    handler({ target: { name: fieldName, value } });
   };
 
   // ── Scroll to first error ───────────────────────────────────────────────────
@@ -725,7 +734,7 @@ export default function EditTrfStartJob() {
 
     if (!formData.certcollectionremark) newErrors.certcollectionremark = "Description is required";
 
-    if (!formData.deadline) newErrors.deadline = "Deadline is required";
+    // "Any Deadline" is now optional — no validation applied.
 
     return newErrors;
   };
@@ -806,6 +815,27 @@ export default function EditTrfStartJob() {
     );
   }
 
+  // ── Option builders (memo-free, cheap to recompute) ─────────────────────────
+  const customerTypeOptions = customerTypes.map((t) => ({ value: String(t.id), label: t.name }));
+  const customerOptions = customers.map((c) => ({
+    value: String(c.id),
+    label: `${c.name} (${c.pnumber || c.phone || "N/A"})`,
+  }));
+  const specificPurposeOptions = specificPurposes.map((p) => ({ value: String(p.id), label: p.name }));
+  const reportAddressOptions = reportAddresses.map((a) => ({ value: String(a.id), label: `${a.name} (${a.address})` }));
+  const billingAddressOptions = billingAddresses.map((a) => ({ value: String(a.id), label: `${a.name} (${a.address})` }));
+  const concernPersonOptions = concernPersons.map((p) => ({ value: String(p.id), label: `${p.name} (${p.mobile})` }));
+  const quotationOptions = quotations.map((q) => ({ value: String(q.id), label: `${String(q.id).padStart(5, "0")} — ${q.added_on}` }));
+  const bdOptions = bds.map((b) => ({ value: String(b.id), label: `${b.firstname} ${b.lastname}` }));
+  const promoterOptions = promoters.map((p) => ({ value: String(p.id), label: p.name }));
+  const choiceOptions = choices.map((c) => ({ value: String(c.id), label: c.name }));
+  const chargeTypeOptions = [
+    { value: "1", label: "₹ (Rupees)" },
+    { value: "2", label: "% (Percentage)" },
+  ];
+  const modesOfReceiptOptions = modesOfReceipt.map((m) => ({ value: String(m.id), label: m.name }));
+  const paymentModeOptions = paymentModes.map((m) => ({ value: String(m.id), label: m.name }));
+
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
     <Page title={`Edit TRF Entry #${id}`}>
@@ -853,39 +883,51 @@ export default function EditTrfStartJob() {
               {/* Customer Type */}
               <div ref={ctypeRef}>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Customer Type <span className="text-red-500">*</span></label>
-                <FormSelect name="ctype" value={formData.ctype} onChange={handleInputChange} className="w-full">
-                  <option value="">Select Customer Type</option>
-                  {customerTypes.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-                </FormSelect>
+                <ReactSelect
+                  options={customerTypeOptions}
+                  value={customerTypeOptions.find((o) => o.value === formData.ctype) || null}
+                  onChange={(opt) => handleSelectChange(opt, handleInputChange, "ctype")}
+                  styles={customSelectStyles}
+                  placeholder="Select Customer Type"
+                  isClearable
+                  isSearchable
+                  menuPortalTarget={document.body}
+                />
                 <ErrMsg field="ctype" />
               </div>
 
               {/* Customer */}
               <div ref={customeridRef}>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Customer (Responsible For Payment) <span className="text-red-500">*</span></label>
-                <FormSelect name="customerid" value={formData.customerid} onChange={handleCustomerChange} className="w-full">
-                  <option value="">Select Customer</option>
-                  {customers.map((c) => <option key={c.id} value={c.id}>{c.name} ({c.pnumber || c.phone || "N/A"})</option>)}
-                </FormSelect>
+                <ReactSelect
+                  options={customerOptions}
+                  value={customerOptions.find((o) => o.value === formData.customerid) || null}
+                  onChange={(opt) => handleSelectChange(opt, handleCustomerChange, "customerid")}
+                  styles={customSelectStyles}
+                  placeholder="Select Customer"
+                  isClearable
+                  isSearchable
+                  menuPortalTarget={document.body}
+                />
                 <ErrMsg field="customerid" />
               </div>
 
               {/* Specific Purpose */}
               <div ref={specificpurposeRef}>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Specific Purpose <span className="text-red-500">*</span></label>
-                <FormSelect name="specificpurpose" value={formData.specificpurpose} onChange={handleInputChange} className="w-full">
-                  <option value="">Select Specific Purpose</option>
-                  {specificPurposes.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                </FormSelect>
+                <ReactSelect
+                  options={specificPurposeOptions}
+                  value={specificPurposeOptions.find((o) => o.value === formData.specificpurpose) || null}
+                  onChange={(opt) => handleSelectChange(opt, handleInputChange, "specificpurpose")}
+                  styles={customSelectStyles}
+                  placeholder="Select Specific Purpose"
+                  isClearable
+                  isSearchable
+                  menuPortalTarget={document.body}
+                />
                 <ErrMsg field="specificpurpose" />
               </div>
 
-              {/* Customer Reference */}
-              <div className="md:col-span-2" ref={letterrefnoRef}>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Customer Reference <span className="text-red-500">*</span></label>
-                <Textarea name="letterrefno" value={formData.letterrefno} onChange={handleInputChange} className="w-full" rows={3} placeholder="Enter customer reference details" />
-                <ErrMsg field="letterrefno" />
-              </div>
             </div>
 
             {/* ━━━━ CUSTOMER DETAILS BLOCK ━━━━ */}
@@ -921,29 +963,32 @@ export default function EditTrfStartJob() {
 
                     <div ref={reportnameRef}>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Customer Name <span className="text-red-500">*</span></label>
-                      <FormSelect name="reportname" value={formData.reportname} onChange={handleReportNameChange} className="w-full">
-                        <option value="">Select Customer</option>
-                        {customers.map((c) => <option key={c.id} value={c.id}>{c.name} ({c.pnumber || c.phone || "N/A"})</option>)}
-                      </FormSelect>
+                      <ReactSelect
+                        options={customerOptions}
+                        value={customerOptions.find((o) => o.value === formData.reportname) || null}
+                        onChange={(opt) => handleSelectChange(opt, handleReportNameChange, "reportname")}
+                        styles={customSelectStyles}
+                        placeholder="Select Customer"
+                        isClearable
+                        isSearchable
+                        menuPortalTarget={document.body}
+                      />
                       <ErrMsg field="reportname" />
                     </div>
 
                     <div ref={reportaddressRef}>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Customer Address <span className="text-red-500">*</span></label>
-                      <FormSelect
-                        name="reportaddress"
-                        value={formData.reportaddress}
-                        onChange={handleInputChange}
-                        className="w-full"
-                        disabled={reportAddresses.length === 0}
-                      >
-                        <option value="">
-                          {reportAddresses.length === 0 ? "No addresses found" : "Select Address"}
-                        </option>
-                        {reportAddresses.map((a) => (
-                          <option key={a.id} value={a.id}>{a.name} ({a.address})</option>
-                        ))}
-                      </FormSelect>
+                      <ReactSelect
+                        options={reportAddressOptions}
+                        value={reportAddressOptions.find((o) => o.value === formData.reportaddress) || null}
+                        onChange={(opt) => handleSelectChange(opt, handleInputChange, "reportaddress")}
+                        styles={customSelectStyles}
+                        placeholder={reportAddresses.length === 0 ? "No addresses found" : "Select Address"}
+                        isClearable
+                        isSearchable
+                        isDisabled={reportAddresses.length === 0}
+                        menuPortalTarget={document.body}
+                      />
                       <ErrMsg field="reportaddress" />
                     </div>
                   </div>
@@ -974,29 +1019,32 @@ export default function EditTrfStartJob() {
 
                     <div ref={billingnameRef}>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Customer Name <span className="text-red-500">*</span></label>
-                      <FormSelect name="billingname" value={formData.billingname} onChange={handleBillingNameChange} className="w-full">
-                        <option value="">Select Customer</option>
-                        {customers.map((c) => <option key={c.id} value={c.id}>{c.name} ({c.pnumber || c.phone || "N/A"})</option>)}
-                      </FormSelect>
+                      <ReactSelect
+                        options={customerOptions}
+                        value={customerOptions.find((o) => o.value === formData.billingname) || null}
+                        onChange={(opt) => handleSelectChange(opt, handleBillingNameChange, "billingname")}
+                        styles={customSelectStyles}
+                        placeholder="Select Customer"
+                        isClearable
+                        isSearchable
+                        menuPortalTarget={document.body}
+                      />
                       <ErrMsg field="billingname" />
                     </div>
 
                     <div ref={billingaddressRef}>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Customer Address <span className="text-red-500">*</span></label>
-                      <FormSelect
-                        name="billingaddress"
-                        value={formData.billingaddress}
-                        onChange={handleInputChange}
-                        className="w-full"
-                        disabled={billingAddresses.length === 0}
-                      >
-                        <option value="">
-                          {billingAddresses.length === 0 ? "No addresses found" : "Select Address"}
-                        </option>
-                        {billingAddresses.map((a) => (
-                          <option key={a.id} value={a.id}>{a.name} ({a.address})</option>
-                        ))}
-                      </FormSelect>
+                      <ReactSelect
+                        options={billingAddressOptions}
+                        value={billingAddressOptions.find((o) => o.value === formData.billingaddress) || null}
+                        onChange={(opt) => handleSelectChange(opt, handleInputChange, "billingaddress")}
+                        styles={customSelectStyles}
+                        placeholder={billingAddresses.length === 0 ? "No addresses found" : "Select Address"}
+                        isClearable
+                        isSearchable
+                        isDisabled={billingAddresses.length === 0}
+                        menuPortalTarget={document.body}
+                      />
                       <ErrMsg field="billingaddress" />
                     </div>
 
@@ -1018,10 +1066,16 @@ export default function EditTrfStartJob() {
 
                     <div ref={concernpersonnameRef}>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Concern Person Name <span className="text-red-500">*</span></label>
-                      <FormSelect name="concernpersonname" value={formData.concernpersonname} onChange={handleConcernPersonChange} className="w-full">
-                        <option value="">Select Concern Person</option>
-                        {concernPersons.map((p) => <option key={p.id} value={p.id}>{p.name} ({p.mobile})</option>)}
-                      </FormSelect>
+                      <ReactSelect
+                        options={concernPersonOptions}
+                        value={concernPersonOptions.find((o) => o.value === formData.concernpersonname) || null}
+                        onChange={(opt) => handleSelectChange(opt, handleConcernPersonChange, "concernpersonname")}
+                        styles={customSelectStyles}
+                        placeholder="Select Concern Person"
+                        isClearable
+                        isSearchable
+                        menuPortalTarget={document.body}
+                      />
                       <ErrMsg field="concernpersonname" />
                     </div>
 
@@ -1079,12 +1133,16 @@ export default function EditTrfStartJob() {
                   </h4>
                   <div className="max-w-sm">
                     <label className="block text-sm font-medium text-gray-700 mb-1">Quotation No.</label>
-                    <FormSelect name="quotationid" value={formData.quotationid} onChange={handleQuotationChange} className="w-full">
-                      <option value="0">Select Quotation</option>
-                      {quotations.map((q) => (
-                        <option key={q.id} value={q.id}>{String(q.id).padStart(5, "0")} — {q.added_on}</option>
-                      ))}
-                    </FormSelect>
+                    <ReactSelect
+                      options={quotationOptions}
+                      value={quotationOptions.find((o) => o.value === formData.quotationid) || null}
+                      onChange={(opt) => handleSelectChange(opt, handleQuotationChange, "quotationid")}
+                      styles={customSelectStyles}
+                      placeholder="Select Quotation"
+                      isClearable
+                      isSearchable
+                      menuPortalTarget={document.body}
+                    />
                   </div>
                 </div>
 
@@ -1094,6 +1152,13 @@ export default function EditTrfStartJob() {
             {/* ━━━━ 2. WORK ORDER DETAILS ━━━━ */}
             <h4 className="text-md font-semibold mb-4 text-gray-700 border-b pb-2 mt-8">2. WORK ORDER DETAILS</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+
+              {/* Customer Reference */}
+              <div className="md:col-span-2" ref={letterrefnoRef}>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Customer Reference <span className="text-red-500">*</span></label>
+                <Textarea name="letterrefno" value={formData.letterrefno} onChange={handleInputChange} className="w-full" rows={3} placeholder="Enter customer reference details" />
+                <ErrMsg field="letterrefno" />
+              </div>
 
               <div ref={ponumberRef}>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Work Order Number <span className="text-red-500">*</span></label>
@@ -1124,28 +1189,46 @@ export default function EditTrfStartJob() {
 
               <div ref={bdRef}>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Concerned BD <span className="text-red-500">*</span></label>
-                <FormSelect name="bd" value={formData.bd} onChange={handleInputChange} className="w-full">
-                  <option value="">Select BD</option>
-                  {bds.map((b) => <option key={b.id} value={b.id}>{b.firstname} {b.lastname}</option>)}
-                </FormSelect>
+                <ReactSelect
+                  options={bdOptions}
+                  value={bdOptions.find((o) => o.value === formData.bd) || null}
+                  onChange={(opt) => handleSelectChange(opt, handleInputChange, "bd")}
+                  styles={customSelectStyles}
+                  placeholder="Select BD"
+                  isClearable
+                  isSearchable
+                  menuPortalTarget={document.body}
+                />
                 <ErrMsg field="bd" />
               </div>
 
               <div ref={promoterRef}>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Engineer <span className="text-red-500">*</span></label>
-                <FormSelect name="promoter" value={formData.promoter} onChange={handleInputChange} className="w-full">
-                  <option value="">Select Engineer</option>
-                  {promoters.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                </FormSelect>
+                <ReactSelect
+                  options={promoterOptions}
+                  value={promoterOptions.find((o) => o.value === formData.promoter) || null}
+                  onChange={(opt) => handleSelectChange(opt, handleInputChange, "promoter")}
+                  styles={customSelectStyles}
+                  placeholder="Select Engineer"
+                  isClearable
+                  isSearchable
+                  menuPortalTarget={document.body}
+                />
                 <ErrMsg field="promoter" />
               </div>
 
               <div ref={priorityRef}>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Priority Sample <span className="text-red-500">*</span></label>
-                <FormSelect name="priority" value={formData.priority} onChange={handlePriorityChange} className="w-full">
-                  <option value="">Select Priority</option>
-                  {choices.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </FormSelect>
+                <ReactSelect
+                  options={choiceOptions}
+                  value={choiceOptions.find((o) => o.value === formData.priority) || null}
+                  onChange={(opt) => handleSelectChange(opt, handlePriorityChange, "priority")}
+                  styles={customSelectStyles}
+                  placeholder="Select Priority"
+                  isClearable
+                  isSearchable
+                  menuPortalTarget={document.body}
+                />
                 <ErrMsg field="priority" />
               </div>
 
@@ -1158,10 +1241,15 @@ export default function EditTrfStartJob() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Charge Type</label>
-                    <FormSelect name="pchargestype" value={formData.pchargestype} onChange={handleInputChange} className="w-full">
-                      <option value="1">₹ (Rupees)</option>
-                      <option value="2">% (Percentage)</option>
-                    </FormSelect>
+                    <ReactSelect
+                      options={chargeTypeOptions}
+                      value={chargeTypeOptions.find((o) => o.value === formData.pchargestype) || null}
+                      onChange={(opt) => handleSelectChange(opt, handleInputChange, "pchargestype")}
+                      styles={customSelectStyles}
+                      placeholder="Select Charge Type"
+                      isSearchable
+                      menuPortalTarget={document.body}
+                    />
                   </div>
                 </>
               )}
@@ -1173,10 +1261,16 @@ export default function EditTrfStartJob() {
 
               <div ref={witnessRef}>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Witness Required <span className="text-red-500">*</span></label>
-                <FormSelect name="witness" value={formData.witness} onChange={handleWitnessChange} className="w-full">
-                  <option value="">Select</option>
-                  {choices.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </FormSelect>
+                <ReactSelect
+                  options={choiceOptions}
+                  value={choiceOptions.find((o) => o.value === formData.witness) || null}
+                  onChange={(opt) => handleSelectChange(opt, handleWitnessChange, "witness")}
+                  styles={customSelectStyles}
+                  placeholder="Select"
+                  isClearable
+                  isSearchable
+                  menuPortalTarget={document.body}
+                />
                 <ErrMsg field="witness" />
               </div>
 
@@ -1200,10 +1294,15 @@ export default function EditTrfStartJob() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Charge Type</label>
-                    <FormSelect name="wchargestype" value={formData.wchargestype} onChange={handleInputChange} className="w-full">
-                      <option value="1">₹ (Rupees)</option>
-                      <option value="2">% (Percentage)</option>
-                    </FormSelect>
+                    <ReactSelect
+                      options={chargeTypeOptions}
+                      value={chargeTypeOptions.find((o) => o.value === formData.wchargestype) || null}
+                      onChange={(opt) => handleSelectChange(opt, handleInputChange, "wchargestype")}
+                      styles={customSelectStyles}
+                      placeholder="Select Charge Type"
+                      isSearchable
+                      menuPortalTarget={document.body}
+                    />
                   </div>
                 </>
               )}
@@ -1215,10 +1314,16 @@ export default function EditTrfStartJob() {
 
               <div ref={modeofrecieptRef}>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Mode Of Receipt <span className="text-red-500">*</span></label>
-                <FormSelect name="modeofreciept" value={formData.modeofreciept} onChange={handleModeOfReceiptChange} className="w-full">
-                  <option value="">Select Mode of Receipt</option>
-                  {modesOfReceipt.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
-                </FormSelect>
+                <ReactSelect
+                  options={modesOfReceiptOptions}
+                  value={modesOfReceiptOptions.find((o) => o.value === formData.modeofreciept) || null}
+                  onChange={(opt) => handleSelectChange(opt, handleModeOfReceiptChange, "modeofreciept")}
+                  styles={customSelectStyles}
+                  placeholder="Select Mode of Receipt"
+                  isClearable
+                  isSearchable
+                  menuPortalTarget={document.body}
+                />
                 <ErrMsg field="modeofreciept" />
               </div>
 
@@ -1268,10 +1373,16 @@ export default function EditTrfStartJob() {
 
               <div ref={paymentstatusRef}>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Is Payment Done? <span className="text-red-500">*</span></label>
-                <FormSelect name="paymentstatus" value={formData.paymentstatus} onChange={handlePaymentStatusChange} className="w-full">
-                  <option value="">Select Payment Status</option>
-                  {choices.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </FormSelect>
+                <ReactSelect
+                  options={choiceOptions}
+                  value={choiceOptions.find((o) => o.value === formData.paymentstatus) || null}
+                  onChange={(opt) => handleSelectChange(opt, handlePaymentStatusChange, "paymentstatus")}
+                  styles={customSelectStyles}
+                  placeholder="Select Payment Status"
+                  isClearable
+                  isSearchable
+                  menuPortalTarget={document.body}
+                />
                 <ErrMsg field="paymentstatus" />
               </div>
 
@@ -1279,10 +1390,16 @@ export default function EditTrfStartJob() {
                 <>
                   <div ref={modeofpaymentRef}>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Mode Of Payment <span className="text-red-500">*</span></label>
-                    <FormSelect name="modeofpayment" value={formData.modeofpayment} onChange={handleInputChange} className="w-full">
-                      <option value="">Select Mode of Payment</option>
-                      {paymentModes.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
-                    </FormSelect>
+                    <ReactSelect
+                      options={paymentModeOptions}
+                      value={paymentModeOptions.find((o) => o.value === formData.modeofpayment) || null}
+                      onChange={(opt) => handleSelectChange(opt, handleInputChange, "modeofpayment")}
+                      styles={customSelectStyles}
+                      placeholder="Select Mode of Payment"
+                      isClearable
+                      isSearchable
+                      menuPortalTarget={document.body}
+                    />
                     <ErrMsg field="modeofpayment" />
                   </div>
 
@@ -1318,6 +1435,7 @@ export default function EditTrfStartJob() {
                   placeholder="Select certificate collection methods..."
                   isClearable
                   isSearchable
+                  menuPortalTarget={document.body}
                 />
                 <p className="text-xs text-gray-500 mt-1">Select multiple certificate collection methods</p>
               </div>
@@ -1342,17 +1460,23 @@ export default function EditTrfStartJob() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Any Returnable Items</label>
-                <FormSelect name="returnable" value={formData.returnable} onChange={handleInputChange} className="w-full">
-                  <option value="">Select</option>
-                  {choices.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </FormSelect>
+                <ReactSelect
+                  options={choiceOptions}
+                  value={choiceOptions.find((o) => o.value === formData.returnable) || null}
+                  onChange={(opt) => handleSelectChange(opt, handleInputChange, "returnable")}
+                  styles={customSelectStyles}
+                  placeholder="Select"
+                  isClearable
+                  isSearchable
+                  menuPortalTarget={document.body}
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Documents Submitted, if any (Details)</label>
                 <Input type="text" name="documents" value={formData.documents} onChange={handleInputChange} className="w-full" placeholder="Enter document details" />
               </div>
               <div ref={deadlineRef}>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Any Deadline <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Any Deadline</label>
                 <Input type="date" name="deadline" value={dateInputs.deadline} onChange={handleDateChange} className="w-full" />
                 <ErrMsg field="deadline" />
               </div>
@@ -1382,7 +1506,7 @@ export default function EditTrfStartJob() {
               </Button>
             </div>
 
-          </form>
+          </form> 
         </Card>
       </div>
     </Page>

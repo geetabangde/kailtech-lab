@@ -270,8 +270,8 @@ export default function AllotSampleForm() {
                     <tr
                       key={item.id}
                       className={`border-b border-gray-100 dark:border-gray-800 ${idx % 2 === 0
-                          ? "bg-white dark:bg-gray-900"
-                          : "bg-gray-50/50 dark:bg-gray-800/30"
+                        ? "bg-white dark:bg-gray-900"
+                        : "bg-gray-50/50 dark:bg-gray-800/30"
                         }`}
                     >
                       <td className="px-5 py-3 font-mono text-xs text-gray-500 dark:text-gray-400">
@@ -304,8 +304,8 @@ export default function AllotSampleForm() {
                         <input
                           type="number"
                           className={`${inputCls} ${parseFloat(rowInputs[item.id]?.alloted) > Math.max(0, item.qleft)
-                              ? "border-red-500 focus:border-red-500 focus:ring-red-100"
-                              : ""
+                            ? "border-red-500 focus:border-red-500 focus:ring-red-100"
+                            : ""
                             }`}
                           placeholder="alloted quantity"
                           min="0.01"

@@ -30,13 +30,22 @@ export default function ViewQuotation() {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const [quoteRes, companyRes] = await Promise.all([
+      const [quoteRes, companyRes, editRes] = await Promise.all([
         axios.get(`/sales/view-quotation-item/${id}`),
-        axios.get("/get-company-info")
+        axios.get("/get-company-info"),
+        axios.get(`/sales/get-editdata-quotation/${id}`)
       ]);
 
       if (quoteRes.data?.status === "true" || quoteRes.data?.status === true) {
-        setData(quoteRes.data.data);
+        const viewData = quoteRes.data.data;
+        if (editRes.data?.status === "true" || editRes.data?.status === true) {
+           const q = editRes.data.data?.quotation;
+           if (q) {
+             viewData.notes = q.notes || viewData.notes;
+             viewData.customterms = q.customterms || viewData.customterms;
+           }
+        }
+        setData(viewData);
       } else {
         toast.error(quoteRes.data?.message || "Quotation not found");
       }
@@ -263,16 +272,21 @@ export default function ViewQuotation() {
               </tbody>
             </table>
 
+            {/* Notes Section */}
+            {data?.notes && data.notes !== "<p><br></p>" && (
+              <div style={{ marginTop: 20 }}>
+                <p style={{ margin: "0 0 5px", fontWeight: "bold", fontSize: 12 }}>Note :-</p>
+                <div style={{ fontSize: 11, lineHeight: 1.6, color: "#444" }} dangerouslySetInnerHTML={{ __html: data.notes }}></div>
+              </div>
+            )}
+
             {/* Terms and Conditions (Full Width) */}
             <div style={{ marginTop: 40, borderTop: "1px solid #eee", paddingTop: 20 }}>
               <p style={{ margin: "0 0 10px", fontWeight: "bold", textDecoration: "underline", fontSize: 12 }}>Terms & Conditions:</p>
               <div style={{ fontSize: 11, lineHeight: 1.6, color: "#444" }}>
-                <p style={{ margin: "0 0 4px" }}>1. Equipments which are possible to be calibrated at Site, will be done at site. Rest equipments will be calibrated at our Lab at Indore (MADHYA PRADESH).</p>
-                <p style={{ margin: "0 0 4px" }}>2. Payment terms: Advance.</p>
-                <p style={{ margin: "0 0 4px" }}>3. Cross Cheque/DD should be drawn in favor of Kailtech Test And Research Centre Pvt. Ltd. Payable at Indore.</p>
-                <p style={{ margin: "0 0 4px" }}>4. Please attach bill details indicating Invoice No. & TDS deductions if any along with your payment.</p>
-                <p style={{ margin: "0 0 4px" }}>5. Subject to the exclusive jurisdiction of courts at Indore only.</p>
-                <p style={{ margin: "0 0 4px" }}>6. Errors & omissions accepted.</p>
+                {data?.customterms && (
+                   <div dangerouslySetInnerHTML={{ __html: data.customterms }}></div>
+                )}
               </div>
             </div>
 

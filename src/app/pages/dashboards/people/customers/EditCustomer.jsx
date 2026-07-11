@@ -247,13 +247,6 @@ export default function EditCustomer() {
     }
   };
 
-  // Validation: GST format
-  const validateGST = (gst) => {
-    if (!gst || gst.trim() === "") return true;
-    const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
-    return gstRegex.test(gst.toUpperCase());
-  };
-
   // Delete address
   const handleDeleteAddress = (addressId) => {
     toast("Are you sure you want to delete this address?", {
@@ -330,12 +323,6 @@ export default function EditCustomer() {
 
     // Custom validations (only if fields are filled)
     // Note: We don't validate name/email if unchanged from original
-    if (formData.gstno && formData.gstno.trim() !== "") {
-      const isGSTValid = validateGST(formData.gstno);
-      if (!isGSTValid) {
-        newValidationErrors.gstno = "Invalid GST format (e.g., 22AAAAA0000A1Z5)";
-      }
-    }
 
     setErrors(newErrors);
     setValidationErrors(newValidationErrors);
@@ -399,7 +386,7 @@ export default function EditCustomer() {
 
       const res = await axios.post(`/people/update-customer/${id}`, payload);
 
-      if (res.data.status === "true") {
+      if (res.data.status === true || res.data.status === "true") {
         toast.success("Customer updated successfully");
         navigate("/dashboards/people/customers");
       } else {
@@ -563,7 +550,7 @@ export default function EditCustomer() {
             <Input
               label="Email"
               name="email"
-              type="email"
+              type="text"
               value={formData.email}
               onChange={handleInputChange}
               className={errors.email ? "border-red-500 bg-red-50" : ""}
@@ -753,8 +740,8 @@ export default function EditCustomer() {
               <button
                 onClick={() => setActiveTab("address")}
                 className={`${activeTab === "address"
-                    ? "border-blue-500 text-blue-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                   } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
               >
                 Address
@@ -762,8 +749,8 @@ export default function EditCustomer() {
               <button
                 onClick={() => setActiveTab("contact")}
                 className={`${activeTab === "contact"
-                    ? "border-blue-500 text-blue-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  ? "border-blue-500 text-blue-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                   } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
               >
                 Contacts

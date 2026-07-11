@@ -57,6 +57,7 @@ export default function EditQuotations() {
     vertical: "1",
     caddress: "",
     cperson: "",
+    notes: "",
   });
 
   const [customers, setCustomers] = useState([]);
@@ -140,6 +141,7 @@ export default function EditQuotations() {
             yourscope: q.yourscope || "",
             caddress: String(q.caddress || ""),
             cperson: String(q.cperson || ""),
+            notes: q.notes || "",
           });
 
           // Set statutory details
@@ -269,6 +271,7 @@ export default function EditQuotations() {
         customterms: formData.customterms,
         ourscope: formData.ourscope,
         yourscope: formData.yourscope,
+        notes: formData.notes,
       };
 
       const res = await axios.post("/sales/update-calib-quotation", payload);
@@ -549,6 +552,14 @@ export default function EditQuotations() {
               Terms & Scope of Work
             </h3>
             <div className="space-y-4">
+              <div className="form-group">
+                <label className={labelCls}>Note :-</label>
+                <TextEditor
+                  value={formData.notes}
+                  onChange={(val, quill) => handleEditorChange("notes", val, quill)}
+                  className="min-h-[100px] border rounded-md overflow-hidden"
+                />
+              </div>
               <div className="form-group">
                 <label className={labelCls}>Custom Terms</label>
                 <TextEditor

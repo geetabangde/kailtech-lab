@@ -19,47 +19,6 @@ const GST_TYPES = [
     { value: 2, label: "IGST (18%)" },
 ];
 
-const splitParameters = (value) => {
-    if (Array.isArray(value)) return value.map(String).map((item) => item.trim()).filter(Boolean);
-    return String(value || "")
-        .split(/[\n,]+/)
-        .map((item) => item.trim())
-        .filter(Boolean);
-};
-
-const mapTestingQuotationItemById = (payload) => {
-    const data = payload?.data || {};
-    const item = data.item || {};
-    const product = data.product || {};
-    const packageInfo = data.package || {};
-    const parameters = Array.isArray(data.parameters) ? data.parameters : [];
-    const packageQuantity = Array.isArray(data.package_quantity) ? data.package_quantity : [];
-
-    return {
-        id: item.id,
-        standard: item.standard || "",
-        product: item.product || product.id || "",
-        package: item.package || packageInfo.id || "",
-        qty: item.qty || 1,
-        specification: parameters.map((param) => param.name).filter(Boolean).join(", "),
-        unitcost: item.unitcost || packageInfo.rate || 0,
-        total: item.total || Number(item.qty || 0) * Number(item.unitcost || packageInfo.rate || 0),
-        product_name: product.name || "",
-        package_name: packageInfo.package || packageInfo.description || "",
-        standard_name: item.standard ? String(item.standard) : "",
-        grade: item.grade || "",
-        size: item.size || "",
-        grade_name: item.grade ? String(item.grade) : "",
-        size_name: item.size ? String(item.size) : "",
-        sample_requirement: packageQuantity
-            .map((req) => `${req.name || ""} ${req.quantity || ""} ${req.unit || ""}`.trim())
-            .filter(Boolean)
-            .join(", "),
-        quotation: item.quotation,
-        isExisting: true,
-    };
-};
-
 export default function AddQuotationItems() {
     const { id } = useParams(); // Quotation ID
     const navigate = useNavigate();
@@ -140,53 +99,39 @@ export default function AddQuotationItems() {
                 setQuoteData(q || null);
 
                 const existingItems = quoteRes.data.items || [];
-                let itemByIdRow = null;
-
                 if (existingItems.length === 0) {
-                    try {
-                        const itemRes = await axios.get(`/sales/get-testing-quotation-item-byid/${id}`);
-                        if (itemRes.data?.status && itemRes.data?.data?.item) {
-                            itemByIdRow = mapTestingQuotationItemById(itemRes.data);
-                        }
-                    } catch (err) {
-                        console.warn("Testing quotation item-by-id fallback failed:", err);
-                    }
+                    // Start with an empty row if no existing items
+                    setItems([{
+                        standard: "",
+                        product: "",
+                        package: "",
+                        qty: 1,
+                        unitcost: 0,
+                        total: 0,
+                        isExisting: false,
+                        tempId: Date.now()
+                    }]);
+                } else {
+                    const initialItems = existingItems.map(item => ({
+                        id: item.id,
+                        standard: item.standard || "",
+                        product: item.product || "",
+                        package: item.package || "",
+                        qty: item.qty || 1,
+                        unitcost: item.unitcost || item.rate || 0,
+                        total: item.total || 0,
+                        product_name: item.product_name || "",
+                        package_name: item.package_name || "",
+                        standard_name: item.standard_name || "",
+                        grade: item.grade || "",
+                        size: item.size || "",
+                        grade_name: item.grade_name || "",
+                        size_name: item.size_name || "",
+                        sample_requirement: item.sample_requirement || "",
+                        isExisting: true
+                    }));
+                    setItems(initialItems);
                 }
-
-                // For existing items, we need to pre-fetch their package lists
-                const initialItems = (itemByIdRow ? [itemByIdRow] : existingItems).map(item => ({
-                    id: item.id,
-                    standard: item.standard || "",
-                    product: item.product || "",
-                    package: item.package || "",
-                    qty: item.qty || 1,
-                    specification: item.specification || item.spec || item.specifications || "",
-                    unitcost: item.unitcost || item.rate || 0,
-                    total: item.total || 0,
-                    product_name: item.product_name || "",
-                    package_name: item.package_name || "",
-                    standard_name: item.standard_name || "",
-                    grade: item.grade || "",
-                    size: item.size || "",
-                    grade_name: item.grade_name || "",
-                    size_name: item.size_name || "",
-                    sample_requirement: item.sample_requirement || "",
-                    isExisting: true
-                }));
-
-                setItems(initialItems);
-                if (!q && itemByIdRow?.quotation) {
-                    setQuoteData({ id: itemByIdRow.quotation, vertical: 2 });
-                }
-
-                // Fetch packages for existing items
-                const currentVertical = q?.vertical || (window.location.pathname.includes("calibration") ? 1 : 2);
-                initialItems.forEach((item, idx) => {
-                    if (item.product) {
-                        fetchPackagesForIdx(idx, item.product, currentVertical);
-                        fetchGradesSizesForIdx(idx, item.product);
-                    }
-                });
 
                 if (q) {
                     setTaxData({
@@ -202,26 +147,7 @@ export default function AddQuotationItems() {
                         freight: q.freight || 0,
                     });
                 }
-            } else {
-                try {
-                    const itemRes = await axios.get(`/sales/get-testing-quotation-item-byid/${id}`);
-                    if (itemRes.data?.status && itemRes.data?.data?.item) {
-                        const itemByIdRow = mapTestingQuotationItemById(itemRes.data);
-                        const initialItems = [itemByIdRow];
-
-                        setItems(initialItems);
-                        setQuoteData({ id: itemByIdRow.quotation, vertical: 2 });
-
-                        initialItems.forEach((item, idx) => {
-                            if (item.product) {
-                                fetchPackagesForIdx(idx, item.product, 2);
-                                fetchGradesSizesForIdx(idx, item.product);
-                            }
-                        });
-                    }
-                } catch (err) {
-                    console.warn("Testing quotation item-by-id fallback failed:", err);
-                }
+                // Removed fallback block
             }
 
             if (stdRes.data?.data) setStandards(stdRes.data.data);
@@ -233,7 +159,7 @@ export default function AddQuotationItems() {
         } finally {
             setLoading(false);
         }
-    }, [fetchGradesSizesForIdx, fetchPackagesForIdx, id]);
+    }, [id]);
 
     useEffect(() => {
         fetchData();
@@ -248,7 +174,6 @@ export default function AddQuotationItems() {
                 product: "",
                 package: "",
                 qty: 1,
-                specification: "",
                 unitcost: 0,
                 total: 0,
                 isExisting: false,
@@ -378,12 +303,6 @@ export default function AddQuotationItems() {
                 employeeid: Number(localStorage.getItem("userId") || 0),
             };
 
-            activeItems.forEach((item) => {
-                if (item.package) {
-                    payload[`parameters${item.package}`] = splitParameters(item.specification);
-                }
-            });
-
             const res = await axios.post("/sales/add-testing-quotation-item", payload);
             if (res.data.status) {
                 toast.success("Quotation items saved successfully ✅");
@@ -456,7 +375,6 @@ export default function AddQuotationItems() {
                                     <Th className="min-w-[180px]">Size</Th>
                                     <Th className="min-w-[300px]">Package</Th>
                                     <Th className="w-24">Qty</Th>
-                                    <Th className="min-w-[200px]">Specification</Th>
                                     <Th className="w-32">Unit Cost</Th>
                                     <Th className="w-32">Total</Th>
                                     <Th className="w-12 text-center">Action</Th>
@@ -465,7 +383,7 @@ export default function AddQuotationItems() {
                             <TBody>
                                 {items.length === 0 ? (
                                     <Tr>
-                                        <Td colSpan={11} className="text-center py-8 text-gray-500 italic">
+                                        <Td colSpan={10} className="text-center py-8 text-gray-500 italic">
                                             No items added. Click &quot;Add Item&quot; to start.
                                         </Td>
                                     </Tr>
@@ -553,15 +471,7 @@ export default function AddQuotationItems() {
                                                     type="number"
                                                     value={item.qty}
                                                     onChange={(e) => handleItemChange(idx, "qty", e.target.value)}
-                                                    className="w-full rounded border-gray-300 dark:border-gray-600 dark:bg-gray-800 p-1 text-sm outline-none focus:ring-1 focus:ring-blue-500"
-                                                />
-                                            </Td>
-                                            <Td>
-                                                <input
-                                                    type="text"
-                                                    value={item.specification}
-                                                    onChange={(e) => handleItemChange(idx, "specification", e.target.value)}
-                                                    className="w-full rounded border-gray-300 dark:border-gray-600 dark:bg-gray-800 p-1 text-sm outline-none focus:ring-1 focus:ring-blue-500"
+                                                    className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none w-full rounded border-gray-300 dark:border-gray-600 dark:bg-gray-800 p-1 text-sm outline-none focus:ring-1 focus:ring-blue-500"
                                                 />
                                             </Td>
                                             <Td>
@@ -569,7 +479,7 @@ export default function AddQuotationItems() {
                                                     type="number"
                                                     value={item.unitcost}
                                                     onChange={(e) => handleItemChange(idx, "unitcost", e.target.value)}
-                                                    className="w-full rounded border-gray-300 dark:border-gray-600 dark:bg-gray-800 p-1 text-sm outline-none focus:ring-1 focus:ring-blue-500 font-semibold"
+                                                    className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none w-full rounded border-gray-300 dark:border-gray-600 dark:bg-gray-800 p-1 text-sm outline-none focus:ring-1 focus:ring-blue-500 font-semibold"
                                                 />
                                             </Td>
                                             <Td className="font-bold text-gray-800 dark:text-white">
@@ -606,7 +516,7 @@ export default function AddQuotationItems() {
                                     name="discnumber"
                                     value={taxData.discnumber}
                                     onChange={handleTaxChange}
-                                    className="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-800 p-2 text-sm"
+                                    className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none w-full rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 p-2 text-sm"
                                 />
                                 <Select
                                     options={TAX_TYPES}
@@ -624,7 +534,7 @@ export default function AddQuotationItems() {
                                     name="pchargesnumber"
                                     value={taxData.pchargesnumber}
                                     onChange={handleTaxChange}
-                                    className="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-800 p-2 text-sm"
+                                    className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none w-full rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 p-2 text-sm"
                                 />
                                 <Select
                                     options={TAX_TYPES}
@@ -642,7 +552,7 @@ export default function AddQuotationItems() {
                                     name="wchargesnumber"
                                     value={taxData.wchargesnumber}
                                     onChange={handleTaxChange}
-                                    className="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-800 p-2 text-sm"
+                                    className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none w-full rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 p-2 text-sm"
                                 />
                                 <Select
                                     options={TAX_TYPES}
@@ -660,7 +570,7 @@ export default function AddQuotationItems() {
                                     name="mobilisation"
                                     value={taxData.mobilisation}
                                     onChange={handleTaxChange}
-                                    className="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-800 p-2 text-sm col-span-1"
+                                    className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none w-full rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 p-2 text-sm col-span-1"
                                 />
                                 <span className="text-xs text-gray-400">(Fix Amount)</span>
                             </div>
@@ -673,7 +583,7 @@ export default function AddQuotationItems() {
                                     name="gstnumber"
                                     value={taxData.gstnumber}
                                     onChange={handleTaxChange}
-                                    className="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-800 p-2 text-sm"
+                                    className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none w-full rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 p-2 text-sm"
                                 />
                                 <Select
                                     options={GST_TYPES}
@@ -691,7 +601,7 @@ export default function AddQuotationItems() {
                                     name="freight"
                                     value={taxData.freight}
                                     onChange={handleTaxChange}
-                                    className="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-800 p-2 text-sm col-span-1"
+                                    className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none w-full rounded border border-gray-300 dark:border-gray-600 dark:bg-gray-800 p-2 text-sm col-span-1"
                                 />
                                 <span className="text-xs text-gray-400">(Fix Amount)</span>
                             </div>

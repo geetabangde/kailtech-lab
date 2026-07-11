@@ -44,6 +44,7 @@ export default function AddTestingQuotation() {
     vertical: "2", // Assuming 2 for Testing
     caddress: "",
     cperson: "",
+    notes: "",
   });
 
   const [customers, setCustomers] = useState([]);
@@ -209,6 +210,7 @@ export default function AddTestingQuotation() {
         customterms: formData.customterms,
         ourscope: formData.ourscope,
         yourscope: formData.yourscope,
+        notes: formData.notes,
         customername: formData.customername,
         customeraddress: formData.customeraddress,
         contactpersonname: formData.contactpersonname,
@@ -507,6 +509,16 @@ export default function AddTestingQuotation() {
             <div className="space-y-4">
               <div className="form-group">
                 <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                  Note :-
+                </label>
+                <TextEditor
+                  value={formData.notes}
+                  onChange={(val, quill) => handleEditorChange("notes", val, quill)}
+                  className="min-h-[100px] bg-white rounded-md border border-gray-300"
+                />
+              </div>
+              <div className="form-group">
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">
                   Custom Terms
                 </label>
                 <TextEditor
@@ -581,4 +593,3 @@ export default function AddTestingQuotation() {
     </Page>
   );
 }
-

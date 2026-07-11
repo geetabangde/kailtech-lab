@@ -209,7 +209,7 @@ export default function AddDin() {
       const res = await axios.get("inventory/get-return-data", { params: { return: basisVal } });
       if (res.data.status && res.data.data) {
         setPurposes(res.data.data.purposes || []);
-        
+
         // The backend might omit inward_entries for "Non Returnable" even though they are needed.
         // We fallback to fetching them from "Returnable" if they are empty.
         if (res.data.data.inward_entries && res.data.data.inward_entries.length > 0) {
@@ -303,7 +303,7 @@ export default function AddDin() {
       if (value && value.length > 0) {
         const inwardIdStr = value.join(",");
         axios.get("inventory/get-calib-dispatch-item", { params: { inwardid: inwardIdStr, what: formData.basis === 'Returnable' ? 'inwardreturnable' : null } })
-          .then(res => { 
+          .then(res => {
             if (res.data.status && res.data.data) {
               const enrichedItems = res.data.data.map(item => ({
                 ...item,
@@ -420,16 +420,16 @@ export default function AddDin() {
   const handleInwardItemChange = (index, field, value) => {
     setInwardItems(prev => prev.map((item, i) => i === index ? { ...item, [field]: value } : item));
   };
-  
+
   const removeInwardItem = (index) => {
     setInwardItems(prev => prev.filter((_, i) => i !== index));
   };
-  
+
   const handleInwardGlobalCheck = (field, checked) => {
     setInwardGlobalChecks(prev => ({ ...prev, [field]: checked }));
     setInwardItems(prev => prev.map(item => ({ ...item, [field]: checked })));
   };
-  
+
   const handleInwardGlobalRemark = (e) => {
     const val = e.target.value;
     setInwardGlobalRemark(val);
@@ -554,7 +554,7 @@ export default function AddDin() {
       toast.error("Please enter consignee phone");
       return;
     }
-    
+
     if ([1, 2, 3, 4, 5, 11].includes(pval) && items.length === 0) {
       toast.error("No Item is Added");
       return;
@@ -757,7 +757,7 @@ export default function AddDin() {
                       isMulti
                       options={inwardEntries.map(entry => ({
                         value: entry.id,
-                        label: `ID: ${entry.id} - ${entry.customername || "Unknown"}`
+                        label: `${entry.id}   ${entry.customername || ""}`
                       }))}
                       value={formData.inward_entry}
                       onChange={(val) => handleSelectChange("inward_entry", val)}
@@ -1165,7 +1165,7 @@ export default function AddDin() {
             {["7", "9"].includes(String(formData.purpose)) && inwardItems.length > 0 && (
               <div className="mt-8 border-t border-gray-200 pt-6 dark:border-dark-600">
                 <h5 className="text-lg font-bold text-gray-800 dark:text-dark-100 mb-4">Inward Material Details</h5>
-                
+
                 {/* Global Controls */}
                 <div className="flex flex-col md:flex-row gap-6 mb-6 p-4 bg-gray-50 dark:bg-dark-800 rounded-lg">
                   <div className="flex flex-col space-y-2">

@@ -45,6 +45,7 @@ export default function AddQuotations() {
     vertical: "1",
     caddress: "",
     cperson: "",
+    notes: "",
   });
 
   const [customers, setCustomers] = useState([]);
@@ -209,6 +210,7 @@ export default function AddQuotations() {
         customterms: formData.customterms,
         ourscope: formData.ourscope,
         yourscope: formData.yourscope,
+        notes: formData.notes,
         vertical: Number(formData.vertical),
         customername: formData.customername,
         customeraddress: formData.customeraddress,
@@ -506,6 +508,16 @@ export default function AddQuotations() {
               Terms & Scope of Work
             </h3>
             <div className="space-y-4">
+              <div className="form-group">
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                  Note :-
+                </label>
+                <TextEditor
+                  value={formData.notes}
+                  onChange={(val, quill) => handleEditorChange("notes", val, quill)}
+                  className="min-h-[100px] bg-white rounded-md border border-gray-300"
+                />
+              </div>
               <div className="form-group">
                 <label className="mb-1.5 block text-sm font-medium text-gray-700">
                   Custom Terms

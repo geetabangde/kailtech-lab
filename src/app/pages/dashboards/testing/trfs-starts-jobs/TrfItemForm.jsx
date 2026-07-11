@@ -215,7 +215,7 @@ export default function TrfItemForm({ trfId, itemId, cloneId, onSuccess, onCance
       setLoadingDropdowns(true);
       try {
         const res = await axios.get(`/testing/trf-item-clone/${cloneId}`);
-        const d   = res.data ?? {};
+        const d   = res.data?.data ?? res.data ?? {};
 
         // Sab dropdowns populate karo ek hi response se
         setProducts(   toArray(d, "products"));
@@ -231,7 +231,7 @@ export default function TrfItemForm({ trfId, itemId, cloneId, onSuccess, onCance
 
         const special = d.special ?? false;
         setIsSpecial(!!special);
-        setSelectedParams(special ? toArray(d, "parameters").map((p) => p.id) : []);
+        setSelectedParams(toArray(d, "parameters").filter((p) => p.selected).map((p) => p.id));
 
         // trf_product se form fill
         const item = d.trf_product ?? {};
@@ -792,7 +792,8 @@ export default function TrfItemForm({ trfId, itemId, cloneId, onSuccess, onCance
                   <input
                     type="number"
                     min="0"
-                    className={`receivedquantities ${errors.received ? inputErrCls : inputCls}`}
+                    onWheel={(e) => e.target.blur()}
+                    className={`[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none receivedquantities ${errors.received ? inputErrCls : inputCls}`}
                     value={received[idx] ?? ""}
                     onChange={(e) => {
                       handleReceivedChange(idx, e.target.value);
@@ -810,7 +811,7 @@ export default function TrfItemForm({ trfId, itemId, cloneId, onSuccess, onCance
               <input
                 type="number"
                 readOnly
-                className="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2.5 text-sm bg-gray-100 dark:bg-gray-900 text-gray-500 dark:text-gray-400 outline-none cursor-default"
+                className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2.5 text-sm bg-gray-100 dark:bg-gray-900 text-gray-500 dark:text-gray-400 outline-none cursor-default"
                 value={received.reduce((sum, v) => sum + (Number(v) || 0), 0)}
               />
             </div>
@@ -826,38 +827,29 @@ export default function TrfItemForm({ trfId, itemId, cloneId, onSuccess, onCance
             <h4 className="text-sm font-semibold text-blue-700 dark:text-blue-400">Parameters Of Package</h4>
           </div>
           <div className="px-4 py-3 space-y-1">
-            {isSpecial && (
-              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 pb-2 mb-1 border-b border-gray-100 dark:border-gray-800 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={allParamsSelected}
-                  onChange={(e) => handleSelectAllParams(e.target.checked)}
-                  className="w-4 h-4 accent-blue-600 rounded"
-                />
-                Select / Deselect All
-              </label>
-            )}
+            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 pb-2 mb-1 border-b border-gray-100 dark:border-gray-800 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={allParamsSelected}
+                onChange={(e) => handleSelectAllParams(e.target.checked)}
+                className="w-4 h-4 accent-blue-600 rounded"
+              />
+              Select / Deselect All
+            </label>
             {parameters.map((param) => (
               <div key={param.id}>
-                {isSpecial ? (
-                  <label className="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer py-0.5 hover:text-blue-600 dark:hover:text-blue-400 transition">
-                    <input
-                      type="checkbox"
-                      className="parametercheck w-4 h-4 mt-0.5 accent-blue-600 rounded flex-shrink-0"
-                      checked={selectedParams.includes(param.id)}
-                      onChange={() => handleParamToggle(param.id)}
-                    />
-                    <span>
-                      {param.name}
-                      {param.description ? <span className="text-gray-400 dark:text-gray-500"> ({param.description})</span> : ""}
-                    </span>
-                  </label>
-                ) : (
-                  <p className="text-sm text-gray-700 dark:text-gray-300 py-0.5">
+                <label className="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer py-0.5 hover:text-blue-600 dark:hover:text-blue-400 transition">
+                  <input
+                    type="checkbox"
+                    className="parametercheck w-4 h-4 mt-0.5 accent-blue-600 rounded flex-shrink-0"
+                    checked={selectedParams.includes(param.id)}
+                    onChange={() => handleParamToggle(param.id)}
+                  />
+                  <span>
                     {param.name}
                     {param.description ? <span className="text-gray-400 dark:text-gray-500"> ({param.description})</span> : ""}
-                  </p>
-                )}
+                  </span>
+                </label>
               </div>
             ))}
           </div>

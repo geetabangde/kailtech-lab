@@ -144,7 +144,7 @@ export default function FinalReportDetail() {
 
             {/* ── TEST REPORT title + ULR + KTRC ref ──────────────────── */}
             <h2 className="mb-1 text-center text-lg font-bold underline">TEST REPORT</h2>
-            <div className="mb-4 flex justify-between text-sm">
+            <div className="flex items-end justify-between text-sm">
               {nablStatus === 1 && trfProduct.ulr
                 ? <span><strong>ULR:</strong> {trfProduct.ulr}</span>
                 : <span />
@@ -153,7 +153,7 @@ export default function FinalReportDetail() {
             </div>
 
             {/* ── Info Table ───────────────────────────────────────────── */}
-            <div className="mb-5 overflow-x-auto rounded-lg border border-gray-300 dark:border-dark-500">
+            <div className="mb-5 overflow-x-auto rounded-b-lg border border-gray-300 dark:border-dark-500">
               <table className="w-full border-collapse text-sm">
                 <tbody>
                   <tr>

@@ -178,40 +178,7 @@ export default function AddCustomer() {
     }
   };
 
-  // Validation: Check duplicate customer name
-  const checkCustomerName = async (name) => {
-    if (!name || name.trim() === "") return true;
 
-    try {
-      const res = await axios.post("/people/check-customer-name", { customername: name });
-      return res.data?.status === "ok" || res.data?.message === "ok";
-    } catch (err) {
-      console.error("Customer name check error:", err);
-      return true; // Allow on error
-    }
-  };
-
-  // Validation: Check duplicate email
-  const checkEmail = async (email) => {
-    if (!email || email.trim() === "") return true;
-
-    try {
-      const res = await axios.post("/people/check-customer-email", { email });
-      return res.data?.status === "ok" || res.data?.message === "ok";
-    } catch (err) {
-      console.error("Email check error:", err);
-      return true; // Allow on error
-    }
-  };
-
-  // Validation: GST format (15 characters alphanumeric)
-  const validateGST = (gst) => {
-    if (!gst || gst.trim() === "") return true;
-
-    // GST format: 2 digits (state code) + 10 chars (PAN) + 1 digit + 1 char + 1 char
-    const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
-    return gstRegex.test(gst.toUpperCase());
-  };
 
   const validateForm = async () => {
     const newErrors = {};
@@ -232,28 +199,6 @@ export default function AddCustomer() {
         }
       }
     });
-
-    // Custom validations (only if fields are filled)
-    if (formData.name && formData.name.trim() !== "") {
-      const isNameValid = await checkCustomerName(formData.name);
-      if (!isNameValid) {
-        newValidationErrors.name = "Customer name already exists";
-      }
-    }
-
-    if (formData.email && formData.email.trim() !== "") {
-      const isEmailValid = await checkEmail(formData.email);
-      if (!isEmailValid) {
-        newValidationErrors.email = "Email already exists";
-      }
-    }
-
-    if (formData.gstno && formData.gstno.trim() !== "") {
-      const isGSTValid = validateGST(formData.gstno);
-      if (!isGSTValid) {
-        newValidationErrors.gstno = "Invalid GST format (e.g., 22AAAAA0000A1Z5)";
-      }
-    }
 
     setErrors(newErrors);
     setValidationErrors(newValidationErrors);
@@ -313,11 +258,20 @@ export default function AddCustomer() {
       const res = await axios.post("/people/add-customer", payload);
       console.log("Add Customer Response:", res.data);
 
-      if (res.data.status === "true") {
-        toast.success("Customer added successfully");
+      if (res.data.status === true || res.data.status === "true") {
+        window.alert("Success : New Customer has been Added");
         // Redirect to edit page to add addresses and contacts
-        const customerId = res.data.id || res.data.data?.id || res.data.customer_id;
-        console.log("Customer ID:", customerId);
+        let customerId = res.data.id || res.data.customer_id || res.data.customerid || res.data.insertId || res.data.hakuna || res.data.pradin;
+        if (!customerId && res.data.data) {
+          if (typeof res.data.data === 'object') {
+            customerId = res.data.data.id || res.data.data.customer_id;
+          } else {
+            customerId = res.data.data; // e.g. if data is just the ID number
+          }
+        }
+
+        console.log("Full API Response:", res.data);
+        console.log("Extracted Customer ID:", customerId);
 
         if (customerId) {
           navigate(`/dashboards/people/customers/edit/${customerId}`);
@@ -487,7 +441,7 @@ export default function AddCustomer() {
             <Input
               label="Email"
               name="email"
-              type="email"
+              type="text"
               placeholder="Email address"
               onChange={handleInputChange}
               value={formData.email}
@@ -566,7 +520,11 @@ export default function AddCustomer() {
 
           <div>
             <Input
-              label="City"
+              label={
+                <>
+                  City <span className="text-red-500">*</span>
+                </>
+              }
               name="city"
               placeholder="City"
               onChange={handleInputChange}
@@ -580,9 +538,13 @@ export default function AddCustomer() {
 
           <div>
             <Input
-              label="GST No"
+              label={
+                <>
+                  GST No <span className="text-red-500">*</span>
+                </>
+              }
               name="gstno"
-              placeholder="GST number (e.g., 22AAAAA0000A1Z5)"
+              placeholder="GST Number"
               onChange={handleInputChange}
               value={formData.gstno}
               className={errors.gstno || validationErrors.gstno ? "border-red-500 bg-red-50" : ""}
@@ -597,7 +559,11 @@ export default function AddCustomer() {
 
           <div>
             <Input
-              label="PAN"
+              label={
+                <>
+                  PAN <span className="text-red-500">*</span>
+                </>
+              }
               name="pan"
               placeholder="PAN number"
               onChange={handleInputChange}
@@ -611,7 +577,11 @@ export default function AddCustomer() {
 
           <div>
             <Input
-              label="Discount %"
+              label={
+                <>
+                  Discount % <span className="text-red-500">*</span>
+                </>
+              }
               name="discount"
               type="number"
               placeholder="Discount percentage"

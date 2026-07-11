@@ -310,18 +310,9 @@ export default function ViewTQuotationParameterWise() {
                         <div style={{ marginTop: 40, borderTop: "1px solid #eee", paddingTop: 20 }}>
                             <p style={{ margin: "0 0 10px", fontWeight: "bold", textDecoration: "underline", fontSize: 12 }}>Terms & Conditions:</p>
                             <div style={{ fontSize: 11, lineHeight: 1.6, color: "#444" }}>
-                                <p style={{ margin: "0 0 4px" }}>- Rates are for the tests conducted at our Lab at Indore (Madhya Pradesh) India.</p>
-                                <p style={{ margin: "0 0 4px" }}>- Cross Cheque/Demand Draft/NEFT/RTGS should be drawn in favour of Kailtech Test And Research Centre Pvt. Ltd. Payable at Indore (Madhya Pradesh).</p>
-                                <p style={{ margin: "0 0 4px" }}>- Please attach bill details indicating Quotation No. / Invoice No. & TDS deductions if any, along with your payment.</p>
-                                <p style={{ margin: "0 0 4px" }}>- Taxes are applicable as per the prevailing rates at the time of Invoicing-Currently GST of 18% is applicable on all invoices.</p>
-                                <p style={{ margin: "0 0 4px" }}>- For GST registered Customer the GST No. is mandatory for sample registration in order for the same to be included in the tax invoices.</p>
-                                <p style={{ margin: "0 0 4px" }}>- Validity : 30 days from the date of issued of this quotation.</p>
                                 {quotation.customterms && (
-                                    <div style={{ margin: "0 0 4px" }} dangerouslySetInnerHTML={{ __html: formatTerms(quotation.customterms) }} />
+                                    <div dangerouslySetInnerHTML={{ __html: formatTerms(quotation.customterms) }} />
                                 )}
-                                <p style={{ margin: "0 0 4px" }}>- If the payment is to be paid in Cash pay to UPI <b>0795933A0099960.bqr@kotak</b> only and take official receipt. Else claim of payment, shall not be accepted.</p>
-                                <p style={{ margin: "0 0 4px" }}>- Subject to exclusive jurisdiction of courts at Indore (Madhya Pradesh) only.</p>
-                                <p style={{ margin: "0 0 4px" }}>- Due to COVID-19, problem or situation beyond control there may be delay in Testing and Reporting.</p>
                             </div>
                         </div>
 
