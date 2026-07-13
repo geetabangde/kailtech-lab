@@ -392,10 +392,13 @@ export default function AddPurchaseOrder() {
     if (!formData.ordertype) return toast.error("Please select order type (PO/WO)");
     if (!formData.customer_id || formData.customer_id === "-1") return toast.error("Please select a supplier");
 
-    // Validate that subcategory_id exists for all items — only block if truly undefined/null
+    // Validate that subcategory_id exists for all items
     for (let item of items) {
-      if (item.subcategory_id === undefined || item.subcategory_id === null) {
-        return toast.error(`Item "${item.itemname || "Unknown"}" is missing a subcategory. Please re-search and add it again.`);
+      if (!item.subcategory_id || item.subcategory_id === "") {
+        return toast.error(`Item "${item.itemname || "Unknown"}" is missing a subcategory. Please select a subcategory.`);
+      }
+      if (!item.unit || item.unit === "") {
+        return toast.error(`Item "${item.itemname || "Unknown"}" is missing a unit. Please select a unit.`);
       }
     }
 
@@ -408,6 +411,16 @@ export default function AddPurchaseOrder() {
     // Transform data to match the legacy PHP/API expected payload structure
     const payload = {
       ...formData,
+      sname: formData.sname || "-", // Prevent null constraint violation on backend
+      semail: formData.semail || "-",
+      designation: formData.designation || "-",
+      sphone: formData.sphone || "-",
+      saddress: formData.saddress || "-",
+      delivery_terms: formData.delivery_terms || "-",
+      payment_terms: formData.payment_terms || "-",
+      quotationno: formData.quotationno || "-",
+      warranty: formData.warranty || "-",
+      otherdetails: formData.otherdetails || "-",
       date: formattedDate,
       quotationdate: formattedQuotationDate,
       
@@ -430,14 +443,14 @@ export default function AddPurchaseOrder() {
       finaltotal: taxCalculations.finaltotal,
       
       // Map items array into flat arrays
-      hsn_code: items.map(i => String(i.hsn_code || "")),
+      hsn_code: items.map(i => String(i.hsn_code || "-")),
       subcategory_id: items.map(i => String(i.subcategory_id || "0")),
       indent_item_id: items.map(i => String(i.indent_item_id || "0")),
-      itemname: items.map(i => String(i.itemname || "")),
+      itemname: items.map(i => String(i.itemname || "-")),
       price: items.map(i => String(i.price || "0")),
-      specification: items.map(i => String(i.specification || "")),
+      specification: items.map(i => String(i.specification || "-")),
       quantity: items.map(i => String(i.quantity || "1")),
-      unit: items.map(i => String(i.unit || "")),
+      unit: items.map(i => String(i.unit || "-")),
       list_price: items.map(i => String(i.amount || "0")),
       discountperitem: items.map(i => String(i.discountperitem || "0")),
       discamount: items.map(i => String(i.discamount || "0")),

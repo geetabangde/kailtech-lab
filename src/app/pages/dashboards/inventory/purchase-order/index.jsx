@@ -17,7 +17,7 @@ import axios from "utils/axios";
 import { Table, Card, THead, TBody, Th, Tr, Td } from "components/ui";
 import { TableSortIcon } from "components/shared/table/TableSortIcon";
 import { Page } from "components/shared/Page";
-import { useLockScrollbar, useDidUpdate, useLocalStorage } from "hooks";
+import { useLockScrollbar, useDidUpdate, useLocalStorage, useIsMounted } from "hooks";
 import { fuzzyFilter } from "utils/react-table/fuzzyFilter";
 import { useSkipper } from "utils/react-table/useSkipper";
 import { Toolbar } from "./Toolbar";
@@ -53,6 +53,7 @@ export default function OrdersDatatableV1() {
   const [tableSettings, setTableSettings] = useState({
     enableFullScreen: false,
     enableRowDense: false,
+    enableColumnFilters: true,
   });
   const [globalFilter, setGlobalFilter] = useState("");
   const [sorting, setSorting] = useState([{ id: "id", desc: true }]);
@@ -65,6 +66,7 @@ export default function OrdersDatatableV1() {
     {},
   );
   const [autoResetPageIndex, skipAutoResetPageIndex] = useSkipper();
+  const isMounted = useIsMounted();
 
   // ── Effects and Callbacks ────────────────────────────────────────────────────
   // ✅ Fetch from API
@@ -74,10 +76,13 @@ export default function OrdersDatatableV1() {
 
   const fetchPurchaseOrders = async () => {
     try {
+      if (!isMounted()) return;
       setLoading(true); // start loader
       const response = await axios.get("inventory/purchase-order-list");
       
       // console.log("API response:", response.data); // debug
+
+      if (!isMounted()) return;
 
       if ((response.data.status === true || response.data.status === "true") && Array.isArray(response.data.data)) {
         setOrders(response.data.data); // ✅ correct assignment
@@ -89,7 +94,7 @@ export default function OrdersDatatableV1() {
     } catch (err) {
       console.error("Error fetching purchase order list:", err);
     } finally {
-      setLoading(false); // stop loader
+      if (isMounted()) setLoading(false); // stop loader
     }
   };
 
@@ -245,6 +250,36 @@ export default function OrdersDatatableV1() {
                                 header.getContext(),
                               )
                             )}
+                            {header.column.getCanFilter() ? (
+                              header.column.columnDef.meta?.filterType === "select" ? (
+                                <select
+                                  className="mt-1 w-full rounded border border-gray-300 bg-white px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-dark-500 dark:bg-dark-900 dark:text-dark-100"
+                                  value={header.column.getFilterValue() ?? ""}
+                                  onChange={(e) =>
+                                    header.column.setFilterValue(e.target.value)
+                                  }
+                                >
+                                  {header.column.columnDef.meta?.filterOptions?.map(
+                                    (opt) => (
+                                      <option key={opt.value} value={opt.value}>
+                                        {opt.label}
+                                      </option>
+                                    ),
+                                  )}
+                                </select>
+                              ) : (
+                                <input
+                                  type="text"
+                                  className="mt-1 w-full rounded border border-gray-300 bg-white px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-dark-500 dark:bg-dark-900 dark:text-dark-100"
+                                  value={header.column.getFilterValue() ?? ""}
+                                  onChange={(e) =>
+                                    header.column.setFilterValue(e.target.value)
+                                  }
+                                  placeholder={`Search...`}
+                                  onClick={(e) => e.stopPropagation()}
+                                />
+                              )
+                            ) : null}
                           </Th>
                         ))}
                       </Tr>

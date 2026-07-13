@@ -27,7 +27,7 @@ export const columns = [
     id: "s_no",
     header: "Sr. no",
     cell: (info) => info.row.index + 1,
-    meta: { align: "center" },
+    meta: { align: "center", className: "w-[50px] min-w-[50px] max-w-[50px] !px-2 text-center" },
   }),
 
   // Receipt no — show receiptno if present, else id
@@ -50,8 +50,12 @@ export const columns = [
       !row.customerid || row.customerid === "0" ? "Suspense" : row.name,
     {
       id: "customer_name",
-      header: "Customer name",
-      cell: (info) => info.getValue() ?? "",
+      header: () => <div className="min-w-[150px] max-w-[250px] whitespace-normal break-words">Customer name</div>,
+      cell: (info) => (
+        <div className="min-w-[150px] max-w-[250px] whitespace-normal break-words">
+          {info.getValue() ?? ""}
+        </div>
+      ),
     },
   ),
 

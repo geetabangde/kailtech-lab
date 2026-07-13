@@ -16,6 +16,7 @@ export const columns = [
     id: "select",
     header: SelectHeader,
     cell: SelectCell,
+    enableColumnFilter: false,
   }),
 
   // PHP: Id
@@ -31,11 +32,19 @@ export const columns = [
     header: "P.O Number",
     cell: (info) => info.getValue(),
     filterFn: (row, columnId, filterValue) => {
-      if (filterValue === "3") return true; // All
-      const status = row.original.status; // Assuming there's a status field
-      if (filterValue === "1") return status === "approved";
-      if (filterValue === "2") return status === "unapproved";
+      if (!filterValue || filterValue === "3") return true; // All
+      const status = Number(row.original.status);
+      if (filterValue === "1") return status === 1; // Approved
+      if (filterValue === "2") return status === -1 || status === 0; // Unapproved/Pending
       return true;
+    },
+    meta: {
+      filterType: "select",
+      filterOptions: [
+        { value: "3", label: "All" },
+        { value: "1", label: "Approved" },
+        { value: "2", label: "Unapproved" },
+      ],
     },
   }),
 
@@ -50,7 +59,16 @@ export const columns = [
   columnHelper.accessor("company", {
     id: "vendor_name",
     header: "Vendor Name",
-    cell: (info) => info.getValue(),
+    cell: (info) => {
+      const company = info.getValue() || "";
+      const sname = info.row.original.sname || "";
+      const text = (company && sname) ? `${company} (${sname})` : (company || sname || "");
+      return (
+        <div className="whitespace-normal break-words min-w-[150px] max-w-[250px]">
+          {text}
+        </div>
+      );
+    },
   }),
 
   // PHP: Prepared by
@@ -85,5 +103,6 @@ export const columns = [
       <div className="flex items-center justify-center">Action</div>
     ),
     cell: RowActions,
+    enableColumnFilter: false,
   }),
 ];

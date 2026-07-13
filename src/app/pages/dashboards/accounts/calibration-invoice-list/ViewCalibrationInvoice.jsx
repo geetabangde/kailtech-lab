@@ -259,7 +259,7 @@ function InvoicePrintTemplate({
         </div>
       )}
 
-      <div style={{ textAlign: "center", marginBottom: 8 }}>
+      <div style={{ textAlign: "center", marginBottom: 8, marginTop: 80 }}>
         <div
           style={{
             fontSize: 14,

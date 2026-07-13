@@ -142,8 +142,10 @@ export default function AddPayment() {
 
   // Options for react-select
   const customerOptions = useMemo(() => {
-    return customers.map(c => ({ value: c.id, label: c.name }));
-  }, [customers]);
+    const defaultOption = { value: "", label: isAdvance ? "Suspense" : "Select Customer" };
+    const list = customers.map(c => ({ value: c.id, label: c.name }));
+    return [defaultOption, ...list];
+  }, [customers, isAdvance]);
 
   const bdOptions = useMemo(() => {
     return bdList.map(b => ({ value: b.id, label: `${b.firstname} ${b.lastname}` }));

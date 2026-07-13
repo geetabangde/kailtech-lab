@@ -128,7 +128,7 @@ export default function PaymentList() {
   });
 
   const [globalFilter, setGlobalFilter] = useState("");
-  const [sorting, setSorting] = useState([{ id: "id", desc: true }]);
+  const [sorting, setSorting] = useState([{ id: "receiptno", desc: true }]);
 
   const [columnVisibility, setColumnVisibility] = useLocalStorage(
     "column-visibility-payment-list",
@@ -276,6 +276,7 @@ export default function PaymentList() {
                                 header.column.getIsPinned() === "right" &&
                                   "sticky z-2 ltr:right-0 rtl:left-0",
                               ],
+                              header.column.columnDef.meta?.className
                             )}
                           >
                             {header.column.getCanSort() ? (
@@ -331,6 +332,7 @@ export default function PaymentList() {
                                 cell.column.getIsPinned() === "right" &&
                                   "sticky z-2 ltr:right-0 rtl:left-0",
                               ],
+                              cell.column.columnDef.meta?.className
                             )}
                           >
                             {cell.column.getIsPinned() && (
@@ -355,48 +357,14 @@ export default function PaymentList() {
                   {table.getRowModel().rows.length > 0 && (
                     <TFoot className="dark:bg-dark-800 bg-gray-100 font-semibold text-gray-800">
                       <Tr>
-                        <Td /> {/* select */}
-                        <Td className="whitespace-nowrap">
-                          This Page Total
-                        </Td>{" "}
-                        {/* s_no */}
-                        <Td colSpan={9} /> {/* empty space */}
-                        <Td className="whitespace-nowrap">Total Amount</Td>{" "}
-                        {/* utr_no column */}
-                        <Td>
-                          {table
-                            .getRowModel()
-                            .rows.reduce(
-                              (sum, row) =>
-                                sum +
-                                (parseFloat(row.original.paymentamount) || 0),
-                              0,
-                            )
-                            .toFixed(2)}
-                        </Td>
-                        <Td>
-                          {table
-                            .getRowModel()
-                            .rows.reduce(
-                              (sum, row) =>
-                                sum + (parseFloat(row.original.tds) || 0),
-                              0,
-                            )
-                            .toFixed(2)}
-                        </Td>
-                        <Td>
-                          {table
-                            .getRowModel()
-                            .rows.reduce(
-                              (sum, row) =>
-                                sum +
-                                (parseFloat(row.original.totalinvoiceamount) ||
-                                  0),
-                              0,
-                            )
-                            .toFixed(2)}
-                        </Td>
-                        <Td /> {/* actions */}
+                        <Td />
+                        <Td className="whitespace-nowrap">This Page Total</Td>
+                        <Td colSpan={9} />
+                        <Td className="whitespace-nowrap">Total Amount</Td>
+                        <Td>{table.getRowModel().rows.reduce((sum, row) => sum + (parseFloat(row.original.paymentamount) || 0), 0).toFixed(2)}</Td>
+                        <Td>{table.getRowModel().rows.reduce((sum, row) => sum + (parseFloat(row.original.tds) || 0), 0).toFixed(2)}</Td>
+                        <Td>{table.getRowModel().rows.reduce((sum, row) => sum + (parseFloat(row.original.totalinvoiceamount) || 0), 0).toFixed(2)}</Td>
+                        <Td />
                       </Tr>
                     </TFoot>
                   )}

@@ -40,6 +40,7 @@ export default function ViewFullPurchaseOrder() {
 
         // Fetch purchase order details from a single consolidated endpoint
         const response = await axios.get(`/inventory/view-purchase-order/${poId}`);
+
         if (response.data.status && response.data.data) {
           const { purchase_order, supplier_details, items, summary } = response.data.data;
           

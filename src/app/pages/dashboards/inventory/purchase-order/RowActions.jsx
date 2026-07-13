@@ -13,10 +13,10 @@ import { toast } from "sonner";
 const confirmMessages = {
   pending: {
     description:
-      "Are you sure you want to reject this purchase order? Once rejected, it cannot be restored.",
+      "Are you sure you want to delete this purchase order? Once deleted, it cannot be restored.",
   },
   success: {
-    title: "Purchase Order Rejected",
+    title: "Purchase Order Deleted",
   },
 };
 
@@ -41,29 +41,28 @@ export function RowActions({ row }) {
 
   const handleApprove = useCallback(() => {
     const id = row.original.id;
-    // PHP: window.location.href = "edit_Purchase Order_approve.php?hakuna=" + id;
-    navigate(`/dashboards/inventory/purchase-order/edit-purchase-order-approve?hakuna=${id}`);
+    // PHP: window.location.href = "approvepo.php?hakuna=" + id;
+    navigate(`/dashboards/inventory/purchase-order/approve-po?hakuna=${id}`);
   }, [row, navigate]);
 
-  const handleReject = useCallback(async () => {
+  const handleDelete = useCallback(async () => {
     const id = row.original.id;
     setConfirmRejectLoading(true);
 
     try {
-      // PHP: sendForm('id', [id, decision], 'reject_Purchase Order.php', 'resultid', 'Purchase Orderdec');
-      await axios.post("/inventory/reject-purchase-order", { 
-        id: id,
-        decision: "reject"
+      await axios.post("/inventory/delete-purchase-order", { 
+        id: id
       });
       setRejectSuccess(true);
-      toast.success("Purchase Order rejected successfully", {
+      toast.success("Purchase Order deleted successfully", {
         duration: 1000,
         icon: "",
       });
+      setTimeout(() => window.location.reload(), 1000);
     } catch (error) {
-      console.error("Reject failed:", error);
+      console.error("Delete failed:", error);
       setRejectError(true);
-      toast.error("Failed to reject purchase order", {
+      toast.error("Failed to delete purchase order", {
         duration: 2000,
       });
     } finally {
@@ -84,28 +83,30 @@ export function RowActions({ row }) {
           View Details
         </button>
 
-        {/* ✅ View MRN - Green button from screenshot */}
-        <button
-          onClick={() => navigate(`/dashboards/inventory/purchase-order/mrn-challan?hakuna=${id}`)}
-          className="inline-flex items-center justify-center rounded-md bg-green-600 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-green-700 min-w-[80px]"
-        >
-          View MRN
-        </button>
+        {/* ✅ View MRN - Only if status is 1 (Approved) */}
+        {row.original.status == 1 && (
+          <button
+            onClick={() => navigate(`/dashboards/inventory/purchase-order/mrn-challan?hakuna=${id}`)}
+            className="inline-flex items-center justify-center rounded-md bg-green-600 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-green-700 min-w-[80px]"
+          >
+            View MRN
+          </button>
+        )}
 
-        {/* ✅ Approve/Reject if pending (Status 0 or similar) */}
-        {row.original.status === 0 && (
+        {/* ✅ Approve/Reject if pending (Status -1 or 0 depending on API, using PHP -1 mapping) */}
+        {(row.original.status == -1 || row.original.status == 0) && (
           <div className="flex items-center gap-1.5">
             <button
               onClick={handleApprove}
               className="inline-flex items-center justify-center rounded-md bg-green-500 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-green-600 min-w-[70px]"
             >
-              Approve
+              Approve {row.original.ordertype === "WO" ? "WO" : "PO"}
             </button>
             <button
               onClick={openModal}
               className="inline-flex items-center justify-center rounded-md bg-red-500 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-red-600 min-w-[70px]"
             >
-              Reject
+              Delete
             </button>
           </div>
         )}
@@ -115,7 +116,7 @@ export function RowActions({ row }) {
         show={rejectModalOpen}
         onClose={closeModal}
         messages={confirmMessages}
-        onOk={handleReject}
+        onOk={handleDelete}
         confirmLoading={confirmRejectLoading}
         state={state}
       />

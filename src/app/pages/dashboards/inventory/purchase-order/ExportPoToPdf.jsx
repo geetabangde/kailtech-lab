@@ -42,12 +42,21 @@ export default function ExportPoToPdf() {
         // Fetch company data for branding
         let companyData = {};
         try {
-          const companyResponse = await axios.get("/master/company-info");
-          if (companyResponse.data.status) {
-            companyData = companyResponse.data.data || {};
+          const companyResponse = await axios.get("get-company-info");
+          if (companyResponse.data.status && companyResponse.data.data) {
+            const apiData = companyResponse.data.data;
+            companyData = {
+              name: apiData.company.name,
+              logo: apiData.branding.logo,
+              gstno: apiData.company.gst_no,
+              panno: apiData.company.pan_no,
+              cin_no: apiData.company.cin_no,
+              address: apiData.address,
+              contact: apiData.contact
+            };
           }
         } catch (companyErr) {
-          console.warn("Failed to fetch company info, using fallbacks:", companyErr);
+          console.warn("Failed to fetch company info:", companyErr);
         }
 
         // Calculate tax combinations matching legacy calculations
@@ -56,12 +65,12 @@ export default function ExportPoToPdf() {
           const taxRate = item.tax_rate || "0";
           const taxRateString = typeof taxRate === "string" ? taxRate : `${taxRate}%`;
           const taxRateFiltered = taxRateString.replace(/[\s%]/g, "");
-          
+
           // taxable amount is either directly available or derived
           const price = parseFloat(item.price || item.list_price || 0);
           const quantity = parseFloat(item.quantity || 0);
           const taxableAmount = parseFloat(item.taxableamount || item.amount || (price * quantity) || 0);
-          
+
           const taxAmount = (taxableAmount * parseFloat(taxRateFiltered || 0)) / 100;
 
           if (combineTax[taxRateString]) {
@@ -72,13 +81,13 @@ export default function ExportPoToPdf() {
         });
 
         // Add tax on additional charges (GST 18%)
-        const miscCharges = 
+        const miscCharges =
           (parseFloat(purchaseOrderData.packaginchrgs || purchaseOrderData.packing_charges || summary.packing_charges || 0) +
-          parseFloat(purchaseOrderData.freightchrgs || purchaseOrderData.freight_charges || summary.freight_charges || 0) +
-          parseFloat(purchaseOrderData.insurancechrgs || purchaseOrderData.insurance_charges || summary.insurance_charges || 0) +
-          parseFloat(purchaseOrderData.calibrationchrgs || purchaseOrderData.calibration_charges || summary.calibration_charges || 0) +
-          parseFloat(purchaseOrderData.trainingchrgs || purchaseOrderData.training_charges || summary.training_charges || 0));
-        
+            parseFloat(purchaseOrderData.freightchrgs || purchaseOrderData.freight_charges || summary.freight_charges || 0) +
+            parseFloat(purchaseOrderData.insurancechrgs || purchaseOrderData.insurance_charges || summary.insurance_charges || 0) +
+            parseFloat(purchaseOrderData.calibrationchrgs || purchaseOrderData.calibration_charges || summary.calibration_charges || 0) +
+            parseFloat(purchaseOrderData.trainingchrgs || purchaseOrderData.training_charges || summary.training_charges || 0));
+
         const gstOnCharges = (miscCharges * 18) / 100;
         if (combineTax["18%"]) {
           combineTax["18%"] += gstOnCharges;
@@ -90,10 +99,26 @@ export default function ExportPoToPdf() {
         const companyGstCode = companyData.gstno ? companyData.gstno.substring(0, 2) : "";
         const customerGstCode = customerData.gst_number || customerData.gstno || "";
         const customerGstStateCode = customerGstCode.substring(0, 2);
-        
+
         // Same state logic if customer is in Madhya Pradesh (23) or matches company state code
         const stateCode = customerData.gst_state_code || customerData.statecode || customerGstStateCode || "";
         const isSameState = stateCode === "23" || (companyGstCode && stateCode === companyGstCode);
+
+        // Fetch state name if missing
+        let fetchedStateName = customerData.state || customerData.statename || "";
+        try {
+          if (!fetchedStateName && stateCode) {
+            const stateResponse = await axios.get("/people/get-state");
+            if (stateResponse.data && stateResponse.data.data) {
+              const matchedState = stateResponse.data.data.find(s => parseInt(s.gst_code) === parseInt(stateCode) || parseInt(s.id) === parseInt(stateCode));
+              if (matchedState) {
+                fetchedStateName = matchedState.state;
+              }
+            }
+          }
+        } catch (err) {
+          console.warn("Failed to fetch states:", err);
+        }
 
         setPdfData({
           purchaseOrder: {
@@ -113,7 +138,9 @@ export default function ExportPoToPdf() {
           customer: {
             ...customerData,
             gstno: customerData.gst_number || customerData.gstno,
-            address: customerData.address || customerData.full_address
+            panno: customerData.pan_no,
+            address: customerData.address || customerData.full_address,
+            stateName: fetchedStateName
           },
           items: items,
           company: companyData,
@@ -151,17 +178,17 @@ export default function ExportPoToPdf() {
     const thousands = Math.floor(num / 1000);
     const hundreds = Math.floor((num % 1000) / 100);
     const remainder = num % 100;
-    
+
     let words = "";
-    
+
     if (thousands > 0) {
       words += ones[thousands] + " thousand ";
     }
-    
+
     if (hundreds > 0) {
       words += ones[hundreds] + " hundred ";
     }
-    
+
     if (remainder > 0) {
       if (remainder < 10) {
         words += ones[remainder];
@@ -174,7 +201,7 @@ export default function ExportPoToPdf() {
         }
       }
     }
-    
+
     return words.trim();
   };
 
@@ -252,29 +279,26 @@ export default function ExportPoToPdf() {
       </head>
       <body>
         <!-- Company Header -->
-        <table class="table table-borderless" style="border:0px solid transparent !important;">
-          <tr>
-            <td rowspan="2">
-              ${company.logo ? `<img src="${company.logo}" style="max-height: 80px;" />` : ''}
-            </td>
-            <td style="font-size: 11px;font-family: monospace;font-style: italic;" class="text-right">
-              NABL Accredited as per IS/ISO/IEC 17025 (Certificate Nos. TC-7832 & CC-2348),<br>
-              BIS Recognized & ISO 9001 Certified Test & Calibration Laboratory
-            </td>
-          </tr>
-          <tr>
-            <td class="text-right" style="vertical-align: top;font-size: 21px;color: navy;font-weight: bold">
-              ${company.name || ''}
-            </td>
-          </tr>
-          <tr>
-            <td colspan="2">
-              <div style="font-size: 15px;text-align: center;text-transform: uppercase;">
-                <b>${purchaseOrder.ordertype === "PO" ? "Purchase Order" : "Work Order"}</b><br />
-              </div>
-            </td>
-          </tr>
-        </table>
+        <div style="display: flex; flex-direction: column; align-items: center; margin-bottom: 8px; gap: 4px;">
+          <div style="display: flex; align-items: flex-start; gap: 12px; width: 100%;">
+            ${company.logo ? `<img src="${company.logo}" alt="Logo" style="height: 60px; width: auto;" />` : ''}
+            <div style="flex: 1; text-align: right;">
+              <p style="font-family: monospace; font-size: 10px; font-style: italic; color: #555; margin: 0;">
+                NABL Accredited as per IS/ISO/IEC 17025 (Certificate Nos. TC-7832 &amp; CC-2348),<br>
+                BIS Recognized &amp; ISO 9001 Certified Test &amp; Calibration Laboratory
+              </p>
+            </div>
+          </div>
+          <div style="font-size: 20px; font-weight: bold; color: navy; text-align: left; margin-top: 4px;">
+            ${company.name}
+          </div>
+        </div>
+
+        <div style="text-align: center; margin-bottom: 8px; margin-top: 20px;">
+          <div style="font-size: 14px; font-weight: bold; text-transform: uppercase;">
+            <b>Purchase Order</b>
+          </div>
+        </div>
 
         <!-- Customer Information -->
         <table class="table table-bordered">
@@ -289,18 +313,18 @@ export default function ExportPoToPdf() {
                 <table class="table table-borderless">
                   <tr>
                     <td style="width:50%;">
-                      <b>State name : </b>${customer.state || ''}<br>
+                      <b>State name : </b>${customer.stateName || customer.state || ''}<br>
                       <b>GSTIN/UIN : </b>${customer.gstno || ''}
                     </td>
                     <td style="width:50%;">
                       <b>State code : </b>${stateCode}<br>
-                      <b>PAN: </b>${customer.panno || ''}
+                      <b>PAN: </b>${company.panno || ''}
                     </td>
                   </tr>
                 </table>
               </div>
               <div style="clear:both;"></div>
-              Kind Attn. ${purchaseOrder.sname || ''}
+              Kind Attn. ${purchaseOrder.sname || customer.contact_person || ''}
             </td>
             <td style="width: 30%;">
               <b>Purchase Order No. : </b> ${purchaseOrder.po_number || ''}<br>
@@ -327,17 +351,17 @@ export default function ExportPoToPdf() {
               <tr>
                 <td class="text-center">${index + 1}</td>
                 <td>
-                  ${purchaseOrder.ordertype === "PO" 
-                    ? (item.material_name || item.category_name || item.itemname || '') 
-                    : (item.itemname || item.material_name || '')}
+                  ${purchaseOrder.ordertype === "PO"
+        ? (item.material_name || item.category_name || item.itemname || '')
+        : (item.itemname || item.material_name || '')}
                   ${item.specification && item.specification.trim().toUpperCase() !== "NA" ? "<br>" + item.specification : ""}
                 </td>
                 <td class="text-center">${item.specification || ''}</td>
                 <td class="text-center">${item.hsn_code || ''}</td>
                 <td class="text-center">
-                  ${purchaseOrder.ordertype === "PO" 
-                    ? `${item.quantity || ''} ${item.unit_name || item.unit || ''}` 
-                    : `${item.quantity || ''} No's`}
+                  ${purchaseOrder.ordertype === "PO"
+        ? `${item.quantity || ''} ${item.unit_name || item.unit || ''}`
+        : `${item.quantity || ''} No's`}
                 </td>
                 <td class="text-right" style="padding-right: 8px;">
                   ${parseFloat(item.price || item.list_price || 0).toFixed(2)}
@@ -403,11 +427,11 @@ export default function ExportPoToPdf() {
           
           <!-- Tax Breakdown -->
           ${Object.entries(combineTax).map(([taxRate, taxAmount]) => {
-            if (isSameState) {
-              const cgstAmount = taxAmount / 2;
-              const sgstAmount = taxAmount / 2;
-              const rate = taxRate.replace(/[\s%]/g, "") / 2;
-              return `
+          if (isSameState) {
+            const cgstAmount = taxAmount / 2;
+            const sgstAmount = taxAmount / 2;
+            const rate = taxRate.replace(/[\s%]/g, "") / 2;
+            return `
                 <tr>
                   <td colspan="2"><strong>CGST ${rate}%</strong></td>
                   <td colspan="4" class="text-right">${cgstAmount.toFixed(2)}/-</td>
@@ -417,16 +441,16 @@ export default function ExportPoToPdf() {
                   <td colspan="4" class="text-right">${sgstAmount.toFixed(2)}/-</td>
                 </tr>
               `;
-            } else {
-              const rate = taxRate.replace(/[\s%]/g, "");
-              return `
+          } else {
+            const rate = taxRate.replace(/[\s%]/g, "");
+            return `
                 <tr>
                   <td colspan="2"><strong>IGST ${rate}%</strong></td>
                   <td colspan="4" class="text-right">${taxAmount.toFixed(2)}/-</td>
                 </tr>
               `;
-            }
-          }).join('')}
+          }
+        }).join('')}
           
           <tr>
             <td colspan="2">Total Charges With tax</td>
@@ -480,30 +504,37 @@ export default function ExportPoToPdf() {
           
           <tr>
             <td colspan="2"></td>
-            <td colspan="4" class="text-right">GST: ${company.gstno || ''} PAN: ${company.panno || ''}</td>
+            <td colspan="4" class="text-right">GST: ${company.gstno} PAN: ${company.panno}</td>
           </tr>
         </table>
 
         <!-- Notes -->
         <div style="margin-top: 20px;">
           <div><strong>Note:</strong></div>
-          <div>1) Please Mention Our GSTIN No. ${company.gstno || ''} in Invoice.</div>
+          <div>1) Please Mention Our GSTIN No. ${company.gstno} in Invoice.</div>
           <div>2) This Work Order is Being sent to you in duplicate, a copy of Which may please be returned to us duly signed and stamped on each page in token of your acceptance Please Sign &return the Duplicate Copy of the order within three days as a token of your acceptance to the above terms & conditions. PO is deemed accepted for non-receipt of response from consultant within three days.</div>
         </div>
 
         <!-- Signature -->
         <div style="margin-top: 30px; text-align: right;">
-          <div>For ${company.name || ''}</div>
+          <div>For ${company.name}</div>
           ${purchaseOrder.status === 1 && purchaseOrder.approved_by ? `
             <div style="margin-top: 10px;">
               <div>Electronically signed by</div>
               <div>${purchaseOrder.approved_by_name || ''}</div>
-              <div>Date: ${formatDate(purchaseOrder.approved_on)}</div>
+              ${purchaseOrder.approved_by_designation ? `<div>Designation:${purchaseOrder.approved_by_designation}</div>` : ''}
+              <div>Date:${formatDate(purchaseOrder.approved_on)}</div>
             </div>
           ` : ''}
           <div style="margin-top: 20px; text-decoration: underline;">
             Authorised Signatory
           </div>
+        </div>
+
+        <!-- Footer Contact Info -->
+        <div style="margin-top: 40px; text-align: center; font-size: 11px; font-weight: bold;">
+          ${company.address.full_address} Ph. ${company.contact.phone}<br>
+          Email : ${company.contact.email}, Web: ${company.contact.website ? company.contact.website.replace('http://', '').replace('https://', '') : ''}, CIN-${company.cin_no}
         </div>
       </body>
       </html>
@@ -516,12 +547,12 @@ export default function ExportPoToPdf() {
 
     try {
       const htmlContent = generatePdfHtml();
-      
+
       // Create a new window with the HTML content
       const newWindow = window.open('', '_blank');
       newWindow.document.write(htmlContent);
       newWindow.document.close();
-      
+
       // Wait for the content to load, then trigger print
       setTimeout(() => {
         newWindow.print();
@@ -553,7 +584,7 @@ export default function ExportPoToPdf() {
         <div className="flex h-[60vh] items-center justify-center">
           <div className="text-center">
             <div className="text-red-600 mb-4">Error: {error}</div>
-            <button 
+            <button
               onClick={() => window.history.back()}
               className="btn btn-primary"
             >
@@ -582,7 +613,7 @@ export default function ExportPoToPdf() {
           <h1 className="text-2xl font-bold mb-6 text-center">
             Purchase Order PDF Preview
           </h1>
-          
+
           <div className="mb-6 text-center">
             <p className="text-gray-600 mb-4">
               Purchase Order: {pdfData.purchaseOrder.po_number}
@@ -590,7 +621,7 @@ export default function ExportPoToPdf() {
             <p className="text-gray-600 mb-4">
               Customer: {pdfData.customer.company}
             </p>
-            <button 
+            <button
               onClick={generatePdf}
               className="btn btn-primary bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded"
             >
@@ -601,10 +632,10 @@ export default function ExportPoToPdf() {
           {/* Preview of the PDF content */}
           <div className="border border-gray-300 rounded p-4 bg-gray-50">
             <h3 className="text-lg font-semibold mb-4">Preview:</h3>
-            <div 
+            <div
               dangerouslySetInnerHTML={{ __html: generatePdfHtml() }}
-              style={{ 
-                transform: 'scale(0.8)', 
+              style={{
+                transform: 'scale(0.8)',
                 transformOrigin: 'top left',
                 width: '125%',
                 height: 'auto'
@@ -613,13 +644,13 @@ export default function ExportPoToPdf() {
           </div>
 
           <div className="mt-6 text-center">
-            <button 
+            <button
               onClick={() => window.history.back()}
               className="btn btn-secondary bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded mr-4"
             >
               Back
             </button>
-            <button 
+            <button
               onClick={generatePdf}
               className="btn btn-primary bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded"
             >

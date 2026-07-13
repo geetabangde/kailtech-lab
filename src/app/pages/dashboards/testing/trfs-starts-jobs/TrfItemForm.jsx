@@ -12,29 +12,29 @@ const SEALED_OPTIONS = [
 
 // testprices.nabl: 1=NABL, 3=QAI, 2=NO
 const PACKAGE_TYPE_OPTIONS = [
-  { value: "",  label: "Select Type" },
+  { value: "", label: "Select Type" },
   { value: "1", label: "NABL" },
   { value: "3", label: "QAI" },
   { value: "2", label: "NO" },
 ];
 
 const INITIAL_FORM = {
-  product:       "",
-  brand:         "",
-  qrcode:        "",
-  testrequest:   "",
-  grade:         "",
-  size:          "",
-  package:       "",
-  package_type:  "",
-  isok:          "",
-  sealed:        0,
-  disposable:    "",
-  condition:     "",
+  product: "",
+  brand: "",
+  qrcode: "",
+  testrequest: "",
+  grade: "",
+  size: "",
+  package: "",
+  package_type: "",
+  isok: "",
+  sealed: 0,
+  disposable: "",
+  condition: "",
   specification: "",
-  conformity:    "",
-  unitcost:      0,
-  total:         0,
+  conformity: "",
+  unitcost: 0,
+  total: 0,
 };
 
 // ─── Shared class strings ─────────────────────────────────────────────────────
@@ -59,9 +59,9 @@ const selectErrCls =
   "focus:border-red-500 focus:ring-2 focus:ring-red-100 transition cursor-pointer";
 
 const labelCls = "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5";
-const errCls   = "text-red-500 text-xs mt-1";
+const errCls = "text-red-500 text-xs mt-1";
 
-const iCls = (err) => (err ? inputErrCls  : inputCls);
+const iCls = (err) => (err ? inputErrCls : inputCls);
 const sCls = (err) => (err ? selectErrCls : selectCls);
 
 // ─── Helper ───────────────────────────────────────────────────────────────────
@@ -70,7 +70,7 @@ function toArray(responseData, ...keys) {
     if (Array.isArray(responseData?.[k])) return responseData[k];
   }
   if (Array.isArray(responseData?.data)) return responseData.data;
-  if (Array.isArray(responseData))       return responseData;
+  if (Array.isArray(responseData)) return responseData;
   return [];
 }
 
@@ -100,44 +100,44 @@ function Spinner({ className = "h-4 w-4" }) {
 export default function TrfItemForm({ trfId, itemId, cloneId, onSuccess, onCancel }) {
   // ── Mode detection ────────────────────────────────────────────────────────
   const isClone = !!cloneId;
-  const isEdit  = !isClone && !!itemId;
-  const isNew   = !isClone && !itemId;
+  const isEdit = !isClone && !!itemId;
+  const isNew = !isClone && !itemId;
 
   // ─── Static dropdowns ────────────────────────────────────────────────────
-  const [products,    setProducts]    = useState([]);
-  const [choices,     setChoices]     = useState([]);
+  const [products, setProducts] = useState([]);
+  const [choices, setChoices] = useState([]);
   const [disposables, setDisposables] = useState([]);
-  const [conditions,  setConditions]  = useState([]);
+  const [conditions, setConditions] = useState([]);
   const [loadingDropdowns, setLoadingDropdowns] = useState(true);
 
   // ─── Product-specific ────────────────────────────────────────────────────
-  const [grades,           setGrades]           = useState([]);
-  const [sizes,            setSizes]            = useState([]);
+  const [grades, setGrades] = useState([]);
+  const [sizes, setSizes] = useState([]);
   const [loadingGradeSize, setLoadingGradeSize] = useState(false);
 
   // ─── Package list ─────────────────────────────────────────────────────────
-  const [packages,        setPackages]        = useState([]);
+  const [packages, setPackages] = useState([]);
   const [loadingPackages, setLoadingPackages] = useState(false);
 
   // ─── Package details ──────────────────────────────────────────────────────
-  const [quantities,        setQuantities]        = useState([]);
-  const [received,          setReceived]          = useState([]);
-  const [parameters,        setParameters]        = useState([]);
-  const [selectedParams,    setSelectedParams]    = useState([]);
-  const [isSpecial,         setIsSpecial]         = useState(false);
+  const [quantities, setQuantities] = useState([]);
+  const [received, setReceived] = useState([]);
+  const [parameters, setParameters] = useState([]);
+  const [selectedParams, setSelectedParams] = useState([]);
+  const [isSpecial, setIsSpecial] = useState(false);
   const [loadingPkgDetails, setLoadingPkgDetails] = useState(false);
 
   // ─── Form state ───────────────────────────────────────────────────────────
-  const [form,        setForm]        = useState(INITIAL_FORM);
-  const [errors,      setErrors]      = useState({});
-  const [submitting,  setSubmitting]  = useState(false);
+  const [form, setForm] = useState(INITIAL_FORM);
+  const [errors, setErrors] = useState({});
+  const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
 
   // ─── Refs ─────────────────────────────────────────────────────────────────
-  const prevProduct       = useRef(null);
+  const prevProduct = useRef(null);
   const prevProductForPkg = useRef(null);
-  const prevPkgType       = useRef(null);
-  const prevPkg           = useRef(null);
+  const prevPkgType = useRef(null);
+  const prevPkg = useRef(null);
   // Track if we just pre-filled from item/clone (so cascades don't reset values)
   const prefillDone = useRef(false);
 
@@ -149,34 +149,34 @@ export default function TrfItemForm({ trfId, itemId, cloneId, onSuccess, onCance
 
   // ── Helper: set form from item data + mark refs so cascades skip reset ────
   const applyItemData = (item) => {
-    const pid  = String(item.product      ?? "");
+    const pid = String(item.product ?? "");
     const type = String(item.package_type ?? "");
-    const pkg  = String(item.package      ?? "");
+    const pkg = String(item.package ?? "");
 
     // Pre-set refs so effect cascades know these are already loaded
-    prevProduct.current       = pid;
+    prevProduct.current = pid;
     prevProductForPkg.current = pid;
-    prevPkgType.current       = type;
-    prevPkg.current           = pkg;
-    prefillDone.current       = true;
+    prevPkgType.current = type;
+    prevPkg.current = pkg;
+    prefillDone.current = true;
 
     setForm({
-      product:       pid,
-      brand:         item.brand                ?? "",
-      qrcode:        item.qrcode               ?? "",
-      testrequest:   item.testrequest          ?? "",
-      grade:         String(item.grade         ?? ""),
-      size:          String(item.size          ?? ""),
-      package:       pkg,
-      package_type:  type,
-      isok:          String(item.isok          ?? ""),
-      sealed:        item.sealed               ?? 0,
-      disposable:    String(item.disposable    ?? ""),
-      condition:     String(item.condition     ?? ""),
+      product: pid,
+      brand: item.brand ?? "",
+      qrcode: item.qrcode ?? "",
+      testrequest: item.testrequest ?? "",
+      grade: String(item.grade ?? ""),
+      size: String(item.size ?? ""),
+      package: pkg,
+      package_type: type,
+      isok: String(item.isok ?? ""),
+      sealed: item.sealed ?? 0,
+      disposable: String(item.disposable ?? ""),
+      condition: String(item.condition ?? ""),
       specification: String(item.specification ?? ""),
-      conformity:    String(item.conformity    ?? ""),
-      unitcost:      item.unitcost             ?? 0,
-      total:         item.total                ?? 0,
+      conformity: String(item.conformity ?? ""),
+      unitcost: item.unitcost ?? 0,
+      total: item.total ?? 0,
     });
   };
 
@@ -191,10 +191,10 @@ export default function TrfItemForm({ trfId, itemId, cloneId, onSuccess, onCance
         axios.get("/testing/get-disposables-list"),
         axios.get("/testing/get-conditions-list"),
       ]);
-      setProducts(   toArray(prodRes.data,   "products"));
-      setChoices(    toArray(choiceRes.data,  "choices"));
-      setDisposables(toArray(dispRes.data,    "disposables"));
-      setConditions( toArray(condRes.data,    "conditions"));
+      setProducts(toArray(prodRes.data, "products"));
+      setChoices(toArray(choiceRes.data, "choices"));
+      setDisposables(toArray(dispRes.data, "disposables"));
+      setConditions(toArray(condRes.data, "conditions"));
     } catch {
       setSubmitError("Failed to load form options. Please refresh.");
     } finally {
@@ -215,19 +215,19 @@ export default function TrfItemForm({ trfId, itemId, cloneId, onSuccess, onCance
       setLoadingDropdowns(true);
       try {
         const res = await axios.get(`/testing/trf-item-clone/${cloneId}`);
-        const d   = res.data?.data ?? res.data ?? {};
+        const d = res.data?.data ?? res.data ?? {};
 
         // Sab dropdowns populate karo ek hi response se
-        setProducts(   toArray(d, "products"));
-        setChoices(    toArray(d, "choices"));
+        setProducts(toArray(d, "products"));
+        setChoices(toArray(d, "choices"));
         setDisposables(toArray(d, "disposables"));
-        setConditions( toArray(d, "conditions"));
-        setGrades(     toArray(d, "grades"));
-        setSizes(      toArray(d, "sizes"));
-        setPackages(   toArray(d, "packages"));
-        setQuantities( toArray(d, "quantities"));
-        setReceived(   toArray(d, "quantities").map(() => ""));
-        setParameters( toArray(d, "parameters"));
+        setConditions(toArray(d, "conditions"));
+        setGrades(toArray(d, "grades"));
+        setSizes(toArray(d, "sizes"));
+        setPackages(toArray(d, "packages"));
+        setQuantities(toArray(d, "quantities"));
+        setReceived(toArray(d, "quantities").map(() => ""));
+        setParameters(toArray(d, "parameters"));
 
         const special = d.special ?? false;
         setIsSpecial(!!special);
@@ -239,7 +239,7 @@ export default function TrfItemForm({ trfId, itemId, cloneId, onSuccess, onCance
         // package_type trf_product mein nahi hota —
         // packages array se package ka nabl field = package_type value
         // nabl: 1=NABL, 3=QAI, 2=NO  (same as PACKAGE_TYPE_OPTIONS)
-        const pkgList    = toArray(d, "packages");
+        const pkgList = toArray(d, "packages");
         const matchedPkg = pkgList.find((p) => String(p.id) === String(item.package));
         const derivedPkgType = matchedPkg ? String(matchedPkg.nabl ?? "") : "";
 
@@ -248,8 +248,8 @@ export default function TrfItemForm({ trfId, itemId, cloneId, onSuccess, onCance
         applyItemData({
           ...item,
           package_type: derivedPkgType,
-          unitcost:     price,
-          total:        price,
+          unitcost: price,
+          total: price,
         });
 
       } catch {
@@ -263,7 +263,7 @@ export default function TrfItemForm({ trfId, itemId, cloneId, onSuccess, onCance
     // ── EDIT MODE ─────────────────────────────────────────────────────────
     if (isEdit) {
       try {
-        const res  = await axios.get(`/testing/get-trf-item/${itemId}`);
+        const res = await axios.get(`/testing/get-trf-item/${itemId}`);
         const item = res.data?.item ?? res.data?.data ?? res.data ?? {};
         applyItemData(item);
       } catch {
@@ -282,11 +282,11 @@ export default function TrfItemForm({ trfId, itemId, cloneId, onSuccess, onCance
     if (!loadingDropdowns && isNew) {
       setForm((prev) => ({
         ...prev,
-        isok:          prev.isok          || String(choices[0]?.id     ?? ""),
-        disposable:    prev.disposable    || String(disposables[0]?.id ?? ""),
-        condition:     prev.condition     || String(conditions[0]?.id  ?? ""),
-        specification: prev.specification || String(choices[0]?.id     ?? ""),
-        conformity:    prev.conformity    || String(choices[0]?.id     ?? ""),
+        isok: prev.isok || String(choices[0]?.id ?? ""),
+        disposable: prev.disposable || String(disposables[0]?.id ?? ""),
+        condition: prev.condition || String(conditions[0]?.id ?? ""),
+        specification: prev.specification || String(choices[0]?.id ?? ""),
+        conformity: prev.conformity || String(choices[0]?.id ?? ""),
       }));
     }
   }, [loadingDropdowns, isNew, choices, disposables, conditions]);
@@ -311,7 +311,7 @@ export default function TrfItemForm({ trfId, itemId, cloneId, onSuccess, onCance
       try {
         const res = await axios.get(`/testing/get-grade-and-size?pid=${pid}`);
         setGrades(toArray(res.data, "grades"));
-        setSizes( toArray(res.data, "sizes"));
+        setSizes(toArray(res.data, "sizes"));
       } catch { /* silent */ }
       finally { setLoadingGradeSize(false); }
     };
@@ -320,7 +320,7 @@ export default function TrfItemForm({ trfId, itemId, cloneId, onSuccess, onCance
 
   // ── 5. Product + package_type → package list ──────────────────────────────
   useEffect(() => {
-    const pid  = form.product;
+    const pid = form.product;
     const type = form.package_type;
 
     if (!pid || !type) {
@@ -341,9 +341,9 @@ export default function TrfItemForm({ trfId, itemId, cloneId, onSuccess, onCance
       setForm((prev) => ({ ...prev, package: "", unitcost: 0, total: 0 }));
       clearPkgDetails();
     }
-    prefillDone.current       = false;
+    prefillDone.current = false;
     prevProductForPkg.current = pid;
-    prevPkgType.current       = type;
+    prevPkgType.current = type;
 
     const load = async () => {
       setLoadingPackages(true);
@@ -374,12 +374,12 @@ export default function TrfItemForm({ trfId, itemId, cloneId, onSuccess, onCance
           axios.get(`/testing/get-package-price?package_id=${pkgId}&trfid=${trfId}`),
           axios.get(`/testing/package-parameters/${pkgId}`),
         ]);
-        const qtys      = toArray(qtyRes.data, "data");
+        const qtys = toArray(qtyRes.data, "data");
         const priceData = priceRes.data?.data ?? {};
-        const price     = priceData.unitcost ?? cached?.rate ?? 0;
-        const total     = priceData.total    ?? price;
-        const params    = toArray(paramRes.data, "parameters");
-        const special   = paramRes.data?.special ?? false;
+        const price = priceData.unitcost ?? cached?.rate ?? 0;
+        const total = priceData.total ?? price;
+        const params = toArray(paramRes.data, "parameters");
+        const special = paramRes.data?.special ?? false;
         setQuantities(qtys);
         setReceived(qtys.map(() => ""));
         setForm((prev) => ({ ...prev, unitcost: price, total }));
@@ -427,13 +427,13 @@ export default function TrfItemForm({ trfId, itemId, cloneId, onSuccess, onCance
     ];
     const errs = {};
     required.forEach((f) => { if (!form[f] && form[f] !== 0) errs[f] = "This is a required field"; });
-    
+
     // Validate received quantities - at least one must be > 0
     const totalReceived = received.reduce((sum, v) => sum + (Number(v) || 0), 0);
     if (quantities.length > 0 && totalReceived === 0) {
       errs.received = "At least one received quantity must be greater than 0";
     }
-    
+
     return errs;
   };
 
@@ -446,27 +446,27 @@ export default function TrfItemForm({ trfId, itemId, cloneId, onSuccess, onCance
     setSubmitting(true); setSubmitError(null);
     try {
       const payload = {
-        product:       Number(form.product),
-        brand:         form.brand,
-        qrcode:        form.qrcode,
-        testrequest:   form.testrequest,
-        package_type:  Number(form.package_type),
-        grade:         Number(form.grade),
-        size:          Number(form.size),
-        package:       Number(form.package),
-        isok:          Number(form.isok),
-        sealed:        Number(form.sealed),
-        disposable:    Number(form.disposable),
-        condition:     Number(form.condition),
+        product: Number(form.product),
+        brand: form.brand,
+        qrcode: form.qrcode,
+        testrequest: form.testrequest,
+        package_type: Number(form.package_type),
+        grade: Number(form.grade),
+        size: Number(form.size),
+        package: Number(form.package),
+        isok: Number(form.isok),
+        sealed: Number(form.sealed),
+        disposable: Number(form.disposable),
+        condition: Number(form.condition),
         specification: Number(form.specification),
-        conformity:    Number(form.conformity),
-        unitcost:      Number(form.unitcost),
-        total:         Number(form.total),
-        quantities:    quantities.map((q) => q.id),
-        received:      received.map((r) => Number(r) || 0),
-        id:            Number(trfId),
+        conformity: Number(form.conformity),
+        unitcost: Number(form.unitcost),
+        total: Number(form.total),
+        quantities: quantities.map((q) => q.id),
+        received: received.map((r) => Number(r) || 0),
+        id: Number(trfId),
         ...(isSpecial && selectedParams.length ? { parameters: selectedParams } : {}),
-        
+
       };
 
       let res;
@@ -509,14 +509,14 @@ export default function TrfItemForm({ trfId, itemId, cloneId, onSuccess, onCance
   const formTitle = isClone
     ? `Clone Item #${cloneId}`
     : isEdit
-    ? `Edit Item #${itemId}`
-    : "Add New Item";
+      ? `Edit Item #${itemId}`
+      : "Add New Item";
 
   const submitLabel = isClone
     ? "Clone & Add Item"
     : isEdit
-    ? "Save Changes"
-    : "Add Item";
+      ? "Save Changes"
+      : "Add Item";
 
   return (
     <div className="space-y-5 text-sm">
@@ -675,8 +675,8 @@ export default function TrfItemForm({ trfId, itemId, cloneId, onSuccess, onCance
                   {!form.package_type
                     ? "Select a Package Type first"
                     : packages.length === 0
-                    ? "No packages available for this type"
-                    : "Select Package"}
+                      ? "No packages available for this type"
+                      : "Select Package"}
                 </option>
                 {packages.map((p) => (
                   <option key={p.id} value={p.id}>
@@ -760,7 +760,7 @@ export default function TrfItemForm({ trfId, itemId, cloneId, onSuccess, onCance
           </div>
 
           <input type="hidden" name="unitcost" value={form.unitcost} />
-          <input type="hidden" name="total"    value={form.total} />
+          <input type="hidden" name="total" value={form.total} />
         </div>
       )}
 
@@ -784,7 +784,7 @@ export default function TrfItemForm({ trfId, itemId, cloneId, onSuccess, onCance
                   <input type="hidden" name="quantities[]" value={qty.id} />
                   <span className="text-sm text-gray-700 dark:text-gray-300">
                     {qty.name}
-                    {qty.quantity  ? ` ${qty.quantity}` : ""}
+                    {qty.quantity ? ` ${qty.quantity}` : ""}
                     {qty.unit_name ? ` ${qty.unit_name}` : ""}
                   </span>
                 </div>

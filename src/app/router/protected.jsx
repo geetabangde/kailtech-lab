@@ -4791,11 +4791,21 @@ const protectedRoutes = {
                       }),
                     },
                     {
-                      path: "edit-purchase-order-approve",
+                      path: "edit-purchase-order",
                       lazy: async () => ({
                         Component: (
                           await import(
-                            "app/pages/dashboards/inventory/purchase-order/EditPurchaseOrderApprove"
+                            "app/pages/dashboards/inventory/purchase-order/EditPurchaseOrder"
+                          )
+                        ).default,
+                      }),
+                    },
+                    {
+                      path: "approve-po",
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/inventory/purchase-order/ApprovePO"
                           )
                         ).default,
                       }),

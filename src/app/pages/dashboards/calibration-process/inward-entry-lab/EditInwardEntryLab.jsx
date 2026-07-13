@@ -148,9 +148,9 @@ export default function EditInwardEntry() {
 
     for (const errorField of errorFields) {
       if (errors[errorField.field] && errorField.ref.current) {
-        errorField.ref.current.scrollIntoView({ 
-          behavior: "smooth", 
-          block: "center" 
+        errorField.ref.current.scrollIntoView({
+          behavior: "smooth",
+          block: "center"
         });
         errorField.ref.current.focus();
         break;
@@ -207,21 +207,21 @@ export default function EditInwardEntry() {
           axios.get("/mode-of-payment"),
           axios.get("/certificate-collect-as"),
         ]);
-        
+
         setCustomerTypeOptions(
           (typeRes?.data?.Data || []).map((item) => ({
             label: item.name,
             value: item.id,
           }))
         );
-        
+
         setSpecificPurposeOptions(
           (purposeRes?.data?.data || []).map((item) => ({
             label: item.name,
             value: item.id,
           }))
         );
-        
+
         setCustomerOptions(
           (customerRes?.data?.data || []).map((item) => ({
             label: `${item.name} (${item.mobile})`,
@@ -233,49 +233,49 @@ export default function EditInwardEntry() {
             gstno: item.gstno || "",
           }))
         );
-        
+
         setBdOptions(
           (bdRes?.data?.data || []).map((item) => ({
             label: `${item.firstname} ${item.lastname}`,
             value: item.id,
           }))
         );
-        
+
         setPromoterOptions(
           (promoterRes?.data?.data || []).map((item) => ({
             label: `${item.name}`,
             value: item.id,
           }))
         );
-        
+
         setChoiceOptions(
           (choiceRes?.data?.data || []).map((item) => ({
             label: item.name,
             value: item.id,
           }))
         );
-        
+
         setApprovedByOptions(
           (approvedRes?.data?.data || []).map((item) => ({
             label: `${item.firstname} ${item.lastname}`,
             value: item.id,
           }))
         );
-        
+
         setModeOptions(
           (modeRes?.data?.data || []).map((item) => ({
             label: item.name,
             value: item.id,
           }))
         );
-        
+
         setModePaymentOptions(
           (paymentmodeRes?.data?.data || []).map((item) => ({
             label: item.name,
             value: item.id,
           }))
         );
-        
+
         setCertificateOptions(
           (setCertificateRes?.data?.data || []).map((item) => ({
             label: item.name,
@@ -307,10 +307,10 @@ export default function EditInwardEntry() {
           ctype: String(data.ctype),
           customerid: String(data.customerid),
           specificpurpose: String(data.specificpurpose),
-          reportname: String(data.reportname),
-          reportaddress: String(data.reportaddress),
-          billingname: String(data.billingname),
-          billingaddress: String(data.billingaddress),
+          reportname: data.reportname ? String(data.reportname) : "",
+          reportaddress: data.reportaddress ? String(data.reportaddress) : "",
+          billingname: data.billingname ? String(data.billingname) : "",
+          billingaddress: data.billingaddress ? String(data.billingaddress) : "",
           customername: data.customername,
           customeraddress: data.customeraddress,
           gstno: data.gstno,
@@ -366,14 +366,14 @@ export default function EditInwardEntry() {
         });
         fetchConcernPersons(data.customerid);
         fetchQuotations(data.customerid);
-        fetchCustomerAddresses(data.customername, "report");
+        fetchCustomerAddresses(data.reportname, "report");
         fetchCustomerAddresses(data.billingname, "billing");
       } catch (error) {
         toast.error("Error loading inward entry");
         console.error(error);
       }
     };
-    
+
     fetchDropdowns();
     fetchInwardEntry();
   }, [id]);
@@ -387,7 +387,7 @@ export default function EditInwardEntry() {
       "dateofdispatch",
       "deadline",
     ];
-    
+
     if (dateFields.includes(name) && value) {
       const [year, month, day] = value.split("-");
       const formattedDate = `${day}-${month}-${year}`;
@@ -648,7 +648,7 @@ export default function EditInwardEntry() {
           {/* SERVICE REQUESTOR SECTION */}
           <div className="rounded-lg border p-4">
             <h3 className="mb-4 text-lg font-semibold">SERVICE REQUESTOR</h3>
-            
+
             <div className="space-y-4">
               <div className="grid grid-cols-1 gap-4">
                 <div ref={inwarddateRef}>
@@ -760,7 +760,7 @@ export default function EditInwardEntry() {
           {/* CUSTOMER'S REPORTING DETAILS SECTION */}
           <div className="rounded-lg border p-4">
             <h3 className="mb-4 text-lg font-semibold">Customers Reporting Detail</h3>
-            
+
             <div className="space-y-4">
               <div className="grid grid-cols-1 gap-4">
                 <div ref={reportnameRef}>
@@ -830,7 +830,7 @@ export default function EditInwardEntry() {
                 Same as reporting
               </button>
             </div>
-            
+
             <div className="space-y-4">
               <div className="grid grid-cols-1 gap-4">
                 <div ref={billingnameRef}>
@@ -856,7 +856,7 @@ export default function EditInwardEntry() {
                     </p>
                   )}
                 </div>
-                
+
                 <div ref={billingaddressRef}>
                   <label className="block text-sm font-medium">
                     Customer Address
@@ -900,7 +900,7 @@ export default function EditInwardEntry() {
           {/* CONCERN PERSON SECTION */}
           <div className="rounded-lg border p-4">
             <h3 className="mb-4 text-lg font-semibold">Concern Person</h3>
-            
+
             <div className="space-y-4">
               <div className="grid grid-cols-1 gap-4">
                 <div ref={concernpersonnameRef}>
@@ -956,7 +956,7 @@ export default function EditInwardEntry() {
           {/* QUOTATION AND BD DETAILS SECTION */}
           <div className="rounded-lg border p-4">
             <h3 className="mb-4 text-lg font-semibold">Quotation and BD Details</h3>
-            
+
             <div className="space-y-4">
               <div className="grid grid-cols-1 gap-4">
                 <div>
@@ -1119,7 +1119,7 @@ export default function EditInwardEntry() {
           {/* WORK ORDER AND RECEIPT DETAILS SECTION */}
           <div className="rounded-lg border p-4">
             <h3 className="mb-4 text-lg font-semibold">Work Order and Receipt Details</h3>
-            
+
             <div className="space-y-4">
               <div className="grid grid-cols-1 gap-4">
                 <div ref={ponumberRef}>
@@ -1272,7 +1272,7 @@ export default function EditInwardEntry() {
           {/* MODE OF RETURN SECTION */}
           <div className="rounded-lg border p-4">
             <h3 className="mb-4 text-lg font-semibold">Mode Of Return</h3>
-            
+
             <div className="space-y-4">
               <div className="grid grid-cols-1 gap-4">
                 <div ref={modeofdispatchRef}>
@@ -1369,7 +1369,7 @@ export default function EditInwardEntry() {
           {/* PAYMENT DETAILS SECTION */}
           <div className="rounded-lg border p-4">
             <h3 className="mb-4 text-lg font-semibold">Payment Details</h3>
-            
+
             <div className="space-y-4">
               <div className="grid grid-cols-1 gap-4">
                 <div>
@@ -1441,7 +1441,7 @@ export default function EditInwardEntry() {
           {/* CERTIFICATE COLLECTION DETAILS SECTION */}
           <div className="rounded-lg border p-4">
             <h3 className="mb-4 text-lg font-semibold">Certificate Collection Details</h3>
-            
+
             <div className="space-y-4">
               <div className="grid grid-cols-1 gap-4">
                 <div>
@@ -1496,7 +1496,7 @@ export default function EditInwardEntry() {
           {/* ADDITIONAL INFORMATION SECTION */}
           <div className="rounded-lg border p-4">
             <h3 className="mb-4 text-lg font-semibold">Additional Information</h3>
-            
+
             <div className="space-y-4">
               <div className="grid grid-cols-1 gap-4">
                 <div>
