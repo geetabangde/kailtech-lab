@@ -46,7 +46,11 @@ function printInvoice(templateProps, withLH, logoSrc, pageTitle) {
     *, *::before, *::after { box-sizing: border-box; }
     @page { size: A4; margin: 10mm; }
     body  { margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #111; background: #fff; }
-    @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+    @media print { 
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      table { page-break-inside: auto; }
+      tr { page-break-inside: avoid; break-inside: avoid; page-break-after: auto; }
+    }
     table  { border-collapse: collapse; width: 100%; margin-bottom: 8px; table-layout: fixed; }
     th, td { border: 1px solid #000; padding: 5px 7px; font-size: 11px; vertical-align: middle; word-break: break-word; overflow: hidden; }
     th     { background: #f3f4f6; text-align: center; font-weight: bold; }

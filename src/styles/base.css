@@ -114,13 +114,13 @@ body.is-monochrome::before {
 }
 
 /* Chrome, Safari, Edge, Opera Hide input number arrow*/
-input.hide-number-arrow::-webkit-outer-spin-button,
-input.hide-number-arrow::-webkit-inner-spin-button {
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
 
 /* Firefox Hide input number arrow*/
-input[type="number"].hide-number-arrow {
+input[type="number"] {
   -moz-appearance: textfield;
 }

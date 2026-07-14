@@ -620,6 +620,7 @@ export default function AddDin() {
 
         // Arrays
         mmid: items.map(i => i.instrumentid || ""),
+        name: items.map(i => i.name || ""),
         serialno: items.map(i => i.serialno || ""),
         mloc: items.map(i => i.mloc || ""),
         qty: items.map(i => i.qty || 1),
@@ -1006,32 +1007,62 @@ export default function AddDin() {
                     <textarea name="dinremark" value={formData.dinremark} onChange={handleInputChange} className="form-input rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-900" rows="3" />
                   </div>
 
-                  <div className="flex flex-col gap-1 mt-6">
-                    <label className="text-sm font-semibold text-gray-700 dark:text-dark-200">Search Material Details</label>
-                    <div className="flex gap-2">
-                      <div className="flex-1">
-                        <AsyncSelect
-                          cacheOptions
-                          loadOptions={loadInstrumentOptions}
-                          onChange={handleInstrumentSelect}
-                          value={null}
-                          placeholder="Type at least 3 chars to search..."
-                          styles={{
-                            control: (base) => ({
-                              ...base,
-                              minHeight: "42px",
-                              borderRadius: "0.5rem",
-                              borderColor: "#D1D5DB",
-                              boxShadow: "none",
-                              "&:hover": { borderColor: "#9CA3AF" },
-                            }),
-                            menuPortal: (base) => ({ ...base, zIndex: 9999 }),
-                          }}
-                          menuPortalTarget={document.body}
-                        />
+                  {String(formData.purpose) !== "11" && (
+                    <div className="flex flex-col gap-1 mt-6">
+                      <label className="text-sm font-semibold text-gray-700 dark:text-dark-200">Search Material Details</label>
+                      <div className="flex gap-2">
+                        <div className="flex-1">
+                          <AsyncSelect
+                            cacheOptions
+                            loadOptions={loadInstrumentOptions}
+                            onChange={handleInstrumentSelect}
+                            value={null}
+                            placeholder="Type at least 3 chars to search..."
+                            styles={{
+                              control: (base) => ({
+                                ...base,
+                                minHeight: "42px",
+                                borderRadius: "0.5rem",
+                                borderColor: "#D1D5DB",
+                                boxShadow: "none",
+                                "&:hover": { borderColor: "#9CA3AF" },
+                              }),
+                              menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+                            }}
+                            menuPortalTarget={document.body}
+                          />
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
+
+                  {String(formData.purpose) === "11" && (
+                    <div className="mt-6">
+                      <Button
+                        type="button"
+                        onClick={() => {
+                          setItems(prev => [...prev, {
+                            id: prev.length + 1,
+                            mmissueid: "",
+                            instrumentid: "", 
+                            name: "",
+                            newidno: "",
+                            serialno: "",
+                            mloc: "",
+                            maxQty: 1,
+                            qty: 1,
+                            unit: "",
+                            description: "",
+                            remark: ""
+                          }]);
+                        }}
+                        color="primary"
+                        className="w-full sm:w-auto"
+                      >
+                        + Add Custom Item
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -1271,11 +1302,15 @@ export default function AddDin() {
                       <Tr>
                         <Th className="bg-gray-50 px-4 py-2">S.no</Th>
                         <Th className="bg-gray-50 px-4 py-2">Material Name</Th>
-                        <Th className="bg-gray-50 px-4 py-2">New ID No</Th>
+                        {String(formData.purpose) !== "11" && (
+                          <>
+                            <Th className="bg-gray-50 px-4 py-2">New ID No</Th>
+                            <Th className="bg-gray-50 px-4 py-2">Location</Th>
+                            <Th className="bg-gray-50 px-4 py-2">Unit</Th>
+                          </>
+                        )}
                         <Th className="bg-gray-50 px-4 py-2">Serial No</Th>
-                        <Th className="bg-gray-50 px-4 py-2">Location</Th>
                         <Th className="bg-gray-50 px-4 py-2">Quantity</Th>
-                        <Th className="bg-gray-50 px-4 py-2">Unit</Th>
                         <Th className="bg-gray-50 px-4 py-2">Description</Th>
                         <Th className="bg-gray-50 px-4 py-2">Remark</Th>
                         <Th className="bg-gray-50 px-4 py-2">Close</Th>
@@ -1286,36 +1321,42 @@ export default function AddDin() {
                         <Tr key={index}>
                           <Td className="px-4 py-2">{index + 1}</Td>
                           <Td className="px-4 py-2">
-                            <input type="text" readOnly value={item.name} className="form-input w-32 rounded-lg bg-gray-100 dark:bg-dark-800 border-none" />
-                          </Td>
-                          <Td className="px-4 py-2">
-                            <input type="text" readOnly value={item.newidno} className="form-input w-32 rounded-lg bg-gray-100 dark:bg-dark-800 border-none" />
-                          </Td>
-                          <Td className="px-4 py-2">
-                            <input type="text" readOnly value={item.serialno} className="form-input w-24 rounded-lg bg-gray-100 dark:bg-dark-800 border-none" />
-                          </Td>
-                          <Td className="px-4 py-2">
-                            <input
-                              type="text"
-                              value={item.mloc || ""}
-                              placeholder="Location ID"
-                              onChange={(e) => handleItemChange(index, "mloc", e.target.value)}
-                              onBlur={(e) => fetchMlocQuantity(index, e.target.value)}
-                              className="form-input w-24 rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-900"
+                            <input 
+                              type="text" 
+                              readOnly={String(formData.purpose) !== "11"} 
+                              value={item.name} 
+                              onChange={(e) => handleItemChange(index, "name", e.target.value)}
+                              className={`form-input w-32 rounded-lg ${String(formData.purpose) !== "11" ? "bg-gray-100 dark:bg-dark-800 border-none" : "border-gray-300 dark:border-dark-600 dark:bg-dark-900"}`} 
                             />
                           </Td>
+                          {String(formData.purpose) !== "11" && (
+                            <>
+                              <Td className="px-4 py-2">
+                                <input type="text" readOnly value={item.newidno} className="form-input w-32 rounded-lg bg-gray-100 dark:bg-dark-800 border-none" />
+                              </Td>
+                              <Td className="px-4 py-2">
+                                <input
+                                  type="text"
+                                  value={item.mloc || ""}
+                                  placeholder="Location ID"
+                                  onChange={(e) => handleItemChange(index, "mloc", e.target.value)}
+                                  onBlur={(e) => fetchMlocQuantity(index, e.target.value)}
+                                  className="form-input w-24 rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-900"
+                                />
+                              </Td>
+                              <Td className="px-4 py-2">
+                                <input type="text" readOnly value={item.unit} className="form-input w-16 rounded-lg bg-gray-100 dark:bg-dark-800 border-none" />
+                              </Td>
+                            </>
+                          )}
                           <Td className="px-4 py-2">
-                            <input
-                              type="number"
-                              min="1"
-                              max={item.maxQty}
-                              value={item.qty || ""}
-                              onChange={(e) => handleItemChange(index, "qty", e.target.value)}
-                              className="form-input w-20 rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-900"
+                            <input 
+                              type="text" 
+                              readOnly={String(formData.purpose) !== "11"} 
+                              value={item.serialno} 
+                              onChange={(e) => handleItemChange(index, "serialno", e.target.value)}
+                              className={`form-input w-24 rounded-lg ${String(formData.purpose) !== "11" ? "bg-gray-100 dark:bg-dark-800 border-none" : "border-gray-300 dark:border-dark-600 dark:bg-dark-900"}`} 
                             />
-                          </Td>
-                          <Td className="px-4 py-2">
-                            <input type="text" readOnly value={item.unit} className="form-input w-16 rounded-lg bg-gray-100 dark:bg-dark-800 border-none" />
                           </Td>
                           <Td className="px-4 py-2">
                             <input

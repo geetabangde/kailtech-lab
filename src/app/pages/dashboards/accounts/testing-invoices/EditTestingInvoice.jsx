@@ -561,6 +561,7 @@ export default function EditTestingInvoice() {
 
         // PHP: itemid[], itemrate[], invoiceitemid[] sent together
         itemid:        items.map((i) => Number(i.id)),
+        itemmeter:     items.map((i) => parseFloat(i.meter) || 1),
         itemrate:      items.map((i) => parseFloat(i.rate) || 0),
         invoiceitemid: items.map((i) => Number(i.invoiceitemid ?? 0)),
 

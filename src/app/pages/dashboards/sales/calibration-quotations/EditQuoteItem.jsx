@@ -119,9 +119,9 @@ export default function EditQuoteItem() {
             disctype: String(q.disctype || "2"),
             freight: q.freight || 0,
             mobilisation: q.mobilisation || 0,
-            cgstper: q.cgstper || 9,
-            sgstper: q.sgstper || 9,
-            igstper: q.igstper || 18,
+            cgstper: parseFloat(q.cgstper) || 9,
+            sgstper: parseFloat(q.sgstper) || 9,
+            igstper: parseFloat(q.igstper) || 18,
           });
         }
 

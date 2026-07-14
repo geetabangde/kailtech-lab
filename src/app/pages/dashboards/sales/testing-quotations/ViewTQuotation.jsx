@@ -5,7 +5,7 @@ import { Button, Card } from "components/ui";
 import axios from "utils/axios";
 import { toast } from "sonner";
 import dayjs from "dayjs";
-import {  Printer } from "lucide-react";
+import { Printer } from "lucide-react";
 
 import logo from "assets/krtc.jpg";
 
@@ -81,14 +81,14 @@ export default function ViewTQuotation() {
     return (
         <Page title={`View Testing Quotation - ${quote.quotationno || id}`}>
             <div className="transition-content px-[var(--margin-x)] pb-12">
-                
+
                 {/* Actions Header */}
                 <div className="mb-6 flex items-center justify-between no-print">
                     <div className="flex items-center gap-3">
                         <Link to="/dashboards/sales/testing-quotations" className="rounded-full p-1.5">
-                         <Button variant="outline" className="flex items-center gap-2 border-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700">
+                            <Button variant="outline" className="flex items-center gap-2 border-gray-300 hover:bg-gray-100 dark:hover:bg-dark-700">
                                 &lt;&lt; Back to List
-                            </Button>  
+                            </Button>
                         </Link>
                         <h1 className="text-xl font-semibold text-gray-800">View Quotation</h1>
                     </div>
@@ -102,7 +102,7 @@ export default function ViewTQuotation() {
                 {/* Letterhead Document */}
                 <div className="mx-auto print:m-0 print-container" style={{ width: "100%", maxWidth: 1100, ...fontBase }}>
                     <Card className="bg-white p-10 shadow-xl print:shadow-none print:p-0 print:border-none">
-                        
+
                         {/* Header Section */}
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
                             <div style={{ width: "20%" }}>
@@ -121,7 +121,7 @@ export default function ViewTQuotation() {
                         {/* Centered Company Identity */}
                         <div style={{ textAlign: "center", marginBottom: 30 }}>
                             <h1 style={{ margin: 0, fontSize: 18, fontWeight: "500", color: "#333", letterSpacing: "0.5px" }}>
-                                {companyInfo?.company?.name }
+                                {companyInfo?.company?.name}
                             </h1>
                             <p style={{ fontSize: 11, color: "#555", marginTop: 4, lineHeight: 1.5 }}>
                                 NABL Accredited (As per ISO 17025:2017 as per TC-7832 & CC-2348)<br />
@@ -195,7 +195,7 @@ export default function ViewTQuotation() {
                                     <th style={{ borderRight: border, padding: cellPad }}>Package / Test Name</th>
                                     <th style={{ borderRight: border, padding: cellPad, width: 50 }}>Qty</th>
                                     <th style={{ borderRight: border, padding: cellPad, width: 80, textAlign: "right" }}>Unit Cost</th>
-                                    <th style={{ borderRight: border, padding: cellPad, width: 100, textAlign: "right" }}>Amount<br/>(INR)</th>
+                                    <th style={{ borderRight: border, padding: cellPad, width: 100, textAlign: "right" }}>Amount<br />(INR)</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -232,30 +232,56 @@ export default function ViewTQuotation() {
                                     <td colSpan={9} style={{ borderRight: border, borderBottom: border, padding: cellPad, textAlign: "right", fontWeight: "bold" }}>Subtotal</td>
                                     <td style={{ borderBottom: border, padding: cellPad, textAlign: "right" }}>{parseFloat(quote.subtotal || 0).toLocaleString()}</td>
                                 </tr>
-                                <tr style={{ fontSize: 12 }}>
-                                    <td colSpan={9} style={{ borderRight: border, borderBottom: border, padding: cellPad, textAlign: "right", fontWeight: "bold" }}>Discount</td>
-                                    <td style={{ borderBottom: border, padding: cellPad, textAlign: "right" }}>{parseFloat(quote.discount || 0).toLocaleString()}</td>
-                                </tr>
-                                <tr style={{ fontSize: 12 }}>
-                                    <td colSpan={9} style={{ borderRight: border, borderBottom: border, padding: cellPad, textAlign: "right", fontWeight: "bold" }}>Mobilization & Demobilization Charges</td>
-                                    <td style={{ borderBottom: border, padding: cellPad, textAlign: "right" }}>{parseFloat(quote.mobilisation || 0).toLocaleString()}</td>
-                                </tr>
-                                <tr style={{ fontSize: 12 }}>
-                                    <td colSpan={9} style={{ borderRight: border, borderBottom: border, padding: cellPad, textAlign: "right", fontWeight: "bold" }}>Freight Charges</td>
-                                    <td style={{ borderBottom: border, padding: cellPad, textAlign: "right" }}>{parseFloat(quote.freight || 0).toLocaleString()}</td>
-                                </tr>
+                                {parseFloat(quote.discount || 0) > 0 && (
+                                    <tr style={{ fontSize: 12 }}>
+                                        <td colSpan={9} style={{ borderRight: border, borderBottom: border, padding: cellPad, textAlign: "right", fontWeight: "bold" }}>
+                                            Discount {quote.disctype == 2 ? `(${quote.discnumber}%)` : ""}
+                                        </td>
+                                        <td style={{ borderBottom: border, padding: cellPad, textAlign: "right" }}>{parseFloat(quote.discount || 0).toLocaleString()}</td>
+                                    </tr>
+                                )}
+                                {parseFloat(quote.mobilisation || 0) > 0 && (
+                                    <tr style={{ fontSize: 12 }}>
+                                        <td colSpan={9} style={{ borderRight: border, borderBottom: border, padding: cellPad, textAlign: "right", fontWeight: "bold" }}>Mobilization & Demobilization Charges</td>
+                                        <td style={{ borderBottom: border, padding: cellPad, textAlign: "right" }}>{parseFloat(quote.mobilisation || 0).toLocaleString()}</td>
+                                    </tr>
+                                )}
+                                {parseFloat(quote.sampleprep || 0) > 0 && (
+                                    <tr style={{ fontSize: 12 }}>
+                                        <td colSpan={9} style={{ borderRight: border, borderBottom: border, padding: cellPad, textAlign: "right", fontWeight: "bold" }}>Sample Preparation / Handling Charges</td>
+                                        <td style={{ borderBottom: border, padding: cellPad, textAlign: "right" }}>{parseFloat(quote.sampleprep || 0).toLocaleString()}</td>
+                                    </tr>
+                                )}
+                                {parseFloat(quote.witness || 0) > 0 && (
+                                    <tr style={{ fontSize: 12 }}>
+                                        <td colSpan={9} style={{ borderRight: border, borderBottom: border, padding: cellPad, textAlign: "right", fontWeight: "bold" }}>Witness Charges</td>
+                                        <td style={{ borderBottom: border, padding: cellPad, textAlign: "right" }}>{parseFloat(quote.witness || 0).toLocaleString()}</td>
+                                    </tr>
+                                )}
+                                {parseFloat(quote.freight || 0) > 0 && (
+                                    <tr style={{ fontSize: 12 }}>
+                                        <td colSpan={9} style={{ borderRight: border, borderBottom: border, padding: cellPad, textAlign: "right", fontWeight: "bold" }}>Freight Charges</td>
+                                        <td style={{ borderBottom: border, padding: cellPad, textAlign: "right" }}>{parseFloat(quote.freight || 0).toLocaleString()}</td>
+                                    </tr>
+                                )}
                                 <tr style={{ fontSize: 12, background: "#fdfdfd" }}>
                                     <td colSpan={9} style={{ borderRight: border, borderBottom: border, padding: cellPad, textAlign: "right", fontWeight: "bold" }}>Subtotal 2</td>
-                                    <td style={{ borderBottom: border, padding: cellPad, textAlign: "right" }}>{parseFloat(quote.subtotal2 || quote.subtotal || 0).toLocaleString()}</td>
+                                    <td style={{ borderBottom: border, padding: cellPad, textAlign: "right" }}>
+                                        {(parseFloat(quote.subtotal || 0) - parseFloat(quote.discount || 0) + parseFloat(quote.mobilisation || 0) + parseFloat(quote.sampleprep || 0) + parseFloat(quote.witness || 0) + parseFloat(quote.freight || 0)).toLocaleString()}
+                                    </td>
                                 </tr>
-                                <tr style={{ fontSize: 12 }}>
-                                    <td colSpan={9} style={{ borderRight: border, borderBottom: border, padding: cellPad, textAlign: "right", fontWeight: "bold" }}>CGST {quote.cgst_percent || (quote.gstnumber ? quote.gstnumber/2 : 9)}%</td>
-                                    <td style={{ borderBottom: border, padding: cellPad, textAlign: "right" }}>{parseFloat(quote.cgst || 0).toLocaleString()}</td>
-                                </tr>
-                                <tr style={{ fontSize: 12 }}>
-                                    <td colSpan={9} style={{ borderRight: border, borderBottom: border, padding: cellPad, textAlign: "right", fontWeight: "bold" }}>SGST {quote.sgst_percent || (quote.gstnumber ? quote.gstnumber/2 : 9)}%</td>
-                                    <td style={{ borderBottom: border, padding: cellPad, textAlign: "right" }}>{parseFloat(quote.sgst || 0).toLocaleString()}</td>
-                                </tr>
+                                {parseFloat(quote.gst || 0) > 0 && (
+                                    <>
+                                        <tr style={{ fontSize: 12 }}>
+                                            <td colSpan={9} style={{ borderRight: border, borderBottom: border, padding: cellPad, textAlign: "right", fontWeight: "bold" }}>CGST {quote.cgst_percent || (quote.gstnumber ? quote.gstnumber / 2 : 9)}%</td>
+                                            <td style={{ borderBottom: border, padding: cellPad, textAlign: "right" }}>{parseFloat(quote.cgst || (quote.gst ? quote.gst / 2 : 0)).toLocaleString()}</td>
+                                        </tr>
+                                        <tr style={{ fontSize: 12 }}>
+                                            <td colSpan={9} style={{ borderRight: border, borderBottom: border, padding: cellPad, textAlign: "right", fontWeight: "bold" }}>SGST {quote.sgst_percent || (quote.gstnumber ? quote.gstnumber / 2 : 9)}%</td>
+                                            <td style={{ borderBottom: border, padding: cellPad, textAlign: "right" }}>{parseFloat(quote.sgst || (quote.gst ? quote.gst / 2 : 0)).toLocaleString()}</td>
+                                        </tr>
+                                    </>
+                                )}
                                 <tr style={{ fontSize: 13, background: "#f9fafb", fontWeight: "bold" }}>
                                     <td colSpan={9} style={{ borderRight: border, borderBottom: "2px solid #000", padding: cellPad, textAlign: "right" }}>Total</td>
                                     <td style={{ borderBottom: "2px solid #000", padding: cellPad, textAlign: "right" }}>{parseFloat(quote.total || 0).toLocaleString()}</td>
@@ -292,8 +318,22 @@ export default function ViewTQuotation() {
                         <div style={{ marginTop: 40, borderTop: "1px solid #eee", paddingTop: 20 }}>
                             <p style={{ margin: "0 0 10px", fontWeight: "bold", textDecoration: "underline", fontSize: 12 }}>Terms & Conditions:</p>
                             <div style={{ fontSize: 11, lineHeight: 1.6, color: "#444" }}>
+                                - Rates are for the tests conducted at our Lab at {companyInfo?.address?.city || "Indore"} ({companyInfo?.address?.state || "M.P."}) {companyInfo?.address?.country || "India"}.<br />
+                                - Cross Cheque/Demand Draft/NEFT/RTGS should be drawn in favour of {companyInfo?.company?.name || "Kailtech Test & Research Centre Pvt. Ltd."}. Payable at {companyInfo?.address?.city || "Indore"} ({companyInfo?.address?.state || "M.P."}).<br />
+                                - Please attach bill details indicating Quotation No. / Invoice No. & TDS deductions if any, along with your payment.<br />
+                                - Taxes are applicable as per the prevailing rates at the time of Invoicing-Currently GST of 18% is applicable on all invoices.<br />
+                                - For GST registered Customer the GST No. is mandatory for sample registration in order for the same to be included in the tax invoices.<br />
+                                - Validity : 30 days from the date of issued of this quotation.<br />
+
+                                - If the payment is to be paid in Cash pay to UPI <b>0795933A0099960.bqr@kotak</b> only and take official receipt. Else claim of payment, shall not be accepted.<br />
+                                - Subject to exclusive jurisdiction of courts at {companyInfo?.address?.city || "Indore"} ({companyInfo?.address?.state || "M.P."}) only.<br />
                                 {quote.customterms && (
-                                    <div dangerouslySetInnerHTML={{ __html: quote.customterms }} />
+                                    <span dangerouslySetInnerHTML={{
+                                        __html: quote.customterms
+                                            .replace(/<(p|div|li)[^>]*>\s*-?\s*/gi, "- ")
+                                            .replace(/<\/(p|div|li)>/gi, "<br/>")
+                                            .replace(/^(?!\s*-|<|$)/, "- ")
+                                    }} />
                                 )}
                             </div>
                         </div>
@@ -348,7 +388,8 @@ export default function ViewTQuotation() {
                     </Card>
                 </div>
 
-                <style dangerouslySetInnerHTML={{ __html: `
+                <style dangerouslySetInnerHTML={{
+                    __html: `
                     @media print {
                         body * { 
                             visibility: hidden; 

@@ -55,6 +55,8 @@ function printInvoice(templateProps, withLH, logoSrc, pageTitle) {
     @media print { 
       body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       head { display: none; }
+      table { page-break-inside: auto; }
+      tr { page-break-inside: avoid; break-inside: avoid; page-break-after: auto; }
     }
     table  { border-collapse: collapse; width: 100%; margin-bottom: 8px; table-layout: fixed; }
     th, td { border: 1px solid #000; padding: 6px 8px; font-size: 13px; vertical-align: middle; word-break: break-word; overflow: hidden; }

@@ -359,6 +359,18 @@ export default function CalibrationReport() {
       structure: getObservationCustomStructure(rawdata?.listInstrument),
     },
     {
+      id: 'observationth',
+      name: 'Observation TH',
+      category: 'Thermohydrometer',
+      structure: {
+        singleHeaders: ['Sr no', 'Value Shown on', 'Range', 'nominal Value', 'Unit'],
+        subHeaders: {
+          'Observation on UUC / Master': ['1', '2', '3', '4', '5']
+        },
+        remainingHeaders: ['Mean', 'Error']
+      }
+    },
+    {
       id: 'observationwbn',
       name: 'Observation WBN (Weighing, Rep, Ecc)',
       category: 'Weighing Balance',
@@ -835,33 +847,57 @@ export default function CalibrationReport() {
         });
       }
     } else if (template === 'observationwbn') {
-      dataArray.forEach((point) => {
-        if (!point) return;
+      const payload = dataArray[0] || {};
+      const wRows = payload.weighing_process?.rows || [];
+      const rRows = payload.repeatability?.rows || [];
+      const eRows = payload.eccentricity?.rows || [];
 
-        const wReadings = safeGetArray(point.observations, 3);
-        while (wReadings.length < 3) wReadings.push('');
-
-        const rReadings = safeGetArray(point.uucr, 5);
-        while (rReadings.length < 5) rReadings.push('');
-
-        const eReadings = safeGetArray(point.uuce, 10);
-        while (eReadings.length < 10) eReadings.push('');
-
+      // 1. Weighing Process
+      wRows.forEach((point, index) => {
+        const uucReadings = safeGetArray(point.uuc_observations, 3);
         const row = [
-          point.sr_no?.toString() || '',
-          safeGetValue(point.nominal_value || point.test_point || point.point),
-          ...wReadings.slice(0, 3).map(obs => safeGetValue(obs)),
-          safeGetValue(point.average),
-          safeGetValue(point.error),
-          ...rReadings.slice(0, 5).map(obs => safeGetValue(obs)),
-          safeGetValue(point.averageuucr),
-          ...eReadings.slice(0, 10).map(obs => safeGetValue(obs)),
-          safeGetValue(point.eccentricity)
+          point.sr_no?.toString() || (index + 1).toString(),
+          safeGetValue(point.nominal_value),
+          safeGetValue(uucReadings[0]?.value),
+          safeGetValue(uucReadings[1]?.value),
+          safeGetValue(uucReadings[2]?.value),
+          safeGetValue(point.average_uuc),
+          safeGetValue(point.error)
         ];
-
-        while (row.length < 24) row.push('');
         rows.push(row);
       });
+
+      // 2. Repeatability
+      rRows.forEach((point) => {
+        const uucrReadings = safeGetArray(point.uucr_observations, 10);
+        const row = [
+          safeGetValue(point.nominal_value),
+          ...Array(10).fill('').map((_, i) => safeGetValue(uucrReadings[i]?.value)),
+          safeGetValue(point.average_uucr)
+        ];
+        rows.push(row);
+      });
+
+      // 3. Eccentricity
+      eRows.forEach((point) => {
+        const cwReadings = safeGetArray(point.clockwise_observations, 5);
+        const acwReadings = safeGetArray(point.anticlockwise_observations, 5);
+        const row = [
+          safeGetValue(point.nominal_value),
+          ...Array(5).fill('').map((_, i) => safeGetValue(cwReadings[i]?.value)),
+          ...Array(5).fill('').map((_, i) => safeGetValue(acwReadings[i]?.value)),
+          safeGetValue(point.eccentricity_d_value)
+        ];
+        rows.push(row);
+      });
+
+      return {
+        rows,
+        unitTypes,
+        weighingCount: wRows.length,
+        repeatabilityCount: rRows.length,
+        eccentricityCount: eRows.length,
+      };
     } else if (template === 'observationwwbn') {
       dataArray.forEach((point) => {
         if (!point) return;
@@ -1229,6 +1265,41 @@ export default function CalibrationReport() {
           safeGetValue(point.s_average_master),          // 12: Average with corrected mv
           safeGetValue(point.c_average_master),          // 13: Average (°C)
           '-',                                           // 14: Deviation (°C)
+        ];
+        rows.push(masterRow);
+      });
+    } else if (template === 'observationth') {
+      dataArray.forEach((point) => {
+        if (!point) return;
+
+        const srNo = point.sr_no?.toString() || '';
+        const setPoint = safeGetValue(point.setpoint || point.point);
+
+        // UUC Row
+        const uucReadings = safeGetArray(point.uuc, 5);
+        const uucRow = [
+          srNo,                                           // 0: Sr no
+          'UUC',                                          // 1: Value Shown on
+          safeGetValue(point.uucrange),                   // 2: Range
+          setPoint,                                       // 3: nominal Value
+          safeGetValue(point.unit || point.uucunit),      // 4: Unit
+          ...uucReadings.slice(0, 5).map(val => safeGetValue(val)), // 5-9: Observations 1-5
+          safeGetValue(point.averageuuc),                 // 10: Mean
+          '-',                                            // 11: Error (dash for UUC)
+        ];
+        rows.push(uucRow);
+
+        // Master Row
+        const masterReadings = safeGetArray(point.master, 5);
+        const masterRow = [
+          '-',                                            // 0: Sr no
+          'Master',                                       // 1: Value Shown on
+          '-',                                            // 2: Range
+          '-',                                            // 3: nominal Value
+          safeGetValue(point.masterunit),                 // 4: Unit
+          ...masterReadings.slice(0, 5).map(val => safeGetValue(val)), // 5-9: Observations 1-5
+          safeGetValue(point.averagemaster),              // 10: Mean
+          safeGetValue(point.error),                      // 11: Error
         ];
         rows.push(masterRow);
       });
@@ -1825,6 +1896,18 @@ export default function CalibrationReport() {
           }
         } else if (observationTemplate === 'observationwb') {
           console.log('🔍 Setting WB observations:', observationData);
+          if (observationData.calibration_points && Array.isArray(observationData.calibration_points)) {
+            processedObservations = observationData.calibration_points;
+          } else if (observationData.data && Array.isArray(observationData.data)) {
+            processedObservations = observationData.data;
+          } else if (Array.isArray(observationData)) {
+            processedObservations = observationData;
+          }
+        } else if (observationTemplate === 'observationwbn') {
+          console.log(`🔍 Setting ${observationTemplate} observations:`, observationData);
+          processedObservations = [observationData];
+        } else if (observationTemplate === 'observationwwbn') {
+          console.log(`🔍 Setting ${observationTemplate} observations:`, observationData);
           if (observationData.calibration_points && Array.isArray(observationData.calibration_points)) {
             processedObservations = observationData.calibration_points;
           } else if (observationData.data && Array.isArray(observationData.data)) {
@@ -2612,7 +2695,7 @@ export default function CalibrationReport() {
           {observationTemplate && tableStructure && observationRows.rows.length > 0 && (
             <>
               <h3 className="font-semibold mb-2 text-base">Calibration Results - {selectedTableData?.name}</h3>
-              {observationTemplate === 'observationwb' ? (
+              {observationTemplate === 'observationwb' || observationTemplate === 'observationwbn' ? (
                 renderWeighingBalanceTables()
               ) : observationTemplate === 'observationtm' ? (
                 renderObservationTMTable()
@@ -2753,8 +2836,8 @@ export default function CalibrationReport() {
                               }
                             }
 
-                            // ADDED: Special handling for observationrtdwi static text and dashes
-                            if (observationTemplate === 'observationrtdwi' && (cell === '-' || cell === 'UUC' || cell === 'Master')) {
+                            // ADDED: Special handling for observationrtdwi and observationth static text and dashes
+                            if ((observationTemplate === 'observationrtdwi' || observationTemplate === 'observationth') && (cell === '-' || cell === 'UUC' || cell === 'Master')) {
                               return (
                                 <td key={colIndex} className="border border-gray-300 px-3 py-2 text-center font-medium">
                                   {cell}

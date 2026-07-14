@@ -6395,6 +6395,21 @@ const CalibrateStep3 = () => {
       return false;
     }
 
+    // Determine the highest nominal value row for specific templates
+    let maxNominalRowIndex = -1;
+    if (['observationmt', 'observationctg', 'observationfg', 'observationmsr'].includes(selectedTableData.id)) {
+      let maxNominal = -Infinity;
+      selectedTableData.staticRows.forEach((row, rowIndex) => {
+        const nominalKey = `${rowIndex}-1`;
+        const nominalValueStr = tableInputValues[nominalKey] ?? (row[1]?.toString() || '');
+        const nominalValue = parseFloat(nominalValueStr);
+        if (!isNaN(nominalValue) && nominalValue >= maxNominal) {
+          maxNominal = nominalValue;
+          maxNominalRowIndex = rowIndex;
+        }
+      });
+    }
+
     selectedTableData.staticRows.forEach((row, rowIndex) => {
       if (selectedTableData.id === 'observationmm') {
         const calibPointId = selectedTableData.hiddenInputs?.calibrationPoints?.[rowIndex];
@@ -6512,7 +6527,9 @@ const CalibrateStep3 = () => {
           for (let col = 2; col <= 6; col++) {
             const key = `${rowIndex}-${col}`;
             const value = tableInputValues[key] ?? (row[col]?.toString() || '');
-            if (!value.trim()) {
+            const isOptional = (col === 5 || col === 6) && rowIndex !== maxNominalRowIndex;
+
+            if (!value.trim() && !isOptional) {
               newErrors[key] = 'This field is required';
             }
           }
@@ -6548,9 +6565,9 @@ const CalibrateStep3 = () => {
         }
       } else if (selectedTableData.id === 'observationmsr') {
         // Nominal value (column 1) and Observations 1-5 (columns 2-6) are required
-        selectedTableData.staticRows.forEach((row, rowIndex) => {
+        selectedTableData.staticRows.forEach((row, msrRowIndex) => {
           // Nominal value
-          const nominalKey = `${rowIndex}-1`;
+          const nominalKey = `${msrRowIndex}-1`;
           const nominalValue = tableInputValues[nominalKey] ?? (row[1]?.toString() || '');
           if (!nominalValue.trim()) {
             newErrors[nominalKey] = 'This field is required';
@@ -6558,9 +6575,11 @@ const CalibrateStep3 = () => {
 
           // Observations 1-5 (columns 2-6)
           for (let col = 2; col <= 6; col++) {
-            const key = `${rowIndex}-${col}`;
+            const key = `${msrRowIndex}-${col}`;
             const value = tableInputValues[key] ?? (row[col]?.toString() || '');
-            if (!value.trim()) {
+            const isOptional = (col === 5 || col === 6) && msrRowIndex !== maxNominalRowIndex;
+
+            if (!value.trim() && !isOptional) {
               newErrors[key] = 'This field is required';
             }
           }
@@ -6625,7 +6644,9 @@ const CalibrateStep3 = () => {
           for (let col = 2; col < 2 + repeatableCycle; col++) {
             const key = `${rowIndex}-${col}`;
             const value = tableInputValues[key] ?? (row[col]?.toString() || '');
-            if (!value.trim()) {
+            const isOptional = (col === 5 || col === 6) && rowIndex !== maxNominalRowIndex;
+
+            if (!value.trim() && !isOptional) {
               newErrors[key] = 'This field is required';
             }
           }
@@ -6652,9 +6673,12 @@ const CalibrateStep3 = () => {
         for (let col = 2; col <= 6; col++) {
           const key = `${rowIndex}-${col}`;
           const value = tableInputValues[key] ?? (row[col]?.toString() || '');
+          const isOptional = (col === 5 || col === 6) && rowIndex !== maxNominalRowIndex;
 
           if (!value.trim()) {
-            newErrors[key] = 'This field is required';
+            if (!isOptional) {
+              newErrors[key] = 'This field is required';
+            }
           } else {
             const numValue = parseFloat(value);
 
@@ -7314,14 +7338,14 @@ const CalibrateStep3 = () => {
           } else if (observationTemplate === 'observationuc') {
             console.log('Setting UC observations:', observationData);
             const ucData = observationData.data || observationData;
-            
+
             if (ucData.measure_data || ucData.source_data) {
               const combined = [];
               if (Array.isArray(ucData.measure_data)) {
-                combined.push(...ucData.measure_data.map(p => ({...p, mode: 'Measure'})));
+                combined.push(...ucData.measure_data.map(p => ({ ...p, mode: 'Measure' })));
               }
               if (Array.isArray(ucData.source_data)) {
-                combined.push(...ucData.source_data.map(p => ({...p, mode: 'Source'})));
+                combined.push(...ucData.source_data.map(p => ({ ...p, mode: 'Source' })));
               }
               setObservations(combined);
             } else if (Array.isArray(ucData)) {
@@ -7567,6 +7591,14 @@ const CalibrateStep3 = () => {
         }
       }
     }
+    else if (template === 'observationth') {
+      const obsValues = parsedValues.slice(5, 10).filter((val, idx) => {
+        return rowData[idx + 5] !== '' && !isNaN(val);
+      });
+      result.average = obsValues.length
+        ? (obsValues.reduce((sum, val) => sum + val, 0) / obsValues.length).toFixed(4)
+        : '';
+    }
     else if (template === 'observationts') {
       const readings = parsedValues.slice(1, 9);
       const validReadings = readings.filter(val => val !== 0 && !isNaN(val));
@@ -7582,12 +7614,12 @@ const CalibrateStep3 = () => {
       result.error = result.average && nominalValue
         ? (parseFloat(result.average) - nominalValue).toFixed(3)
         : '';
-        
+
       const rReadings = parsedValues.slice(7, 12).filter((val) => val !== 0 && !isNaN(val));
       result.averageuucr = rReadings.length
         ? (rReadings.reduce((sum, val) => sum + val, 0) / rReadings.length).toFixed(3)
         : '';
-        
+
       const eReadings = parsedValues.slice(13, 23).filter((val) => val !== 0 && !isNaN(val));
       if (eReadings.length > 0) {
         const max = Math.max(...eReadings);
@@ -8041,10 +8073,10 @@ const CalibrateStep3 = () => {
 
         const wReadings = safeGetArray(point.observations, 3);
         while (wReadings.length < 3) wReadings.push('');
-        
+
         const rReadings = safeGetArray(point.uucr, 5);
         while (rReadings.length < 5) rReadings.push('');
-        
+
         const eReadings = safeGetArray(point.uuce, 10);
         while (eReadings.length < 10) eReadings.push('');
 
@@ -9095,13 +9127,13 @@ const CalibrateStep3 = () => {
   const getCustomLayoutIndices = (instrument) => {
     if (!instrument) return null;
     let colIdx = 1;
-    
+
     let hasParameter = instrument.parametertoshow === "Yes";
     let paramIdx = hasParameter ? colIdx++ : -1;
-    
+
     let hasSpecification = instrument.specificationtoshow === "Yes";
     let specIdx = hasSpecification ? colIdx++ : -1;
-    
+
     let hasSetpoint = instrument.setpointtoshow === "Yes";
     let setpointIdx = hasSetpoint ? colIdx++ : -1;
 
@@ -9118,13 +9150,13 @@ const CalibrateStep3 = () => {
     let avgUucIdx = -1;
 
     const pushMaster = () => {
-      for(let i=0; i<masterCount; i++) masterObsIndices.push(colIdx++);
-      if(masterCount > 1) avgMasterIdx = colIdx++;
+      for (let i = 0; i < masterCount; i++) masterObsIndices.push(colIdx++);
+      if (masterCount > 1) avgMasterIdx = colIdx++;
     };
 
     const pushUuc = () => {
-      for(let i=0; i<uucCount; i++) uucObsIndices.push(colIdx++);
-      if(uucCount > 1) avgUucIdx = colIdx++;
+      for (let i = 0; i < uucCount; i++) uucObsIndices.push(colIdx++);
+      if (uucCount > 1) avgUucIdx = colIdx++;
     };
 
     if (hasMaster && masterFirst) pushMaster();
@@ -9154,7 +9186,7 @@ const CalibrateStep3 = () => {
     const singleHeaders = [];
     const subHeaders = {};
     const remainingHeaders = [];
-    
+
     singleHeaders.push("Sr. No.");
 
     if (instrument.parametertoshow === "Yes") {
@@ -9167,7 +9199,7 @@ const CalibrateStep3 = () => {
 
     let masterdone = false;
     let uucdone = false;
-    
+
     const masterCount = parseInt(instrument.master || 1);
     const uucCount = parseInt(instrument.uuc || 1);
 
@@ -9187,7 +9219,7 @@ const CalibrateStep3 = () => {
       let obsArray = [];
       for (let i = 1; i <= masterCount; i++) obsArray.push(`Observation ${i}`);
       if (masterCount > 1) obsArray.push("Average On Master");
-      
+
       subHeaders[instrument.masterheading || "Master Observations"] = obsArray;
       masterdone = true;
     };
@@ -9196,7 +9228,7 @@ const CalibrateStep3 = () => {
       let obsArray = [];
       for (let i = 1; i <= uucCount; i++) obsArray.push(`Observation ${i}`);
       if (uucCount > 1) obsArray.push("Average On UUC");
-      
+
       subHeaders[instrument.uucheading || "UUC Observations"] = obsArray;
       uucdone = true;
     };
@@ -9229,6 +9261,20 @@ const CalibrateStep3 = () => {
   };
 
   const observationTables = [
+    {
+      id: 'observationth',
+      name: 'Observation TH',
+      category: 'Thermohydrometer',
+      structure: {
+        singleHeaders: ['Sr no', 'Value Shown on', 'Range', 'nominal Value', 'Unit'],
+        subHeaders: {
+          'Observation on UUC / Master': ['1', '2', '3', '4', '5']
+        },
+        remainingHeaders: ['Mean', 'Error']
+      },
+      staticRows: createObservationRows(observations, 'observationth').rows,
+      hiddenInputs: createObservationRows(observations, 'observationth').hiddenInputs
+    },
     {
       id: 'observationcustom',
       name: 'Observation Custom',
@@ -9821,7 +9867,6 @@ const CalibrateStep3 = () => {
         newValues[`${rowIndex}-6`] = calculated.error;
         newValues[`${rowIndex}-12`] = calculated.averageuucr;
         newValues[`${rowIndex}-23`] = calculated.eccentricity;
-        newValues[`${rowIndex}-7`] = calculated.hysteresis;
       }
       else if (selectedTableData.id === 'observationfg') {
         newValues[`${rowIndex}-7`] = calculated.average;
@@ -9838,6 +9883,29 @@ const CalibrateStep3 = () => {
         newValues[`${rowIndex}-24`] = calculated.averageUUC;
         newValues[`${rowIndex}-25`] = calculated.error;
         newValues[`${rowIndex}-26`] = calculated.averageMaster;
+      }
+      else if (selectedTableData.id === 'observationth') {
+        const rowType = rowData[1]; // Index 1 is 'Value Shown on' -> 'UUC' or 'Master'
+
+        if (rowType === 'UUC') {
+          newValues[`${rowIndex}-10`] = calculated.average || '';
+
+          const masterAvg = parseFloat(newValues[`${rowIndex + 1}-10`] ?? tableInputValues[`${rowIndex + 1}-10`]);
+          const uucAvg = parseFloat(calculated.average);
+          if (!isNaN(masterAvg) && !isNaN(uucAvg)) {
+            // Error is calculated on Master row index 11
+            newValues[`${rowIndex + 1}-11`] = (masterAvg - uucAvg).toFixed(4); // Assuming master - uuc or uuc - master
+          }
+        } else if (rowType === 'Master') {
+          newValues[`${rowIndex}-10`] = calculated.average || '';
+
+          const masterAvg = parseFloat(calculated.average);
+          const uucAvg = parseFloat(newValues[`${rowIndex - 1}-10`] ?? tableInputValues[`${rowIndex - 1}-10`]);
+
+          if (!isNaN(masterAvg) && !isNaN(uucAvg)) {
+            newValues[`${rowIndex}-11`] = (masterAvg - uucAvg).toFixed(4);
+          }
+        }
       }
       else if (selectedTableData.id === 'observationrtdwi') {
         const rowType = rowData[2];
@@ -12876,35 +12944,35 @@ const CalibrateStep3 = () => {
         repeatable: '0',
         value: calculated.error || '0',
       });
-      } else if (selectedTableData.id === 'observationwbn') {
-        // Weighing process
-        [2, 3, 4].forEach((colIdx, obsIdx) => {
-          payloads.push({
-            inwardid: inwardId, instid: instId, calibrationpoint: calibrationPointId,
-            type: 'uuc', repeatable: obsIdx.toString(), value: rowData[colIdx] || '0',
-          });
+    } else if (selectedTableData.id === 'observationwbn') {
+      // Weighing process
+      [2, 3, 4].forEach((colIdx, obsIdx) => {
+        payloads.push({
+          inwardid: inwardId, instid: instId, calibrationpoint: calibrationPointId,
+          type: 'uuc', repeatable: obsIdx.toString(), value: rowData[colIdx] || '0',
         });
-        payloads.push({ inwardid: inwardId, instid: instId, calibrationpoint: calibrationPointId, type: 'averageuuc', repeatable: '0', value: calculated.average || '0' });
-        payloads.push({ inwardid: inwardId, instid: instId, calibrationpoint: calibrationPointId, type: 'error', repeatable: '0', value: calculated.error || '0' });
+      });
+      payloads.push({ inwardid: inwardId, instid: instId, calibrationpoint: calibrationPointId, type: 'averageuuc', repeatable: '0', value: calculated.average || '0' });
+      payloads.push({ inwardid: inwardId, instid: instId, calibrationpoint: calibrationPointId, type: 'error', repeatable: '0', value: calculated.error || '0' });
 
-        // Repeatability
-        [7, 8, 9, 10, 11].forEach((colIdx, obsIdx) => {
-          payloads.push({
-            inwardid: inwardId, instid: instId, calibrationpoint: calibrationPointId,
-            type: 'uucr', repeatable: obsIdx.toString(), value: rowData[colIdx] || '0',
-          });
+      // Repeatability
+      [7, 8, 9, 10, 11].forEach((colIdx, obsIdx) => {
+        payloads.push({
+          inwardid: inwardId, instid: instId, calibrationpoint: calibrationPointId,
+          type: 'uucr', repeatable: obsIdx.toString(), value: rowData[colIdx] || '0',
         });
-        payloads.push({ inwardid: inwardId, instid: instId, calibrationpoint: calibrationPointId, type: 'averageuucr', repeatable: '0', value: calculated.averageuucr || '0' });
+      });
+      payloads.push({ inwardid: inwardId, instid: instId, calibrationpoint: calibrationPointId, type: 'averageuucr', repeatable: '0', value: calculated.averageuucr || '0' });
 
-        // Eccentricity
-        [13, 14, 15, 16, 17, 18, 19, 20, 21, 22].forEach((colIdx, obsIdx) => {
-          payloads.push({
-            inwardid: inwardId, instid: instId, calibrationpoint: calibrationPointId,
-            type: 'uuce', repeatable: obsIdx.toString(), value: rowData[colIdx] || '0',
-          });
+      // Eccentricity
+      [13, 14, 15, 16, 17, 18, 19, 20, 21, 22].forEach((colIdx, obsIdx) => {
+        payloads.push({
+          inwardid: inwardId, instid: instId, calibrationpoint: calibrationPointId,
+          type: 'uuce', repeatable: obsIdx.toString(), value: rowData[colIdx] || '0',
         });
-        payloads.push({ inwardid: inwardId, instid: instId, calibrationpoint: calibrationPointId, type: 'eccentricity', repeatable: '0', value: calculated.eccentricity || '0' });
-      } else if (selectedTableData.id === 'observationctg') {
+      });
+      payloads.push({ inwardid: inwardId, instid: instId, calibrationpoint: calibrationPointId, type: 'eccentricity', repeatable: '0', value: calculated.eccentricity || '0' });
+    } else if (selectedTableData.id === 'observationctg') {
       payloads.push({
         inwardid: inwardId,
         instid: instId,
@@ -13092,7 +13160,7 @@ const CalibrateStep3 = () => {
     return selectedTableData.modes.map((modeGroup, groupIndex) => {
       const isMeasure = modeGroup.mode.toLowerCase() === 'measure';
       const pointsCount = modeGroup.calibration_points.length;
-      
+
       const currentStartingRowIndex = globalRowIndex;
       globalRowIndex += pointsCount;
 
@@ -13332,7 +13400,7 @@ const CalibrateStep3 = () => {
     const key = `${pointId}-${type}${type === 'master' || type === 'uuc' ? `-${index}` : ''}`;
     setTableInputValues(prev => {
       const newValues = { ...prev, [key]: value };
-      
+
       let uucSum = 0;
       let uucCountNum = 0;
       let masterSum = 0;
@@ -13344,7 +13412,7 @@ const CalibrateStep3 = () => {
           uucSum += uVal;
           uucCountNum++;
         }
-        
+
         const mVal = parseFloat(newValues[`${pointId}-master-${i}`]);
         if (!isNaN(mVal)) {
           masterSum += mVal;
@@ -13354,13 +13422,13 @@ const CalibrateStep3 = () => {
 
       const avgUuc = uucCountNum > 0 ? (uucSum / uucCountNum).toFixed(3) : '';
       const avgMaster = masterCountNum > 0 ? (masterSum / masterCountNum).toFixed(3) : '';
-      
+
       newValues[`${pointId}-averageuuc`] = avgUuc;
       newValues[`${pointId}-averagemaster`] = avgMaster;
 
       const finalUuc = avgUuc !== '' ? parseFloat(avgUuc) : parseFloat(newValues[`${pointId}-uuc-0`]) || 0;
       const finalMaster = avgMaster !== '' ? parseFloat(avgMaster) : parseFloat(newValues[`${pointId}-master-0`]) || 0;
-      
+
       if (finalUuc !== 0 || finalMaster !== 0) {
         newValues[`${pointId}-error`] = (finalUuc - finalMaster).toFixed(3);
       }
@@ -13372,7 +13440,7 @@ const CalibrateStep3 = () => {
   const handleBiomedicalInputBlur = async (pointId, type, index) => {
     const key = `${pointId}-${type}${type === 'master' || type === 'uuc' ? `-${index}` : ''}`;
     const value = tableInputValues[key] || '';
-    
+
     const payload = {
       inwardid: inwardId,
       instid: instId,
@@ -13381,7 +13449,7 @@ const CalibrateStep3 = () => {
       repeatable: (type === 'master' || type === 'uuc') ? index.toString() : '0',
       value: value,
     };
-    
+
     try {
       const token = localStorage.getItem('authToken');
       await axios.post(
@@ -13389,13 +13457,13 @@ const CalibrateStep3 = () => {
         payload,
         { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } }
       );
-      
+
       if (type === 'uuc' || type === 'master') {
         const avgKey = type === 'uuc' ? 'averageuuc' : 'averagemaster';
         await axios.post(`${JWT_HOST_API}/calibrationprocess/set-observations`, {
           inwardid: inwardId, instid: instId, calibrationpoint: pointId, type: avgKey, repeatable: '0', value: tableInputValues[`${pointId}-${avgKey}`] || ''
         }, { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } });
-        
+
         await axios.post(`${JWT_HOST_API}/calibrationprocess/set-observations`, {
           inwardid: inwardId, instid: instId, calibrationpoint: pointId, type: 'error', repeatable: '0', value: tableInputValues[`${pointId}-error`] || ''
         }, { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } });
@@ -13956,8 +14024,51 @@ const CalibrateStep3 = () => {
           values.push(rowData[10] || calculated.average || '0');
         }
       }
+      else if (selectedTableData.id === 'observationth') {
+        const isUUCRow = rowData[1] === 'UUC';
+        const isMasterRow = rowData[1] === 'Master';
 
-      // 4. observationppg
+        if (isUUCRow) {
+          calibrationPoints.push(calibPointId);
+          types.push('uucrange');
+          repeatables.push('0');
+          values.push(rowData[2] || '');
+
+          calibrationPoints.push(calibPointId);
+          types.push('setpoint');
+          repeatables.push('0');
+          values.push(rowData[3] || '0');
+
+          [5, 6, 7, 8, 9].forEach((colIndex, obsIndex) => {
+            calibrationPoints.push(calibPointId);
+            types.push('uuc');
+            repeatables.push(obsIndex.toString());
+            values.push(rowData[colIndex] || '0');
+          });
+
+          calibrationPoints.push(calibPointId);
+          types.push('averageuuc');
+          repeatables.push('0');
+          values.push(rowData[10] || calculated.average || '0');
+        } else if (isMasterRow) {
+          [5, 6, 7, 8, 9].forEach((colIndex, obsIndex) => {
+            calibrationPoints.push(calibPointId);
+            types.push('master');
+            repeatables.push(obsIndex.toString());
+            values.push(rowData[colIndex] || '0');
+          });
+
+          calibrationPoints.push(calibPointId);
+          types.push('averagemaster');
+          repeatables.push('0');
+          values.push(rowData[10] || calculated.average || '0');
+
+          calibrationPoints.push(calibPointId);
+          types.push('error');
+          repeatables.push('0');
+          values.push(rowData[11] || '0');
+        }
+      }
       else if (selectedTableData.id === 'observationppg') {
         calibrationPoints.push(calibPointId);
         types.push('uuc');
@@ -15315,7 +15426,7 @@ const CalibrateStep3 = () => {
                                     }
 
 
-                                    if (selectedTableData.id === 'observationrtdwi' && (cell === '-' || cell === 'UUC' || cell === 'Master')) {
+                                    if ((selectedTableData.id === 'observationrtdwi' || selectedTableData.id === 'observationth') && (cell === '-' || cell === 'UUC' || cell === 'Master')) {
                                       return (
                                         <td key={colIndex} className="px-3 py-2 whitespace-nowrap text-sm border-r border-gray-200 dark:border-gray-600 last:border-r-0 text-center font-medium">
                                           {cell}
@@ -15388,6 +15499,15 @@ const CalibrateStep3 = () => {
                                       isDisabled = isDisabled || [0, 1, 2, 8, 9].includes(colIndex);
                                     } else if (selectedTableData.id === 'observationts') {
                                       isDisabled = isDisabled || [0, 9].includes(colIndex);
+                                    } else if (selectedTableData.id === 'observationth') {
+                                      const rowType = row[1];
+                                      isDisabled = isDisabled || cell === '-';
+                                      if (rowType === 'UUC') {
+                                        isDisabled = isDisabled || [0, 1, 3, 4, 10, 11].includes(colIndex);
+                                      }
+                                      if (rowType === 'Master') {
+                                        isDisabled = isDisabled || [0, 1, 2, 3, 4, 10, 11].includes(colIndex);
+                                      }
                                     }
 
                                     let rowSpanVal = undefined;
