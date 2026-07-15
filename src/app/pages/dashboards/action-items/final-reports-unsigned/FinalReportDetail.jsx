@@ -269,7 +269,7 @@ export default function FinalReportDetail() {
             </div>
 
             {/* ── Remarks ──────────────────────────────────────────────── */}
-            <RemarkSection remarks={remarks} />
+            <RemarkSection remarks={remarks} report={report} />
 
             {/* ── End of Report ────────────────────────────────────────── */}
             <p className="my-4 text-center text-sm font-bold">**End of Report**</p>
@@ -330,23 +330,38 @@ function InfoTr({ label, value }) {
   );
 }
 
-function RemarkSection({ remarks }) {
-  const hodRemark = remarks?.hod_remark ?? "";
-  const witnessVal = remarks?.witness ?? "";
-  const witnessDetail = remarks?.witness_detail ?? "";
-  const bdlRemark = remarks?.bdl_remark ?? "";
-  const adlRemark = remarks?.adl_remark ?? "";
+function RemarkSection({ remarks, report }) {
+  const hodRemark = remarks?.hod_remark ?? remarks?.hodremark ?? report?.hod_remark ?? report?.hodremark ?? "";
+  const witnessVal = remarks?.witness ?? report?.trf?.witness ?? "";
+  const witnessDetail = remarks?.witness_detail ?? remarks?.wdetail ?? report?.trf?.wdetail ?? "";
+  
+  let bdlRemark = remarks?.bdl_remark ?? remarks?.bdlremark ?? report?.bdl_remark ?? "";
+  let adlRemark = remarks?.adl_remark ?? remarks?.adlremark ?? report?.adl_remark ?? "";
+  
+  const testResults = Array.isArray(report?.test_results) ? report.test_results : (report?.test_results && typeof report.test_results === 'object' ? Object.values(report.test_results) : []);
+  
+  const hasBdl = testResults.some(r => r.result?.display_value?.includes("BDL") || String(r.result?.value ?? r.result ?? "").includes("BDL"));
+  const hasAdl = testResults.some(r => r.result?.display_value?.includes("ADL") || String(r.result?.value ?? r.result ?? "").includes("ADL"));
+  
+  if (hasBdl && !bdlRemark) bdlRemark = "BDL : Below Detection Limit";
+  if (hasAdl && !adlRemark) adlRemark = "ADL : Above Detection Limit";
 
   const lines = [];
   if (hodRemark?.trim()) lines.push(hodRemark.trim());
-  if (witnessVal === "1" && witnessDetail) lines.push(`The test was witnessed by ${witnessDetail}`);
+  if (witnessVal == "1" && witnessDetail) lines.push(`The test was witnessed by ${witnessDetail}`);
   if (bdlRemark) lines.push(bdlRemark);
   if (adlRemark) lines.push(adlRemark);
 
   if (!lines.length) return null;
   return (
     <div className="mb-4 rounded-lg bg-gray-50 px-4 py-3 text-sm dark:bg-dark-800">
-      <strong>Remark: </strong>{lines.join("  ")}
+      <strong>Remark: </strong>
+      {lines.map((line, idx) => (
+        <span key={idx}>
+          {idx > 0 && <br />}
+          {line}
+        </span>
+      ))}
     </div>
   );
 }

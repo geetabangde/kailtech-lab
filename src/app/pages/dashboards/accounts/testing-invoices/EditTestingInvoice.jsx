@@ -32,44 +32,44 @@ import { Card } from "components/ui";
 function calcTotals({ items, charges, isSgst }) {
   let subtotal = 0;
   items.forEach((item) => {
-    const rate  = parseFloat(item.rate)  || 0;
+    const rate = parseFloat(item.rate) || 0;
     const meter = parseFloat(item.meter) || 0;
     subtotal += item.hasMeter ? meter * rate : rate;
   });
 
   const discnumber = parseFloat(charges.discnumber) || 0;
-  const discount   =
+  const discount =
     charges.disctype === "%" ? (subtotal / 100) * discnumber : discnumber;
 
-  const freight        = parseFloat(charges.freight)        || 0;
-  const mobilisation   = parseFloat(charges.mobilisation)   || 0;
+  const freight = parseFloat(charges.freight) || 0;
+  const mobilisation = parseFloat(charges.mobilisation) || 0;
   const samplehandling = parseFloat(charges.samplehandling) || 0;
-  const sampleprep     = parseFloat(charges.sampleprep)     || 0;
+  const sampleprep = parseFloat(charges.sampleprep) || 0;
 
-  const witnessnumber  = parseFloat(charges.witnessnumber)  || 0;
+  const witnessnumber = parseFloat(charges.witnessnumber) || 0;
   const witnesscharges =
     charges.witnesstype === "%" ? (subtotal / 100) * witnessnumber : witnessnumber;
 
   const subtotal2 =
     subtotal - discount + freight + mobilisation + witnesscharges + samplehandling + sampleprep;
 
-  const cgstper    = parseFloat(charges.cgstper)  || 0;
-  const sgstper    = parseFloat(charges.sgstper)  || 0;
-  const igstper    = parseFloat(charges.igstper)  || 0;
+  const cgstper = parseFloat(charges.cgstper) || 0;
+  const sgstper = parseFloat(charges.sgstper) || 0;
+  const igstper = parseFloat(charges.igstper) || 0;
 
-  const cgstamount = isSgst  ? parseFloat(((subtotal2 / 100) * cgstper).toFixed(2))  : 0;
-  const sgstamount = isSgst  ? parseFloat(((subtotal2 / 100) * sgstper).toFixed(2))  : 0;
-  const igstamount = !isSgst ? parseFloat(((subtotal2 / 100) * igstper).toFixed(2))  : 0;
+  const cgstamount = isSgst ? parseFloat(((subtotal2 / 100) * cgstper).toFixed(2)) : 0;
+  const sgstamount = isSgst ? parseFloat(((subtotal2 / 100) * sgstper).toFixed(2)) : 0;
+  const igstamount = !isSgst ? parseFloat(((subtotal2 / 100) * igstper).toFixed(2)) : 0;
 
-  const total      = parseFloat((subtotal2 + cgstamount + sgstamount + igstamount).toFixed(2));
+  const total = parseFloat((subtotal2 + cgstamount + sgstamount + igstamount).toFixed(2));
   const finaltotal = Math.round(total);
-  const roundoff   = parseFloat((finaltotal - total).toFixed(2));
+  const roundoff = parseFloat((finaltotal - total).toFixed(2));
 
   return {
-    subtotal:        parseFloat(subtotal.toFixed(2)),
-    discount:        parseFloat(discount.toFixed(2)),
-    witnesscharges:  parseFloat(witnesscharges.toFixed(2)),
-    subtotal2:       parseFloat(subtotal2.toFixed(2)),
+    subtotal: parseFloat(subtotal.toFixed(2)),
+    discount: parseFloat(discount.toFixed(2)),
+    witnesscharges: parseFloat(witnesscharges.toFixed(2)),
+    subtotal2: parseFloat(subtotal2.toFixed(2)),
     cgstamount, sgstamount, igstamount,
     total, finaltotal, roundoff,
   };
@@ -103,7 +103,7 @@ const labelCls =
 // ─── Searchable Customer Dropdown ─────────────────────────────────────────────
 function CustomerSearch({ customers, value, onChange }) {
   const [query, setQuery] = useState("");
-  const [open, setOpen]   = useState(false);
+  const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
   const name = useMemo(
@@ -157,11 +157,10 @@ function CustomerSearch({ customers, value, onChange }) {
               <div
                 key={c.id}
                 onMouseDown={() => { onChange(String(c.id)); setQuery(""); setOpen(false); }}
-                className={`dark:hover:bg-dark-700 cursor-pointer px-3 py-2 text-sm hover:bg-blue-50 ${
-                  String(c.id) === String(value)
-                    ? "dark:bg-dark-700 bg-blue-50 font-semibold text-blue-700 dark:text-blue-400"
-                    : "dark:text-dark-200 text-gray-700"
-                }`}
+                className={`dark:hover:bg-dark-700 cursor-pointer px-3 py-2 text-sm hover:bg-blue-50 ${String(c.id) === String(value)
+                  ? "dark:bg-dark-700 bg-blue-50 font-semibold text-blue-700 dark:text-blue-400"
+                  : "dark:text-dark-200 text-gray-700"
+                  }`}
               >{c.name}</div>
             ))
           }
@@ -282,51 +281,52 @@ function PageSpinner() {
 // Main Component
 // ─────────────────────────────────────────────────────────────────────────────
 export default function EditTestingInvoice() {
-  const { id }  = useParams();
+  const { id } = useParams();
   const navigate = useNavigate();
 
   // ── Core state ─────────────────────────────────────────────────────────────
   const [initialLoading, setInitialLoading] = useState(true);
 
-  const [invoiceNo,  setInvoiceNo]  = useState("");   // display-only
-  const [customers,  setCustomers]  = useState([]);
+  const [invoiceNo, setInvoiceNo] = useState("");   // display-only
+  const [customers, setCustomers] = useState([]);
   const [customerid, setCustomerid] = useState("");
-  const [potype,     setPotype]     = useState("Normal");
-  const [ponumbers,  setPonumbers]  = useState([]);
+  const [potype, setPotype] = useState("Normal");
+  const [ponumbers, setPonumbers] = useState([]);
   const [selectedPo, setSelectedPo] = useState("");
-  const [inwardOptions,   setInwardOptions]   = useState([]);
+  const [inwardOptions, setInwardOptions] = useState([]);
   const [selectedInwards, setSelectedInwards] = useState([]);
-  const [items,      setItems]      = useState([]);
-  const [brnnos,     setBrnnos]     = useState("");
-  const [remark,     setRemark]     = useState("");
+  const [items, setItems] = useState([]);
+  const [brnnos, setBrnnos] = useState("");
+  const [remark, setRemark] = useState("");
   const [billingInfo, setBillingInfo] = useState(null);
   const [invoicedate, setInvoicedate] = useState(new Date().toISOString().slice(0, 10));
   const [hasMeterGlobal, setHasMeterGlobal] = useState(false);
 
   // PHP: charge fields
   const [charges, setCharges] = useState({
-    subtotal:      0,
-    discnumber:    0,
-    disctype:      "amount",
-    mobilisation:  0,
-    freight:       0,
-    witnesstype:   "amount",
+    subtotal: 0,
+    discnumber: 0,
+    disctype: "amount",
+    mobilisation: 0,
+    freight: 0,
+    witnesstype: "amount",
     witnessnumber: 0,
     samplehandling: 0,
-    sampleprep:    0,
-    cgstper:       9,
-    sgstper:       9,
-    igstper:       18,
+    sampleprep: 0,
+    cgstper: 9,
+    sgstper: 9,
+    igstper: 18,
   });
   const setCharge = (k, v) => setCharges((p) => ({ ...p, [k]: v }));
 
-  const [loadingPo,     setLoadingPo]     = useState(false);
+  const [loadingPo, setLoadingPo] = useState(false);
   const [loadingInward, setLoadingInward] = useState(false);
-  const [loadingItems,  setLoadingItems]  = useState(false);
-  const [saving,        setSaving]        = useState(false);
+  const [loadingItems, setLoadingItems] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   // track whether selects have been re-triggered (to avoid re-loading items on first hydration)
   const hydratedRef = useRef(false);
+  const prevPo = useRef(null);
 
   // PHP: $sgst = ($statecode == 23)
   const isSgst = useMemo(
@@ -359,7 +359,8 @@ export default function EditTestingInvoice() {
         setInvoiceNo(inv.invoiceno ?? "");
         setCustomerid(String(inv.customerid ?? ""));
         setPotype(inv.potype ?? "Normal");
-        setSelectedPo(inv.ponumber ?? "");
+        const loadedPo = inv.ponumber ?? "";
+        setSelectedPo(loadedPo);
         setSelectedInwards(
           Array.isArray(inv.inwardid)
             ? inv.inwardid.map(String)
@@ -371,42 +372,48 @@ export default function EditTestingInvoice() {
 
         // Billing info
         setBillingInfo({
-          name:      inv.customername ?? "",
-          address:   inv.address ?? (d.address ? `${d.address.address ?? ""}, ${d.address.city ?? ""}, ${d.address.pincode ?? ""}` : ""),
+          name: inv.customername ?? "",
+          address: inv.address ?? (d.address ? `${d.address.address ?? ""}, ${d.address.city ?? ""}, ${d.address.pincode ?? ""}` : ""),
           statecode: String(inv.statecode ?? ""),
-          gstno:     inv.gstno ?? "",
-          pan:       inv.pan ?? "",
+          gstno: inv.gstno ?? "",
+          pan: inv.pan ?? "",
           addressid: inv.addressid ?? 0,
         });
 
         // Charges
         setCharges({
-          subtotal:       parseFloat(inv.subtotal)       || 0,
-          discnumber:     parseFloat(inv.discnumber)     || 0,
-          disctype:       inv.disctype  ?? "amount",
-          mobilisation:   parseFloat(inv.mobilisation)   || 0,
-          freight:        parseFloat(inv.freight)        || 0,
-          witnesstype:    inv.witnesstype ?? "amount",
-          witnessnumber:  parseFloat(inv.witnessnumber)  || 0,
+          subtotal: parseFloat(inv.subtotal) || 0,
+          discnumber: parseFloat(inv.discnumber) || 0,
+          disctype: inv.disctype ?? "amount",
+          mobilisation: parseFloat(inv.mobilisation) || 0,
+          freight: parseFloat(inv.freight) || 0,
+          witnesstype: inv.witnesstype ?? "amount",
+          witnessnumber: parseFloat(inv.witnessnumber) || 0,
           samplehandling: parseFloat(inv.samplehandling) || 0,
-          sampleprep:     parseFloat(inv.sampleprep)     || 0,
-          cgstper:        parseFloat(inv.cgstper)        || 9,
-          sgstper:        parseFloat(inv.sgstper)        || 9,
-          igstper:        parseFloat(inv.igstper)        || 18,
+          sampleprep: parseFloat(inv.sampleprep) || 0,
+          cgstper: parseFloat(inv.cgstper) || 9,
+          sgstper: parseFloat(inv.sgstper) || 9,
+          igstper: parseFloat(inv.igstper) || 18,
         });
 
-        // Items — API response should include items[] with invoiceitemid
-        const rawItems = Array.isArray(d.items) ? d.items : [];
+        // Items — API response might include a 2D array of items, and potentially duplicates
+        let rawItems = Array.isArray(d.items)
+          ? (Array.isArray(d.items[0]) ? d.items.flat() : d.items)
+          : [];
+
+        // Deduplicate items by id to handle backend returning identical arrays per inward entry
+        rawItems = Array.from(new Map(rawItems.map(item => [item.id ?? item.item_id, item])).values());
+
         const mapped = rawItems.map((item, idx) => ({
           ...item,
-          _key:          `item-${idx}-${item.id}`,
-          id:            item.id ?? item.item_id,
+          _key: `item-${idx}-${item.id}`,
+          id: item.id ?? item.item_id,
           invoiceitemid: item.invoiceitemid ?? item.invoice_item_id ?? null,
-          name:          item.name ?? "",
-          brnno:         item.brn ?? item.brnno ?? "",
-          hasMeter:      (item.name ?? "").trim() === "Soil Analysis",
-          meter:         parseFloat(item.meter)  || 1,
-          rate:          parseFloat(item.invoicerate ?? item.rate ?? item.total) || 0,
+          name: item.name ?? "",
+          brnno: item.brn ?? item.brnno ?? "",
+          hasMeter: (item.name ?? "").trim() === "Soil Analysis",
+          meter: parseFloat(item.meter) || 1,
+          rate: parseFloat(item.invoicerate ?? item.rate ?? item.total) || 0,
         }));
         setItems(mapped);
         setHasMeterGlobal(mapped.some((i) => i.hasMeter));
@@ -422,7 +429,7 @@ export default function EditTestingInvoice() {
     if (!cid) { setPonumbers([]); return; }
     setLoadingPo(true);
     try {
-      const res = await axios.get(`/accounts/get-testing-ponumber?customerid=${cid}&potype=${potype}`);
+      const res = await axios.get(`/accounts/get-testing-ponumber?customerid=${cid}&potype=${potype}&invoiceid=${id}`);
       const list = res.data?.data ?? res.data ?? [];
       setPonumbers(Array.isArray(list) ? list : []);
     } catch {
@@ -443,7 +450,7 @@ export default function EditTestingInvoice() {
     setLoadingInward(true);
     try {
       const res = await axios.get(
-        `/accounts/get-testing-inwarddetail?customerid=${customerid}&potype=${potype}&ponumber=${encodeURIComponent(po)}`,
+        `/accounts/get-testing-inwarddetail?customerid=${customerid}&potype=${potype}&ponumber=${encodeURIComponent(po)}&invoiceid=${id}`,
       );
       const d = res.data?.data ?? res.data ?? {};
       setInwardOptions(Array.isArray(d.inwards) ? d.inwards : []);
@@ -457,18 +464,19 @@ export default function EditTestingInvoice() {
     }
   }, [customerid, potype]);
 
-  // On PO change only AFTER initial hydration
-  const prevPo = useRef(null);
+  // On PO change (handles both initial hydration and user changes)
   useEffect(() => {
-    if (!hydratedRef.current) return;            // skip until load is done
-    if (selectedPo === prevPo.current) return;   // skip if unchanged
-    prevPo.current = selectedPo;
+    if (selectedPo && selectedPo !== prevPo.current) {
+      loadInwardDetail(selectedPo);
 
-    // reset items when PO changes after hydration
-    setItems([]);
-    setSelectedInwards([]);
-    setBrnnos("");
-    loadInwardDetail(selectedPo);
+      // If it's a user change (not initial load), reset items and inward selection
+      if (prevPo.current !== null) {
+        setItems([]);
+        setSelectedInwards([]);
+        setBrnnos("");
+      }
+      prevPo.current = selectedPo;
+    }
   }, [selectedPo, loadInwardDetail]);
 
   // ── 4. Load items on inward change (skip first hydration) ─────────────────
@@ -487,27 +495,32 @@ export default function EditTestingInvoice() {
       if (customerInfo) setBillingInfo((prev) => ({ ...(prev ?? {}), ...customerInfo }));
 
       const ch = itemsData.charges ?? {};
-      if (ch.freight)      setCharge("freight",       ch.freight);
-      if (ch.mobilisation) setCharge("mobilisation",  ch.mobilisation);
-      if (ch.witness)      setCharge("witnessnumber", ch.witness);
-      if (ch.witness_type) setCharge("witnesstype",   ch.witness_type === 2 || ch.witness_type === "2" ? "%" : "amount");
+      if (ch.freight) setCharge("freight", ch.freight);
+      if (ch.mobilisation) setCharge("mobilisation", ch.mobilisation);
+      if (ch.witness) setCharge("witnessnumber", ch.witness);
+      if (ch.witness_type) setCharge("witnesstype", ch.witness_type === 2 || ch.witness_type === "2" ? "%" : "amount");
 
-      const rawItems = itemsData.items ?? [];
-      const mapped = (Array.isArray(rawItems) ? rawItems : []).map((item, idx) => ({
+      let rawItems = Array.isArray(itemsData.items)
+        ? (Array.isArray(itemsData.items[0]) ? itemsData.items.flat() : itemsData.items)
+        : [];
+
+      rawItems = Array.from(new Map(rawItems.map(item => [item.id ?? item.item_id, item])).values());
+
+      const mapped = rawItems.map((item, idx) => ({
         ...item,
-        _key:          `item-${idx}-${item.id}`,
-        id:            item.id ?? item.item_id,
+        _key: `item-${idx}-${item.id}`,
+        id: item.id ?? item.item_id,
         invoiceitemid: item.invoiceitemid ?? item.invoice_item_id ?? null,
-        name:          item.name ?? "",
-        brnno:         item.brn ?? item.brnno ?? "",
-        hasMeter:      (item.name ?? "").trim() === "Soil Analysis",
-        meter:         parseFloat(item.meter) || 1,
-        rate:          parseFloat(item.invoicerate ?? item.total ?? item.rate) || 0,
+        name: item.name ?? "",
+        brnno: item.brn ?? item.brnno ?? "",
+        hasMeter: (item.name ?? "").trim() === "Soil Analysis",
+        meter: parseFloat(item.meter) || 1,
+        rate: parseFloat(item.invoicerate ?? item.total ?? item.rate) || 0,
       }));
       setItems(mapped);
       setHasMeterGlobal(mapped.some((i) => i.hasMeter));
 
-      const brnData   = brnRes.data?.data ?? brnRes.data ?? {};
+      const brnData = brnRes.data?.data ?? brnRes.data ?? {};
       const brnString = brnData.brn_list ?? (Array.isArray(brnData.brn_array) ? brnData.brn_array.join(",") : "");
       setBrnnos(typeof brnString === "string" ? brnString : "");
     } catch {
@@ -539,54 +552,54 @@ export default function EditTestingInvoice() {
 
   // ── 5. Submit → POST /accounts/update-testing-invoice ─────────────────────
   const handleSubmit = async () => {
-    if (!customerid)          return toast.error("Please select a customer");
-    if (!selectedPo)          return toast.error("Please select a PO Number");
+    if (!customerid) return toast.error("Please select a customer");
+    if (!selectedPo) return toast.error("Please select a PO Number");
     if (!selectedInwards.length) return toast.error("Please select at least one Inward Entry");
-    if (!items.length)        return toast.error("No items found");
+    if (!items.length) return toast.error("No items found");
 
     setSaving(true);
     try {
       const payload = {
-        id:           Number(id),               // UPDATE needs the invoice id
-        customerid:   Number(customerid),
-        ponumber:     selectedPo,
-        inwardid:     selectedInwards.map(Number),
+        id: Number(id),               // UPDATE needs the invoice id
+        customerid: Number(customerid),
+        ponumber: selectedPo,
+        inwardid: selectedInwards.map(Number),
         customername: billingInfo?.name ?? "",
-        addressid:    Number(billingInfo?.addressid ?? 0),
-        address:      billingInfo?.address ?? "",
-        statecode:    Number(billingInfo?.statecode ?? 0),
-        pan:          billingInfo?.pan ?? "",
-        gstno:        billingInfo?.gstno ?? "",
-        invoicedate:  toSlashDate(invoicedate),
+        addressid: Number(billingInfo?.addressid ?? 0),
+        address: billingInfo?.address ?? "",
+        statecode: Number(billingInfo?.statecode ?? 0),
+        pan: billingInfo?.pan ?? "",
+        gstno: billingInfo?.gstno ?? "",
+        invoicedate: toSlashDate(invoicedate),
 
         // PHP: itemid[], itemrate[], invoiceitemid[] sent together
-        itemid:        items.map((i) => Number(i.id)),
-        itemmeter:     items.map((i) => parseFloat(i.meter) || 1),
-        itemrate:      items.map((i) => parseFloat(i.rate) || 0),
+        itemid: items.map((i) => Number(i.id)),
+        itemmeter: items.map((i) => parseFloat(i.meter) || 1),
+        itemrate: items.map((i) => parseFloat(i.rate) || 0),
         invoiceitemid: items.map((i) => Number(i.invoiceitemid ?? 0)),
 
-        subtotal:        totals.subtotal,
-        discnumber:      parseFloat(charges.discnumber)     || 0,
-        disctype:        charges.disctype,
-        discount:        totals.discount,
-        freight:         parseFloat(charges.freight)        || 0,
-        mobilisation:    parseFloat(charges.mobilisation)   || 0,
-        witnessnumber:   parseFloat(charges.witnessnumber)  || 0,
-        witnesstype:     charges.witnesstype,
-        witnesscharges:  totals.witnesscharges,
-        samplehandling:  parseFloat(charges.samplehandling) || 0,
-        sampleprep:      parseFloat(charges.sampleprep)     || 0,
-        subtotal2:       totals.subtotal2,
+        subtotal: totals.subtotal,
+        discnumber: parseFloat(charges.discnumber) || 0,
+        disctype: charges.disctype,
+        discount: totals.discount,
+        freight: parseFloat(charges.freight) || 0,
+        mobilisation: parseFloat(charges.mobilisation) || 0,
+        witnessnumber: parseFloat(charges.witnessnumber) || 0,
+        witnesstype: charges.witnesstype,
+        witnesscharges: totals.witnesscharges,
+        samplehandling: parseFloat(charges.samplehandling) || 0,
+        sampleprep: parseFloat(charges.sampleprep) || 0,
+        subtotal2: totals.subtotal2,
 
-        cgstper:     isSgst  ? parseFloat(charges.cgstper)  || 0 : 0,
-        cgstamount:  totals.cgstamount,
-        sgstper:     isSgst  ? parseFloat(charges.sgstper)  || 0 : 0,
-        sgstamount:  totals.sgstamount,
-        igstper:     !isSgst ? parseFloat(charges.igstper)  || 0 : 0,
-        igstamount:  totals.igstamount,
+        cgstper: isSgst ? parseFloat(charges.cgstper) || 0 : 0,
+        cgstamount: totals.cgstamount,
+        sgstper: isSgst ? parseFloat(charges.sgstper) || 0 : 0,
+        sgstamount: totals.sgstamount,
+        igstper: !isSgst ? parseFloat(charges.igstper) || 0 : 0,
+        igstamount: totals.igstamount,
 
-        total:      totals.total,
-        roundoff:   totals.roundoff,
+        total: totals.total,
+        roundoff: totals.roundoff,
         finaltotal: totals.finaltotal,
 
         remark,
@@ -595,10 +608,10 @@ export default function EditTestingInvoice() {
 
       const res = await axios.post("/accounts/update-testing-invoice", payload);
       const ok =
-        res.data.success === true  ||
-        res.data.status  === true  ||
-        res.data.status  === "true" ||
-        res.data.status  === 1;
+        res.data.success === true ||
+        res.data.status === true ||
+        res.data.status === "true" ||
+        res.data.status === 1;
 
       if (ok) {
         toast.success(res.data.message ?? "Invoice updated successfully ✅");

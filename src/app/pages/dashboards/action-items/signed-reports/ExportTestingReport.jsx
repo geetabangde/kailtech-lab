@@ -68,15 +68,23 @@ export function extractData(report) {
 
   const { start_date, end_date } = dates;
 
-  const hodRemark = remarksObj?.hod_remark ?? "";
-  const witnessVal = remarksObj?.witness ?? "";
-  const witnessDetail = remarksObj?.witness_detail ?? "";
-  const bdlRemark = remarksObj?.bdl_remark ?? "";
-  const adlRemark = remarksObj?.adl_remark ?? "";
+  const hodRemark = remarksObj?.hod_remark ?? remarksObj?.hodremark ?? report?.hod_remark ?? report?.hodremark ?? "";
+  const witnessVal = remarksObj?.witness ?? report?.trf?.witness ?? "";
+  const witnessDetail = remarksObj?.witness_detail ?? remarksObj?.wdetail ?? report?.trf?.wdetail ?? "";
+  
+  const testResultsArr = toArray(test_results);
+  let bdlRemark = remarksObj?.bdl_remark ?? remarksObj?.bdlremark ?? report?.bdl_remark ?? "";
+  let adlRemark = remarksObj?.adl_remark ?? remarksObj?.adlremark ?? report?.adl_remark ?? "";
+
+  const hasBdl = testResultsArr.some((r) => r.result?.display_value?.includes("BDL") || String(r.result?.value ?? r.result ?? "").includes("BDL"));
+  const hasAdl = testResultsArr.some((r) => r.result?.display_value?.includes("ADL") || String(r.result?.value ?? r.result ?? "").includes("ADL"));
+  
+  if (hasBdl && !bdlRemark) bdlRemark = "BDL : Below Detection Limit";
+  if (hasAdl && !adlRemark) adlRemark = "ADL : Above Detection Limit";
 
   const remarkLines = [];
   if (hodRemark?.trim()) remarkLines.push(hodRemark.trim());
-  if (witnessVal === "1" && witnessDetail) remarkLines.push(`The test was witnessed by ${witnessDetail}`);
+  if (witnessVal == "1" && witnessDetail) remarkLines.push(`The test was witnessed by ${witnessDetail}`);
   if (bdlRemark) remarkLines.push(bdlRemark);
   if (adlRemark) remarkLines.push(adlRemark);
 
@@ -301,10 +309,18 @@ export function HtmlResultsTable({ data }) {
 }
 
 export function HtmlRemarks({ remarkLines }) {
-  if (!remarkLines.length) return null;
+  if (!remarkLines || !remarkLines.length) return null;
   return (
     <div style={SS.remarkBox}>
-      <span style={SS.bold}>Remark: </span>{remarkLines.join('  ')}
+      <span style={SS.bold}>Remark: </span>
+      <span>
+        {remarkLines.map((line, i) => (
+          <span key={i}>
+            {i > 0 && <br />}
+            {line}
+          </span>
+        ))}
+      </span>
     </div>
   );
 }

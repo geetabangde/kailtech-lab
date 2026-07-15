@@ -216,13 +216,25 @@ function GenerateUlrForm({ tid, hid, trfId, formData, onSuccess }) {
         signatories: selected.map((s) => s.value),
         ...(show_date_field && reportDate ? { idater: toApiDate(reportDate) } : {}),
       };
-      await axios.post("/actionitem/generate-ulr", payload);
-      toast.success(
-        button_label === "Generate ULR"
-          ? "ULR Generated Successfully ✅"
-          : "Report Completed Successfully ✅"
-      );
+      const response = await axios.post("/actionitem/generate-ulr", payload);
+      
+      const resData = response.data?.data || response.data || {};
+      const generatedUlr = resData.ulr || resData.ulr_number || resData.ulr_no || "";
+      const backendMsg = response.data?.message;
+
+      let successMsg = button_label === "Generate ULR"
+        ? "ULR Generated Successfully ✅"
+        : "Report Completed Successfully ✅";
+
+      if (generatedUlr) {
+        successMsg = `ULR Generated Successfully: ${generatedUlr} ✅`;
+      } else if (backendMsg) {
+        successMsg = `${backendMsg} ✅`;
+      }
+
+      toast.success(successMsg);
       onSuccess?.();
+      window.open("/dashboards/action-items/final-reports-unsigned", "_blank");
     } catch (err) {
       toast.error(err?.response?.data?.message ?? "Submission failed ❌");
     } finally { setSubmitting(false); }

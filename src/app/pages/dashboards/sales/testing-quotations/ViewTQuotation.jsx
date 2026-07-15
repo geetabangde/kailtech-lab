@@ -100,7 +100,7 @@ export default function ViewTQuotation() {
                 </div>
 
                 {/* Letterhead Document */}
-                <div className="mx-auto print:m-0 print-container" style={{ width: "100%", maxWidth: 1100, ...fontBase }}>
+                <div className="mx-auto print:m-0 print-area" style={{ width: "100%", maxWidth: 1100, ...fontBase }}>
                     <Card className="bg-white p-10 shadow-xl print:shadow-none print:p-0 print:border-none">
 
                         {/* Header Section */}
@@ -388,27 +388,29 @@ export default function ViewTQuotation() {
                     </Card>
                 </div>
 
+                {/* Global Print Styles */}
                 <style dangerouslySetInnerHTML={{
                     __html: `
-                    @media print {
-                        body * { 
-                            visibility: hidden; 
-                        }
-                        .print-container, .print-container * { 
-                            visibility: visible; 
-                        }
-                        .print-container { 
-                            position: absolute; 
-                            left: 0; 
-                            top: 0; 
-                            width: 100%; 
-                        }
-                        @page { 
-                            margin: 1cm; 
-                            size: auto; 
-                        }
-                    }
-                `}} />
+          @media print {
+            body * { visibility: hidden !important; }
+            .no-print, header, nav, aside, .sidebar, .topbar { display: none !important; }
+            .print-area, .print-area * { visibility: visible !important; }
+            .print-area { 
+              position: absolute !important; 
+              left: 0 !important; 
+              top: 0 !important; 
+              width: 100% !important; 
+              margin: 0 !important; 
+              padding: 0 !important;
+              background: white !important;
+            }
+            * {
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+            @page { size: auto; margin: 15mm; }
+          }
+        `}} />
 
             </div>
         </Page>

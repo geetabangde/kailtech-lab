@@ -133,7 +133,8 @@ export default function ExportPoToPdf() {
             customdutychrgs: purchaseOrderData.customdutychrgs || purchaseOrderData.custom_duty_charges || summary.custom_duty_charges,
             total_amount: purchaseOrderData.total_amount || summary.total_invoice_amount,
             roundoff: purchaseOrderData.roundoff || summary.roundoff,
-            finaltotal: purchaseOrderData.finaltotal || summary.final_total
+            finaltotal: purchaseOrderData.finaltotal || summary.final_total,
+            digitalsignUrl: purchaseOrderData.digitalsignUrl || summary.digitalsignUrl
           },
           customer: {
             ...customerData,
@@ -526,7 +527,12 @@ export default function ExportPoToPdf() {
               <div>Date:${formatDate(purchaseOrder.approved_on)}</div>
             </div>
           ` : ''}
-          <div style="margin-top: 20px; text-decoration: underline;">
+          ${purchaseOrder.digitalsignUrl ? `
+            <div style="margin-top: 10px; margin-bottom: 5px;">
+              <img src="${purchaseOrder.digitalsignUrl}" alt="Digital Signature" style="height: 60px; width: auto;" />
+            </div>
+          ` : ''}
+          <div style="margin-top: ${purchaseOrder.digitalsignUrl ? '5px' : '20px'}; text-decoration: underline;">
             Authorised Signatory
           </div>
         </div>

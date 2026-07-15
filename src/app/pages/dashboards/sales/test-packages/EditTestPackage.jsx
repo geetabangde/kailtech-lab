@@ -213,144 +213,65 @@ function isRequired(schedule, existingRecords) {
 }
 
 // ── Parameter Modal ────────────────────────────────────────────────────────
-function ParameterModal({ onClose, onAdded }) {
-  const [labs, setLabs] = useState([]);
-  const [selectedLabId, setSelectedLabId] = useState("");
-  const [labsLoading, setLabsLoading] = useState(true);
-
-  const [schedulesLoading, setSchedulesLoading] = useState(false);
-  const [requiredSchedules, setRequiredSchedules] = useState([]);
-  const [fieldValues, setFieldValues] = useState({});
-
+function ParameterModal({ packageId, onClose, onAdded }) {
+  const [parameters, setParameters] = useState([]);
+  const [choices, setChoices] = useState([{ id: 1, name: "Yes" }, { id: 2, name: "No" }]);
+  const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
+
+  const [form, setForm] = useState({
+    parameter: "",
+    visible: "",
+    priority: "",
+  });
 
   useEffect(() => {
     const load = async () => {
       try {
-        setLabsLoading(true);
-        const res = await axios.get("/master/list-lab");
-        const list = res.data.data ?? [];
-        const envLabs = list.filter((l) => l.recordEnviornment === "Yes");
-        setLabs(envLabs);
-        if (envLabs[0]) setSelectedLabId(String(envLabs[0].id));
+        setLoading(true);
+        const [paramRes, choicesRes] = await Promise.allSettled([
+          axios.get("/testing/get-perameter-list"),
+          axios.get("/testing/get-choices") // fallback to static if fails
+        ]);
+
+        if (paramRes.status === "fulfilled" && paramRes.value.data?.data) {
+          setParameters(paramRes.value.data.data);
+        }
+        if (choicesRes.status === "fulfilled" && choicesRes.value.data?.data) {
+          setChoices(choicesRes.value.data.data);
+        }
       } catch (err) {
         console.error(err);
-        toast.error("Failed to load labs");
       } finally {
-        setLabsLoading(false);
+        setLoading(false);
       }
     };
     load();
   }, []);
 
-  useEffect(() => {
-    if (!selectedLabId) return;
-
-    const load = async () => {
-      try {
-        setSchedulesLoading(true);
-        setRequiredSchedules([]);
-        setFieldValues({});
-
-        const schedRes = await axios.get(
-          `/master/get-environmental-schedule/${selectedLabId}`,
-        );
-        const schedules = schedRes.data.data ?? [];
-
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, "0");
-        const recRes = await axios.get(
-          `/master/get-enviornmental-record?labid=${selectedLabId}&year=${year}&month=${month}`,
-        );
-        const existingRecs = recRes.data.data ?? [];
-
-        const required = schedules.filter((s) => isRequired(s, existingRecs));
-        setRequiredSchedules(required);
-
-        const init = {};
-        required.forEach((s) => {
-          init[s.id] =
-            s.type === "Temperature Rh"
-              ? { temperature: "", humidity: "" }
-              : { value: "" };
-        });
-        setFieldValues(init);
-      } catch (err) {
-        console.error(err);
-        toast.error("Failed to load schedules");
-      } finally {
-        setSchedulesLoading(false);
-      }
-    };
-    load();
-  }, [selectedLabId]);
-
-  const handleChange = (scheduleId, field, val) => {
-    setFieldValues((prev) => ({
-      ...prev,
-      [scheduleId]: { ...prev[scheduleId], [field]: val },
-    }));
-  };
-
-  const validate = () => {
-    for (const s of requiredSchedules) {
-      const v = fieldValues[s.id];
-      if (s.type === "Temperature Rh") {
-        if (!v?.temperature?.trim() || !v?.humidity?.trim()) {
-          toast.error("Please fill both Temperature and Humidity");
-          return false;
-        }
-      } else {
-        if (!v?.value?.trim()) {
-          toast.error(`Please fill value for "${s.type}"`);
-          return false;
-        }
-      }
-    }
-    return true;
-  };
-
   const handleAdd = async () => {
-    if (!selectedLabId) {
-      toast.error("Please select a lab");
+    if (!form.parameter) {
+      toast.error("Please select a parameter");
       return;
     }
-    if (!validate()) return;
-
-    const type = [];
-    const typeid = [];
-    const subtype = [];
-    const value = [];
-
-    requiredSchedules.forEach((s) => {
-      const v = fieldValues[s.id];
-      if (s.type === "Temperature Rh") {
-        type.push(s.type);
-        typeid.push(s.id);
-        subtype.push("Temperature");
-        value.push(v.temperature);
-        type.push(s.type);
-        typeid.push(s.id);
-        subtype.push("Humidity");
-        value.push(v.humidity);
-      } else {
-        type.push(s.type);
-        typeid.push(s.id);
-        subtype.push(s.type);
-        value.push(v.value);
-      }
-    });
+    if (!form.visible) {
+      toast.error("Please select visibility");
+      return;
+    }
+    if (!form.priority) {
+      toast.error("Please enter a priority");
+      return;
+    }
 
     setAdding(true);
     try {
-      const res = await axios.post("/sales/add-environmental-record", {
-        labid: Number(selectedLabId),
-        type,
-        typeid,
-        subtype,
-        value,
+      const res = await axios.post("/sales/add-package-parameter", {
+        package: Number(packageId),
+        parameter: Number(form.parameter),
+        priority: Number(form.priority),
+        visible: Number(form.visible),
       });
+
       if (
         res.data.success === true ||
         res.data.status === true ||
@@ -371,199 +292,106 @@ function ParameterModal({ onClose, onAdded }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-      <div className="dark:bg-dark-800 flex max-h-[90vh] w-full max-w-md flex-col rounded-lg bg-white shadow-xl">
+      <div className="dark:bg-dark-800 w-full max-w-md rounded-lg bg-white shadow-xl">
         {/* Header */}
-        <div className="dark:border-dark-500 flex shrink-0 items-center justify-between border-b border-gray-200 px-5 py-4">
-          <div>
-            <h3 className="dark:text-dark-50 text-base font-semibold text-gray-800">
-              Add New Parameter
-            </h3>
-            <p className="dark:text-dark-400 mt-0.5 text-xs text-gray-400">
-              Only pending / due entries are shown
-            </p>
-          </div>
+        <div className="dark:border-dark-500 flex items-center justify-between border-b border-gray-200 px-5 py-4">
+          <h3 className="dark:text-dark-50 text-base font-semibold text-gray-800">
+            Add New Parameter
+          </h3>
           <button
             onClick={onClose}
-            className="dark:hover:text-dark-200 text-lg leading-none text-gray-400 hover:text-gray-600"
+            className="dark:hover:text-dark-200 text-gray-400 hover:text-gray-600"
           >
             ✕
           </button>
         </div>
-
         {/* Body */}
-        <div className="flex-1 overflow-y-auto p-5">
-          <div className="mb-4">
-            <label className="dark:text-dark-300 mb-1 block text-sm font-medium text-gray-600">
-              Select Lab
-            </label>
-            {labsLoading ? (
-              <div className="flex items-center gap-2 text-sm text-gray-400">
-                <svg
-                  className="h-4 w-4 animate-spin text-blue-500"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8v4a4 4 0 000 8v4a8 8 0 01-8-8z"
-                  />
-                </svg>
-                Loading labs…
-              </div>
-            ) : (
-              <Select
-                options={labs.map((lab) => ({ value: lab.id, label: lab.name }))}
-                value={
-                  labs
-                    .map((lab) => ({ value: lab.id, label: lab.name }))
-                    .find((o) => String(o.value) === String(selectedLabId)) || null
-                }
-                onChange={(opt) => setSelectedLabId(opt ? String(opt.value) : "")}
-                placeholder="Select Lab..."
-                isSearchable
-              />
-            )}
-          </div>
-
-          {schedulesLoading ? (
-            <div className="flex items-center justify-center gap-2 py-8 text-sm text-gray-500">
-              <svg
-                className="h-5 w-5 animate-spin text-blue-500"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                />
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8v4a4 4 0 000 8v4a8 8 0 01-8-8z"
-                />
-              </svg>
-              Loading schedules…
-            </div>
-          ) : requiredSchedules.length === 0 && !labsLoading ? (
-            <div className="flex flex-col items-center justify-center gap-2 py-8">
-              <span className="text-3xl">✅</span>
-              <p className="dark:text-dark-300 text-sm font-medium text-gray-600">
-                All environmental records are up to date!
-              </p>
-              <p className="dark:text-dark-500 text-xs text-gray-400">
-                No pending entries for this period.
-              </p>
-            </div>
+        <div className="space-y-4 p-5">
+          {loading ? (
+             <div className="flex justify-center p-4">
+               <span className="text-gray-500">Loading...</span>
+             </div>
           ) : (
-            <div className="space-y-2">
-              {requiredSchedules.map((s) => {
-                const v = fieldValues[s.id] ?? {};
-
-                if (s.type === "Temperature Rh") {
-                  return (
-                    <div key={s.id} className="space-y-2">
-                      <div className="dark:border-dark-500 dark:bg-dark-700 flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
-                        <div className="w-32 shrink-0">
-                          <p className="dark:text-dark-400 text-xs font-semibold tracking-wide text-gray-500 uppercase">
-                            Temperature
-                          </p>
-                          <p className="mt-0.5 text-[11px] text-gray-400">
-                            {s.frequency}
-                          </p>
-                        </div>
-                        <input
-                          type="text"
-                          required
-                          placeholder="Enter value"
-                          value={v.temperature ?? ""}
-                          onChange={(e) =>
-                            handleChange(s.id, "temperature", e.target.value)
-                          }
-                          className={inputCls}
-                        />
-                      </div>
-                      <div className="dark:border-dark-500 dark:bg-dark-700 flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
-                        <div className="w-32 shrink-0">
-                          <p className="dark:text-dark-400 text-xs font-semibold tracking-wide text-gray-500 uppercase">
-                            Humidity
-                          </p>
-                          <p className="mt-0.5 text-[11px] text-gray-400">
-                            {s.frequency}
-                          </p>
-                        </div>
-                        <input
-                          type="text"
-                          required
-                          placeholder="Enter value"
-                          value={v.humidity ?? ""}
-                          onChange={(e) =>
-                            handleChange(s.id, "humidity", e.target.value)
-                          }
-                          className={inputCls}
-                        />
-                      </div>
-                    </div>
-                  );
-                }
-
-                return (
-                  <div
-                    key={s.id}
-                    className="dark:border-dark-500 dark:bg-dark-700 flex items-center gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3"
-                  >
-                    <div className="w-32 shrink-0">
-                      <p className="dark:text-dark-400 text-xs font-semibold tracking-wide text-gray-500 uppercase">
-                        {s.type}
-                      </p>
-                      <p className="mt-0.5 text-[11px] text-gray-400">
-                        {s.frequency}
-                      </p>
-                    </div>
-                    <input
-                      type="text"
-                      required
-                      placeholder="Enter value"
-                      value={v.value ?? ""}
-                      onChange={(e) =>
-                        handleChange(s.id, "value", e.target.value)
-                      }
-                      className={inputCls}
-                    />
-                  </div>
-                );
-              })}
-            </div>
+            <>
+              <div>
+                <label className="dark:text-dark-300 mb-1 block text-sm font-medium text-gray-600">
+                  Parameter Name
+                </label>
+                <Select
+                  options={parameters.map((p) => ({
+                    value: p.id,
+                    label: p.name + (p.description ? ` (${p.description})` : ""),
+                  }))}
+                  value={
+                    parameters
+                      .map((p) => ({
+                        value: p.id,
+                        label: p.name + (p.description ? ` (${p.description})` : ""),
+                      }))
+                      .find((o) => String(o.value) === String(form.parameter)) || null
+                  }
+                  onChange={(opt) => setForm((p) => ({ ...p, parameter: opt ? opt.value : "" }))}
+                  placeholder="Select Parameter Name"
+                  isSearchable
+                  menuPortalTarget={document.body}
+                  styles={{ menuPortal: base => ({ ...base, zIndex: 9999 }) }}
+                />
+              </div>
+              <div>
+                <label className="dark:text-dark-300 mb-1 block text-sm font-medium text-gray-600">
+                  Visible In Report ?
+                </label>
+                <Select
+                  options={choices.map((c) => ({
+                    value: c.id,
+                    label: c.name,
+                  }))}
+                  value={
+                    choices
+                      .map((c) => ({
+                        value: c.id,
+                        label: c.name,
+                      }))
+                      .find((o) => String(o.value) === String(form.visible)) || null
+                  }
+                  onChange={(opt) => setForm((p) => ({ ...p, visible: opt ? opt.value : "" }))}
+                  placeholder="Select Choice"
+                  menuPortalTarget={document.body}
+                  styles={{ menuPortal: base => ({ ...base, zIndex: 9999 }) }}
+                />
+              </div>
+              <div>
+                <label className="dark:text-dark-300 mb-1 block text-sm font-medium text-gray-600">
+                  Priority
+                </label>
+                <input
+                  type="number"
+                  value={form.priority}
+                  onChange={(e) =>
+                    setForm((p) => ({ ...p, priority: e.target.value }))
+                  }
+                  placeholder="Priority"
+                  className={inputCls}
+                />
+              </div>
+            </>
           )}
         </div>
-
         {/* Footer */}
-        <div className="dark:border-dark-500 flex shrink-0 items-center justify-end gap-2 border-t border-gray-200 px-5 py-4">
+        <div className="dark:border-dark-500 flex items-center justify-end gap-2 border-t border-gray-200 px-5 py-4">
           <button
             onClick={onClose}
             className="dark:border-dark-500 dark:text-dark-300 rounded-md border border-gray-300 px-5 py-2 text-sm text-gray-600 hover:bg-gray-50"
           >
             Close
           </button>
-          {requiredSchedules.length > 0 && (
-            <button
-              onClick={handleAdd}
-              disabled={adding}
-              className="bg-primary-600 hover:bg-primary-700 rounded-md px-5 py-2 text-sm font-medium text-white disabled:opacity-50"
-            >
-              {adding ? "Adding…" : "Add Parameter"}
-            </button>
-          )}
+          <button
+            onClick={handleAdd}
+            disabled={adding || loading}
+            className="w-full rounded-md bg-green-600 py-2.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
+          >
+            {adding ? "Adding…" : "Add Parameter"}
+          </button>
         </div>
       </div>
     </div>
@@ -594,6 +422,7 @@ export default function EditTestPackage() {
 
   const [form, setForm] = useState(null);
   const [quantities, setQuantities] = useState([]);
+  const [packageParams, setPackageParams] = useState([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [showQtyModal, setShowQtyModal] = useState(false);
@@ -610,6 +439,17 @@ export default function EditTestPackage() {
       /* silent */
     }
   }, [recordId]);
+  
+  const loadParameters = useCallback(async () => {
+    try {
+      const res = await axios.get(`/testing/package-parameters/${recordId}`);
+      if (res.data?.status && res.data.parameters) {
+        setPackageParams(res.data.parameters);
+      }
+    } catch {
+      /* silent */
+    }
+  }, [recordId]);
 
   useEffect(() => {
     const load = async () => {
@@ -618,6 +458,7 @@ export default function EditTestPackage() {
         const [pRes] = await Promise.all([
           axios.get(`/sales/get-test-package-byid/${recordId}`),
           loadQuantities(),
+          loadParameters(),
         ]);
         const d = pRes.data.data ?? pRes.data.package ?? pRes.data ?? null;
         if (d && d.package !== undefined) {
@@ -646,7 +487,7 @@ export default function EditTestPackage() {
       }
     };
     load();
-  }, [id, navigate, loadQuantities]);
+  }, [id, navigate, loadQuantities, loadParameters]);
 
   const handleDeleteQty = async (qid) => {
     try {
@@ -655,6 +496,16 @@ export default function EditTestPackage() {
       toast.success("Quantity removed");
     } catch {
       toast.error("Failed to remove quantity");
+    }
+  };
+
+  const handleDeleteParam = async (pid) => {
+    try {
+      await axios.delete(`/sales/delete-package-parameter/${pid}`);
+      setPackageParams((old) => old.filter((p) => p.id !== pid));
+      toast.success("Parameter removed");
+    } catch {
+      toast.error("Failed to remove parameter");
     }
   };
 
@@ -925,51 +776,6 @@ export default function EditTestPackage() {
           <div className="dark:border-dark-500 mt-6 rounded-lg border border-gray-200 p-4">
             <div className="mb-3 flex items-center justify-between">
               <h4 className="dark:text-dark-200 text-sm font-semibold text-gray-700">
-                Quantity
-              </h4>
-              <button
-                onClick={() => setShowQtyModal(true)}
-                className="rounded bg-blue-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-600"
-              >
-                + Add New Quantity
-              </button>
-            </div>
-            {quantities.length > 0 ? (
-              <div className="space-y-2">
-                {quantities.map((q) => (
-                  <div
-                    key={q.id}
-                    className="dark:bg-dark-700 flex items-center gap-3 rounded-md bg-gray-50 px-3 py-2 text-sm"
-                  >
-                    <span className="dark:text-dark-100 flex-1 font-medium text-gray-800">
-                      {q.name}
-                    </span>
-                    <span className="dark:text-dark-300 text-gray-600">
-                      {q.quantity}
-                    </span>
-                    <span className="dark:text-dark-400 text-gray-500">
-                      {q.unit_name ?? q.unit}
-                    </span>
-                    <button
-                      onClick={() => handleDeleteQty(q.id)}
-                      className="rounded bg-red-500 px-2 py-0.5 text-xs text-white hover:bg-red-600"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="dark:text-dark-500 text-xs text-gray-400">
-                No quantities added yet.
-              </p>
-            )}
-          </div>
-
-          {/* ── Parameters Section ── */}
-          <div className="dark:border-dark-500 mt-4 rounded-lg border border-gray-200 p-4">
-            <div className="mb-3 flex items-center justify-between">
-              <h4 className="dark:text-dark-200 text-sm font-semibold text-gray-700">
                 Parameters
               </h4>
               <button
@@ -979,6 +785,36 @@ export default function EditTestPackage() {
                 + Add New Parameter
               </button>
             </div>
+            {packageParams.length > 0 ? (
+              <div className="space-y-2">
+                {packageParams.map((p) => (
+                  <div
+                    key={p.id}
+                    className="dark:bg-dark-700 flex items-center gap-3 rounded-md bg-gray-50 px-3 py-2 text-sm"
+                  >
+                    <span className="dark:text-dark-100 flex-1 font-medium text-gray-800">
+                      {p.name} {p.description ? `(${p.description})` : ""}
+                    </span>
+                    <span className="dark:text-dark-300 text-gray-600">
+                      Priority: {p.priority}
+                    </span>
+                    <span className="dark:text-dark-400 text-gray-500">
+                      Visible: {p.visible_name ?? (p.visible == 1 ? "Yes" : "No")}
+                    </span>
+                    <button
+                      onClick={() => handleDeleteParam(p.id)}
+                      className="rounded bg-red-500 px-2 py-0.5 text-xs text-white hover:bg-red-600"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="dark:text-dark-500 text-xs text-gray-400">
+                No parameters added yet.
+              </p>
+            )}
           </div>
 
           {/* ── Submit ── */}
@@ -1012,7 +848,7 @@ export default function EditTestPackage() {
         <ParameterModal
           packageId={recordId}
           onClose={() => setShowParamModal(false)}
-          onAdded={() => { }}
+          onAdded={loadParameters}
         />
       )}
     </Page>

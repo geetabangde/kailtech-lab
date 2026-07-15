@@ -241,7 +241,9 @@ export default function AddMRNWoPo() {
                   required
                   options={suppliers.map((supplier) => ({
                     value: supplier.id,
-                    label: `${supplier.name} ${supplier.company ? `(${supplier.company})` : ""}`
+                    label: supplier.name 
+                      ? `${supplier.name} ${supplier.company ? `(${supplier.company})` : ""}`
+                      : supplier.company
                   }))}
                 />
               </div>

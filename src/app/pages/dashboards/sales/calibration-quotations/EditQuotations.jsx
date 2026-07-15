@@ -75,12 +75,12 @@ export default function EditQuotations() {
         axios.get(`/people/get-customers-address/${customerId}`),
         axios.get(`/people/get-single-customer/${customerId}`),
       ]);
-      
+
       const addrList = addrRes.data?.data || [];
       const custData = custRes.data?.data || {};
-      
+
       setAddresses(addrList);
-      
+
       setFormData(prev => ({
         ...prev,
         customeraddress: custData.address || (addrList[0]?.address || ""),
@@ -108,7 +108,7 @@ export default function EditQuotations() {
         ]);
 
       const getData = (res) => res.data?.Data || res.data?.data || [];
-      
+
       setCustomers(getData(custRes));
       setCustomerTypes(getData(ctypeRes));
       setSpecificPurposes(getData(purposeRes));
@@ -116,7 +116,7 @@ export default function EditQuotations() {
 
       if (editRes.data?.status || editRes.data?.status === "true") {
         const { quotation: q, statutoryDetails, customerData } = editRes.data.data;
-        
+
         if (q) {
           const isNew = !q.customer || q.customer === "new";
           setIsNewCustomer(isNew);
@@ -201,7 +201,7 @@ export default function EditQuotations() {
     }
 
     const isNew = selectedOption.__isNew__;
-    
+
     if (isNew) {
       setIsNewCustomer(true);
       setFormData((prev) => ({
@@ -220,10 +220,10 @@ export default function EditQuotations() {
     } else {
       setIsNewCustomer(false);
       const customerId = selectedOption.value;
-      setFormData(prev => ({ 
-        ...prev, 
-        customer: customerId, 
-        customername: selectedOption.label 
+      setFormData(prev => ({
+        ...prev,
+        customer: customerId,
+        customername: selectedOption.label
       }));
       fetchCustomerExtras(customerId);
     }
@@ -325,7 +325,7 @@ export default function EditQuotations() {
         <form onSubmit={handleSubmit} className="space-y-6">
           <Card className="p-6">
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              
+
               <div className="form-group md:col-span-2">
                 <label className={labelCls}>Customer Name</label>
                 <CreatableSelect

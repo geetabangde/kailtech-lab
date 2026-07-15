@@ -1,7 +1,6 @@
 // Import Dependencies
 import clsx from "clsx";
 import PropTypes from "prop-types";
-import { ChatBubbleBottomCenterIcon } from "@heroicons/react/24/outline";
 import { NavLink } from "react-router";
 import { useTranslation } from "react-i18next";
 
@@ -47,19 +46,7 @@ export function SidebarPanel() {
 
           <div className="mx-4 my-4 h-px bg-gray-200 dark:bg-dark-500"></div>
 
-          <ul className="space-y-1.5 px-2 font-medium">
-            <li>
-              <Button
-                component="a"
-                href="mailto:help@piniastudio.com"
-                variant="flat"
-                className="group w-full justify-start gap-2 p-2 text-xs-plus"
-              >
-                <ChatBubbleBottomCenterIcon className="size-4.5 text-gray-400 transition-colors group-hover:text-gray-500 group-focus:text-gray-500 dark:text-dark-300 dark:group-hover:text-dark-200 dark:group-focus:text-dark-200" />
-                <span>Ask a Question</span>
-              </Button>
-            </li>
-          </ul>
+
         </ScrollShadow>
         <Footer />
       </div>

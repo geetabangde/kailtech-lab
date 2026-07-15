@@ -43,10 +43,12 @@ export const columns = [
     header: "Challan Date",
     cell: (info) => {
       const date = info.getValue();
-      if (!date) return "—";
+      if (!date || String(date).startsWith("0000-00-00")) return "—";
       try {
         // Handle format YYYY-MM-DD from PHP
-        return dayjs(date).format("DD/MM/YYYY");
+        const parsed = dayjs(date);
+        if (!parsed.isValid()) return "—";
+        return parsed.format("DD/MM/YYYY");
       } catch {
         return date;
       }

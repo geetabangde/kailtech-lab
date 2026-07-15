@@ -39,11 +39,11 @@ export default function ViewQuotation() {
       if (quoteRes.data?.status === "true" || quoteRes.data?.status === true) {
         const viewData = quoteRes.data.data;
         if (editRes.data?.status === "true" || editRes.data?.status === true) {
-           const q = editRes.data.data?.quotation;
-           if (q) {
-             viewData.notes = q.notes || viewData.notes;
-             viewData.customterms = q.customterms || viewData.customterms;
-           }
+          const q = editRes.data.data?.quotation;
+          if (q) {
+            viewData.notes = q.notes || viewData.notes;
+            viewData.customterms = q.customterms || viewData.customterms;
+          }
         }
         setData(viewData);
       } else {
@@ -285,7 +285,7 @@ export default function ViewQuotation() {
               <p style={{ margin: "0 0 10px", fontWeight: "bold", textDecoration: "underline", fontSize: 12 }}>Terms & Conditions:</p>
               <div style={{ fontSize: 11, lineHeight: 1.6, color: "#444" }}>
                 {data?.customterms && (
-                   <div dangerouslySetInnerHTML={{ __html: data.customterms }}></div>
+                  <div dangerouslySetInnerHTML={{ __html: data.customterms }}></div>
                 )}
               </div>
             </div>

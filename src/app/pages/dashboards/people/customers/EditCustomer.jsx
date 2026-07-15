@@ -1009,7 +1009,7 @@ function AddContactModal({ customerId, onClose, onSuccess }) {
           />
           <Input
             label="Email"
-            type="email"
+            type="text"
             value={formData.email}
             onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
             required

@@ -132,10 +132,12 @@ export default function AddQuotations() {
         setFormData((prev) => ({
           ...prev,
           customername: custData.name || prev.customername,
-          customeraddress: addrData.address 
+          customeraddress: addrData.address
             ? `${addrData.address || ""} ${addrData.city || ""} ${addrData.pincode || ""}`.trim()
             : (custData.address || ""),
           contactpersonname: addrData.contact_person || custData.pname || "",
+          concernpersonemail: addrData.email || custData.email || "",
+          concernpersonmobile: addrData.mobile || custData.mobile || custData.pnumber || "",
           gstno: custData.gstno || "",
           country: custData.country || "",
           state: custData.state || "",
@@ -290,8 +292,8 @@ export default function AddQuotations() {
                     formData.customer === "new"
                       ? { value: "new", label: "Add New Customer" }
                       : customers
-                          .map((c) => ({ value: c.id, label: c.name }))
-                          .find((opt) => String(opt.value) === String(formData.customer)) || null
+                        .map((c) => ({ value: c.id, label: c.name }))
+                        .find((opt) => String(opt.value) === String(formData.customer)) || null
                   }
                   onChange={handleCustomerChange}
                   placeholder="Choose Customer..."
@@ -376,7 +378,7 @@ export default function AddQuotations() {
                       Contact Person Email
                     </label>
                     <input
-                      type="email"
+                      type="text"
                       name="concernpersonemail"
                       value={formData.concernpersonemail}
                       onChange={handleChange}

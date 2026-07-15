@@ -1,4 +1,4 @@
-import  { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Page } from "components/shared/Page";
 import { Card, Button, Table, TBody, Tr, Td } from "components/ui";
@@ -55,15 +55,15 @@ export default function EditTQuotationItem() {
         try {
             const vertical = quoteData?.vertical || 2;
             console.log(`Fetching packages for product ${productId}, vertical: ${vertical}`);
-            
+
             const [pkgRes, gsRes] = await Promise.all([
                 axios.get(`/testing/get-package-list?pid=${productId}&type=${vertical}`),
                 axios.get(`/testing/get-grade-and-size?pid=${productId}`)
             ]);
-            
+
             console.log('Package response:', pkgRes.data);
             console.log('Grade/Size response:', gsRes.data);
-            
+
             setDependentData(prev => ({
                 ...prev,
                 [index]: {
@@ -144,7 +144,7 @@ export default function EditTQuotationItem() {
             };
 
             const response = await axios.post("/sales/add-testing-quotation-item", payload);
-            
+
             if (response.data?.status) {
                 toast.success(response.data.message || "Products added successfully");
                 setNewItems([]); // Clear the new items after successful addition
@@ -276,7 +276,7 @@ export default function EditTQuotationItem() {
         }
     };
 
-    
+
     const handleDeleteClose = () => {
         setDeleteModal({ show: false, itemId: null, state: 'pending' });
         setDeleteLoading(false);
@@ -346,7 +346,7 @@ export default function EditTQuotationItem() {
         };
     }, [existingItems, newItems, taxData]);
 
-    
+
     const handleUpdateQuotation = async () => {
         setSubmitting(true);
         try {
@@ -426,8 +426,8 @@ export default function EditTQuotationItem() {
                         <Table className="w-full">
                             <thead>
                                 <tr className="border-b bg-gray-50 dark:bg-dark-700">
-                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-dark-300">PRODUCT /<br/> STANDARD</th>
-                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-dark-300">SPECIFICATIONS<br/> (GRADE/SIZE/PKG)</th>
+                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-dark-300">PRODUCT /<br /> STANDARD</th>
+                                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-dark-300">SPECIFICATIONS<br /> (GRADE/SIZE/PKG)</th>
                                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-dark-300">QTY</th>
                                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-dark-300">UNIT COST</th>
                                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-dark-300">TOTAL</th>
@@ -454,10 +454,10 @@ export default function EditTQuotationItem() {
                                             </Td>
                                             <Td className="px-4 py-2 text-sm text-gray-600 dark:text-dark-400">
                                                 <div>
-                                                    {item.grade } / {item.size }
+                                                    {item.grade} / {item.size}
                                                 </div>
                                                 <div className="text-xs text-gray-400 italic">
-                                                    {item.package }
+                                                    {item.package}
                                                 </div>
                                             </Td>
                                             <Td className="px-2 py-2 text-center font-medium">{item.qty}</Td>
@@ -528,8 +528,8 @@ export default function EditTQuotationItem() {
                                             <div className="space-y-3">
                                                 <div>
                                                     <Select
-                                                        options={products.map(p => ({ value: p.id, label: p.name }))}
-                                                        value={products.map(p => ({ value: p.id, label: p.name })).find(o => String(o.value) === String(item.product)) || null}
+                                                        options={products.map(p => ({ value: p.id, label: p.description ? `${p.description} - ${p.name}` : p.name }))}
+                                                        value={products.map(p => ({ value: p.id, label: p.description ? `${p.description} - ${p.name}` : p.name })).find(o => String(o.value) === String(item.product)) || null}
                                                         placeholder="Select Product"
                                                         onChange={(opt) => handleNewItemChange(idx, "product", opt?.value)}
                                                         className="react-select-container"
@@ -859,7 +859,7 @@ export default function EditTQuotationItem() {
                     </Card>
                 </div>
             </div>
-            
+
             {/* Delete Confirmation Modal */}
             <ConfirmModal
                 show={deleteModal.show}

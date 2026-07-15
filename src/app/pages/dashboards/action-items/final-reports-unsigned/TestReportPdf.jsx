@@ -308,10 +308,13 @@ function PdfResultsTable({ data, landscape = false }) {
 }
 
 function PdfRemarks({ remarkLines }) {
-  if (!remarkLines.length) return null;
+  if (!remarkLines || !remarkLines.length) return null;
   return (
     <View style={SS.remarkBox}>
-      <Text><Text style={SS.bold}>Remark: </Text>{remarkLines.join("  ")}</Text>
+      <Text><Text style={SS.bold}>Remark: </Text>{remarkLines[0]}</Text>
+      {remarkLines.slice(1).map((line, i) => (
+        <Text key={i} style={{ paddingLeft: 35 }}>{line}</Text>
+      ))}
     </View>
   );
 }

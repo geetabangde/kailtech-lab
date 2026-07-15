@@ -46,7 +46,6 @@ const Calibratestep2 = () => {
     // Detect system theme
     const [theme, setTheme] = useState('light');
 
-    const [issueDate, setIssueDate] = useState(new Date().toISOString().split('T')[0]);
 
     // Select For All Point state
     const [selectForAllPoint, setSelectForAllPoint] = useState({
@@ -331,7 +330,7 @@ const Calibratestep2 = () => {
                 }
             });
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [calibPointsState.map(p => (p.masters || []).join(',')).join('|'), instrumentInfo?.scopematrixvalidation, id, itemId]);
 
     useEffect(() => {
@@ -617,7 +616,7 @@ const Calibratestep2 = () => {
             const submissionData = {
                 caliblocation: caliblocation,
                 calibacc: calibacc,
-                issue: issueDate,
+                //  issue: new Date().toISOString().split('T')[0],
                 inwardid: parseInt(id),
                 id: parseInt(itemId),
                 calibpointid: calibPointsState.map(point => point.calibpointid)
@@ -672,7 +671,6 @@ const Calibratestep2 = () => {
                 // Define step2Data here, before using it
                 const step2Data = {
                     calibPointsState,
-                    issueDate,
                     selectForAllPoint,
                     submissionData,
                     apiData: {
@@ -1319,21 +1317,6 @@ const Calibratestep2 = () => {
                                 </div>
                             )}
 
-                            {/* Issue Date */}
-                            <div className="flex items-center gap-4 mt-6 mb-6">
-                                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                    Issue Date: <span className="text-red-500">*</span>
-                                </label>
-                                <input
-                                    type="date"
-                                    value={issueDate}
-                                    onChange={(e) => setIssueDate(e.target.value)}
-                                    className={`px-3 py-2 border rounded bg-white dark:bg-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 text-sm ${fieldErrors['issue'] ? 'border-red-500 focus:ring-red-500 dark:focus:ring-red-400' : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-blue-400'}`}
-                                />
-                                {fieldErrors['issue'] && (
-                                    <p className="text-red-500 text-xs mt-1">{fieldErrors['issue'][0]}</p>
-                                )}
-                            </div>
 
                             {/* Submit Button */}
                             <div className="flex justify-end">

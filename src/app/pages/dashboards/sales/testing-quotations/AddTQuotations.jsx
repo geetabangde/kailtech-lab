@@ -136,6 +136,8 @@ export default function AddTestingQuotation() {
             ? `${addrData.address || ""} ${addrData.city || ""} ${addrData.pincode || ""}`.trim()
             : (custData.address || ""),
           contactpersonname: addrData.contact_person || custData.pname || "",
+          concernpersonemail: addrData.email || custData.email || "",
+          concernpersonmobile: addrData.mobile || custData.mobile || custData.pnumber || "",
           gstno: custData.gstno || "",
           country: custData.country || "",
           state: custData.state || "",
@@ -375,7 +377,7 @@ export default function AddTestingQuotation() {
                       Contact Person Email
                     </label>
                     <input
-                      type="email"
+                      type="text"
                       name="concernpersonemail"
                       value={formData.concernpersonemail}
                       onChange={handleChange}

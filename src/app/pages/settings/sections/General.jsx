@@ -84,98 +84,13 @@ export default function General() {
           prefix={<PhoneIcon className="size-4.5" />}
         />
       </div>
-      <div className="my-7 h-px bg-gray-200 dark:bg-dark-500" />
-      <div>
-        <div>
-          <p className="text-base font-medium text-gray-800 dark:text-dark-100">
-            Linked Accounts
-          </p>
-          <p className="mt-0.5">
-            Manage your linked accounts and their permissions.
-          </p>
-        </div>
-        <div>
-          <div className="mt-4 flex items-center justify-between space-x-2 ">
-            <div className="flex min-w-0 items-center space-x-4 ">
-              <div className="size-12">
-                <img
-                  className="h-full w-full"
-                  src="/images/logos/google.svg"
-                  alt="logo"
-                />
-              </div>
-              <p className="truncate font-medium">Sign In with Google</p>
-            </div>
-            <Button
-              className="h-8 rounded-full px-3 text-xs-plus"
-              variant="outlined"
-            >
-              Connect
-            </Button>
-          </div>
-          <div className="mt-4 flex items-center justify-between space-x-2 ">
-            <div className="flex min-w-0 items-center space-x-4 ">
-              <div className="size-12">
-                <img
-                  className="h-full w-full"
-                  src="/images/logos/github-round.svg"
-                  alt="logo"
-                />
-              </div>
-              <p className="truncate font-medium">Sign In with Github</p>
-            </div>
-            <Button
-              className="h-8 rounded-full px-3 text-xs-plus"
-              variant="outlined"
-            >
-              Connect
-            </Button>
-          </div>
-          <div className="mt-4 flex items-center justify-between space-x-2 ">
-            <div className="flex min-w-0 items-center space-x-4 ">
-              <div className="size-12">
-                <img
-                  className="h-full w-full"
-                  src="/images/logos/instagram-round.svg"
-                  alt="logo"
-                />
-              </div>
-              <p className="truncate font-medium">Sign In with Instagram</p>
-            </div>
-            <Button
-              className="h-8 rounded-full px-3 text-xs-plus"
-              variant="outlined"
-            >
-              Connect
-            </Button>
-          </div>
-          <div className="mt-4 flex items-center justify-between space-x-2 ">
-            <div className="flex min-w-0 items-center space-x-4 ">
-              <div className="size-12">
-                <img
-                  className="h-full w-full"
-                  src="/images/logos/discord-round.svg"
-                  alt="logo"
-                />
-              </div>
-              <p className="truncate font-medium">Sign In with Discord</p>
-            </div>
-            <Button
-              className="h-8 rounded-full px-3 text-xs-plus"
-              variant="outlined"
-            >
-              {" "}
-              Connect
-            </Button>
-          </div>
-        </div>
-      </div>
+
       <div className="mt-8 flex justify-end space-x-3 ">
         <Button className="min-w-[7rem]">Cancel</Button>
         <Button className="min-w-[7rem]" color="primary">
           Save
         </Button>
       </div>
-    </div>
+    </div >
   );
 }

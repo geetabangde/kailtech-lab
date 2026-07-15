@@ -25,10 +25,10 @@ function usePermissions() {
 function ActionCell({ row, onEdit, onDelete, onCancelLRN, onClone, trfId }) {
   const permissions = usePermissions();
 
-  const tid       = row.id;
+  const tid = row.id;
   const trfstatus = Number(row.status);
-  const packtype  = Number(row.pack_type ?? 1);
-  const reportid  = row.report ?? 0;
+  const packtype = Number(row.pack_type ?? 1);
+  const reportid = row.report ?? 0;
 
   if (trfstatus === 99) {
     return <span className="text-xs italic text-gray-400">LRN Cancelled</span>;
@@ -39,7 +39,7 @@ function ActionCell({ row, onEdit, onDelete, onCancelLRN, onClone, trfId }) {
     row.pending_signature_status === "" ||
     row.pending_signature_status == null;
 
-  const canEditItem  = pendingOk && permissions.includes(367);
+  const canEditItem = pendingOk && permissions.includes(367);
   const canCancelLRN =
     pendingOk &&
     permissions.includes(268) &&
@@ -136,7 +136,7 @@ function ActionBtn({ children, onClick, color = "blue", href, to, target }) {
   const colorMap = {
     blue: "bg-blue-500 hover:bg-blue-600",
     cyan: "bg-cyan-500 hover:bg-cyan-600",
-    red:  "bg-red-500 hover:bg-red-600",
+    red: "bg-red-500 hover:bg-red-600",
   };
   const className = `inline-block rounded px-2.5 py-1 text-xs font-medium text-white transition ${colorMap[color] ?? colorMap.blue}`;
 
@@ -165,7 +165,7 @@ function ActionBtn({ children, onClick, color = "blue", href, to, target }) {
 
 // ── Cancel LRN Modal ──────────────────────────────────────────────────────────
 function CancelLRNModal({ show, trfId, trfProductId, onClose, onSuccess }) {
-  const [reason,  setReason]  = useState("");
+  const [reason, setReason] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
@@ -177,7 +177,7 @@ function CancelLRNModal({ show, trfId, trfProductId, onClose, onSuccess }) {
       onSuccess();
       onClose();
     } catch { toast.error("Failed to cancel LRN ❌"); }
-    finally  { setLoading(false); setReason(""); }
+    finally { setLoading(false); setReason(""); }
   };
 
   if (!show) return null;
@@ -258,14 +258,14 @@ export default function TrfProductsList() {
 
   const trfStatusFromNav = location.state?.trfStatus ?? null;
 
-  const [data,      setData]      = useState([]);
-  const [loading,   setLoading]   = useState(false);
-  const [error,     setError]     = useState(null);
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [trfStatus, setTrfStatus] = useState(null);
 
   // ── Inline form mode (add / clone) ────────────────────────────────────────
-  const [formMode,    setFormMode]    = useState(null);
-  const [editItemId,  setEditItemId]  = useState(null);
+  const [formMode, setFormMode] = useState(null);
+  const [editItemId, setEditItemId] = useState(null);
   const [cloneItemId, setCloneItemId] = useState(null);
   const showForm = formMode !== null;
 
@@ -275,10 +275,10 @@ export default function TrfProductsList() {
   // ── ✅ Delete confirm modal state ─────────────────────────────────────────
   const [deleteModal, setDeleteModal] = useState({ show: false, itemId: null, deleting: false });
 
-   const [columnFilters, setColumnFilters] = useState({});
-  const [sortConfig,    setSortConfig]    = useState({ key: "id", direction: "desc" });
-  const [search,      setSearch]      = useState("");
-  const [pageSize,    setPageSize]    = useState(10);
+  const [columnFilters, setColumnFilters] = useState({});
+  const [sortConfig, setSortConfig] = useState({ key: "id", direction: "desc" });
+  const [search, setSearch] = useState("");
+  const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
 
   const [cancelLRNModal, setCancelLRNModal] = useState({
@@ -290,7 +290,7 @@ export default function TrfProductsList() {
     setError(null);
     try {
       const response = await axios.get(`testing/get-trf-item-list/${id}`);
-      const apiData  = response.data ?? {};
+      const apiData = response.data ?? {};
       const products = apiData.trf_products ?? [];
       setData(products);
 
@@ -302,6 +302,15 @@ export default function TrfProductsList() {
         const candidate = apiData.trf_status ?? apiData.trfStatus ?? null;
         if (candidate !== null && typeof candidate !== "boolean") {
           trfSt = Number(candidate);
+        } else if (products.length > 0) {
+          // Fallback to the first item's status if root status is missing
+          const itemStatus = products[0].trf_status ?? products[0].status ?? null;
+          if (itemStatus !== null) {
+            trfSt = Number(itemStatus);
+          }
+        } else {
+          // If no products exist and status is completely unknown, assume it's a new TRF (0)
+          trfSt = 0;
         }
       }
       if (trfSt !== null) setTrfStatus(trfSt);
@@ -339,10 +348,10 @@ export default function TrfProductsList() {
     const valB = b[key];
 
     if (valA === valB) return 0;
-    
+
     // Numeric sort for ID
     if (key === "id") {
-      return sortConfig.direction === "asc" 
+      return sortConfig.direction === "asc"
         ? Number(valA) - Number(valB)
         : Number(valB) - Number(valA);
     }
@@ -353,13 +362,13 @@ export default function TrfProductsList() {
   });
 
   const activeItemCount = data.filter((row) => Number(row.status) !== 99).length;
-  const totalEntries    = sortedData.length;
-  const totalPages      = Math.max(1, Math.ceil(totalEntries / pageSize));
+  const totalEntries = sortedData.length;
+  const totalPages = Math.max(1, Math.ceil(totalEntries / pageSize));
   const safeCurrentPage = Math.min(currentPage, totalPages);
-  const startIndex      = (safeCurrentPage - 1) * pageSize;
-  const paginated       = sortedData.slice(startIndex, startIndex + pageSize);
+  const startIndex = (safeCurrentPage - 1) * pageSize;
+  const paginated = sortedData.slice(startIndex, startIndex + pageSize);
 
-   const handleSearchChange   = (e) => { setSearch(e.target.value); setCurrentPage(1); };
+  const handleSearchChange = (e) => { setSearch(e.target.value); setCurrentPage(1); };
   const handleColumnFilterChange = (key, value) => {
     setColumnFilters((prev) => ({ ...prev, [key]: value }));
     setCurrentPage(1);
@@ -405,7 +414,7 @@ export default function TrfProductsList() {
   // ── ✅ Edit modal handlers ─────────────────────────────────────────────────
   // "Edit Item Detail" button click → modal open
   const openEditModal = (itemId) => setEditModal({ show: true, itemId });
-  const closeEditModal = ()      => setEditModal({ show: false, itemId: null });
+  const closeEditModal = () => setEditModal({ show: false, itemId: null });
 
   const handleEditModalSuccess = () => {
     toast.success("Item updated successfully ✅", { duration: 3000 });
@@ -433,25 +442,25 @@ export default function TrfProductsList() {
     setDeleteModal({ show: false, itemId: null, deleting: false });
   };
 
-  const handleCancelLRN      = (trfId, trfProductId) => setCancelLRNModal({ show: true, trfId, trfProductId });
+  const handleCancelLRN = (trfId, trfProductId) => setCancelLRNModal({ show: true, trfId, trfProductId });
   const handleCancelLRNClose = () => setCancelLRNModal({ show: false, trfId: null, trfProductId: null });
 
   const showLRN = permissions.includes(375);
   const showBRN = permissions.includes(376);
 
   const columns = [
-    { key: "id",           label: "ID" },
+    { key: "id", label: "ID" },
     { key: "product_name", label: "Product" },
     { key: "package_name", label: "Package" },
     ...(showLRN ? [{ key: "lrn", label: "LRN" }] : []),
     ...(showBRN ? [{ key: "brn", label: "BRN" }] : []),
-    { key: "ulr",        label: "ULR" },
+    { key: "ulr", label: "ULR" },
     { key: "grade_size", label: "Grade/Size" },
-    { key: "brand",      label: "Brand/Source" },
+    { key: "brand", label: "Brand/Source" },
   ];
 
-  const trfStatusNum    = trfStatus !== null ? Number(trfStatus) : null;
-  const canAddItem      = trfStatusNum === 0 || trfStatusNum === 98;
+  const trfStatusNum = trfStatus !== null ? Number(trfStatus) : null;
+  const canAddItem = trfStatusNum === 0 || trfStatusNum === 98;
   const canSubmitReview = trfStatusNum === 0 && activeItemCount > 0;
 
   const handleSubmitForReview = async () => {
@@ -465,7 +474,7 @@ export default function TrfProductsList() {
   };
 
   const addBtnLabel = formMode === "add" ? "Close Form" : "Add New Item";
-  const addBtnIcon  = formMode === "add" ? "✕" : "+";
+  const addBtnIcon = formMode === "add" ? "✕" : "+";
 
   return (
     <div className="transition-content w-full pb-5">
@@ -485,9 +494,8 @@ export default function TrfProductsList() {
               {canAddItem && (
                 <button
                   onClick={handleAddBtnClick}
-                  className={`rounded-lg px-4 py-2 text-sm font-semibold text-white shadow transition ${
-                    formMode === "add" ? "bg-slate-500 hover:bg-slate-600" : "bg-blue-600 hover:bg-blue-700"
-                  }`}
+                  className={`rounded-lg px-4 py-2 text-sm font-semibold text-white shadow transition ${formMode === "add" ? "bg-slate-500 hover:bg-slate-600" : "bg-blue-600 hover:bg-blue-700"
+                    }`}
                 >
                   <span className="mr-1 font-bold">{addBtnIcon}</span>
                   {addBtnLabel}
@@ -546,8 +554,8 @@ export default function TrfProductsList() {
               <thead>
                 <tr>
                   {columns.map((col) => (
-                    <th 
-                      key={col.key} 
+                    <th
+                      key={col.key}
                       onClick={() => handleSort(col.key)}
                       className="cursor-pointer border-y border-gray-200 bg-white px-3 py-2.5 text-left text-xs font-semibold whitespace-nowrap text-gray-600 transition hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400 dark:hover:bg-gray-800"
                     >
@@ -600,13 +608,12 @@ export default function TrfProductsList() {
                   paginated.map((row, idx) => (
                     <tr
                       key={row.id}
-                      className={`border-b border-gray-100 transition-colors dark:border-gray-800 ${
-                        (formMode === "clone" && cloneItemId === row.id)
+                      className={`border-b border-gray-100 transition-colors dark:border-gray-800 ${(formMode === "clone" && cloneItemId === row.id)
                           ? "bg-blue-50 dark:bg-blue-900/20"
                           : idx % 2 === 0
                             ? "bg-white dark:bg-gray-900"
                             : "bg-gray-50 dark:bg-gray-800/50"
-                      }`}
+                        }`}
                     >
                       {columns.map((col) => (
                         <td key={col.key} className="px-3 py-2 align-middle text-gray-700 dark:text-gray-300">

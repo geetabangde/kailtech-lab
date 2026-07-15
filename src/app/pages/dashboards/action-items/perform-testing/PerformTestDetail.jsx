@@ -2,7 +2,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import axios from "utils/axios";
-import dayjs from "dayjs";
 import { toast } from "sonner";
 import clsx from "clsx";
 import {
@@ -711,7 +710,6 @@ function ActionCell({ row, onRefresh }) {
               <input
                 type="date"
                 value={startDate}
-                min={dayjs().format("YYYY-MM-DD")} // future dates only
                 onChange={(e) => setStartDate(e.target.value)}
                 className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
               />
