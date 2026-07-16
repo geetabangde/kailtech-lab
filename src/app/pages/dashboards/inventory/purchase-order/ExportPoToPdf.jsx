@@ -1,17 +1,19 @@
 // Import Dependencies
 import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import axios from "utils/axios";
 import { toast } from "sonner";
 
 // Local Imports
 import { Page } from "components/shared/Page";
+import { Button, Card } from "components/ui";
 
 // ----------------------------------------------------------------------
 // PHP: $po_id = $_GET['hakuna'];
 // PHP: Complex PDF generation with DomPDF
 
 export default function ExportPoToPdf() {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const poId = searchParams.get("hakuna");
   const [loading, setLoading] = useState(true);
@@ -140,7 +142,7 @@ export default function ExportPoToPdf() {
             ...customerData,
             gstno: customerData.gst_number || customerData.gstno,
             panno: customerData.pan_no,
-            address: customerData.address || customerData.full_address,
+            address: customerData.full_address || customerData.address,
             stateName: fetchedStateName
           },
           items: items,
@@ -297,7 +299,7 @@ export default function ExportPoToPdf() {
 
         <div style="text-align: center; margin-bottom: 8px; margin-top: 20px;">
           <div style="font-size: 14px; font-weight: bold; text-transform: uppercase;">
-            <b>Purchase Order</b>
+            <b>${purchaseOrder.ordertype === 'WO' ? 'Work Order' : 'Purchase Order'}</b>
           </div>
         </div>
 
@@ -328,7 +330,7 @@ export default function ExportPoToPdf() {
               Kind Attn. ${purchaseOrder.sname || customer.contact_person || ''}
             </td>
             <td style="width: 30%;">
-              <b>Purchase Order No. : </b> ${purchaseOrder.po_number || ''}<br>
+              <b>${purchaseOrder.ordertype === 'WO' ? 'Work Order' : 'Purchase Order'} No. : </b> ${purchaseOrder.po_number || ''}<br>
               <b>Date : </b>${formatDate(purchaseOrder.date)}<br>
               <b>Quotation No./ Date : </b> ${purchaseOrder.quotationno || ''} ${formatDate(purchaseOrder.quotationdate)}<br>
             </td>
@@ -517,10 +519,10 @@ export default function ExportPoToPdf() {
         </div>
 
         <!-- Signature -->
-        <div style="margin-top: 30px; text-align: right;">
+        <div style="margin-top: 30px; display: flex; flex-direction: column; align-items: flex-end;">
           <div>For ${company.name}</div>
           ${purchaseOrder.status === 1 && purchaseOrder.approved_by ? `
-            <div style="margin-top: 10px;">
+            <div style="margin-top: 10px; text-align: center;">
               <div>Electronically signed by</div>
               <div>${purchaseOrder.approved_by_name || ''}</div>
               ${purchaseOrder.approved_by_designation ? `<div>Designation:${purchaseOrder.approved_by_designation}</div>` : ''}
@@ -587,16 +589,16 @@ export default function ExportPoToPdf() {
   if (error) {
     return (
       <Page title="Export Purchase Order to PDF">
-        <div className="flex h-[60vh] items-center justify-center">
-          <div className="text-center">
-            <div className="text-red-600 mb-4">Error: {error}</div>
-            <button
-              onClick={() => window.history.back()}
-              className="btn btn-primary"
-            >
-              Go Back
-            </button>
+        <div className="flex h-[60vh] flex-col items-center justify-center">
+          <div className="text-center mb-4">
+            <div className="text-red-600">Error: {error}</div>
           </div>
+          <Button
+            variant="outline"
+            onClick={() => navigate(`/dashboards/inventory/purchase-order/view-full-purchase-order?hakuna=${poId}`)}
+          >
+            Go Back
+          </Button>
         </div>
       </Page>
     );
@@ -613,57 +615,54 @@ export default function ExportPoToPdf() {
   }
 
   return (
-    <Page title="Export Purchase Order to PDF">
-      <div className="container mx-auto p-6">
-        <div className="bg-white rounded-lg shadow-lg p-6">
-          <h1 className="text-2xl font-bold mb-6 text-center">
-            Purchase Order PDF Preview
-          </h1>
+    <Page title={`Export ${pdfData.purchaseOrder.ordertype === 'WO' ? 'Work Order' : 'Purchase Order'} to PDF`}>
+      <div className="transition-content w-full px-[var(--margin-x)] pb-5 pt-4">
+        <Card className="relative flex flex-col p-6">
+          <div className="flex items-center justify-between border-b border-gray-200 pb-4 dark:border-dark-500">
+            <h2 className="text-xl font-semibold text-gray-800 dark:text-dark-50">
+              {pdfData.purchaseOrder.ordertype === 'WO' ? 'Work Order' : 'Purchase Order'} PDF Preview
+            </h2>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={() => navigate(`/dashboards/inventory/purchase-order/view-full-purchase-order?hakuna=${poId}`)}
+                className="h-9 px-4 text-sm"
+              >
+                &lt;&lt; Back
+              </Button>
+              <Button
+                onClick={generatePdf}
+                variant="filled"
+                color="primary"
+                className="h-9 px-4 text-sm"
+              >
+                Download PDF
+              </Button>
+            </div>
+          </div>
 
-          <div className="mb-6 text-center">
-            <p className="text-gray-600 mb-4">
-              Purchase Order: {pdfData.purchaseOrder.po_number}
-            </p>
-            <p className="text-gray-600 mb-4">
-              Customer: {pdfData.customer.company}
-            </p>
-            <button
-              onClick={generatePdf}
-              className="btn btn-primary bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded"
-            >
-              Generate PDF
-            </button>
+          <div className="mt-6 mb-4 flex justify-between items-center text-sm">
+            <div className="text-gray-600 dark:text-gray-400">
+              <strong>{pdfData.purchaseOrder.ordertype === 'WO' ? 'Work Order' : 'Purchase Order'}:</strong> {pdfData.purchaseOrder.po_number}
+            </div>
+            <div className="text-gray-600 dark:text-gray-400">
+              <strong>Customer:</strong> {pdfData.customer.company}
+            </div>
           </div>
 
           {/* Preview of the PDF content */}
-          <div className="border border-gray-300 rounded p-4 bg-gray-50">
-            <h3 className="text-lg font-semibold mb-4">Preview:</h3>
+          <div className="border border-gray-300 rounded p-4 bg-gray-50 overflow-hidden flex justify-center">
             <div
               dangerouslySetInnerHTML={{ __html: generatePdfHtml() }}
               style={{
                 transform: 'scale(0.8)',
-                transformOrigin: 'top left',
+                transformOrigin: 'top center',
                 width: '125%',
                 height: 'auto'
               }}
             />
           </div>
-
-          <div className="mt-6 text-center">
-            <button
-              onClick={() => window.history.back()}
-              className="btn btn-secondary bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded mr-4"
-            >
-              Back
-            </button>
-            <button
-              onClick={generatePdf}
-              className="btn btn-primary bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded"
-            >
-              Download PDF
-            </button>
-          </div>
-        </div>
+        </Card>
       </div>
 
       <style>{`

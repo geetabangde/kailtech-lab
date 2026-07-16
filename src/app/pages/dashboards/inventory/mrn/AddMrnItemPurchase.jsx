@@ -12,12 +12,12 @@ export default function AddMrnItemPurchase() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [fetchingData, setFetchingData] = useState(false);
-  
+
   const [items, setItems] = useState([]);
   const [units, setUnits] = useState([]);
 
   const [isSgst, setIsSgst] = useState(false);
-  
+
   const [selectedSearchItem, setSelectedSearchItem] = useState(null);
 
   useEffect(() => {
@@ -25,12 +25,12 @@ export default function AddMrnItemPurchase() {
       if (!id) return;
       try {
         setFetchingData(true);
-        
+
         let localIsSgst = false;
         const itemsRes = await axios.get(`/inventory/get-mrn-item`, { params: { id } }).catch(() => null);
         if (itemsRes?.data?.status) {
           if (itemsRes.data.gst_details && itemsRes.data.gst_details.sgst === 1) {
-             localIsSgst = true;
+            localIsSgst = true;
           }
           setIsSgst(localIsSgst);
         }
@@ -184,7 +184,7 @@ export default function AddMrnItemPurchase() {
     if (items.length === 0) {
       return toast.warning("Please add at least one item.");
     }
-    
+
     setLoading(true);
     try {
       const payload = {
@@ -213,8 +213,6 @@ export default function AddMrnItemPurchase() {
         totaltaxamountitem: items.map(i => parseFloat(i.totaltaxamountitem) || 0),
         finalamount: items.map(i => parseFloat(i.finalamount) || 0)
       };
-
-      await axios.post("/inventory/insertMrnItemPurchasewopo.php", payload).catch(() => null);
       await axios.post("/inventory/add-mrn-purchase-item", payload).catch(() => null);
 
       toast.success("MRN Items saved successfully!");
@@ -385,7 +383,7 @@ export default function AddMrnItemPurchase() {
                             />
                           </Td>
                           <Td className="p-2 text-right text-xs font-mono font-semibold">₹{item.taxableamount}</Td>
-                          
+
                           {!isSgst && (
                             <Td className="p-2">
                               <input
@@ -397,7 +395,7 @@ export default function AddMrnItemPurchase() {
                               />
                             </Td>
                           )}
-                          
+
                           {isSgst && (
                             <>
                               <Td className="p-2">

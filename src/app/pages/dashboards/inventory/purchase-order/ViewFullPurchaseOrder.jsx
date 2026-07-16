@@ -83,7 +83,7 @@ export default function ViewFullPurchaseOrder() {
   };
 
   const handleExportPDF = () => {
-    window.open(`/dashboards/inventory/purchase-order/export-po-to-pdf?hakuna=${poId}`, '_blank');
+    navigate(`/dashboards/inventory/purchase-order/export-po-to-pdf?hakuna=${poId}`);
   };
 
   if (loading) {
@@ -111,12 +111,12 @@ export default function ViewFullPurchaseOrder() {
   }
 
   return (
-    <Page title="View Purchase Order">
+    <Page title={`View ${purchaseOrder.ordertype === 'WO' ? 'Work Order' : 'Purchase Order'}`}>
       <div className="transition-content w-full px-[var(--margin-x)] pb-5 pt-4">
         <Card className="relative flex flex-col p-6">
           <div className="flex items-center justify-between border-b border-gray-200 pb-4 dark:border-dark-500">
             <h2 className="text-xl font-semibold text-gray-800 dark:text-dark-50">
-              View Purchase Order
+              View {purchaseOrder.ordertype === 'WO' ? 'Work Order' : 'Purchase Order'}
             </h2>
             <div className="flex items-center gap-2">
               <Button
@@ -275,7 +275,7 @@ export default function ViewFullPurchaseOrder() {
                   <div className="col-span-8">
                     <textarea
                       readOnly
-                      value={purchaseOrder.saddress || supplier?.address || ""}
+                      value={purchaseOrder.saddress || supplier?.full_address || supplier?.address || ""}
                       className="w-full rounded-lg border border-gray-200 bg-gray-50 p-2.5 text-sm outline-none dark:border-dark-500 dark:bg-dark-800"
                       rows={3}
                     />
@@ -296,7 +296,7 @@ export default function ViewFullPurchaseOrder() {
 
                 <div className="grid grid-cols-12 items-center gap-4 text-right">
                    <div className="col-span-8 col-start-1">
-                     <label className="text-sm font-medium text-gray-600 dark:text-dark-200">PO Number</label>
+                     <label className="text-sm font-medium text-gray-600 dark:text-dark-200">{purchaseOrder.ordertype === 'WO' ? 'WO Number' : 'PO Number'}</label>
                    </div>
                    <div className="col-span-4">
                      <Input readOnly value={purchaseOrder.po_number} className="bg-gray-50 text-right font-bold" />

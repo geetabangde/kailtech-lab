@@ -328,7 +328,7 @@ export default function InvoiceReport() {
                             <Th
                               key={header.id}
                               className={clsx(
-                                "bg-gray-200 font-semibold uppercase text-gray-800 dark:bg-dark-800 dark:text-dark-100 first:ltr:rounded-tl-lg last:ltr:rounded-tr-lg first:rtl:rounded-tr-lg last:rtl:rounded-tl-lg",
+                                "!px-1.5 !sm:px-1.5 bg-gray-200 font-semibold uppercase text-gray-800 dark:bg-dark-800 dark:text-dark-100 first:ltr:rounded-tl-lg last:ltr:rounded-tr-lg first:rtl:rounded-tr-lg last:rtl:rounded-tl-lg",
                                 header.column.getCanPin() && [
                                   header.column.getIsPinned() === "left" &&
                                     "sticky z-2 ltr:left-0 rtl:right-0",
@@ -379,7 +379,7 @@ export default function InvoiceReport() {
                             <Td
                               key={cell.id}
                               className={clsx(
-                                "relative bg-white",
+                                "!px-1.5 !sm:px-1.5 relative bg-white",
                                 cardSkin === "shadow"
                                   ? "dark:bg-dark-700"
                                   : "dark:bg-dark-900",

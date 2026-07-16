@@ -12,12 +12,20 @@ export const columns = [
   columnHelper.accessor("custname", {
     id: "custname",
     header: "Customer Name",
-    cell: (info) => info.getValue() ?? "-",
+    cell: (info) => (
+      <div className="whitespace-normal break-words min-w-[150px] max-w-[250px]">
+        {info.getValue() ?? "-"}
+      </div>
+    ),
   }),
   columnHelper.accessor("ponumber", {
     id: "ponumber",
     header: "Po Number",
-    cell: (info) => info.getValue() ?? "-",
+    cell: (info) => (
+      <div className="whitespace-normal break-words min-w-[150px] max-w-[250px]">
+        {info.getValue() ?? "-"}
+      </div>
+    ),
   }),
   columnHelper.accessor("invoiceno", {
     id: "invoiceno",
@@ -26,7 +34,7 @@ export const columns = [
   }),
   columnHelper.accessor("subtotal", {
     id: "subtotal",
-    header: "Item Total",
+    header: () => <>Item<br />Total</>,
     cell: (info) => info.getValue() ?? "-",
   }),
   columnHelper.accessor("discount", {
@@ -41,17 +49,17 @@ export const columns = [
   }),
   columnHelper.accessor("samplehandling", {
     id: "samplehandling",
-    header: "Sample Handling",
+    header: () => <>Sample<br />Handling</>,
     cell: (info) => info.getValue() ?? "-",
   }),
   columnHelper.accessor("sampleprep", {
     id: "sampleprep",
-    header: "Sample Preparation",
+    header: () => <>Sample<br />Preparation</>,
     cell: (info) => info.getValue() ?? "-",
   }),
   columnHelper.accessor("freight", {
     id: "freight",
-    header: "Freight Charges",
+    header: () => <>Freight<br />Charges</>,
     cell: (info) => info.getValue() ?? "-",
   }),
   columnHelper.accessor("mobilisation", {
@@ -61,7 +69,7 @@ export const columns = [
   }),
   columnHelper.accessor("subtotal2", {
     id: "subtotal2",
-    header: "Total Taxable",
+    header: () => <>Total<br />Taxable</>,
     cell: (info) => info.getValue() ?? "-",
   }),
   columnHelper.accessor("sgstamount", {
@@ -81,17 +89,17 @@ export const columns = [
   }),
   columnHelper.accessor("finaltotal", {
     id: "finaltotal",
-    header: "Invoice Amount",
+    header: () => <>Invoice<br />Amount</>,
     cell: (info) => info.getValue() ?? "-",
   }),
   columnHelper.accessor("remaining", {
     id: "remaining",
-    header: "Remaining Amount",
+    header: () => <>Remaining<br />Amount</>,
     cell: (info) => info.getValue() ?? "-",
   }),
   columnHelper.accessor("typeofinvoice", {
     id: "typeofinvoice",
-    header: "Invoice Type",
+    header: () => <>Invoice<br />Type</>,
     cell: (info) => info.getValue() ?? "-",
   }),
   columnHelper.accessor("status", {

@@ -926,21 +926,6 @@ export default function AddTrfStartJob() {
                 <ErrMsg field="specificpurpose" />
               </div>
 
-              {/* Customer Reference */}
-              <div className="md:col-span-2" ref={letterrefnoRef}>
-                <label className="mb-1 block text-sm font-medium text-gray-700">
-                  Customer Reference <span className="text-red-500">*</span>
-                </label>
-                <Textarea
-                  name="letterrefno"
-                  value={formData.letterrefno}
-                  onChange={handleInputChange}
-                  className="w-full"
-                  rows={3}
-                  placeholder="Enter customer reference details"
-                />
-                <ErrMsg field="letterrefno" />
-              </div>
             </div>
 
             {/* ━━━━ CUSTOMER DETAILS BLOCK ━━━━ */}
@@ -1251,6 +1236,22 @@ export default function AddTrfStartJob() {
               2. WORK ORDER DETAILS
             </h4>
             <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
+              {/* Customer Reference */}
+              <div className="md:col-span-2" ref={letterrefnoRef}>
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                  Customer Reference <span className="text-red-500">*</span>
+                </label>
+                <Textarea
+                  name="letterrefno"
+                  value={formData.letterrefno}
+                  onChange={handleInputChange}
+                  className="w-full"
+                  rows={3}
+                  placeholder="Enter customer reference details"
+                />
+                <ErrMsg field="letterrefno" />
+              </div>
+
               <div ref={ponumberRef}>
                 <label className="mb-1 block text-sm font-medium text-gray-700">
                   Work Order Number <span className="text-red-500">*</span>

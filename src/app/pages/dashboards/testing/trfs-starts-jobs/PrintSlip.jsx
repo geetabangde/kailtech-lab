@@ -56,7 +56,10 @@ export default function PrintSlip() {
 
   if (!data) return <div className="p-8 text-center text-red-500 font-bold">Data not found!</div>;
 
-  const { trfData = {}, sampleReview = {}, technical = {}, report_name, billing_name, address, mode_of_receipt, witness, sample_condition } = data;
+  const trfData = data.trfData || {};
+  const sampleReview = data.sampleReview || {};
+  const technical = data.technical || {};
+  const { report_name, billing_name, address, mode_of_receipt, witness, sample_condition } = data;
 
   const okLabel = (val) => (val == 0 ? "Not Ok" : "Ok");
   const yesNoLabel = (val) => (val == 0 ? "No" : "Yes");

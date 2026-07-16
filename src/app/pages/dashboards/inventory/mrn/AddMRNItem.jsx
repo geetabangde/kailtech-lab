@@ -32,11 +32,11 @@ export default function AddMRNItem() {
       try {
         setFetchingData(true);
         // PHP logic: purchase_order_item_ajax.php
-        const res = await axios.get(`/inventory/get-mrn-item?id=${id}`);
-        
+        const res = await axios.get(`inventory/mrn-item-list?id=${id}`);
+
         if (res.data.status === true || res.data.status === "true" || res.data.data) {
           const rawData = res.data.data || res.data;
-          
+
           // Set Challan Info
           if (rawData.mrn) {
             setChallanInfo((prev) => prev || rawData.mrn);
@@ -272,7 +272,7 @@ export default function AddMRNItem() {
   return (
     <Page title="Add MRN Items">
       <div className="transition-content p-6">
-        
+
         {/* Header section */}
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -376,7 +376,7 @@ export default function AddMRNItem() {
                   ) : (
                     rows.map((row, index) => (
                       <Tr key={index} className="border-b border-gray-100 dark:border-dark-700 align-middle">
-                        
+
                         {/* Description */}
                         <Td className="py-2">
                           <Input
@@ -536,7 +536,7 @@ export default function AddMRNItem() {
                 <span className="font-semibold text-gray-700 dark:text-dark-100">Note:</span> Taxes are automatically calculated based on state code rules (CGST/SGST for Madhya Pradesh, IGST for other states).
               </div>
               <div className="space-y-4 max-w-md ml-auto w-full">
-                
+
                 {/* Total Item Amount */}
                 <div className="flex justify-between items-center text-sm">
                   <span className="font-medium text-gray-500">Total Item Amount:</span>

@@ -24,7 +24,7 @@ export default function AddMrnItemPurchasewopo() {
     const fetchInitialData = async () => {
       try {
         setFetchingData(true);
-        
+
         let fetchedUnits = [];
         // Fetch Units for the UOM dropdown
         const unitsRes = await axios.get("/master/units-list").catch(() => null);
@@ -49,13 +49,13 @@ export default function AddMrnItemPurchasewopo() {
             // Map string UOM (e.g., "kg") to its numeric ID from the fetched units
             let matchedUomId = item.uom;
             if (fetchedUnits.length > 0 && item.uom && isNaN(item.uom)) {
-               const foundUnit = fetchedUnits.find(u => {
-                 const unitStr = String(u.name || u.unit_name || u.unit || "").trim().toLowerCase();
-                 return unitStr === String(item.uom).trim().toLowerCase();
-               });
-               if (foundUnit) {
-                   matchedUomId = foundUnit.id;
-               }
+              const foundUnit = fetchedUnits.find(u => {
+                const unitStr = String(u.name || u.unit_name || u.unit || "").trim().toLowerCase();
+                return unitStr === String(item.uom).trim().toLowerCase();
+              });
+              if (foundUnit) {
+                matchedUomId = foundUnit.id;
+              }
             }
 
             return calculateItemRow({
@@ -218,7 +218,7 @@ export default function AddMrnItemPurchasewopo() {
         totaltaxamountitem: items.map(i => parseFloat(i.totaltaxamountitem) || 0),
         finalamount: items.map(i => parseFloat(i.finalamount) || 0),
         remark: items.map(i => String(i.remark || "")),
-        
+
         subtotal: parseFloat(subtotal.toFixed(2)),
         discount: parseFloat(totalDiscount.toFixed(2)),
         totalafterdisc: parseFloat(totalTaxable.toFixed(2)),
@@ -236,11 +236,10 @@ export default function AddMrnItemPurchasewopo() {
     } catch (error) {
       console.error(error);
       toast.error(error?.response?.data?.message || "An error occurred during save.");
-    } finally { 
+    } finally {
       setLoading(false);
     }
   };
-
   return (
     <Page title="Add MRN Items">
       <div className="transition-content p-6">
@@ -262,7 +261,7 @@ export default function AddMrnItemPurchasewopo() {
             <div className="text-center py-10 text-gray-500">Loading data...</div>
           ) : (
             <form onSubmit={handleSubmit}>
-              
+
               <div className="mb-4 flex justify-end">
                 <Button type="button" onClick={handleAddManualItem} className="bg-green-600 text-white hover:bg-green-700">
                   <PlusIcon className="w-4 h-4 mr-2" /> Add Blank Row

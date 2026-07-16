@@ -169,7 +169,7 @@ export default function FinalReportDetail() {
                     <InfoRow label="Laboratory Reference Number (LRN)" value={trfProduct.lrn ?? trfProduct.brn ?? "—"} />
                   </tr>
                   <InfoTr label="Date of Receipt" value={fmtDate(report.trf?.date ?? dates.receipt_date)} />
-                  <InfoTr label="Condition, When Received" value={trfProduct.condition_name ?? "—"} />
+                  <InfoTr label="Condition, When Received" value={trfProduct.condition_name ?? "Satisfactory"} />
                   <InfoTr label="Packing, When Received" value={trfProduct.sealed_name ?? "—"} />
                   <InfoTr label="Quantity Received (Approx.)" value={buildQtyStr(report.received_items)} />
                   <InfoTr label="Date of Start Of Test" value={fmtDate(dates.start_date)} />
@@ -334,15 +334,15 @@ function RemarkSection({ remarks, report }) {
   const hodRemark = remarks?.hod_remark ?? remarks?.hodremark ?? report?.hod_remark ?? report?.hodremark ?? "";
   const witnessVal = remarks?.witness ?? report?.trf?.witness ?? "";
   const witnessDetail = remarks?.witness_detail ?? remarks?.wdetail ?? report?.trf?.wdetail ?? "";
-  
+
   let bdlRemark = remarks?.bdl_remark ?? remarks?.bdlremark ?? report?.bdl_remark ?? "";
   let adlRemark = remarks?.adl_remark ?? remarks?.adlremark ?? report?.adl_remark ?? "";
-  
+
   const testResults = Array.isArray(report?.test_results) ? report.test_results : (report?.test_results && typeof report.test_results === 'object' ? Object.values(report.test_results) : []);
-  
+
   const hasBdl = testResults.some(r => r.result?.display_value?.includes("BDL") || String(r.result?.value ?? r.result ?? "").includes("BDL"));
   const hasAdl = testResults.some(r => r.result?.display_value?.includes("ADL") || String(r.result?.value ?? r.result ?? "").includes("ADL"));
-  
+
   if (hasBdl && !bdlRemark) bdlRemark = "BDL : Below Detection Limit";
   if (hasAdl && !adlRemark) adlRemark = "ADL : Above Detection Limit";
 

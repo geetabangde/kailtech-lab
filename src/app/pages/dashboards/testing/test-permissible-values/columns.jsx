@@ -27,23 +27,23 @@ export const columns = [
       header: "PRODUCT",
       cell: (info) => {
         const val = info.getValue();
-        if (!val || val === "N/A") return "N/A";
+        if (!val || val === "-") return "-";
 
         // Split by " - " delimiter
         const parts = val.split(" - ");
         if (parts.length > 1) {
           return (
-            <div className="flex flex-col py-1">
-              <span className="dark:text-dark-100 text-gray-800">
+            <div className="flex flex-col py-1 whitespace-normal min-w-[350px] max-w-md">
+              <span className="dark:text-dark-100 text-gray-700 font-medium">
                 {parts[0]}
               </span>
-              <span className="dark:text-dark-400 text-gray-600">
+              <span className="dark:text-dark-400 text-gray-700">
                 {parts.slice(1).join(" - ")}
               </span>
             </div>
           );
         }
-        return <div className="py-1">{val}</div>;
+        return <div className="py-1 whitespace-normal min-w-[350px] max-w-md">{val}</div>;
       },
       filterFn: "includesString",
     },
@@ -143,9 +143,9 @@ export const columns = [
     (row) => {
       const val = row.specification;
       if (Array.isArray(val)) {
-        return val.filter((v) => v && v !== "-").join(", ") || "N/A";
+        return val.join(", ");
       }
-      return val && val !== "-" ? val : "N/A";
+      return val;
     },
     {
       id: "specification",

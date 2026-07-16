@@ -225,9 +225,29 @@ export default function TrfItemForm({ trfId, itemId, cloneId, onSuccess, onCance
         setGrades(toArray(d, "grades"));
         setSizes(toArray(d, "sizes"));
         setPackages(toArray(d, "packages"));
-        setQuantities(toArray(d, "quantities"));
-        setReceived(toArray(d, "quantities").map(() => ""));
         setParameters(toArray(d, "parameters"));
+        
+        const clonedItem = d.trf_product ?? {};
+        const clonePkgId = String(clonedItem.package ?? "");
+        if (clonePkgId && clonePkgId !== "undefined") {
+          try {
+            const qtyRes = await axios.get(`/testing/get-package-quantities?id=${clonePkgId}`);
+            const qtys = toArray(qtyRes.data, "data");
+            if (qtys.length > 0) {
+              setQuantities(qtys);
+              setReceived(qtys.map(() => ""));
+            } else {
+              setQuantities(toArray(d, "quantities"));
+              setReceived(toArray(d, "quantities").map(() => ""));
+            }
+          } catch {
+            setQuantities(toArray(d, "quantities"));
+            setReceived(toArray(d, "quantities").map(() => ""));
+          }
+        } else {
+          setQuantities(toArray(d, "quantities"));
+          setReceived(toArray(d, "quantities").map(() => ""));
+        }
 
         const special = d.special ?? false;
         setIsSpecial(!!special);
@@ -280,11 +300,13 @@ export default function TrfItemForm({ trfId, itemId, cloneId, onSuccess, onCance
   // ── 3. Default first options (only for blank add-new) ────────────────────
   useEffect(() => {
     if (!loadingDropdowns && isNew) {
+      const defaultCondition = conditions.find(c => c.name?.toLowerCase() === "satisfactory") || conditions[0];
+      
       setForm((prev) => ({
         ...prev,
         isok: prev.isok || String(choices[0]?.id ?? ""),
         disposable: prev.disposable || String(disposables[0]?.id ?? ""),
-        condition: prev.condition || String(conditions[0]?.id ?? ""),
+        condition: prev.condition || String(defaultCondition?.id ?? ""),
         specification: prev.specification || String(choices[0]?.id ?? ""),
         conformity: prev.conformity || String(choices[0]?.id ?? ""),
       }));
@@ -827,18 +849,20 @@ export default function TrfItemForm({ trfId, itemId, cloneId, onSuccess, onCance
             <h4 className="text-sm font-semibold text-blue-700 dark:text-blue-400">Parameters Of Package</h4>
           </div>
           <div className="px-4 py-3 space-y-1">
-            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 pb-2 mb-1 border-b border-gray-100 dark:border-gray-800 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={allParamsSelected}
-                onChange={(e) => handleSelectAllParams(e.target.checked)}
-                className="w-4 h-4 accent-blue-600 rounded"
-              />
-              Select / Deselect All
-            </label>
+            <div className="pb-2 mb-1 border-b border-gray-100 dark:border-gray-800">
+              <label className="inline-flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={allParamsSelected}
+                  onChange={(e) => handleSelectAllParams(e.target.checked)}
+                  className="w-4 h-4 accent-blue-600 rounded"
+                />
+                Select / Deselect All
+              </label>
+            </div>
             {parameters.map((param) => (
               <div key={param.id}>
-                <label className="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer py-0.5 hover:text-blue-600 dark:hover:text-blue-400 transition">
+                <label className="inline-flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer py-0.5 hover:text-blue-600 dark:hover:text-blue-400 transition">
                   <input
                     type="checkbox"
                     className="parametercheck w-4 h-4 mt-0.5 accent-blue-600 rounded flex-shrink-0"

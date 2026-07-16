@@ -762,7 +762,8 @@ export default function ViewItemizedBill() {
   const statecode = isNaN(Number(invoice.statecode))
     ? invoice.statecode
     : String(Number(invoice.statecode)).padStart(2, "0");
-  const isSgst = statecode === "23";
+  const isOutsideIndia = String(invoice.country) !== "1" && String(invoice._address?.country) !== "1";
+  const isSgst = !isOutsideIndia && statecode === "23";
   const isDraft = Number(invoice.status) === 0;
   const isEinvoice = Number(invoice.status) === 2;
 
@@ -851,6 +852,9 @@ export default function ViewItemizedBill() {
         buyerGstin = "URP";
         supTyp = "B2C";
       }
+      if (isOutsideIndia) {
+        supTyp = "EXPWOP";
+      }
 
       const dateParts = invoice.approved_on ? invoice.approved_on.split(' ')[0].split('-') : [];
       const formattedDate = dateParts.length === 3 ? `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}` : "";
@@ -869,12 +873,12 @@ export default function ViewItemizedBill() {
           Stcd: "23"
         },
         BuyerDtls: {
-          Gstin: buyerGstin,
+          Gstin: isOutsideIndia ? "URP" : buyerGstin,
           LglNm: invoice.customername ? invoice.customername.substring(0, 99) : "",
-          Pos: isNaN(Number(statecode)) ? "96" : String(statecode).padStart(2, '0'),
+          Pos: isOutsideIndia ? "96" : (isNaN(Number(statecode)) ? "96" : String(statecode).padStart(2, '0')),
           Addr1: (invoice._address?.address || invoice.address || "").replace(/[\r\n]+/g, ' ').substring(0, 99),
           Loc: invoice._address?.city || "",
-          Pin: (() => {
+          Pin: isOutsideIndia ? 999999 : (() => {
             const rawPin = String(invoice._address?.pincode || "");
             const match = rawPin.match(/\b\d{6}\b/);
             if (match) return Number(match[0]);
@@ -885,7 +889,7 @@ export default function ViewItemizedBill() {
 
             return 999999;
           })(),
-          Stcd: isNaN(Number(statecode)) ? "96" : String(statecode).padStart(2, '0')
+          Stcd: isOutsideIndia ? "96" : (isNaN(Number(statecode)) ? "96" : String(statecode).padStart(2, '0'))
         },
         ItemList: computedItems.map((item, index) => ({
           SlNo: String(index + 1),

@@ -17,7 +17,7 @@ import axios from "utils/axios";
 import { Table, Card, THead, TBody, Th, Tr, Td } from "components/ui";
 import { TableSortIcon } from "components/shared/table/TableSortIcon";
 import { Page } from "components/shared/Page";
-import { useLockScrollbar, useDidUpdate, useLocalStorage, useIsMounted } from "hooks";
+import { useLockScrollbar, useDidUpdate, useLocalStorage } from "hooks";
 import { fuzzyFilter } from "utils/react-table/fuzzyFilter";
 import { useSkipper } from "utils/react-table/useSkipper";
 import { Toolbar } from "./Toolbar";
@@ -66,37 +66,40 @@ export default function OrdersDatatableV1() {
     {},
   );
   const [autoResetPageIndex, skipAutoResetPageIndex] = useSkipper();
-  const isMounted = useIsMounted();
 
   // ── Effects and Callbacks ────────────────────────────────────────────────────
   // ✅ Fetch from API
   useEffect(() => {
-    fetchPurchaseOrders();
-  }, []);
+    let active = true;
 
-  const fetchPurchaseOrders = async () => {
-    try {
-      if (!isMounted()) return;
-      setLoading(true); // start loader
-      const response = await axios.get("inventory/purchase-order-list");
-      
-      // console.log("API response:", response.data); // debug
+    const fetchPurchaseOrders = async () => {
+      try {
+        setLoading(true); // start loader
+        const response = await axios.get("inventory/purchase-order-list");
+        
+        if (!active) return;
 
-      if (!isMounted()) return;
+        if ((response.data.status === true || response.data.status === "true") && Array.isArray(response.data.data)) {
+          setOrders(response.data.data); // ✅ correct assignment
+        } else {
+          console.warn("Unexpected response structure:", response.data);
+          setOrders([]); // fallback
+        }
 
-      if ((response.data.status === true || response.data.status === "true") && Array.isArray(response.data.data)) {
-        setOrders(response.data.data); // ✅ correct assignment
-      } else {
-        console.warn("Unexpected response structure:", response.data);
-        setOrders([]); // fallback
+      } catch (err) {
+        console.error("Error fetching purchase order list:", err);
+        if (active) setOrders([]);
+      } finally {
+        if (active) setLoading(false); // stop loader
       }
+    };
 
-    } catch (err) {
-      console.error("Error fetching purchase order list:", err);
-    } finally {
-      if (isMounted()) setLoading(false); // stop loader
-    }
-  };
+    fetchPurchaseOrders();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // ── Table Configuration (All hooks must be called before any conditional returns) --------------------------------
   const table = useReactTable({

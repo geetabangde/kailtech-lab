@@ -92,7 +92,7 @@ export default function ApprovePO() {
     };
 
     const handleExportPDF = () => {
-        window.open(`/dashboards/inventory/purchase-order/export-po-to-pdf?hakuna=${poId}`, '_blank');
+        navigate(`/dashboards/inventory/purchase-order/export-po-to-pdf?hakuna=${poId}`);
     };
 
     if (loading) {

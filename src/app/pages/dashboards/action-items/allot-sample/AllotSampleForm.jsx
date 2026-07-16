@@ -39,29 +39,30 @@ export default function AllotSampleForm() {
   const [filteredPersons, setFilteredPersons] = useState([]);
 
   // ── Fetch page data ───────────────────────────────────────────────────────
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const res = await axios.get(`/actionitem/get-allot-data/${id}`);
+      const d = res.data;
+      setPageData(d);
+      // Default: show all persons until lab selected
+      setFilteredPersons(d.persons ?? []);
+      // Init row inputs
+      const init = {};
+      (d.received_items ?? []).forEach((item) => {
+        init[item.id] = { biscode: "", alloted: "" };
+      });
+      setRowInputs(init);
+    } catch (err) {
+      const msg = err?.response?.data?.message ?? "Failed to load data.";
+      setError(msg);
+      toast.error(msg + " ❌");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const res = await axios.get(`/actionitem/get-allot-data/${id}`);
-        const d = res.data;
-        setPageData(d);
-        // Default: show all persons until lab selected
-        setFilteredPersons(d.persons ?? []);
-        // Init row inputs
-        const init = {};
-        (d.received_items ?? []).forEach((item) => {
-          init[item.id] = { biscode: "", alloted: "" };
-        });
-        setRowInputs(init);
-      } catch (err) {
-        const msg = err?.response?.data?.message ?? "Failed to load data.";
-        setError(msg);
-        toast.error(msg + " ❌");
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchData();
   }, [id]);
 
@@ -102,7 +103,8 @@ export default function AllotSampleForm() {
   };
 
   // ── Submit — POST /actionitem/allot-items ─────────────────────────────────
-  const handleSubmit = async () => {
+  const handleSubmit = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
     // Validation
     if (!department) { toast.error("Please select a Lab ❌"); return; }
     if (!person) { toast.error("Please select a Person ❌"); return; }
@@ -146,7 +148,7 @@ export default function AllotSampleForm() {
         alloted: allotedArr,
       });
       toast.success("Item Alloted Successfully ✅");
-      navigate("/dashboards/action-items/allot-sample");
+      fetchData();
     } catch (err) {
       const msg = err?.response?.data?.message ?? "Failed to allot items.";
       toast.error(msg + " ❌");
@@ -345,6 +347,7 @@ export default function AllotSampleForm() {
           {allotableItems.length > 0 && (
             <div className="border-t border-gray-200 px-5 py-4 dark:border-gray-700">
               <button
+                type="button"
                 onClick={handleSubmit}
                 disabled={submitting}
                 className={`flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white shadow transition hover:bg-blue-700 ${submitting ? "cursor-not-allowed opacity-60" : ""

@@ -155,67 +155,11 @@ function QuantityModal({ packageId, onClose, onAdded }) {
   );
 }
 
-// ── isRequired — PHP frequency logic ka exact React port ──────────────────
-function isRequired(schedule, existingRecords) {
-  const now = new Date();
-  const todayStr = now.toISOString().slice(0, 10);
-  const hour = now.getHours();
-
-  const typed = existingRecords.filter((r) => r.type === schedule.type);
-
-  switch (schedule.frequency) {
-    case "Once a day":
-      return (
-        typed.filter((r) => r.added_on?.slice(0, 10) === todayStr).length < 1
-      );
-
-    case "Twice a day":
-      if (hour >= 14) {
-        return (
-          typed.filter((r) => {
-            if (!r.added_on) return false;
-            return (
-              r.added_on.slice(0, 10) === todayStr &&
-              new Date(r.added_on).getHours() >= 14
-            );
-          }).length < 1
-        );
-      } else {
-        return (
-          typed.filter((r) => r.added_on?.slice(0, 10) === todayStr).length < 1
-        );
-      }
-
-    case "Monthly": {
-      const mm = String(now.getMonth() + 1).padStart(2, "0");
-      const monthStart = `${now.getFullYear()}-${mm}-01`;
-      return (
-        typed.filter((r) => {
-          const d = r.added_on?.slice(0, 10);
-          return d >= monthStart && d <= todayStr;
-        }).length < 1
-      );
-    }
-
-    case "Yearly": {
-      const yearStart = `${now.getFullYear()}-01-01`;
-      return (
-        typed.filter((r) => {
-          const d = r.added_on?.slice(0, 10);
-          return d >= yearStart && d <= todayStr;
-        }).length < 1
-      );
-    }
-
-    default:
-      return true;
-  }
-}
 
 // ── Parameter Modal ────────────────────────────────────────────────────────
 function ParameterModal({ packageId, onClose, onAdded }) {
   const [parameters, setParameters] = useState([]);
-  const [choices, setChoices] = useState([{ id: 1, name: "Yes" }, { id: 2, name: "No" }]);
+  const [choices] = useState([{ id: 1, name: "Yes" }, { id: 2, name: "No" }]);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
 
@@ -229,16 +173,12 @@ function ParameterModal({ packageId, onClose, onAdded }) {
     const load = async () => {
       try {
         setLoading(true);
-        const [paramRes, choicesRes] = await Promise.allSettled([
-          axios.get("/testing/get-perameter-list"),
-          axios.get("/testing/get-choices") // fallback to static if fails
+        const [paramRes] = await Promise.allSettled([
+          axios.get("sales/test-parameters"),
         ]);
 
         if (paramRes.status === "fulfilled" && paramRes.value.data?.data) {
           setParameters(paramRes.value.data.data);
-        }
-        if (choicesRes.status === "fulfilled" && choicesRes.value.data?.data) {
-          setChoices(choicesRes.value.data.data);
         }
       } catch (err) {
         console.error(err);
@@ -265,7 +205,7 @@ function ParameterModal({ packageId, onClose, onAdded }) {
 
     setAdding(true);
     try {
-      const res = await axios.post("/sales/add-package-parameter", {
+      const res = await axios.post("sales/add-package-parameters", {
         package: Number(packageId),
         parameter: Number(form.parameter),
         priority: Number(form.priority),
@@ -308,9 +248,9 @@ function ParameterModal({ packageId, onClose, onAdded }) {
         {/* Body */}
         <div className="space-y-4 p-5">
           {loading ? (
-             <div className="flex justify-center p-4">
-               <span className="text-gray-500">Loading...</span>
-             </div>
+            <div className="flex justify-center p-4">
+              <span className="text-gray-500">Loading...</span>
+            </div>
           ) : (
             <>
               <div>
@@ -439,12 +379,19 @@ export default function EditTestPackage() {
       /* silent */
     }
   }, [recordId]);
-  
+
   const loadParameters = useCallback(async () => {
     try {
-      const res = await axios.get(`/testing/package-parameters/${recordId}`);
-      if (res.data?.status && res.data.parameters) {
-        setPackageParams(res.data.parameters);
+      const res = await axios.get(`sales/package-parameters/${recordId}`);
+      const paramsArray = res.data?.data?.parameters || res.data?.parameters;
+      if (res.data?.status && paramsArray) {
+        const mapped = paramsArray.map(p => ({
+          ...p,
+          name: p.name || p.parameter_name,
+          description: p.description || p.parameter_description,
+          visible: p.visible || p.visible_id
+        }));
+        setPackageParams(mapped);
       }
     } catch {
       /* silent */
@@ -487,7 +434,7 @@ export default function EditTestPackage() {
       }
     };
     load();
-  }, [id, navigate, loadQuantities, loadParameters]);
+  }, [id, isClone, recordId, navigate, loadQuantities, loadParameters]);
 
   const handleDeleteQty = async (qid) => {
     try {
@@ -501,7 +448,7 @@ export default function EditTestPackage() {
 
   const handleDeleteParam = async (pid) => {
     try {
-      await axios.delete(`/sales/delete-package-parameter/${pid}`);
+      await axios.delete(`sales/delete-package-parameter/${pid}`);
       setPackageParams((old) => old.filter((p) => p.id !== pid));
       toast.success("Parameter removed");
     } catch {
@@ -773,6 +720,51 @@ export default function EditTestPackage() {
           </div>
 
           {/* ── Quantity Section ── */}
+          <div className="dark:border-dark-500 mt-6 rounded-lg border border-gray-200 p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <h4 className="dark:text-dark-200 text-sm font-semibold text-gray-700">
+                Quantity
+              </h4>
+              <button
+                onClick={() => setShowQtyModal(true)}
+                className="rounded bg-blue-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-600"
+              >
+                + Add New Quantity
+              </button>
+            </div>
+            {quantities.length > 0 ? (
+              <div className="space-y-2">
+                {quantities.map((q) => (
+                  <div
+                    key={q.id}
+                    className="dark:bg-dark-700 flex items-center gap-3 rounded-md bg-gray-50 px-3 py-2 text-sm"
+                  >
+                    <span className="dark:text-dark-100 flex-1 font-medium text-gray-800">
+                      {q.name}
+                    </span>
+                    <span className="dark:text-dark-300 text-gray-600">
+                      Qty: {q.quantity}
+                    </span>
+                    <span className="dark:text-dark-400 text-gray-500">
+                      Unit: {q.unit_name ?? q.unit}
+                    </span>
+                    <button
+                      onClick={() => handleDeleteQty(q.id)}
+                      className="rounded bg-red-500 px-2 py-0.5 text-xs text-white hover:bg-red-600"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="dark:text-dark-500 text-xs text-gray-400">
+                No quantity added yet.
+              </p>
+            )}
+          </div>
+
+          {/* ── Parameters Section ── */}
           <div className="dark:border-dark-500 mt-6 rounded-lg border border-gray-200 p-4">
             <div className="mb-3 flex items-center justify-between">
               <h4 className="dark:text-dark-200 text-sm font-semibold text-gray-700">

@@ -930,8 +930,7 @@ export default function AddTestPermissibleValue() {
                   <div>
                     <Input
                       label="Min Value"
-                      type="number"
-                      step="0.01"
+                      type="text"
                       value={formData.pvaluemin[index] || ""}
                       onChange={(e) =>
                         handleParameterValueChange(index, "min", e.target.value)
@@ -944,8 +943,7 @@ export default function AddTestPermissibleValue() {
                   <div>
                     <Input
                       label="Max Value"
-                      type="number"
-                      step="0.01"
+                      type="text"
                       value={formData.pvaluemax[index] || ""}
                       onChange={(e) =>
                         handleParameterValueChange(index, "max", e.target.value)
