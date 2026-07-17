@@ -213,10 +213,10 @@ export default function AddMrnItemPurchase() {
         totaltaxamountitem: items.map(i => parseFloat(i.totaltaxamountitem) || 0),
         finalamount: items.map(i => parseFloat(i.finalamount) || 0)
       };
-      await axios.post("/inventory/add-mrn-purchase-item", payload).catch(() => null);
+      await axios.post("/inventory/add-mrn-items-wopo", payload).catch(() => null);
 
       toast.success("MRN Items saved successfully!");
-      navigate("/dashboards/inventory/mrn");
+    
     } catch (err) {
       console.error(err);
       toast.error(err?.response?.data?.message || "Failed to save items");

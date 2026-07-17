@@ -13,7 +13,7 @@ function usePermissions() {
   }
 }
 
-export function RowActions({ row }) {
+export function RowActions({ row, onAction }) {
   const permissions = usePermissions();
   const { id, status, purpose, dispatchthrough, courrierno, empname, consignphone, consignname } = row.original;
   const statusInt = parseInt(status);
@@ -21,9 +21,9 @@ export function RowActions({ row }) {
 
   const canApprove = statusInt === -1 && permissions.includes(304);
   const canReject = statusInt === -1 && permissions.includes(305);
-  
+
   const canEditDispatchDetail = statusInt === 0 && permissions.includes(341);
-  
+
   // Complex condition for "Add Dispatch Detail"
   let canAddDispatchDetail = false;
   if (statusInt === 0 && permissions.includes(308)) {
@@ -49,7 +49,7 @@ export function RowActions({ row }) {
           size="xs"
           color="success"
           variant="soft"
-          className="px-2.5 py-1 font-semibold transition-all hover:bg-success-100"
+          className="bg-emerald-500/10 px-2.5 py-1 font-semibold transition-all hover:bg-emerald-500/20"
         >
           Approve
         </Button>
@@ -74,7 +74,7 @@ export function RowActions({ row }) {
           color="warning"
           variant="soft"
           className="px-2.5 py-1 font-semibold transition-all hover:bg-warning-100"
-          onClick={() => console.log("Edit Dispatch Detail Modal", id)}
+          onClick={() => onAction && onAction("edit", row)}
         >
           Edit Dispatch
         </Button>
@@ -86,7 +86,7 @@ export function RowActions({ row }) {
           color="info"
           variant="soft"
           className="px-2.5 py-1 font-semibold transition-all hover:bg-info-100"
-          onClick={() => console.log("Add Dispatch Detail Modal", id)}
+          onClick={() => onAction && onAction("add", row)}
         >
           Add Dispatch
         </Button>
@@ -127,7 +127,7 @@ export function RowActions({ row }) {
         size="xs"
         color="primary"
         variant="soft"
-        className="px-2.5 py-1 font-semibold transition-all hover:bg-primary-100"
+        className="bg-blue-500/10 px-2.5 py-1 font-semibold transition-all hover:bg-blue-500/20"
       >
         View Din Form
       </Button>
@@ -137,4 +137,5 @@ export function RowActions({ row }) {
 
 RowActions.propTypes = {
   row: PropTypes.object.isRequired,
+  onAction: PropTypes.func,
 };

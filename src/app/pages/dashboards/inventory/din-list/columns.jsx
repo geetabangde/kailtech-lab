@@ -7,7 +7,7 @@ import {
   ConcernPersonCell, 
   AddedByCell 
 } from "./rows";
-import { RowActions } from "./RowActions";
+import { MinusCircleIcon, PlusCircleIcon } from "@heroicons/react/24/solid";
 
 const columnHelper = createColumnHelper();
 
@@ -15,7 +15,23 @@ export const columns = [
   columnHelper.accessor("id", {
     id: "id",
     header: "ID",
-    cell: (info) => info.getValue(),
+    cell: ({ row, getValue }) => {
+      return (
+        <div className="flex items-center gap-2">
+          <button
+            onClick={row.getToggleExpandedHandler()}
+            className="focus:outline-none shrink-0"
+          >
+            {row.getIsExpanded() ? (
+              <MinusCircleIcon className="h-5 w-5 text-red-500" />
+            ) : (
+              <PlusCircleIcon className="h-5 w-5 text-green-500" />
+            )}
+          </button>
+          <span>{getValue()}</span>
+        </div>
+      );
+    },
   }),
 
   columnHelper.accessor("status", {
@@ -38,7 +54,7 @@ export const columns = [
 
   columnHelper.accessor("basis", {
     id: "basis",
-    header: "Basis",
+    header: "Type",
     cell: (info) => info.getValue(),
   }),
 
@@ -74,20 +90,14 @@ export const columns = [
 
   columnHelper.accessor("concernperson", {
     id: "concern_person",
-    header: "Concern Person",
+    header: "Contact Person",
     cell: ConcernPersonCell,
   }),
 
   columnHelper.accessor("addedBy", {
     id: "added_by_name",
-    header: "Added By",
+    header: "Requested Person",
     cell: AddedByCell,
   }),
 
-  columnHelper.display({
-    id: "action",
-    header: "Action",
-    enableColumnFilter: false,
-    cell: ({ row }) => <RowActions row={row} />,
-  }),
 ];

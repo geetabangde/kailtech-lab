@@ -557,7 +557,7 @@ export default function ViewInvoiceCalibration() {
     ? invoice.statecode
     : String(Number(invoice.statecode)).padStart(2, "0");
   const isOutsideIndia = String(invoice.country) !== "1" && String(invoice._address?.country) !== "1";
-  const isSgst = !isOutsideIndia && statecode === "23";
+  const isSgst = statecode === "23";
   const isFoc = invoice.invoiceno === "FOC";
   const isNormalPo = invoice.potype === "Normal";
   const isDraft = Number(invoice.status) === 0;

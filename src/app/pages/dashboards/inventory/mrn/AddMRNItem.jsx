@@ -257,7 +257,7 @@ export default function AddMRNItem() {
         totalinvoiceamount: parseFloat(totals.totalinvoiceamount) || 0,
       };
 
-      await axios.post("/inventory/add-mrn-purchase-item", payload);
+      await axios.post("/inventory/add-mrn-items", payload);
 
       toast.success("MRN Items added successfully ✅");
       navigate("/dashboards/inventory/mrn");

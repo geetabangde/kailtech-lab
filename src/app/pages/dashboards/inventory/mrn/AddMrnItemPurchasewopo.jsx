@@ -226,7 +226,7 @@ export default function AddMrnItemPurchasewopo() {
         totalinvoiceamount: parseFloat(totalInvoice.toFixed(2)),
       };
 
-      const response = await axios.post("/inventory/add-mrn-purchase-item", payload);
+      const response = await axios.post("/inventory/add-mrn-items-wopo", payload);
       if (response.data.status) {
         toast.success(response.data.message || "MRN Items saved successfully!");
         navigate("/dashboards/inventory/mrn");
@@ -245,7 +245,7 @@ export default function AddMrnItemPurchasewopo() {
       <div className="transition-content p-6">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold tracking-wide text-gray-800 dark:text-dark-50">
-            Add New MRN Items
+            Add New MRN Items 
           </h2>
           <Button
             variant="outline"

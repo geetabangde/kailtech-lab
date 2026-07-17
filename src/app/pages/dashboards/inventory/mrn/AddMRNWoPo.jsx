@@ -48,7 +48,7 @@ export default function AddMRNWoPo() {
   const [formData, setFormData] = useState({
     typeofrecieving: "",
     customerid: "",
-    poid: "", 
+    poid: "",
     vendoraddress: "",
     city: "",
     vendorname: "",

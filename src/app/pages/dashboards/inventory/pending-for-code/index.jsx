@@ -176,7 +176,11 @@ export default function PendingForCode() {
     getPaginationRowModel: getPaginationRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onColumnPinningChange: setColumnPinning,
-    onPaginationChange: setPagination,
+    onPaginationChange: (updater) => {
+      Promise.resolve().then(() => {
+        setPagination(updater);
+      });
+    },
     autoResetPageIndex,
   });
 

@@ -4900,6 +4900,16 @@ const protectedRoutes = {
                         ).default,
                       }),
                     },
+                    {
+                      path: "approve-dispatch",
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/inventory/din-list/ApproveDispatch"
+                          )
+                        ).default,
+                      }),
+                    },
                   ],
                 },
                 {

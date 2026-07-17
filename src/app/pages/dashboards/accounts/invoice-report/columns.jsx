@@ -13,7 +13,7 @@ export const columns = [
     id: "custname",
     header: "Customer Name",
     cell: (info) => (
-      <div className="whitespace-normal break-words min-w-[150px] max-w-[250px]">
+      <div className="break-words max-w-[130px]">
         {info.getValue() ?? "-"}
       </div>
     ),
@@ -22,7 +22,7 @@ export const columns = [
     id: "ponumber",
     header: "Po Number",
     cell: (info) => (
-      <div className="whitespace-normal break-words min-w-[150px] max-w-[250px]">
+      <div className="break-words max-w-[130px]">
         {info.getValue() ?? "-"}
       </div>
     ),
@@ -37,36 +37,7 @@ export const columns = [
     header: () => <>Item<br />Total</>,
     cell: (info) => info.getValue() ?? "-",
   }),
-  columnHelper.accessor("discount", {
-    id: "discount",
-    header: "Discount",
-    cell: (info) => info.getValue() ?? "-",
-  }),
-  columnHelper.accessor("witnesscharges", {
-    id: "witnesscharges",
-    header: "Witness",
-    cell: (info) => info.getValue() ?? "-",
-  }),
-  columnHelper.accessor("samplehandling", {
-    id: "samplehandling",
-    header: () => <>Sample<br />Handling</>,
-    cell: (info) => info.getValue() ?? "-",
-  }),
-  columnHelper.accessor("sampleprep", {
-    id: "sampleprep",
-    header: () => <>Sample<br />Preparation</>,
-    cell: (info) => info.getValue() ?? "-",
-  }),
-  columnHelper.accessor("freight", {
-    id: "freight",
-    header: () => <>Freight<br />Charges</>,
-    cell: (info) => info.getValue() ?? "-",
-  }),
-  columnHelper.accessor("mobilisation", {
-    id: "mobilisation",
-    header: "Mobilization",
-    cell: (info) => info.getValue() ?? "-",
-  }),
+
   columnHelper.accessor("subtotal2", {
     id: "subtotal2",
     header: () => <>Total<br />Taxable</>,

@@ -7,10 +7,11 @@ import {
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
+  getExpandedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
 import clsx from "clsx";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Fragment } from "react";
 import axios from "utils/axios";
 import { Link } from "react-router-dom";
 
@@ -22,9 +23,11 @@ import { useLockScrollbar, useLocalStorage } from "hooks";
 import { fuzzyFilter } from "utils/react-table/fuzzyFilter";
 import { useSkipper } from "utils/react-table/useSkipper";
 import { columns } from "./columns";
+import { RowActions } from "./RowActions";
 import { TableConfig } from "./TableConfig";
 import { PaginationSection } from "components/shared/table/PaginationSection";
 import { TableLoadingRow } from "components/shared/table/TableLoadingRow";
+import { DispatchDetailModal } from "./DispatchDetailModal";
 
 // ----------------------------------------------------------------------
 
@@ -49,11 +52,11 @@ function ColumnFilter({ column }) {
         onClick={e => e.stopPropagation()}
       >
         <option value="">All</option>
-        <option value="1">Approved / Dispatched</option>
+        <option value="1">Dispatched</option>
         <option value="-2">Pending For Checklist</option>
-        <option value="-1">Pending For approve</option>
+        <option value="-1">Pending For Approval</option>
         <option value="0">Pending For Dispatch</option>
-        <option value="99">Rejected Din</option>
+        <option value="99">Din Rejected</option>
       </select>
     );
   }
@@ -94,6 +97,8 @@ export default function DinList() {
     pageIndex: 0,
     pageSize: 25,
   });
+  const [expanded, setExpanded] = useState({});
+  const [modalState, setModalState] = useState({ isOpen: false, type: "add", row: null });
 
   useEffect(() => {
     fetchDinList();
@@ -126,6 +131,7 @@ export default function DinList() {
       columnPinning,
       pagination,
       tableSettings,
+      expanded,
     },
     meta: {
       updateData: (rowIndex, columnId, value) => {
@@ -159,6 +165,9 @@ export default function DinList() {
     onColumnVisibilityChange: setColumnVisibility,
     onColumnPinningChange: setColumnPinning,
     onPaginationChange: setPagination,
+    onExpandedChange: setExpanded,
+    getExpandedRowModel: getExpandedRowModel(),
+    getRowCanExpand: () => true,
     autoResetPageIndex,
   });
 
@@ -177,7 +186,7 @@ export default function DinList() {
     );
   }
 
-  
+
 
   return (
     <Page title="Din List">
@@ -284,30 +293,41 @@ export default function DinList() {
                     <TableLoadingRow colSpan={columns.length} />
                   ) : table.getRowModel().rows.length > 0 ? (
                     table.getRowModel().rows.map((row) => (
-                      <Tr
-                        key={row.id}
-                        className="border-b border-gray-200 hover:bg-gray-50/50 dark:border-dark-500 dark:hover:bg-dark-600/50"
-                      >
-                        {row.getVisibleCells().map((cell) => (
-                          <Td 
-                            key={cell.id} 
-                            className={clsx(
-                              "bg-white dark:bg-dark-700",
-                              cell.column.getCanPin() && [
-                                cell.column.getIsPinned() === "left" &&
-                                "sticky z-2 ltr:left-0 rtl:right-0",
-                                cell.column.getIsPinned() === "right" &&
-                                "sticky z-2 ltr:right-0 rtl:left-0",
-                              ]
-                            )}
-                          >
-                            {flexRender(
-                              cell.column.columnDef.cell,
-                              cell.getContext(),
-                            )}
-                          </Td>
-                        ))}
-                      </Tr>
+                      <Fragment key={row.id}>
+                        <Tr
+                          className="border-b border-gray-200 hover:bg-gray-50/50 dark:border-dark-500 dark:hover:bg-dark-600/50"
+                        >
+                          {row.getVisibleCells().map((cell) => (
+                            <Td
+                              key={cell.id}
+                              className={clsx(
+                                "bg-white dark:bg-dark-700",
+                                cell.column.getCanPin() && [
+                                  cell.column.getIsPinned() === "left" &&
+                                  "sticky z-2 ltr:left-0 rtl:right-0",
+                                  cell.column.getIsPinned() === "right" &&
+                                  "sticky z-2 ltr:right-0 rtl:left-0",
+                                ]
+                              )}
+                            >
+                              {flexRender(
+                                cell.column.columnDef.cell,
+                                cell.getContext(),
+                              )}
+                            </Td>
+                          ))}
+                        </Tr>
+                        {row.getIsExpanded() && (
+                          <Tr>
+                            <Td colSpan={row.getVisibleCells().length} className="bg-gray-50/50 p-4 dark:bg-dark-800/50">
+                              <div className="flex items-center gap-4 py-2 pl-4">
+                                <span className="font-semibold text-gray-700 dark:text-gray-300">Action:</span>
+                                <RowActions row={row} onAction={(type, actionRow) => setModalState({ isOpen: true, type, row: actionRow })} />
+                              </div>
+                            </Td>
+                          </Tr>
+                        )}
+                      </Fragment>
                     ))
                   ) : (
                     <Tr>
@@ -329,6 +349,18 @@ export default function DinList() {
           </div>
         </div>
       </div>
+      {modalState.isOpen && (
+        <DispatchDetailModal
+          isOpen={modalState.isOpen}
+          onClose={() => setModalState({ isOpen: false, type: "add", row: null })}
+          onSuccess={() => {
+            setModalState({ isOpen: false, type: "add", row: null });
+            fetchDinList();
+          }}
+          type={modalState.type}
+          row={modalState.row}
+        />
+      )}
     </Page>
   );
 }

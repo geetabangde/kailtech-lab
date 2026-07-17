@@ -24,7 +24,7 @@ export function StatusCell({ row }) {
       {isReturnable && isReturned && (
         <a
           href={`/dashboards/inventory/din-list/dispatch-return-record?hakuna=${row.original.id}`}
-          className="text-[10px] font-semibold text-primary-600 hover:underline"
+          className="text-sm font-semibold text-primary-600 hover:underline"
         >
           (Returned)
         </a>
@@ -43,12 +43,12 @@ export function CustomerCell({ row }) {
   const customerAddress = row.original.customeraddress || "";
 
   return (
-    <div className="flex flex-col">
-      <span className="font-semibold text-gray-800 dark:text-dark-100">
+    <div className="flex flex-col min-w-[200px] max-w-[300px] whitespace-normal">
+      <span className="font-semibold text-gray-800 dark:text-dark-100 break-words">
         {customerName}
       </span>
       {customerAddress && (
-        <span className="text-xs text-gray-500 dark:text-dark-400">
+        <span className="text-sm text-gray-500 dark:text-dark-400 break-words mt-1">
           {customerAddress}
         </span>
       )}
@@ -65,7 +65,7 @@ export function ConcernPersonCell({ row }) {
   } = row.original;
 
   return (
-    <div className="flex flex-col text-xs space-y-0.5">
+    <div className="flex flex-col text-sm space-y-0.5">
       <span className="font-medium text-gray-800 dark:text-dark-100">{concernperson}</span>
       {concernpersondesignation && <span className="text-gray-500">{concernpersondesignation}</span>}
       {concernpersonemail && <span className="text-gray-500 italic">{concernpersonemail}</span>}
