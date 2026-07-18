@@ -9,12 +9,16 @@ import { Button } from "components/ui";
 
 export function RowActions({ row }) {
   const navigate = useNavigate();
-  const { id, status, attachment1, attachment2 } = row.original;
+  const { id, status, attachment1, attachment2, ponumber } = row.original;
 
   const handleActionClick = () => {
     // PHP: if ($row['status'] == 0) { Add MRN Item } else { View Mrn Items }
     if (status === 0 || status === "0") {
-      navigate(`/dashboards/inventory/mrn/addMrnItemPurchasewopo?id=${id}`, { state: { mrn: row.original } });
+      if (ponumber) {
+        navigate(`/dashboards/inventory/mrn/addMrnItemPurchase?id=${id}`, { state: { mrn: row.original } });
+      } else {
+        navigate(`/dashboards/inventory/mrn/addMrnItemPurchasewopo?id=${id}`, { state: { mrn: row.original } });
+      }
     } else {
       navigate(`/dashboards/inventory/mrn/view-items/${id}`, { state: { mrn: row.original } });
     }

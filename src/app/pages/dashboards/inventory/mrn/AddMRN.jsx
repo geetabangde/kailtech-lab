@@ -185,7 +185,7 @@ export default function AddMRN() {
       toast.success(response.data?.message || "MRN added successfully ✅");
       
       if (newMrnId) {
-        navigate(`/dashboards/inventory/mrn/addMrnItemPurchasewopo?id=${newMrnId}`);
+        navigate(`/dashboards/inventory/mrn/addMrnItemPurchase?id=${newMrnId}`);
       } else {
         navigate("/dashboards/inventory/mrn");
       }

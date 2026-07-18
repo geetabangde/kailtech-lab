@@ -43,7 +43,7 @@ function SuccessModal({ isOpen, onClose, message }) {
 
         {/* Body */}
         <div className="px-6 py-8">
-          <p className="text-base text-gray-700 dark:text-gray-300">
+          <p className="text-base whitespace-pre-wrap text-gray-700 dark:text-gray-300">
             {message}
           </p>
         </div>
@@ -178,11 +178,15 @@ export default function GenerateUlr() {
         signatories: selected.map((s) => s.value),
         ...(pageData?.show_date_field && reportDate ? { report_date: reportDate } : {}),
       };
-      await axios.post("/actionitem/generate-ulr", payload);
+      const response = await axios.post("/actionitem/generate-ulr", payload);
       
-      const message = pageData?.button_label === "Generate ULR"
+      let message = pageData?.button_label === "Generate ULR"
         ? "Success : ULR Generated"
         : "Success : Report Completed";
+      
+      if (response.data?.ulr) {
+        message += `\nULR: ${response.data.ulr}`;
+      }
       
       setSuccessMessage(message);
       setShowSuccessModal(true);

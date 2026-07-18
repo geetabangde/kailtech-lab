@@ -142,7 +142,7 @@ function extractDataTwoSign(report) {
 const S1 = {
   page: {
     fontFamily: "Arial, Helvetica, sans-serif",
-    fontSize: "11px",
+    fontSize: '13px',
     color: "#111",
     lineHeight: "1.3",
     position: 'relative',
@@ -169,11 +169,11 @@ const S1 = {
     display: "flex", 
     justifyContent: "space-between", 
     marginBottom: "4px", 
-    fontSize: "10px" 
+    fontSize: '12px' 
   },
   title: { 
     textAlign: "center", 
-    fontSize: "17px", 
+    fontSize: '19px', 
     fontWeight: "bold", 
     textDecoration: "underline", 
     marginBottom: "7px" 
@@ -182,12 +182,12 @@ const S1 = {
     display: "flex", 
     justifyContent: "space-between", 
     marginBottom: "8px", 
-    fontSize: "11px" 
+    fontSize: '13px' 
   },
   isoSide: {
     position: "absolute",
     right: "-46px", bottom: "110px",
-    fontSize: "9px", color: "#555",
+    fontSize: '11px', color: "#555",
     transform: "rotate(90deg)",
     width: "165px",
     transformOrigin: "bottom right",
@@ -207,8 +207,8 @@ const S1 = {
 const SS = {
   bold: { fontWeight: "bold" },
   infoWrap: { border: `1px solid #999`, marginBottom: '8px' },
-  secTitle: { fontWeight: 'bold', fontSize: '12px', marginBottom: '4px', marginTop: '5px' },
-  endOfReport: { textAlign: 'center', fontWeight: 'bold', margin: '12px 0', fontSize: '11px' },
+  secTitle: { fontWeight: 'bold', fontSize: '14px', marginBottom: '4px', marginTop: '5px' },
+  endOfReport: { textAlign: 'center', fontWeight: 'bold', margin: '12px 0', fontSize: '13px' },
 };
 
 function HtmlDocWithoutLHTwoSign({ report }) {
@@ -237,7 +237,7 @@ function HtmlDocWithoutLHTwoSign({ report }) {
                       )}
                   </div>
                   <div style={{ width: "120px", textAlign: "right" }}>
-                      <span style={{ fontSize: "11px", fontWeight: "bold" }}>LRN: {data.displayLRN}</span>
+                      <span style={{ fontSize: '13px', fontWeight: "bold" }}>LRN: {data.displayLRN}</span>
                   </div>
               </div>
             </td>

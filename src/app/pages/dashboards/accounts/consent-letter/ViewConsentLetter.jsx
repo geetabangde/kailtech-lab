@@ -8,6 +8,7 @@ import axios from "utils/axios";
 // Local Imports
 import { Page } from "components/shared/Page";
 import appLogo from "assets/logo.png";
+import { sealBase64 as staticSealBase64 } from "assets/sealBase64";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import ExportToPdfConsentLetter from "./ExportToPdfConsentLetter";
@@ -71,6 +72,8 @@ async function capturePdf(printRef, filename) {
   }
 }
 
+
+
 function usePermissions() {
   return localStorage.getItem("userPermissions")?.split(",").map(Number) || [];
 }
@@ -89,6 +92,7 @@ export default function ViewConsentLetter() {
   const [approveLoading, setApproveLoading] = useState(false);
   const [logoBase64, setLogoBase64] = useState("");
   const [sigBase64, setSigBase64] = useState("");
+  const sealBase64 = staticSealBase64;
 
   useEffect(() => {
     toBase64(appLogo).then(setLogoBase64);
@@ -167,6 +171,7 @@ export default function ViewConsentLetter() {
                 companyInfo={companyInfo}
                 logoBase64={logoBase64}
                 sigBase64={sigBase64}
+                sealBase64={sealBase64}
                 withLH={true}
               />
             </div>
@@ -265,28 +270,31 @@ export default function ViewConsentLetter() {
               {companyInfo?.company?.name || data.company_name || "KAILTECH TEST & RESEARCH CENTRE PVT. LTD."}
             </p>
 
-            {data.digital_signature ? (
-              <div className="mt-2 opacity-100">
+            <div className="mt-2 flex items-center gap-2 opacity-100">
+              <div className="hidden print:block">
+                <img
+                  src={sealBase64}
+                  alt="Seal"
+                  className="w-[80px] object-contain"
+                />
+              </div>
+              {data.digital_signature ? (
                 <img
                   src={data.digital_signature}
                   alt="Signature"
                   className="max-h-[110px] object-contain"
                 />
-              </div>
-            ) : (
-              <div className="mt-1 font-mono text-[12px] leading-tight text-gray-800 whitespace-pre-line">
-                <p>Electronically signed by</p>
-                <p>{data.approved_by_name || "Authorized Signatory"}</p>
-                <p>{data.datedon || ""}</p>
-              </div>
-            )}
+              ) : (
+                <div className="font-mono text-[12px] leading-tight text-gray-800 whitespace-pre-line">
+                  <p>Electronically signed by</p>
+                  <p>{data.signature_by || data.approved_by_name || "Authorized Signatory"} {data.signature_emp_id ? `(Emp - ${data.signature_emp_id})` : ""}</p>
+                  <p>Designation:{data.signature_designation || "Manager-Accounts"}</p>
+                  <p>Date:{data.datedon || ""}</p>
+                </div>
+              )}
+            </div>
           </div>
 
-          {data.letterhead_footer && (
-            <div className="hidden print:block absolute bottom-0 left-0 w-full">
-              <img src={data.letterhead_footer} alt="Letterhead Footer" className="w-full" />
-            </div>
-          )}
         </div>
       </div>
     </Page>

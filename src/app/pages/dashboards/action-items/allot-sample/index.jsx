@@ -299,7 +299,7 @@ export default function AllotSample() {
                   hoverable
                   dense={tableSettings.enableRowDense}
                   sticky={tableSettings.enableFullScreen}
-                  className="w-full text-left rtl:text-right"
+                  className="w-full table-fixed text-left rtl:text-right"
                 >
                   <THead>
                     {table.getHeaderGroups().map((headerGroup) => (
@@ -308,7 +308,7 @@ export default function AllotSample() {
                           <Th
                             key={header.id}
                             className={clsx(
-                              "bg-gray-200 font-semibold uppercase text-gray-800 dark:bg-dark-800 dark:text-dark-100 first:ltr:rounded-tl-lg last:ltr:rounded-tr-lg first:rtl:rounded-tr-lg last:rtl:rounded-tl-lg",
+                              "bg-gray-200 font-semibold uppercase text-gray-800 dark:bg-dark-800 dark:text-dark-100 first:ltr:rounded-tl-lg last:ltr:rounded-tr-lg first:rtl:rounded-tr-lg last:rtl:rounded-tl-lg whitespace-normal break-words text-xs",
                               header.column.getCanPin() && [
                                 header.column.getIsPinned() === "left" && "sticky z-2 ltr:left-0 rtl:right-0",
                                 header.column.getIsPinned() === "right" && "sticky z-2 ltr:right-0 rtl:left-0",
@@ -317,7 +317,7 @@ export default function AllotSample() {
                           >
                             {header.column.getCanSort() ? (
                               <div
-                                className="flex cursor-pointer select-none items-center space-x-3"
+                                className="flex cursor-pointer select-none items-center space-x-1"
                                 onClick={header.column.getToggleSortingHandler()}
                               >
                                 <span className="flex-1">
@@ -347,7 +347,7 @@ export default function AllotSample() {
                           <Td
                             key={cell.id}
                             className={clsx(
-                              "relative bg-white",
+                              "relative bg-white whitespace-normal break-words",
                               cardSkin === "shadow" ? "dark:bg-dark-700" : "dark:bg-dark-900",
                               cell.column.getCanPin() && [
                                 cell.column.getIsPinned() === "left" && "sticky z-2 ltr:left-0 rtl:right-0",

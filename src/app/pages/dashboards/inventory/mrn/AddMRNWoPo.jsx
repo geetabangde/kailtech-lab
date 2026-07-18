@@ -179,7 +179,7 @@ export default function AddMRNWoPo() {
       if (response.data.status) {
         toast.success(response.data.message || "MRN (Without PO) added successfully ✅");
         const newMrnId = response.data.insert_id || response.data.challanid;
-        navigate(`/dashboards/inventory/mrn/addMrnItemPurchase?id=${newMrnId}`);
+        navigate(`/dashboards/inventory/mrn/addMrnItemPurchasewopo?id=${newMrnId}`);
       } else {
         toast.error(response.data.message || "Failed to create MRN ❌");
       }

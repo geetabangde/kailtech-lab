@@ -48,11 +48,16 @@
 
 [data-layout="sideblock"] main.main-content,
 [data-layout="sideblock"] .app-header {
+  @apply transition-[margin] duration-[.25s] ease-in;
+}
+
+[data-layout="sideblock"].is-sidebar-open main.main-content,
+[data-layout="sideblock"].is-sidebar-open .app-header {
   @apply xl:ltr:ml-[var(--sidebar-panel-width)] xl:rtl:mr-[var(--sidebar-panel-width)];
 }
 
 [data-layout="sideblock"] .sidebar-panel {
-  @apply invisible fixed top-0 z-30 h-full w-[var(--sidebar-panel-width)] -translate-x-full transform-gpu transition-[transform,visibility,width] duration-[.25s] ease-in xl:visible ltr:left-0 xl:ltr:translate-x-0 rtl:right-0 rtl:translate-x-full xl:rtl:translate-x-0;
+  @apply invisible fixed top-0 z-30 h-full w-[var(--sidebar-panel-width)] -translate-x-full transform-gpu transition-[transform,visibility,width] duration-[.25s] ease-in ltr:left-0 rtl:right-0 rtl:translate-x-full;
 }
 
 [data-layout="sideblock"].is-sidebar-open .sidebar-panel {

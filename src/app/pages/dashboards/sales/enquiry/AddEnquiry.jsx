@@ -190,7 +190,7 @@ export default function AddEnquiry() {
       toast.error("Please enter Description");
       return;
     }
-    
+
     // Validate Contact Details (Mandatory in PHP)
     if (showCustomerDetail) {
       if (!formData.name) {
@@ -525,7 +525,7 @@ export default function AddEnquiry() {
                   </label>
                   <div className="md:col-span-2">
                     <input
-                      type="email"
+                      type="text"
                       name="concernpersonemail"
                       value={formData.concernpersonemail}
                       onChange={handleChange}

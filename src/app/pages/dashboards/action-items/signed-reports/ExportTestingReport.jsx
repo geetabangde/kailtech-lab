@@ -174,29 +174,29 @@ const SS = {
   infoRow: { display: 'flex', borderBottom: `1px solid ${BC}` },
   infoLeft: { width: '42%', padding: '6px', borderRight: `1px solid ${BC}`, boxSizing: 'border-box' },
   infoRight: { flex: 1, display: 'flex', flexDirection: 'column' },
-  infoLabel: { width: '52%', padding: '4px', fontWeight: 'bold', borderRight: `1px solid ${BC}`, fontSize: '11px', boxSizing: 'border-box' },
-  infoVal: { flex: 1, padding: '4px', fontSize: '11px', boxSizing: 'border-box' },
-  infoFull: { padding: '5px', borderTop: `1px solid ${BC}`, fontSize: '11px', boxSizing: 'border-box' },
+  infoLabel: { width: '52%', padding: '4px', fontWeight: 'bold', borderRight: `1px solid ${BC}`, fontSize: '13px', boxSizing: 'border-box' },
+  infoVal: { flex: 1, padding: '4px', fontSize: '13px', boxSizing: 'border-box' },
+  infoFull: { padding: '5px', borderTop: `1px solid ${BC}`, fontSize: '13px', boxSizing: 'border-box' },
 
   rTable: { width: '100%', borderCollapse: 'collapse', marginBottom: '10px', tableLayout: 'fixed' },
   thead: { backgroundColor: '#ffffff' },
-  th: { padding: '4px', fontWeight: 'bold', textAlign: 'center', fontSize: '11px', border: `1px solid ${BC}` },
-  td: { padding: '4px', textAlign: 'center', fontSize: '11px', border: `1px solid ${BC}` },
+  th: { padding: '4px', fontWeight: 'bold', textAlign: 'center', fontSize: '13px', border: `1px solid ${BC}` },
+  td: { padding: '4px', textAlign: 'center', fontSize: '13px', border: `1px solid ${BC}` },
 
-  secTitle: { fontWeight: 'bold', fontSize: '12px', marginBottom: '4px', marginTop: '5px' },
-  endOfReport: { textAlign: 'center', fontWeight: 'bold', margin: '12px 0', fontSize: '11px' },
-  remarkBox: { marginBottom: '8px', fontSize: '11px' },
+  secTitle: { fontWeight: 'bold', fontSize: '14px', marginBottom: '4px', marginTop: '5px' },
+  endOfReport: { textAlign: 'center', fontWeight: 'bold', margin: '12px 0', fontSize: '13px' },
+  remarkBox: { marginBottom: '8px', fontSize: '13px' },
 
   sigRow: { display: 'flex', flexWrap: 'wrap', marginTop: '25px', marginBottom: '8px', justifyContent: 'space-between' },
   sigRowSingle: { display: 'flex', flexWrap: 'wrap', marginTop: '25px', marginBottom: '8px', justifyContent: 'flex-start' },
-  sigBox: { minWidth: '150px', fontSize: '11px', flex: 1, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' },
-  sigBoxSingle: { minWidth: '150px', fontSize: '11px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' },
+  sigBox: { minWidth: '150px', fontSize: '13px', flex: 1, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' },
+  sigBoxSingle: { minWidth: '150px', fontSize: '13px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' },
   sigImg: { width: '150px', height: '58px', objectFit: 'contain', marginBottom: '2px' },
   sigDig: { width: '180px', height: '78px', objectFit: 'contain' },
-  sigElec: { fontSize: '9px', color: '#444', marginTop: '1px', textAlign: 'center' },
-  sigTit: { fontSize: '10px', color: '#111', fontWeight: 'bold', marginBottom: '5px' },
-  sigName: { fontWeight: 'bold', fontSize: '11px' },
-  sigAuth: { fontSize: '9px', color: '#666' },
+  sigElec: { fontSize: '11px', color: '#444', marginTop: '1px', textAlign: 'center' },
+  sigTit: { fontSize: '12px', color: '#111', fontWeight: 'bold', marginBottom: '5px' },
+  sigName: { fontWeight: 'bold', fontSize: '13px' },
+  sigAuth: { fontSize: '11px', color: '#666' },
 
   draft: {
     position: 'absolute',
@@ -213,11 +213,11 @@ const SS = {
 export function HtmlCustomerLeft({ data }) {
   return (
     <div style={SS.infoLeft}>
-      <div style={{ ...SS.bold, fontSize: '11px', marginBottom: '2px' }}>Name and Address of Customer</div>
-      <div style={{ fontSize: '11px' }}>{data.customerName}</div>
-      <div style={{ fontSize: '11px' }}>{data.customerAddress}</div>
+      <div style={{ ...SS.bold, fontSize: '13px', marginBottom: '2px' }}>Name and Address of Customer</div>
+      <div style={{ fontSize: '13px' }}>{data.customerName}</div>
+      <div style={{ fontSize: '13px' }}>{data.customerAddress}</div>
       {data.showContact && data.contactPerson
-        ? <div style={{ fontSize: '9px', marginTop: '2px' }}>Contact Person: {data.contactPerson}</div>
+        ? <div style={{ fontSize: '11px', marginTop: '2px' }}>Contact Person: {data.contactPerson}</div>
         : null}
     </div>
   );
@@ -282,7 +282,7 @@ export function HtmlResultsTable({ data }) {
       <tbody>
         {test_results.length === 0 ? (
           <tr>
-            <td colSpan={hasSpecs ? 6 : 5} style={{ padding: '6px', fontSize: '11px', textAlign: 'center', border: `1px solid ${BC}` }}>No test results found.</td>
+            <td colSpan={hasSpecs ? 6 : 5} style={{ padding: '6px', fontSize: '13px', textAlign: 'center', border: `1px solid ${BC}` }}>No test results found.</td>
           </tr>
         ) : (
           test_results.map((row, idx) => {
@@ -357,7 +357,7 @@ export function HtmlSignatories({ signatories }) {
 const S1 = {
   page: {
     fontFamily: 'Arial, Helvetica, sans-serif',
-    fontSize: '11px',
+    fontSize: '13px',
     color: '#111',
     lineHeight: '1.3',
     position: 'relative',
@@ -376,25 +376,25 @@ const S1 = {
   logoLeft: { width: '190px', height: '85px', objectFit: 'contain' },
   logoCenter: { width: '115px', height: '100px', objectFit: 'contain' },
   logoRight: { width: '230px', height: '120px', objectFit: 'contain' },
-  pageRow: { display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '10px' },
-  title: { textAlign: 'center', fontSize: '17px', fontWeight: 'bold', textDecoration: 'underline', marginBottom: '7px' },
-  ulrRow: { display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '11px' },
+  pageRow: { display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '12px' },
+  title: { textAlign: 'center', fontSize: '19px', fontWeight: 'bold', textDecoration: 'underline', marginBottom: '7px' },
+  ulrRow: { display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '13px' },
   isoSide: {
     position: 'absolute',
     right: '-30px', bottom: '110px',
-    fontSize: '9px', color: '#555',
+    fontSize: '11px', color: '#555',
     transform: 'rotate(90deg)',
     width: '165px',
     transformOrigin: 'bottom right',
   },
   footer: {
     borderTop: '1px solid #003366',
-    paddingTop: '5px', fontSize: '9px',
+    paddingTop: '5px', fontSize: '11px',
     textAlign: 'center', color: '#333',
   },
   termsBox: {
     borderTop: '1px solid #bbb',
-    paddingTop: '4px', fontSize: '8px', color: '#555', lineHeight: '1.4',
+    paddingTop: '4px', fontSize: '10px', color: '#555', lineHeight: '1.4',
     marginTop: '4px'
   },
 };

@@ -281,7 +281,7 @@ function InvoicePrintTemplate({ inv, addr, items, qrUrl, signUrl, digitalSignUrl
           </table>
 
           {/* Totals + BRN + Bank — colgroup: 60% left info, 25% label, 15% value */}
-          <table style={S.table}>
+          <table style={{ ...S.table, pageBreakBefore: "always", pageBreakInside: "avoid", breakInside: "avoid" }}>
             <colgroup>
               <col style={{ width: "60%" }} />
               <col style={{ width: "22%" }} />
@@ -303,7 +303,7 @@ function InvoicePrintTemplate({ inv, addr, items, qrUrl, signUrl, digitalSignUrl
                     {inv.ack_no && <div><strong>Acknowledgment No:</strong> {inv.ack_no}</div>}
                     {inv.ack_dt && <div><strong>Acknowledgement Date:</strong> {inv.ack_dt}</div>}
                   </div>)}
-                  {inv.brnnos?.trim() && <div><strong>BRN No :</strong> {inv.brnnos}</div>}
+                  {inv.brnnos?.trim() && <div style={{ wordBreak: "break-all" }}><strong>BRN No :</strong> {inv.brnnos}</div>}
                   {inv.remark?.trim() && <div><strong>Remark :</strong> {inv.remark}</div>}
                   <div style={{ marginTop: 8 }}>PAN : {companyInfo?.company?.pan_no || "AADCK0799A"}</div>
                   <div>GSTIN : {companyInfo?.company?.gst_no || "23AADCK0799A1ZV"}</div>
@@ -556,7 +556,14 @@ export default function ViewInvoiceCalibration() {
   const statecode = isNaN(Number(invoice.statecode))
     ? invoice.statecode
     : String(Number(invoice.statecode)).padStart(2, "0");
-  const isOutsideIndia = String(invoice.country) !== "1" && String(invoice._address?.country) !== "1";
+  // Fallback missing or 0 country to 1 (India)
+  const getCountryCode = () => {
+    let code = invoice.country;
+    if (code === undefined || code === null || code === "") code = invoice._address?.country;
+    if (!code || String(code) === "0") return "1";
+    return String(code);
+  };
+  const isOutsideIndia = getCountryCode() !== "1";
   const isSgst = statecode === "23";
   const isFoc = invoice.invoiceno === "FOC";
   const isNormalPo = invoice.potype === "Normal";
@@ -747,9 +754,12 @@ export default function ViewInvoiceCalibration() {
         })),
         ValDtls: {
           AssVal: Number(assAmt.toFixed(2)),
-          CgstVal: cgstVal,
-          SgstVal: sgstVal,
-          IgstVal: igstVal,
+          ...(isSgst ? {
+            CgstVal: cgstVal,
+            SgstVal: sgstVal
+          } : {
+            IgstVal: igstVal
+          }),
           OthChrg: 0,
           RndOffAmt: roundoff,
           TotInvVal: totInvVal,
@@ -766,6 +776,25 @@ export default function ViewInvoiceCalibration() {
       toast.error(err?.response?.data?.message || err.message || "Failed to generate E-Invoice");
     } finally {
       setBusy(false);
+    }
+  };
+
+  const validateGSTINPincode = async () => {
+    setBusy(true);
+    var gstin = invoice.gstno;
+    var pincode = parseInt(invoice._address?.pincode || 0, 10);
+    var country = getCountryCode();
+
+    if (country === "1") {
+      if (!gstin || gstin === "0" || gstin === "NA" || !pincode || pincode === 0 || pincode === "NA") {
+        toast.error("Invalid GSTIN or pincode. Unable to generate E-Invoice.");
+        setBusy(false);
+        return;
+      }
+      // Validation passed
+      await doEInvoice();
+    } else {
+      await doEInvoice();
     }
   };
 
@@ -973,7 +1002,7 @@ export default function ViewInvoiceCalibration() {
           </table>
 
           {/* ── Bottom table: BRN/remarks + summary ── */}
-          <table className="mt-2 w-full border-collapse border border-gray-400 text-sm dark:border-dark-500">
+          <table className="mt-2 w-full border-collapse border border-gray-400 text-sm dark:border-dark-500 print:break-inside-avoid print:break-before-page">
             <tbody>
               <tr>
                 {/* Left: IRN, BRN, Remark, company info */}
@@ -982,12 +1011,12 @@ export default function ViewInvoiceCalibration() {
                   {isEinvoice && (
                     <div className="mb-2">
                       {invoice.irn && <div><b>Irn No:</b> {invoice.irn}</div>}
-                      {invoice.ack_no && <div><b>Acknowledgment No:</b> {invoice.ack_no}</div>}
-                      {invoice.ack_dt && <div><b>Acknowledgement Date:</b> {invoice.ack_dt}</div>}
+                      {invoice.ack_no && <div><b>Acknowledgment No :</b> {invoice.ack_no}</div>}
+                      {invoice.ack_dt && <div><b>Acknowledgement Date sds:</b> {invoice.ack_dt}</div>}
                     </div>
                   )}
                   {invoice.brnnos?.trim() && (
-                    <div><b>BRN No :</b> {invoice.brnnos}</div>
+                    <div className="break-all"><b>BRN No  :</b> {invoice.brnnos}</div>
                   )}
                   {invoice.remark?.trim() && (
                     <div><b>Remark :</b> {invoice.remark}</div>
@@ -1164,7 +1193,7 @@ export default function ViewInvoiceCalibration() {
         open={einvModal}
         title="Generate E-Invoice"
         message="Are you sure you want to generate E-Invoice? This action cannot be undone."
-        onOk={doEInvoice}
+        onOk={validateGSTINPincode}
         onCancel={() => setEinvModal(false)}
         loading={busy}
       />

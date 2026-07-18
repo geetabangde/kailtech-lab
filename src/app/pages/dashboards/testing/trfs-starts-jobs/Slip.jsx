@@ -106,7 +106,11 @@ export default function Slip() {
             margin: 0 auto;
             padding: 3rem;
           }
-          .label { font-weight: 700; color: #374151; width: 120px; display: inline-block; }
+          .print-slip-container * {
+            font-weight: bold !important;
+            color: #000 !important;
+          }
+          .label { font-weight: 700; color: #000; width: 120px; display: inline-block; }
           .table {
             width: 100%;
             border-collapse: collapse;

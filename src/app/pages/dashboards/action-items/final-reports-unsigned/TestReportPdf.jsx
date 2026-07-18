@@ -75,8 +75,17 @@ function extractData(report) {
   const hodRemark = remarksObj?.hod_remark ?? "";
   const witnessVal = remarksObj?.witness ?? "";
   const witnessDetail = remarksObj?.witness_detail ?? "";
-  const bdlRemark = remarksObj?.bdl_remark ?? "";
-  const adlRemark = remarksObj?.adl_remark ?? "";
+  let bdlRemark = remarksObj?.bdl_remark ?? "";
+  let adlRemark = remarksObj?.adl_remark ?? "";
+
+  const hasBdl = test_results.some((r) => {
+    const val = String(r.result?.display_value ?? r.result?.value ?? r.result ?? "").trim();
+    return val.includes("BDL") || val.startsWith("<");
+  });
+  const hasAdl = test_results.some((r) => r.result?.display_value?.includes("ADL") || String(r.result?.value ?? r.result ?? "").includes("ADL"));
+
+  if (hasBdl && !bdlRemark) bdlRemark = "BDL : Below Detection Limit";
+  if (hasAdl && !adlRemark) adlRemark = "ADL : Above Detection Limit";
 
   const remarkLines = [];
   if (hodRemark?.trim()) remarkLines.push(hodRemark.trim());
@@ -135,55 +144,55 @@ const SS = StyleSheet.create({
   infoRow: { flexDirection: "row", borderBottomWidth: 0.5, borderBottomColor: BC },
   infoLeft: { width: "42%", padding: 5, borderRightWidth: 0.5, borderRightColor: BC },
   infoRight: { flex: 1 },
-  infoLabel: { width: "52%", padding: 3, fontFamily: "Helvetica-Bold", borderRightWidth: 0.5, borderRightColor: BC, fontSize: 7.5 },
-  infoVal: { flex: 1, padding: 3, fontSize: 7.5 },
-  infoFull: { padding: 4, borderTopWidth: 0.5, borderTopColor: BC, fontSize: 7.5 },
+  infoLabel: { width: "52%", padding: 3, fontFamily: "Helvetica-Bold", borderRightWidth: 0.5, borderRightColor: BC, fontSize: 9.5 },
+  infoVal: { flex: 1, padding: 3, fontSize: 9.5 },
+  infoFull: { padding: 4, borderTopWidth: 0.5, borderTopColor: BC, fontSize: 9.5 },
 
   // Results table — portrait
   rTable: { borderWidth: 0.5, borderColor: BC, marginBottom: 8 },
   thead: { flexDirection: "row", backgroundColor: "#e8ecf0" },
   tr: { flexDirection: "row", borderTopWidth: 0.5, borderTopColor: BC },
 
-  thSno: { width: "5%", padding: 3, fontFamily: "Helvetica-Bold", textAlign: "center", fontSize: 7.5, borderRightWidth: 0.5, borderRightColor: BC },
-  thParam: { width: "30%", padding: 3, fontFamily: "Helvetica-Bold", fontSize: 7.5, borderRightWidth: 0.5, borderRightColor: BC },
-  thUnit: { width: "8%", padding: 3, fontFamily: "Helvetica-Bold", textAlign: "center", fontSize: 7.5, borderRightWidth: 0.5, borderRightColor: BC },
-  thResult: { width: "14%", padding: 3, fontFamily: "Helvetica-Bold", textAlign: "center", fontSize: 7.5, borderRightWidth: 0.5, borderRightColor: BC },
-  thMethod: { width: "25%", padding: 3, fontFamily: "Helvetica-Bold", textAlign: "center", fontSize: 7.5, borderRightWidth: 0.5, borderRightColor: BC },
-  thSpec: { width: "18%", padding: 3, fontFamily: "Helvetica-Bold", textAlign: "center", fontSize: 7.5 },
-  tdSno: { width: "5%", padding: 3, textAlign: "center", fontSize: 7.5, borderRightWidth: 0.5, borderRightColor: BC },
-  tdParam: { width: "30%", padding: 3, fontSize: 7.5, borderRightWidth: 0.5, borderRightColor: BC },
-  tdUnit: { width: "8%", padding: 3, textAlign: "center", fontSize: 7.5, borderRightWidth: 0.5, borderRightColor: BC },
-  tdResult: { width: "14%", padding: 3, textAlign: "center", fontSize: 7.5, borderRightWidth: 0.5, borderRightColor: BC },
-  tdMethod: { width: "25%", padding: 3, textAlign: "center", fontSize: 7.5, borderRightWidth: 0.5, borderRightColor: BC },
-  tdSpec: { width: "18%", padding: 3, textAlign: "center", fontSize: 7.5 },
+  thSno: { width: "5%", padding: 3, fontFamily: "Helvetica-Bold", textAlign: "center", fontSize: 9.5, borderRightWidth: 0.5, borderRightColor: BC },
+  thParam: { width: "30%", padding: 3, fontFamily: "Helvetica-Bold", fontSize: 9.5, borderRightWidth: 0.5, borderRightColor: BC },
+  thUnit: { width: "8%", padding: 3, fontFamily: "Helvetica-Bold", textAlign: "center", fontSize: 9.5, borderRightWidth: 0.5, borderRightColor: BC },
+  thResult: { width: "14%", padding: 3, fontFamily: "Helvetica-Bold", textAlign: "center", fontSize: 9.5, borderRightWidth: 0.5, borderRightColor: BC },
+  thMethod: { width: "25%", padding: 3, fontFamily: "Helvetica-Bold", textAlign: "center", fontSize: 9.5, borderRightWidth: 0.5, borderRightColor: BC },
+  thSpec: { width: "18%", padding: 3, fontFamily: "Helvetica-Bold", textAlign: "center", fontSize: 9.5 },
+  tdSno: { width: "5%", padding: 3, textAlign: "center", fontSize: 9.5, borderRightWidth: 0.5, borderRightColor: BC },
+  tdParam: { width: "30%", padding: 3, fontSize: 9.5, borderRightWidth: 0.5, borderRightColor: BC },
+  tdUnit: { width: "8%", padding: 3, textAlign: "center", fontSize: 9.5, borderRightWidth: 0.5, borderRightColor: BC },
+  tdResult: { width: "14%", padding: 3, textAlign: "center", fontSize: 9.5, borderRightWidth: 0.5, borderRightColor: BC },
+  tdMethod: { width: "25%", padding: 3, textAlign: "center", fontSize: 9.5, borderRightWidth: 0.5, borderRightColor: BC },
+  tdSpec: { width: "18%", padding: 3, textAlign: "center", fontSize: 9.5 },
 
   // Results table — landscape (wider cols)
-  lsThSno: { width: "4%", padding: 3, fontFamily: "Helvetica-Bold", textAlign: "center", fontSize: 7, borderRightWidth: 0.5, borderRightColor: BC },
-  lsThParam: { width: "28%", padding: 3, fontFamily: "Helvetica-Bold", fontSize: 7, borderRightWidth: 0.5, borderRightColor: BC },
-  lsThUnit: { width: "8%", padding: 3, fontFamily: "Helvetica-Bold", textAlign: "center", fontSize: 7, borderRightWidth: 0.5, borderRightColor: BC },
-  lsThResult: { width: "12%", padding: 3, fontFamily: "Helvetica-Bold", textAlign: "center", fontSize: 7, borderRightWidth: 0.5, borderRightColor: BC },
-  lsThMethod: { width: "28%", padding: 3, fontFamily: "Helvetica-Bold", textAlign: "center", fontSize: 7, borderRightWidth: 0.5, borderRightColor: BC },
-  lsThSpec: { width: "20%", padding: 3, fontFamily: "Helvetica-Bold", textAlign: "center", fontSize: 7 },
-  lsTdSno: { width: "4%", padding: 3, textAlign: "center", fontSize: 7, borderRightWidth: 0.5, borderRightColor: BC },
-  lsTdParam: { width: "28%", padding: 3, fontSize: 7, borderRightWidth: 0.5, borderRightColor: BC },
-  lsTdUnit: { width: "8%", padding: 3, textAlign: "center", fontSize: 7, borderRightWidth: 0.5, borderRightColor: BC },
-  lsTdResult: { width: "12%", padding: 3, textAlign: "center", fontSize: 7, borderRightWidth: 0.5, borderRightColor: BC },
-  lsTdMethod: { width: "28%", padding: 3, textAlign: "center", fontSize: 7, borderRightWidth: 0.5, borderRightColor: BC },
-  lsTdSpec: { width: "20%", padding: 3, textAlign: "center", fontSize: 7 },
+  lsThSno: { width: "4%", padding: 3, fontFamily: "Helvetica-Bold", textAlign: "center", fontSize: 9, borderRightWidth: 0.5, borderRightColor: BC },
+  lsThParam: { width: "28%", padding: 3, fontFamily: "Helvetica-Bold", fontSize: 9, borderRightWidth: 0.5, borderRightColor: BC },
+  lsThUnit: { width: "8%", padding: 3, fontFamily: "Helvetica-Bold", textAlign: "center", fontSize: 9, borderRightWidth: 0.5, borderRightColor: BC },
+  lsThResult: { width: "12%", padding: 3, fontFamily: "Helvetica-Bold", textAlign: "center", fontSize: 9, borderRightWidth: 0.5, borderRightColor: BC },
+  lsThMethod: { width: "28%", padding: 3, fontFamily: "Helvetica-Bold", textAlign: "center", fontSize: 9, borderRightWidth: 0.5, borderRightColor: BC },
+  lsThSpec: { width: "20%", padding: 3, fontFamily: "Helvetica-Bold", textAlign: "center", fontSize: 9 },
+  lsTdSno: { width: "4%", padding: 3, textAlign: "center", fontSize: 9, borderRightWidth: 0.5, borderRightColor: BC },
+  lsTdParam: { width: "28%", padding: 3, fontSize: 9, borderRightWidth: 0.5, borderRightColor: BC },
+  lsTdUnit: { width: "8%", padding: 3, textAlign: "center", fontSize: 9, borderRightWidth: 0.5, borderRightColor: BC },
+  lsTdResult: { width: "12%", padding: 3, textAlign: "center", fontSize: 9, borderRightWidth: 0.5, borderRightColor: BC },
+  lsTdMethod: { width: "28%", padding: 3, textAlign: "center", fontSize: 9, borderRightWidth: 0.5, borderRightColor: BC },
+  lsTdSpec: { width: "20%", padding: 3, textAlign: "center", fontSize: 9 },
 
-  secTitle: { fontFamily: "Helvetica-Bold", fontSize: 9, marginBottom: 3, marginTop: 4 },
-  endOfReport: { textAlign: "center", fontFamily: "Helvetica-Bold", marginVertical: 10, fontSize: 8 },
-  remarkBox: { marginBottom: 6, fontSize: 7.5 },
+  secTitle: { fontFamily: "Helvetica-Bold", fontSize: 11, marginBottom: 3, marginTop: 4 },
+  endOfReport: { textAlign: "center", fontFamily: "Helvetica-Bold", marginVertical: 10, fontSize: 10 },
+  remarkBox: { marginBottom: 6, fontSize: 9.5 },
 
   // Signatories
   sigRow: { flexDirection: "row", flexWrap: "wrap", marginTop: 22, marginBottom: 8 },
-  sigBox: { minWidth: 150, marginRight: 20, fontSize: 7.5 },
+  sigBox: { minWidth: 150, marginRight: 20, fontSize: 9.5 },
   sigImg: { width: 100, height: 38, objectFit: "contain", marginBottom: 2 },
   sigDig: { width: 130, height: 52, objectFit: "contain" },
-  sigElec: { fontSize: 7, color: "#444", marginTop: 1 },
-  sigTit: { fontSize: 7, color: "#555", marginBottom: 2 },
-  sigName: { fontFamily: "Helvetica-Bold", fontSize: 7.5 },
-  sigAuth: { fontSize: 7, color: "#666" },
+  sigElec: { fontSize: 9, color: "#444", marginTop: 1 },
+  sigTit: { fontSize: 9, color: "#555", marginBottom: 2 },
+  sigName: { fontFamily: "Helvetica-Bold", fontSize: 9.5 },
+  sigAuth: { fontSize: 9, color: "#666" },
 
   // DRAFT watermark
   draft: {
@@ -204,11 +213,11 @@ const SS = StyleSheet.create({
 function PdfCustomerLeft({ data }) {
   return (
     <View style={SS.infoLeft}>
-      <Text style={[SS.bold, { fontSize: 7.5, marginBottom: 2 }]}>Name and Address of Customer</Text>
-      <Text style={{ fontSize: 7.5 }}>{data.customerName}</Text>
-      <Text style={{ fontSize: 7.5 }}>{data.customerAddress}</Text>
+      <Text style={[SS.bold, { fontSize: 9.5, marginBottom: 2 }]}>Name and Address of Customer</Text>
+      <Text style={{ fontSize: 9.5 }}>{data.customerName}</Text>
+      <Text style={{ fontSize: 9.5 }}>{data.customerAddress}</Text>
       {data.showContact && data.contactPerson
-        ? <Text style={{ fontSize: 7, marginTop: 2 }}>Contact Person: {data.contactPerson}</Text>
+        ? <Text style={{ fontSize: 9, marginTop: 2 }}>Contact Person: {data.contactPerson}</Text>
         : null}
     </View>
   );
@@ -279,11 +288,15 @@ function PdfResultsTable({ data, landscape = false }) {
       </View>
       {test_results.length === 0 ? (
         <View style={SS.tr}>
-          <Text style={{ padding: 6, fontSize: 7.5 }}>No test results found.</Text>
+          <Text style={{ padding: 6, fontSize: 9.5 }}>No test results found.</Text>
         </View>
       ) : (
         test_results.map((row, idx) => {
-          const displayResult = row.result?.display_value ?? row.result?.value ?? row.result ?? "—";
+
+          let displayResult = String(row.result?.display_value ?? row.result?.value ?? row.result ?? "—");
+          if (displayResult.trim().startsWith("<") && !displayResult.includes("BDL")) {
+            displayResult = "BDL " + displayResult.trim();
+          }
           const unitDisplay = row.unit?.description ?? row.unit?.name ?? row.unit ?? "—";
           const methodName = row.method?.name ?? row.method ?? "—";
           const { bg, color } = parseColorFlag(row.compliance_style);
@@ -354,7 +367,7 @@ function PdfSignatories({ signatories }) {
 const S1 = StyleSheet.create({
   page: {
     fontFamily: "Helvetica",
-    fontSize: 8,
+    fontSize: 10,
     paddingTop: 10,
     paddingBottom: 96,
     paddingHorizontal: 28,
@@ -372,14 +385,14 @@ const S1 = StyleSheet.create({
   logoLeft: { width: 140, height: 50, objectFit: "contain" },
   logoCenter: { width: 70, height: 55, objectFit: "contain" },
   logoRight: { width: 140, height: 50, objectFit: "contain" },
-  tcText: { textAlign: "center", fontSize: 8.5, marginTop: 1 },
-  pageRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 3, fontSize: 7.5 },
-  title: { textAlign: "center", fontSize: 13, fontFamily: "Helvetica-Bold", textDecoration: "underline", marginBottom: 5 },
-  ulrRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 6, fontSize: 8 },
+  tcText: { textAlign: "center", fontSize: 10.5, marginTop: 1 },
+  pageRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 3, fontSize: 9.5 },
+  title: { textAlign: "center", fontSize: 15, fontFamily: "Helvetica-Bold", textDecoration: "underline", marginBottom: 5 },
+  ulrRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 6, fontSize: 10 },
   isoSide: {
     position: "absolute",
     right: -46, bottom: 110,
-    fontSize: 7, color: "#555",
+    fontSize: 9, color: "#555",
     transform: "rotate(90deg)",
     width: 165,
   },
@@ -387,14 +400,14 @@ const S1 = StyleSheet.create({
     position: "absolute",
     bottom: 36, left: 28, right: 28,
     borderTopWidth: 1, borderTopColor: "#003366",
-    paddingTop: 4, fontSize: 6.5,
+    paddingTop: 4, fontSize: 8.5,
     textAlign: "center", color: "#333",
   },
   termsBox: {
     position: "absolute",
     bottom: 4, left: 28, right: 28,
     borderTopWidth: 0.5, borderTopColor: "#bbb",
-    paddingTop: 3, fontSize: 5.5, color: "#555", lineHeight: 1.4,
+    paddingTop: 3, fontSize: 7.5, color: "#555", lineHeight: 1.4,
   },
 });
 
@@ -483,15 +496,15 @@ DocWithLH.propTypes = { report: PropTypes.object.isRequired };
 const S2 = StyleSheet.create({
   page: {
     fontFamily: "Helvetica",
-    fontSize: 8,
+    fontSize: 10,
     paddingTop: 16,
     paddingBottom: 30,
     paddingHorizontal: 24,
     color: "#111",
   },
-  pageRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 4, fontSize: 7.5 },
-  title: { textAlign: "center", fontSize: 13, fontFamily: "Helvetica-Bold", textDecoration: "underline", marginBottom: 6 },
-  ulrRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 6, fontSize: 8 },
+  pageRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 4, fontSize: 9.5 },
+  title: { textAlign: "center", fontSize: 15, fontFamily: "Helvetica-Bold", textDecoration: "underline", marginBottom: 6 },
+  ulrRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 6, fontSize: 10 },
 });
 
 function DocWithoutLH({ report }) {
@@ -557,7 +570,7 @@ DocWithoutLH.propTypes = { report: PropTypes.object.isRequired };
 const S3 = StyleSheet.create({
   page: {
     fontFamily: "Helvetica",
-    fontSize: 7.5,
+    fontSize: 9.5,
     paddingTop: 12,
     paddingBottom: 24,
     paddingHorizontal: 20,
@@ -566,24 +579,24 @@ const S3 = StyleSheet.create({
   topRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 },
   tcBlock: { alignItems: "center" },
   tcStamp: { width: 44, height: 44, objectFit: "contain" },
-  tcText: { fontSize: 7, textAlign: "center", marginTop: 1 },
+  tcText: { fontSize: 9, textAlign: "center", marginTop: 1 },
   titleRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 5,
   },
-  title: { flex: 1, textAlign: "center", fontSize: 12, fontFamily: "Helvetica-Bold", textDecoration: "underline" },
-  ulrKtrc: { fontSize: 7.5, width: 160 },
+  title: { flex: 1, textAlign: "center", fontSize: 14, fontFamily: "Helvetica-Bold", textDecoration: "underline" },
+  ulrKtrc: { fontSize: 9.5, width: 160 },
   twoSigRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 24 },
   sigLeft: { width: "45%" },
   sigRight: { width: "45%", alignItems: "flex-end" },
-  sigTitle: { fontSize: 7.5, fontFamily: "Helvetica-Bold", marginBottom: 2 },
-  sigName: { fontSize: 7.5, fontFamily: "Helvetica-Bold" },
-  sigAuth: { fontSize: 7, color: "#555" },
+  sigTitle: { fontSize: 9.5, fontFamily: "Helvetica-Bold", marginBottom: 2 },
+  sigName: { fontSize: 9.5, fontFamily: "Helvetica-Bold" },
+  sigAuth: { fontSize: 9, color: "#555" },
   sigImgSm: { width: 100, height: 38, objectFit: "contain" },
   sigDigSm: { width: 120, height: 48, objectFit: "contain" },
-  sigElec: { fontSize: 7, color: "#444" },
+  sigElec: { fontSize: 9, color: "#444" },
 });
 
 function DocWithoutLHTwoSign({ report }) {
@@ -635,7 +648,7 @@ function DocWithoutLHTwoSign({ report }) {
             )}
           </View>
           <View style={{ width: 200, alignItems: "flex-end" }}>
-            <Text style={[{ fontSize: 8 }, SS.bold]}>LRN: {data.displayLRN}</Text>
+            <Text style={[{ fontSize: 10 }, SS.bold]}>LRN: {data.displayLRN}</Text>
           </View>
         </View>
 

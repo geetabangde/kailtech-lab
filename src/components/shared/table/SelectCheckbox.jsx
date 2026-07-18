@@ -10,8 +10,8 @@ export function SelectHeader({ table }) {
   return (
     <div className="flex items-center justify-center">
       <Checkbox
-        className="size-4.5"
-        color="error"
+        className="size-4.5 checked:bg-blue-600 checked:border-blue-600 indeterminate:bg-blue-600 indeterminate:border-blue-600"
+        color="primary"
         checked={table.getIsAllRowsSelected()}
         indeterminate={table.getIsSomeRowsSelected()}
         onChange={table.getToggleAllRowsSelectedHandler()}
@@ -24,7 +24,7 @@ export function SelectCell({ row }) {
   return (
     <div className="flex items-center justify-center">
       <Checkbox
-        className="size-4.5"
+        className="size-4.5 checked:bg-blue-600 checked:border-blue-600"
         checked={row.getIsSelected()}
         disabled={!row.getCanSelect()}
         indeterminate={row.getIsSomeSelected()}

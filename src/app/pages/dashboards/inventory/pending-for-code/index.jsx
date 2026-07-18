@@ -46,7 +46,7 @@ export default function PendingForCode() {
   });
 
   const [globalFilter, setGlobalFilter] = useState("");
-  const [sorting, setSorting] = useState([{ id: "description", desc: false }]);
+  const [sorting, setSorting] = useState([]);
   const [columnVisibility, setColumnVisibility] = useLocalStorage(
     "column-visibility-pending-for-code",
     {},

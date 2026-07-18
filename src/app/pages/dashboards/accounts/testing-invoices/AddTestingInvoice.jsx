@@ -18,6 +18,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useNavigate } from "react-router";
+import Select from "react-select";
 import axios from "utils/axios";
 import { toast } from "sonner";
 import { Page } from "components/shared/Page";
@@ -769,23 +770,19 @@ export default function AddTestingInvoice() {
               {loadingPo ? (
                 <Spinner text="Loading POs..." />
               ) : (
-                <select
-                  value={selectedPo}
-                  onChange={(e) => setSelectedPo(e.target.value)}
-                  className={selectCls}
-                  disabled={!customerid || ponumbers.length === 0}
-                >
-                  <option value="">Select PO</option>
-                  {ponumbers.map((p, i) => {
-                    const val =
-                      typeof p === "string" ? p : (p.ponumber ?? p.value ?? "");
-                    return (
-                      <option key={i} value={val}>
-                        {val}
-                      </option>
-                    );
+                <Select
+                  value={selectedPo ? { value: selectedPo, label: selectedPo } : null}
+                  onChange={(opt) => setSelectedPo(opt ? opt.value : "")}
+                  options={ponumbers.map((p) => {
+                    const val = typeof p === "string" ? p : (p.ponumber ?? p.value ?? "");
+                    return { value: val, label: val };
                   })}
-                </select>
+                  placeholder="Select PO..."
+                  isClearable
+                  isDisabled={!customerid || ponumbers.length === 0}
+                  className="react-select-container text-sm"
+                  classNamePrefix="react-select"
+                />
               )}
             </div>
 

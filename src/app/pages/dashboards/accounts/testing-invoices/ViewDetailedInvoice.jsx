@@ -1,19 +1,3 @@
-// ViewDetailedInvoice.jsx
-// Route: /dashboards/accounts/testing-invoices/view-detailed/:id
-// PHP port of: viewdetailedinvoice.php
-//
-// Key differences from ViewInvoiceCalibration (regular view):
-//   1. Items table shows parameters listed under each item description
-//      (fetched from parameters + packageparameters joined by pricematrixid)
-//   2. Uses invoicedate (not approved_on) as the invoice date
-//   3. "Total Charges" label (not "Total Testing/Calibration Charges")
-//   4. API: GET /accounts/get-testing-invoice-byid/:id
-//
-// Logic:
-//   statecode == "23"  → SGST mode (CGST + SGST), else IGST
-//   status == 0        → DRAFT watermark
-//   meter_option == 1  → show "Meter's" column, else "No's"
-
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -765,7 +749,14 @@ export default function ViewDetailedInvoice() {
   const statecode = isNaN(Number(invoice.statecode))
     ? invoice.statecode
     : String(Number(invoice.statecode)).padStart(2, "0");
-  const isOutsideIndia = String(invoice.country) !== "1" && String(invoice._address?.country) !== "1";
+  // Fallback missing or 0 country to 1 (India)
+  const getCountryCode = () => {
+    let code = invoice.country;
+    if (code === undefined || code === null || code === "") code = invoice._address?.country;
+    if (!code || String(code) === "0") return "1";
+    return String(code);
+  };
+  const isOutsideIndia = getCountryCode() !== "1";
   const isSgst = !isOutsideIndia && statecode === "23";
   const isDraft = Number(invoice.status) === 0;
   const isEinvoice = Number(invoice.status) === 2;
@@ -942,6 +933,26 @@ export default function ViewDetailedInvoice() {
       toast.error(err?.response?.data?.message || "Failed to generate E-Invoice");
     } finally {
       setBusy(false);
+    }
+  };
+
+
+  const validateGSTINPincode = async () => {
+    setBusy(true);
+    var gstin = invoice.gstno;
+    var pincode = parseInt(invoice._address?.pincode || 0, 10);
+    var country = getCountryCode();
+
+    if (country === "1") {
+      if (!gstin || gstin === "0" || gstin === "NA" || !pincode || pincode === 0 || pincode === "NA") {
+        toast.error("Invalid GSTIN or pincode. Unable to generate E-Invoice.");
+        setBusy(false);
+        return;
+      }
+      // Validation passed
+      await doEInvoice();
+    } else {
+      await doEInvoice();
     }
   };
 
@@ -1482,7 +1493,7 @@ export default function ViewDetailedInvoice() {
         open={einvModal}
         title="Generate E-Invoice"
         message="Are you sure you want to generate E-Invoice? This action cannot be undone."
-        onOk={doEInvoice}
+        onOk={validateGSTINPincode}
         onCancel={() => setEinvModal(false)}
         loading={busy}
       />

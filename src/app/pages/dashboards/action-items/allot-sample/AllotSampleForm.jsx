@@ -116,6 +116,7 @@ export default function AllotSampleForm() {
     const qidArr = [];
     const biscodeArr = [];
     const allotedArr = [];
+    let totalLeftAfter = 0;
 
     for (const item of items) {
       const { biscode, alloted } = rowInputs[item.id] ?? {};
@@ -135,6 +136,7 @@ export default function AllotSampleForm() {
       qidArr.push(item.qid);
       biscodeArr.push(biscode);
       allotedArr.push(allotNum);
+      totalLeftAfter += (item.qleft - allotNum);
     }
 
     setSubmitting(true);
@@ -148,7 +150,11 @@ export default function AllotSampleForm() {
         alloted: allotedArr,
       });
       toast.success("Item Alloted Successfully ✅");
-      fetchData();
+      if (totalLeftAfter <= 0) {
+        navigate("/dashboards/action-items/allot-sample");
+      } else {
+        fetchData();
+      }
     } catch (err) {
       const msg = err?.response?.data?.message ?? "Failed to allot items.";
       toast.error(msg + " ❌");
@@ -286,9 +292,16 @@ export default function AllotSampleForm() {
                         {item.received}
                       </td>
                       <td className="px-5 py-3">
-                        <span className={`font-semibold ${item.qleft > 0 ? "text-green-600 dark:text-green-400" : "text-red-500"}`}>
-                          {item.qleft < 0 ? 0 : item.qleft}
-                        </span>
+                        {(() => {
+                          const allottedAmt = parseFloat(rowInputs[item.id]?.alloted) || 0;
+                          const currentLeft = item.qleft - allottedAmt;
+                          const displayLeft = currentLeft < 0 ? 0 : currentLeft;
+                          return (
+                            <span className={`font-semibold ${displayLeft > 0 ? "text-green-600 dark:text-green-400" : "text-red-500"}`}>
+                              {displayLeft}
+                            </span>
+                          );
+                        })()}
                       </td>
                       {/* BIS Code input */}
                       <td className="px-5 py-3">

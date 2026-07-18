@@ -762,7 +762,14 @@ export default function ViewItemizedBill() {
   const statecode = isNaN(Number(invoice.statecode))
     ? invoice.statecode
     : String(Number(invoice.statecode)).padStart(2, "0");
-  const isOutsideIndia = String(invoice.country) !== "1" && String(invoice._address?.country) !== "1";
+  // Fallback missing or 0 country to 1 (India)
+  const getCountryCode = () => {
+    let code = invoice.country;
+    if (code === undefined || code === null || code === "") code = invoice._address?.country;
+    if (!code || String(code) === "0") return "1";
+    return String(code);
+  };
+  const isOutsideIndia = getCountryCode() !== "1";
   const isSgst = !isOutsideIndia && statecode === "23";
   const isDraft = Number(invoice.status) === 0;
   const isEinvoice = Number(invoice.status) === 2;
@@ -929,6 +936,25 @@ export default function ViewItemizedBill() {
       toast.error(err?.response?.data?.message || "Failed to generate E-Invoice");
     } finally {
       setBusy(false);
+    }
+  };
+
+  const validateGSTINPincode = async () => {
+    setBusy(true);
+    var gstin = invoice.gstno;
+    var pincode = parseInt(invoice._address?.pincode || 0, 10);
+    var country = getCountryCode();
+
+    if (country === "1") {
+      if (!gstin || gstin === "0" || gstin === "NA" || !pincode || pincode === 0 || pincode === "NA") {
+        toast.error("Invalid GSTIN or pincode. Unable to generate E-Invoice.");
+        setBusy(false);
+        return;
+      }
+      // Validation passed
+      await doEInvoice();
+    } else {
+      await doEInvoice();
     }
   };
 
@@ -1447,7 +1473,7 @@ export default function ViewItemizedBill() {
         open={einvModal}
         title="Generate E-Invoice"
         message="Are you sure you want to generate E-Invoice? This action cannot be undone."
-        onOk={doEInvoice}
+        onOk={validateGSTINPincode}
         onCancel={() => setEinvModal(false)}
         loading={busy}
       />

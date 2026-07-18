@@ -143,8 +143,8 @@ export default function FinalReportDetail() {
             )}
 
             {/* ── TEST REPORT title + ULR + KTRC ref ──────────────────── */}
-            <h2 className="mb-1 text-center text-lg font-bold underline">TEST REPORT</h2>
-            <div className="flex items-end justify-between text-sm">
+            <h2 className="mb-1 text-center text-xl font-bold underline">TEST REPORT</h2>
+            <div className="flex items-end justify-between text-base">
               {nablStatus === 1 && trfProduct.ulr
                 ? <span><strong>ULR:</strong> {trfProduct.ulr}</span>
                 : <span />
@@ -154,7 +154,7 @@ export default function FinalReportDetail() {
 
             {/* ── Info Table ───────────────────────────────────────────── */}
             <div className="mb-5 overflow-x-auto rounded-b-lg border border-gray-300 dark:border-dark-500">
-              <table className="w-full border-collapse text-sm">
+              <table className="w-full border-collapse text-base">
                 <tbody>
                   <tr>
                     {/* Left: Customer + Sample info (rowspan) */}
@@ -163,7 +163,7 @@ export default function FinalReportDetail() {
                       <p>{customer.name ?? "—"}</p>
                       <p>{customer.address ?? ""}</p>
                       {Number(report.trf?.specificpurpose) === 2 && customer.contact_person && (
-                        <p className="mt-1 text-xs">Contact Person: {customer.contact_person}</p>
+                        <p className="mt-1 text-sm">Contact Person: {customer.contact_person}</p>
                       )}
                     </td>
                     <InfoRow label="Laboratory Reference Number (LRN)" value={trfProduct.lrn ?? trfProduct.brn ?? "—"} />
@@ -178,22 +178,21 @@ export default function FinalReportDetail() {
 
                   {/* Sample rows full width */}
                   <tr>
-                    <td colSpan={3} className="border-t border-gray-300 p-2 text-sm dark:border-dark-500">
+                    <td colSpan={3} className="border-t border-gray-300 p-2 text-base dark:border-dark-500">
                       <strong>Sample Identification: </strong>{product.description ?? trfProduct.size ?? "—"}
                     </td>
                   </tr>
                   {customer.letterrefno && customer.letterrefno !== "-" && (
                     <tr>
-                      <td colSpan={3} className="border-t border-gray-300 p-2 text-sm dark:border-dark-500">
+                      <td colSpan={3} className="border-t border-gray-300 p-2 text-base dark:border-dark-500">
                         <strong>Customer Reference :- </strong>{customer.letterrefno}
                       </td>
                     </tr>
                   )}
                   <tr>
-                    <td colSpan={3} className="border-t border-gray-300 p-2 text-sm dark:border-dark-500">
+                    <td colSpan={3} className="border-t border-gray-300 p-2 text-base dark:border-dark-500">
                       <strong>Sample Particulars: </strong>
-                      {product.name ?? "—"} &nbsp; Grade: {report.grade ?? "—"} &nbsp;
-                      {(report.batchno ?? "").replace(/<br\s*\/?>/gi, " ")}
+                      {product.name ?? "—"} &nbsp; Grade: {report.grade ?? "—"}
                     </td>
                   </tr>
                 </tbody>
@@ -201,56 +200,59 @@ export default function FinalReportDetail() {
             </div>
 
             {/* ── TEST RESULTS ─────────────────────────────────────────── */}
-            <h4 className="mb-2 text-sm font-bold">TEST RESULTS</h4>
+            <h4 className="mb-2 text-base font-bold">TEST RESULTS</h4>
             <div className="mb-5 overflow-x-auto rounded-lg border border-gray-300 dark:border-dark-500">
-              <table className="w-full border-collapse text-sm">
+              <table className="w-full border-collapse text-base">
                 <thead>
                   <tr className="bg-gray-100 dark:bg-dark-700">
-                    <th className="border-b border-r border-gray-300 px-3 py-2 text-center text-xs dark:border-dark-500">S.NO</th>
-                    <th className="border-b border-r border-gray-300 px-3 py-2 text-left   text-xs dark:border-dark-500">PARAMETER</th>
-                    <th className="border-b border-r border-gray-300 px-3 py-2 text-center text-xs dark:border-dark-500">UNIT</th>
-                    <th className="border-b border-r border-gray-300 px-3 py-2 text-center text-xs dark:border-dark-500">RESULTS</th>
-                    <th className="border-b border-r border-gray-300 px-3 py-2 text-center text-xs dark:border-dark-500">TEST METHOD</th>
+                    <th className="border-b border-r border-gray-300 px-3 py-2 text-center text-sm dark:border-dark-500">S.NO</th>
+                    <th className="border-b border-r border-gray-300 px-3 py-2 text-left   text-sm dark:border-dark-500">PARAMETER</th>
+                    <th className="border-b border-r border-gray-300 px-3 py-2 text-center text-sm dark:border-dark-500">UNIT</th>
+                    <th className="border-b border-r border-gray-300 px-3 py-2 text-center text-sm dark:border-dark-500">RESULTS</th>
+                    <th className="border-b border-r border-gray-300 px-3 py-2 text-center text-sm dark:border-dark-500">TEST METHOD</th>
                     {hasSpecs && (
-                      <th className="border-b border-gray-300 px-3 py-2 text-center text-xs dark:border-dark-500">SPECIFICATIONS</th>
+                      <th className="border-b border-gray-300 px-3 py-2 text-center text-sm dark:border-dark-500">SPECIFICATIONS</th>
                     )}
                     {reportStatus < 9 && (
-                      <th className="border-b border-gray-300 px-3 py-2 text-center text-xs dark:border-dark-500">ACTIONS</th>
+                      <th className="border-b border-gray-300 px-3 py-2 text-center text-sm dark:border-dark-500">ACTIONS</th>
                     )}
                   </tr>
                 </thead>
                 <tbody>
                   {testResults.length === 0 ? (
                     <tr>
-                      <td colSpan={hasSpecs ? 6 : 5} className="py-8 text-center text-sm text-gray-400">
+                      <td colSpan={hasSpecs ? 6 : 5} className="py-8 text-center text-base text-gray-400">
                         No test results found.
                       </td>
                     </tr>
                   ) : (
                     testResults.map((row, idx) => {
-                      const displayResult = row.result?.display_value ?? row.result?.value ?? row.result ?? "—";
+                      let displayResult = String(row.result?.display_value ?? row.result?.value ?? row.result ?? "—");
+                      if (displayResult.trim().startsWith("<") && !displayResult.includes("BDL")) {
+                        displayResult = "BDL " + displayResult.trim();
+                      }
                       const unitDisplay = row.unit?.description ?? row.unit?.name ?? row.unit ?? "—";
                       const methodName = row.method?.name ?? row.method ?? "—";
                       const { bg, color } = parseColorFlag(row.compliance_style);
                       return (
                         <tr key={row.id ?? idx} className="border-t border-gray-200 dark:border-dark-500">
-                          <td className="border-r border-gray-200 px-3 py-2 text-center text-xs dark:border-dark-500">{row.sno ?? idx + 1}</td>
-                          <td className="border-r border-gray-200 px-3 py-2 text-xs dark:border-dark-500">{row.parameter_name ?? "—"}</td>
-                          <td className="border-r border-gray-200 px-3 py-2 text-center text-xs dark:border-dark-500">{unitDisplay}</td>
+                          <td className="border-r border-gray-200 px-3 py-2 text-center text-sm dark:border-dark-500">{row.sno ?? idx + 1}</td>
+                          <td className="border-r border-gray-200 px-3 py-2 text-sm dark:border-dark-500">{row.parameter_name ?? "—"}</td>
+                          <td className="border-r border-gray-200 px-3 py-2 text-center text-sm dark:border-dark-500">{unitDisplay}</td>
                           <td
-                            className="border-r border-gray-200 px-3 py-2 text-center text-xs font-semibold dark:border-dark-500"
+                            className="border-r border-gray-200 px-3 py-2 text-center text-sm font-semibold dark:border-dark-500"
                             style={{ backgroundColor: bg ?? undefined, color: color ?? undefined }}
                           >
                             {displayResult}
                           </td>
-                          <td className="border-r border-gray-200 px-3 py-2 text-center text-xs dark:border-dark-500">{methodName}</td>
+                          <td className="border-r border-gray-200 px-3 py-2 text-center text-sm dark:border-dark-500">{methodName}</td>
                           {hasSpecs && (
-                            <td className="border-r border-gray-200 px-3 py-2 text-center text-xs dark:border-dark-500">{row.specification ?? "—"}</td>
+                            <td className="border-r border-gray-200 px-3 py-2 text-center text-sm dark:border-dark-500">{row.specification ?? "—"}</td>
                           )}
                           {reportStatus < 9 && (
-                            <td className="px-3 py-2 text-center text-xs">
+                            <td className="px-3 py-2 text-center text-sm">
                               <button
-                                className="rounded bg-primary-600 px-2 py-1 text-xs font-semibold text-white transition hover:bg-primary-700"
+                                className="rounded bg-primary-600 px-2 py-1 text-sm font-semibold text-white transition hover:bg-primary-700"
                                 onClick={() => {
                                   // TODO: request re-test API call
                                   console.log("Request re-test for testeventdata id:", row.id);
@@ -280,7 +282,7 @@ export default function FinalReportDetail() {
                 {signatories.map((s, i) => (
                   <div key={i} className="min-w-[200px]">
                     {s.title && (
-                      <p className="mb-2 text-sm font-semibold text-gray-600 dark:text-dark-300">{s.title}</p>
+                      <p className="mb-2 text-base font-semibold text-gray-600 dark:text-dark-300">{s.title}</p>
                     )}
                     {s.is_signed ? (
                       <>
@@ -293,8 +295,8 @@ export default function FinalReportDetail() {
                       </>
                     ) : (
                       <>
-                        <p className="font-semibold text-sm">{s.display_name ?? s.name ?? "—"}</p>
-                        <p className="text-xs text-gray-500">{s.authorizefor ?? ""}</p>
+                        <p className="font-semibold text-base">{s.display_name ?? s.name ?? "—"}</p>
+                        <p className="text-sm text-gray-500">{s.authorizefor ?? ""}</p>
                       </>
                     )}
                   </div>
@@ -316,8 +318,8 @@ export default function FinalReportDetail() {
 function InfoRow({ label, value }) {
   return (
     <>
-      <td className="border-b border-gray-300 px-3 py-1.5 text-xs font-semibold dark:border-dark-500 w-[30%]">{label}</td>
-      <td className="border-b border-gray-300 px-3 py-1.5 text-xs dark:border-dark-500">{value ?? "—"}</td>
+      <td className="border-b border-gray-300 px-3 py-1.5 text-sm font-semibold dark:border-dark-500 w-[30%]">{label}</td>
+      <td className="border-b border-gray-300 px-3 py-1.5 text-sm dark:border-dark-500">{value ?? "—"}</td>
     </>
   );
 }
@@ -340,7 +342,10 @@ function RemarkSection({ remarks, report }) {
 
   const testResults = Array.isArray(report?.test_results) ? report.test_results : (report?.test_results && typeof report.test_results === 'object' ? Object.values(report.test_results) : []);
 
-  const hasBdl = testResults.some(r => r.result?.display_value?.includes("BDL") || String(r.result?.value ?? r.result ?? "").includes("BDL"));
+  const hasBdl = testResults.some(r => {
+    const val = String(r.result?.display_value ?? r.result?.value ?? r.result ?? "").trim();
+    return val.includes("BDL") || val.startsWith("<");
+  });
   const hasAdl = testResults.some(r => r.result?.display_value?.includes("ADL") || String(r.result?.value ?? r.result ?? "").includes("ADL"));
 
   if (hasBdl && !bdlRemark) bdlRemark = "BDL : Below Detection Limit";
@@ -354,7 +359,7 @@ function RemarkSection({ remarks, report }) {
 
   if (!lines.length) return null;
   return (
-    <div className="mb-4 rounded-lg bg-gray-50 px-4 py-3 text-sm dark:bg-dark-800">
+    <div className="mb-4 rounded-lg bg-gray-50 px-4 py-3 text-base dark:bg-dark-800">
       <strong>Remark: </strong>
       {lines.map((line, idx) => (
         <span key={idx}>

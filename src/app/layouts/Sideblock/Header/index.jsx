@@ -34,7 +34,7 @@ export function Header() {
         cardSkin === "bordered" ? "dark:bg-dark-900/80" : "dark:bg-dark-700/80",
       )}
     >
-      <div className="contents xl:hidden">
+      <div className="contents">
         <SidebarToggleBtn />
       </div>
 

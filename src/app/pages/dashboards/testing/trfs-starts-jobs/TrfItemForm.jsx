@@ -124,7 +124,6 @@ export default function TrfItemForm({ trfId, itemId, cloneId, onSuccess, onCance
   const [received, setReceived] = useState([]);
   const [parameters, setParameters] = useState([]);
   const [selectedParams, setSelectedParams] = useState([]);
-  const [isSpecial, setIsSpecial] = useState(false);
   const [loadingPkgDetails, setLoadingPkgDetails] = useState(false);
 
   // ─── Form state ───────────────────────────────────────────────────────────
@@ -144,7 +143,6 @@ export default function TrfItemForm({ trfId, itemId, cloneId, onSuccess, onCance
   const clearPkgDetails = () => {
     setQuantities([]); setReceived([]);
     setParameters([]); setSelectedParams([]);
-    setIsSpecial(false);
   };
 
   // ── Helper: set form from item data + mark refs so cascades skip reset ────
@@ -249,8 +247,6 @@ export default function TrfItemForm({ trfId, itemId, cloneId, onSuccess, onCance
           setReceived(toArray(d, "quantities").map(() => ""));
         }
 
-        const special = d.special ?? false;
-        setIsSpecial(!!special);
         setSelectedParams(toArray(d, "parameters").filter((p) => p.selected).map((p) => p.id));
 
         // trf_product se form fill
@@ -401,13 +397,11 @@ export default function TrfItemForm({ trfId, itemId, cloneId, onSuccess, onCance
         const price = priceData.unitcost ?? cached?.rate ?? 0;
         const total = priceData.total ?? price;
         const params = toArray(paramRes.data, "parameters");
-        const special = paramRes.data?.special ?? false;
         setQuantities(qtys);
         setReceived(qtys.map(() => ""));
         setForm((prev) => ({ ...prev, unitcost: price, total }));
         setParameters(params);
-        setIsSpecial(!!special);
-        setSelectedParams(special ? params.map((p) => p.id) : []);
+        setSelectedParams(params.map((p) => p.id));
       } catch { /* silent */ }
       finally { setLoadingPkgDetails(false); }
     };
@@ -436,8 +430,6 @@ export default function TrfItemForm({ trfId, itemId, cloneId, onSuccess, onCance
     const required = [
       "product",
       "brand",
-      "qrcode",
-      "testrequest",
       "grade",
       "size",
       "package",
@@ -487,7 +479,7 @@ export default function TrfItemForm({ trfId, itemId, cloneId, onSuccess, onCance
         quantities: quantities.map((q) => q.id),
         received: received.map((r) => Number(r) || 0),
         id: Number(trfId),
-        ...(isSpecial && selectedParams.length ? { parameters: selectedParams } : {}),
+        ...(selectedParams.length ? { parameters: selectedParams } : {}),
 
       };
 
@@ -623,12 +615,12 @@ export default function TrfItemForm({ trfId, itemId, cloneId, onSuccess, onCance
           {errors.brand && <p className={errCls}>{errors.brand}</p>}
         </div>
         <div>
-          <label className={labelCls}>QR Code <span className="text-red-500">*</span></label>
+          <label className={labelCls}>QR Code</label>
           <input name="qrcode" className={iCls(errors.qrcode)} value={form.qrcode} onChange={handleChange} placeholder="QR Code" />
           {errors.qrcode && <p className={errCls}>{errors.qrcode}</p>}
         </div>
         <div>
-          <label className={labelCls}>Test Request <span className="text-red-500">*</span></label>
+          <label className={labelCls}>Test Request</label>
           <input name="testrequest" className={iCls(errors.testrequest)} value={form.testrequest} onChange={handleChange} placeholder="Test Request" />
           {errors.testrequest && <p className={errCls}>{errors.testrequest}</p>}
         </div>
@@ -686,27 +678,71 @@ export default function TrfItemForm({ trfId, itemId, cloneId, onSuccess, onCance
                 <Spinner /> Loading packages…
               </div>
             ) : (
-              <select
-                name="package"
-                className={sCls(errors.package)}
-                value={form.package}
-                onChange={handleChange}
-                disabled={!form.package_type}
-              >
-                <option value="">
-                  {!form.package_type
+              <Select
+                options={packages
+                  .filter(p => String(p.nabl) === String(form.package_type))
+                  .map((p) => ({
+                    value: String(p.id),
+                    label: `${p.nabl == 1 ? "(NABL) " : p.nabl == 3 ? "(QAI) " : p.nabl == 2 ? "(NO) " : ""}${p.package}`
+                  }))}
+                value={packages
+                  .filter(p => String(p.nabl) === String(form.package_type))
+                  .map((p) => ({
+                    value: String(p.id),
+                    label: `${p.nabl == 1 ? "(NABL) " : p.nabl == 3 ? "(QAI) " : p.nabl == 2 ? "(NO) " : ""}${p.package}`
+                  }))
+                  .find(opt => opt.value === String(form.package)) || null}
+                onChange={(selectedOption) => {
+                  const value = selectedOption ? selectedOption.value : "";
+                  setForm((prev) => ({ ...prev, package: value }));
+                  setErrors((prev) => ({ ...prev, package: "" }));
+                }}
+                isDisabled={!form.package_type}
+                placeholder={
+                  !form.package_type
                     ? "Select a Package Type first"
-                    : packages.length === 0
+                    : packages.filter(p => String(p.nabl) === String(form.package_type)).length === 0
                       ? "No packages available for this type"
-                      : "Select Package"}
-                </option>
-                {packages.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.nabl == 1 ? "(NABL) " : p.nabl == 3 ? "(QAI) " : p.nabl == 2 ? "(NO) " : ""}
-                    {p.package}
-                  </option>
-                ))}
-              </select>
+                      : "Search and select package..."
+                }
+                isClearable
+                isSearchable
+                styles={{
+                  control: (base, state) => ({
+                    ...base,
+                    minHeight: "42px",
+                    borderColor: errors.package
+                      ? "#ef4444"
+                      : state.isFocused
+                        ? "#3b82f6"
+                        : "rgb(209 213 219)",
+                    boxShadow: errors.package
+                      ? "0 0 0 1px #ef4444"
+                      : state.isFocused
+                        ? "0 0 0 2px rgb(59 130 246 / 0.5)"
+                        : "none",
+                    "&:hover": { borderColor: errors.package ? "#ef4444" : "#3b82f6" },
+                    backgroundColor: state.isDisabled ? "#f3f4f6" : "white",
+                    borderRadius: "0.5rem",
+                  }),
+                  menu: (base) => ({ ...base, borderRadius: "0.5rem", zIndex: 9999 }),
+                  menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+                  placeholder: (base) => ({ ...base, color: "#9ca3af", fontSize: "0.875rem" }),
+                  singleValue: (base) => ({ ...base, fontSize: "0.875rem", whiteSpace: "normal" }),
+                  option: (base, state) => ({
+                    ...base,
+                    fontSize: "0.875rem",
+                    backgroundColor: state.isSelected
+                      ? "#3b82f6"
+                      : state.isFocused
+                        ? "#eff6ff"
+                        : "white",
+                    color: state.isSelected ? "white" : "#374151",
+                    "&:active": { backgroundColor: "#bfdbfe" },
+                  }),
+                }}
+                menuPortalTarget={document.body}
+              />
             )}
             {errors.package && <p className={errCls}>{errors.package}</p>}
           </div>

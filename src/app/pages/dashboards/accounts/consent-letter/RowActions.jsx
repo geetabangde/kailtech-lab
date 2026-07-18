@@ -8,7 +8,15 @@ import { toast } from "sonner";
 
 export function RowActions({ row, table }) {
   const { id, status } = row.original;
-  const permissions = JSON.parse(localStorage.getItem("userPermissions") || "[]");
+  // Parse permissions and ensure they are an array of numbers for safe checking
+  let rawPermissions = [];
+  try {
+    const parsed = JSON.parse(localStorage.getItem("userPermissions") || "[]");
+    rawPermissions = Array.isArray(parsed) ? parsed : (typeof parsed === 'string' ? parsed.split(',') : [parsed]);
+  } catch (e) {
+    console.error("Error parsing permissions:", e);
+  }
+  const permissions = rawPermissions.map(Number);
   const [loading, setLoading] = useState(false);
 
   const handleApprove = useCallback(async () => {
@@ -21,8 +29,10 @@ export function RowActions({ row, table }) {
         
         table.options.meta?.updateData(row.index, "status", 1);
         
-        if (response.data?.consent_letter_no) {
-          table.options.meta?.updateData(row.index, "consent_no", response.data.consent_letter_no);
+        // Use the correct accessor key 'conosentletterno' instead of 'consent_no'
+        const newConsentNo = response.data?.consent_letter_no || response.data?.conosentletterno || response.data?.consentno;
+        if (newConsentNo) {
+          table.options.meta?.updateData(row.index, "conosentletterno", newConsentNo);
         }
       } else {
         toast.error(response.data?.message || "Failed to approve.");
@@ -35,7 +45,11 @@ export function RowActions({ row, table }) {
     }
   }, [id, row.index, table.options.meta]);
 
-  const isPending = status === 0 || status === "0";
+  // Check for status 0, '0', or 'Pending' (case-insensitive)
+  const isPending = 
+    status === 0 || 
+    status === "0" || 
+    (typeof status === 'string' && status.toLowerCase() === 'pending');
 
   return (
     <div className="flex items-center justify-center gap-2">

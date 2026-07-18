@@ -2,8 +2,6 @@
 import {
   flexRender,
   getCoreRowModel,
-  getFacetedMinMaxValues,
-  getFacetedUniqueValues,
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
@@ -17,9 +15,8 @@ import axios from "utils/axios";
 import { Table, Card, THead, TBody, Th, Tr, Td } from "components/ui";
 import { TableSortIcon } from "components/shared/table/TableSortIcon";
 import { Page } from "components/shared/Page";
-import { useLockScrollbar, useDidUpdate, useLocalStorage } from "hooks";
+import { useLockScrollbar, useLocalStorage } from "hooks";
 import { fuzzyFilter } from "utils/react-table/fuzzyFilter";
-import { useSkipper } from "utils/react-table/useSkipper";
 import { Toolbar } from "./Toolbar";
 import { columns } from "./columns";
 import { PaginationSection } from "components/shared/table/PaginationSection";
@@ -83,8 +80,6 @@ export default function MRNList() {
     pageSize: 25,
   });
 
-  const [autoResetPageIndex] = useSkipper();
-
   const table = useReactTable({
     data: mrnData,
     columns: columns,
@@ -107,18 +102,13 @@ export default function MRNList() {
     getCoreRowModel: getCoreRowModel(),
     onGlobalFilterChange: setGlobalFilter,
     getFilteredRowModel: getFilteredRowModel(),
-    getFacetedUniqueValues: getFacetedUniqueValues(),
-    getFacetedMinMaxValues: getFacetedMinMaxValues(),
     globalFilterFn: fuzzyFilter,
     onSortingChange: setSorting,
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onColumnPinningChange: setColumnPinning,
-    autoResetPageIndex,
   });
-
-  useDidUpdate(() => table.resetRowSelection(), [mrnData]);
 
   useLockScrollbar(tableSettings.enableFullScreen);
 

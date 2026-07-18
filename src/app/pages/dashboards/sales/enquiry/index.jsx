@@ -83,7 +83,11 @@ export default function EnquiryList() {
         (res.data.status === true || res.data.status === "true") &&
         Array.isArray(res.data.data)
       ) {
-        setData(res.data.data);
+        let fetchedData = res.data.data;
+        if (statusFilter !== "") {
+          fetchedData = fetchedData.filter(item => String(item.status) === String(statusFilter));
+        }
+        setData(fetchedData);
       } else {
         setData([]);
       }
@@ -93,7 +97,7 @@ export default function EnquiryList() {
     } finally {
       setLoading(false);
     }
-  }, [minDate, maxDate, selectedAssignee]);
+  }, [minDate, maxDate, selectedAssignee, statusFilter]);
 
   useEffect(() => {
     fetchData();

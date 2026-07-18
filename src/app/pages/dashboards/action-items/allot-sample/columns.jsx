@@ -22,7 +22,7 @@ export const columns = [
     id: "customer",
     header: "Customer",
     cell: (info) => (
-      <span className="block max-w-[220px] whitespace-normal text-sm leading-tight">
+      <span className="block text-sm leading-tight">
         {info.getValue() ?? "—"}
       </span>
     ),
@@ -33,7 +33,7 @@ export const columns = [
     id: "product",
     header: "Product",
     cell: (info) => (
-      <span className="block max-w-[200px] whitespace-normal text-sm leading-tight">
+      <span className="block text-sm leading-tight">
         {info.getValue() ?? "—"}
       </span>
     ),
@@ -44,7 +44,7 @@ export const columns = [
     id: "package",
     header: "Package",
     cell: (info) => (
-      <span className="block max-w-[200px] whitespace-normal text-sm leading-tight">
+      <span className="block text-sm leading-tight">
         {info.getValue() ?? "—"}
       </span>
     ),
@@ -72,7 +72,11 @@ export const columns = [
     {
       id: "grade_size",
       header: "Grade/Size",
-      cell: (info) => info.getValue(),
+      cell: (info) => (
+        <span className="block text-sm leading-tight">
+          {info.getValue() ?? "—"}
+        </span>
+      ),
     }
   ),
 
@@ -87,7 +91,11 @@ export const columns = [
   columnHelper.accessor("customer_type", {
     id: "customer_type",
     header: "Customer Type",
-    cell: (info) => info.getValue() ?? "—",
+    cell: (info) => (
+      <span className="block text-sm leading-tight">
+        {info.getValue() ?? "—"}
+      </span>
+    ),
   }),
 
   // Specific Purpose

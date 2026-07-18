@@ -8,8 +8,6 @@ import { useParams, useNavigate } from "react-router";
 import axios from "utils/axios";
 import { toast } from "sonner";
 import { Page } from "components/shared/Page";
-import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
 import logo from "assets/krtc.jpg"; // local logo
 
 // ── Constants ─────────────────────────────────────────────────────────────
@@ -156,16 +154,18 @@ function InvoicePrintContent({
   const bank = company?.bank ?? {};
   const addr = company?.address ?? {};
 
-  const border = "1px solid #999";
-  const cellPad = "6px 10px";
+  const border = "1px solid #ccc";
+  const cellPad = "8px 10px";
   const fontBase = {
     fontFamily: "Arial, sans-serif",
     fontSize: 13,
     color: "#000",
+    lineHeight: 1.5,
   };
 
   return (
     <div
+      className="invoice-print-wrapper"
       style={{
         ...fontBase,
         background: "#fff",
@@ -675,17 +675,38 @@ function InvoicePrintContent({
               }}
             >
               <p style={{ margin: 0 }}>For {co.name}</p>
-              <br />
-              <br />
-              <br />
-              <p style={{ margin: 0, textDecoration: "underline" }}>
-                Authorised Signatory
-              </p>
+
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "8px", minHeight: "80px" }}>
+                {/* SEAL - Hidden by default, shown during Export */}
+                <div className="pi-seal hidden print:block">
+                  <img src="/images/seal.png" alt="Seal" style={{ width: "80px", objectFit: "contain" }} />
+                </div>
+
+                {/* SIGNATURE */}
+                {invoice.status == 1 && invoice.approved_by ? (
+                  (invoice.digitalSign || invoice.digital_signature) ? (
+                    <img src={invoice.digitalSign || invoice.digital_signature} alt="Signature" style={{ maxHeight: "110px", objectFit: "contain" }} />
+                  ) : (
+                    <div style={{ fontFamily: "monospace", fontSize: "12px", lineHeight: 1.2, color: "#000", whiteSpace: "pre-line" }}>
+                      <p style={{ margin: 0 }}>Electronically signed by</p>
+                      <p style={{ margin: 0 }}>{invoice.signature_by || invoice.approved_by_name || "Authorised Signatory"} {invoice.signature_emp_id ? `(Emp - ${invoice.signature_emp_id})` : ""}</p>
+                      <p style={{ margin: 0 }}>Designation:{invoice.signature_designation || "Manager-Accounts"}</p>
+                      <p style={{ margin: 0 }}>Date:{invoice.datedon || (invoice.approved_on ? formatDate(invoice.approved_on) : "")}</p>
+                    </div>
+                  )
+                ) : (
+                  <div style={{ paddingTop: "40px" }}>
+                    <p style={{ margin: 0, textDecoration: "underline" }}>
+                      Authorised Signatory
+                    </p>
+                  </div>
+                )}
+              </div>
             </td>
           </tr>
 
           {/* Remark + Terms & Conditions */}
-          <tr>
+          <tr className="print-page-break">
             <td
               colSpan={2}
               style={{
@@ -767,7 +788,6 @@ export default function ViewProformaInvoice() {
   const [items, setItems] = useState([]);
   const [company, setCompany] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [pdfLoading, setPdfLoading] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -778,7 +798,11 @@ export default function ViewProformaInvoice() {
         ]);
         const invData = invRes.data.data;
         if (invData?.invoice) {
-          setInvoice(invData.invoice);
+          const signUrl = invData.digitalSign || invData.signatureImage || "";
+          setInvoice({
+            ...invData.invoice,
+            digitalSign: signUrl.replace("https://lims.kailtech.in", "/pdf-proxy")
+          });
           setItems(invData.items ?? []);
         } else {
           setInvoice(invData ?? null);
@@ -795,57 +819,13 @@ export default function ViewProformaInvoice() {
     load();
   }, [id]);
 
-  // ── PDF Export ────────────────────────────────────────────────────────
-  const handleDownloadPDF = async () => {
-    if (!pdfRef.current) return;
-    setPdfLoading(true);
-    try {
-      const canvas = await html2canvas(pdfRef.current, {
-        scale: 2,
-        backgroundColor: "#ffffff",
-        useCORS: false,
-        logging: false,
-        onclone: (clonedDoc) => {
-          // Remove all Tailwind/app stylesheets → no oklch
-          clonedDoc
-            .querySelectorAll('style, link[rel="stylesheet"]')
-            .forEach((el) => el.remove());
-        },
-      });
-
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new jsPDF({
-        orientation: "portrait",
-        unit: "mm",
-        format: "a4",
-      });
-      const pageW = pdf.internal.pageSize.getWidth();
-      const pageH = pdf.internal.pageSize.getHeight();
-      const imgW = pageW;
-      const imgH = (canvas.height * imgW) / canvas.width;
-
-      let heightLeft = imgH;
-      let pos = 0;
-      pdf.addImage(imgData, "PNG", 0, pos, imgW, imgH);
-      heightLeft -= pageH;
-      while (heightLeft > 0) {
-        pos -= pageH;
-        pdf.addPage();
-        pdf.addImage(imgData, "PNG", 0, pos, imgW, imgH);
-        heightLeft -= pageH;
-      }
-
-      const fileName = invoice?.invoiceno
-        ? `${invoice.invoiceno.replace(/\//g, "-")}.pdf`
-        : `proforma-invoice-${id}.pdf`;
-      pdf.save(fileName);
-      toast.success("PDF downloaded ✅");
-    } catch (err) {
-      console.error(err);
-      toast.error("PDF generation failed");
-    } finally {
-      setPdfLoading(false);
-    }
+  const handleDownloadPDF = () => {
+    // We use the browser's native print dialog which allows "Save as PDF".
+    // This generates a perfect, text-searchable, vector PDF and respects page breaks,
+    // unlike html2canvas which just slices a blurry image and cuts text in half.
+    setTimeout(() => {
+      window.print();
+    }, 100);
   };
 
   if (loading)
@@ -895,56 +875,39 @@ export default function ViewProformaInvoice() {
   return (
     <Page title="View Proforma Invoice">
       <div className="transition-content px-[var(--margin-x)] pb-8">
+        <style>{`
+          @media print {
+            .print\\:hidden, .sidebar-panel, .app-header { display: none !important; }
+            body { padding: 0 !important; margin: 0 !important; background: white !important; }
+            .transition-content { padding: 0 !important; margin: 0 !important; }
+            @page { size: portrait; margin: 0.5cm; }
+            .invoice-print-wrapper { width: 100% !important; max-width: 100% !important; padding: 0 !important; }
+            .print-page-break { break-before: page; page-break-before: always; }
+          }
+        `}</style>
         {/* Action Buttons */}
-        <div className="mb-4 flex items-center gap-2">
+        <div className="mb-4 flex items-center gap-2 print:hidden">
           <button
             onClick={handleDownloadPDF}
-            disabled={pdfLoading}
             className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {pdfLoading ? (
-              <>
-                <svg
-                  className="h-4 w-4 animate-spin"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8v4a4 4 0 000 8v4a8 8 0 01-8-8z"
-                  />
-                </svg>
-                Generating PDF…
-              </>
-            ) : (
-              <>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"
-                  />
-                </svg>
-                Export PDF Invoice
-              </>
-            )}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"
+              />
+            </svg>
+            Export PDF Invoice
           </button>
+
           <button
             onClick={() => navigate("/dashboards/accounts/proforma-invoice")}
             className="dark:border-dark-500 dark:bg-dark-800 dark:text-dark-200 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"

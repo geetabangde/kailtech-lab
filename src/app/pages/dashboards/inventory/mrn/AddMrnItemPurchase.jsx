@@ -204,6 +204,7 @@ export default function AddMrnItemPurchase() {
         discountnumber: items.map(i => parseFloat(i.discountnumber) || 0),
         discamount: items.map(i => parseFloat(i.discamount) || 0),
         taxableamount: items.map(i => parseFloat(i.taxableamount) || 0),
+        tax_rate: items.map(i => (parseFloat(i.igstper) || 0) + (parseFloat(i.sgstper) || 0) + (parseFloat(i.cgstper) || 0)),
         igstper: items.map(i => parseFloat(i.igstper) || 0),
         igstamount: items.map(i => parseFloat(i.igstamount) || 0),
         sgstper: items.map(i => parseFloat(i.sgstper) || 0),
@@ -211,12 +212,19 @@ export default function AddMrnItemPurchase() {
         cgstper: items.map(i => parseFloat(i.cgstper) || 0),
         cgstamount: items.map(i => parseFloat(i.cgstamount) || 0),
         totaltaxamountitem: items.map(i => parseFloat(i.totaltaxamountitem) || 0),
-        finalamount: items.map(i => parseFloat(i.finalamount) || 0)
+        finalamount: items.map(i => parseFloat(i.finalamount) || 0),
+        remark: items.map(i => String(i.remark || "")),
+
+        subtotal: parseFloat(totals.subtotal) || 0,
+        discount: parseFloat(totals.discount) || 0,
+        totalafterdisc: parseFloat(totals.totalafterdisc) || 0,
+        totaltaxamount: parseFloat(totals.totaltaxamount) || 0,
+        totalinvoiceamount: parseFloat(totals.totalinvoiceamount) || 0
       };
       await axios.post("/inventory/add-mrn-items-wopo", payload).catch(() => null);
 
       toast.success("MRN Items saved successfully!");
-    
+
     } catch (err) {
       console.error(err);
       toast.error(err?.response?.data?.message || "Failed to save items");

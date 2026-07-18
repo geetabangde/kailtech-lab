@@ -72,7 +72,7 @@ export const columns = [
     cell: ({ row }) => {
       const { id, locationid } = row.original;
       return (
-        <a 
+        <a
           href={`/dashboards/inventory/pending-verification/verification-form?hakuna=${id}&matata=${locationid}`}
           className="inline-flex items-center justify-center rounded-md bg-amber-100 px-3 py-1.5 text-xs font-bold text-amber-700 transition hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-400"
         >

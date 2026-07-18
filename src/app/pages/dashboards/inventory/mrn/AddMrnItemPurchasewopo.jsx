@@ -5,6 +5,7 @@ import { Page } from "components/shared/Page";
 import axios from "utils/axios";
 import { toast } from "sonner";
 import { TrashIcon, PlusIcon } from "lucide-react";
+import AsyncSelect from "react-select/async";
 
 export default function AddMrnItemPurchasewopo() {
   const navigate = useNavigate();
@@ -18,6 +19,7 @@ export default function AddMrnItemPurchasewopo() {
   const [units, setUnits] = useState([]);
 
   const [items, setItems] = useState([]);
+  const [selectedSearchItem, setSelectedSearchItem] = useState(null);
 
   // Fetch initial MRN details and existing PO items
   useEffect(() => {
@@ -58,14 +60,29 @@ export default function AddMrnItemPurchasewopo() {
               }
             }
 
+            let igstper = parseFloat(item.igstper) || 0;
+            let sgstper = parseFloat(item.sgstper) || 0;
+            let cgstper = parseFloat(item.cgstper) || 0;
+            if (igstper === 0 && sgstper === 0 && cgstper === 0) {
+               let tRate = parseFloat(item.tax_rate || item.tax_class || 0);
+               if (localIsSgst) {
+                  sgstper = tRate / 2;
+                  cgstper = tRate / 2;
+               } else {
+                  igstper = tRate;
+               }
+            }
+
             return calculateItemRow({
               ...item,
               uom: matchedUomId,
               ordered_qty: item.qty || 0,
               qty: item.receiveqty !== undefined ? item.receiveqty : (item.qty || 1),
-              tax_rate: item.tax_rate || item.tax_class || 0,
               discountnumber: item.discount || item.discountnumber || 0,
-            }, localIsSgst);
+              igstper,
+              sgstper,
+              cgstper
+            });
           });
           setItems(formattedItems);
         }
@@ -86,7 +103,7 @@ export default function AddMrnItemPurchasewopo() {
   }, [mrnid]);
 
   // Core Calculation Engine for a Single Row
-  const calculateItemRow = (item, applySgst) => {
+  const calculateItemRow = (item) => {
     const qty = parseFloat(item.qty) || 0;
     const rate = parseFloat(item.rate) || 0;
     const amount = qty * rate;
@@ -95,21 +112,15 @@ export default function AddMrnItemPurchasewopo() {
     const discamount = amount * (discountpercent / 100);
     const taxableamount = amount - discamount;
 
-    const taxRate = parseFloat(item.tax_rate) || 0;
-    const tax = taxableamount * (taxRate / 100);
+    const igstper = parseFloat(item.igstper) || 0;
+    const sgstper = parseFloat(item.sgstper) || 0;
+    const cgstper = parseFloat(item.cgstper) || 0;
 
-    let cgstper = 0, sgstper = 0, igstper = 0;
-    let cgstamount = 0, sgstamount = 0, igstamount = 0;
-
-    if (applySgst) {
-      cgstper = taxRate / 2;
-      sgstper = taxRate / 2;
-      cgstamount = tax / 2;
-      sgstamount = tax / 2;
-    } else {
-      igstper = taxRate;
-      igstamount = tax;
-    }
+    const igstamount = taxableamount * (igstper / 100);
+    const sgstamount = taxableamount * (sgstper / 100);
+    const cgstamount = taxableamount * (cgstper / 100);
+    const tax = igstamount + sgstamount + cgstamount;
+    const taxRate = igstper + sgstper + cgstper;
 
     return {
       ...item,
@@ -117,9 +128,6 @@ export default function AddMrnItemPurchasewopo() {
       discamount,
       taxableamount,
       tax_rate: taxRate,
-      cgstper,
-      sgstper,
-      igstper,
       cgstamount,
       sgstamount,
       igstamount,
@@ -131,7 +139,7 @@ export default function AddMrnItemPurchasewopo() {
   const handleItemChange = (index, field, value) => {
     const newItems = [...items];
     newItems[index][field] = value;
-    newItems[index] = calculateItemRow(newItems[index], isSgst);
+    newItems[index] = calculateItemRow(newItems[index]);
     setItems(newItems);
   };
 
@@ -139,6 +147,72 @@ export default function AddMrnItemPurchasewopo() {
     const newItems = [...items];
     newItems.splice(index, 1);
     setItems(newItems);
+  };
+
+  const loadOptions = async (inputValue) => {
+    if (!inputValue) return [];
+    try {
+      const response = await axios.get(`/inventory/search-po-items?search=${inputValue}`);
+      if (response.data && response.data.status) {
+        return response.data.data.map(m => ({
+          value: m.id,
+          label: m.value || m.name,
+          itemData: m
+        }));
+      }
+      return [];
+    } catch (err) {
+      console.error("Search error:", err);
+      return [];
+    }
+  };
+
+  const handleSearchChange = (selectedOption) => {
+    if (!selectedOption || !selectedOption.itemData) return;
+    handleAddSearchedItem(selectedOption.itemData);
+    // Reset search box after selection
+    setSelectedSearchItem(null);
+  };
+
+  const handleAddSearchedItem = async (selectedItem) => {
+    let matchedUomId = selectedItem.unit;
+
+    if (matchedUomId) {
+      try {
+        const uomRes = await axios.get(`/master/get-unit-byid/${matchedUomId}`);
+        if (uomRes.data && (uomRes.data.status === true || uomRes.data.status === "true")) {
+          const uomData = uomRes.data.data;
+          setUnits(prev => {
+            if (!prev.some(u => String(u.id) === String(uomData.id))) {
+              return [...prev, uomData];
+            }
+            return prev;
+          });
+        }
+      } catch (err) {
+        console.error("Error fetching UOM:", err);
+      }
+    }
+
+    const newItem = calculateItemRow({
+      itemid: selectedItem.id,
+      poitemid: 0,
+      description: selectedItem.name || selectedItem.it_name || "",
+      hsn: selectedItem.hsn || "",
+      batchno: "",
+      mfddate: "",
+      expdate: "",
+      uom: matchedUomId || "",
+      ordered_qty: 0,
+      qty: 1,
+      rate: "",
+      discountnumber: 0,
+      igstper: "",
+      sgstper: "",
+      cgstper: "",
+      remark: ""
+    });
+    setItems([...items, newItem]);
   };
 
   const handleAddManualItem = () => {
@@ -153,11 +227,13 @@ export default function AddMrnItemPurchasewopo() {
       uom: "",
       ordered_qty: 0,
       qty: 1,
-      rate: 0,
+      rate: "",
       discountnumber: 0,
-      tax_rate: 0,
+      igstper: "",
+      sgstper: "",
+      cgstper: "",
       remark: ""
-    }, isSgst);
+    });
     setItems([...items, newItem]);
   };
 
@@ -201,8 +277,7 @@ export default function AddMrnItemPurchasewopo() {
         mfddate: items.map(i => formatDate(i.mfddate)),
         expdate: items.map(i => formatDate(i.expdate)),
         uom: items.map(i => String(i.uom || "")),
-        qty: items.map(i => parseFloat(i.ordered_qty) || 0),
-        receiveqty: items.map(i => parseFloat(i.qty) || 0),
+        qty: items.map(i => parseFloat(i.qty) || 0),
         rate: items.map(i => parseFloat(i.rate) || 0),
         amount: items.map(i => parseFloat(i.amount) || 0),
         discountnumber: items.map(i => parseFloat(i.discountnumber) || 0),
@@ -245,7 +320,7 @@ export default function AddMrnItemPurchasewopo() {
       <div className="transition-content p-6">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold tracking-wide text-gray-800 dark:text-dark-50">
-            Add New MRN Items 
+            Add New MRN Items
           </h2>
           <Button
             variant="outline"
@@ -254,6 +329,23 @@ export default function AddMrnItemPurchasewopo() {
           >
             &laquo; Back to MRN
           </Button>
+        </div>
+
+        {/* Search Box exactly as in PHP / AddMrnItemPurchase */}
+        <div className="mb-6 flex items-center gap-4 bg-white dark:bg-dark-800 p-4 rounded-lg shadow-sm">
+          <label className="font-semibold text-gray-700 dark:text-gray-300 w-32 shrink-0">Search Item:</label>
+          <div className="flex-1 max-w-xl">
+            <AsyncSelect
+              cacheOptions
+              defaultOptions={false}
+              loadOptions={loadOptions}
+              value={selectedSearchItem}
+              onChange={handleSearchChange}
+              placeholder="Start typing to search items..."
+              className="react-select-container"
+              classNamePrefix="react-select"
+            />
+          </div>
         </div>
 
         <Card className="p-6 shadow-soft dark:bg-dark-800">
@@ -278,16 +370,14 @@ export default function AddMrnItemPurchasewopo() {
                       <th className="p-3 border-b">Mfd Date</th>
                       <th className="p-3 border-b">Exp Date</th>
                       <th className="p-3 border-b w-28">UOM</th>
-                      <th className="p-3 border-b w-24">Ord. Qty</th>
                       <th className="p-3 border-b w-24">Qty</th>
                       <th className="p-3 border-b w-24">Rate</th>
                       <th className="p-3 border-b">Amount</th>
                       <th className="p-3 border-b w-24">Disc %</th>
                       <th className="p-3 border-b">Taxable</th>
-                      <th className="p-3 border-b w-24">Tax %</th>
-                      {!isSgst && <th className="p-3 border-b">IGST %</th>}
-                      {isSgst && <th className="p-3 border-b">SGST %</th>}
-                      {isSgst && <th className="p-3 border-b">CGST %</th>}
+                      {!isSgst && <th className="p-3 border-b w-20">IGST %</th>}
+                      {isSgst && <th className="p-3 border-b w-20">SGST %</th>}
+                      {isSgst && <th className="p-3 border-b w-20">CGST %</th>}
                       <th className="p-3 border-b">Tax Amt</th>
                       <th className="p-3 border-b">Total</th>
                       <th className="p-3 border-b">Remark</th>
@@ -306,7 +396,8 @@ export default function AddMrnItemPurchasewopo() {
                         <tr key={index} className="border-b dark:border-dark-700 hover:bg-gray-50 dark:hover:bg-dark-900/30">
                           <td className="p-2">
                             <textarea
-                              className="w-48 p-1 border rounded text-sm dark:bg-dark-900 dark:border-dark-600"
+                              readOnly={!!item.itemid}
+                              className={`w-48 p-1 border rounded text-sm resize-none ${item.itemid ? 'bg-gray-100 dark:bg-dark-900/50' : 'dark:bg-dark-900'} dark:border-dark-600`}
                               value={item.description}
                               onChange={(e) => handleItemChange(index, "description", e.target.value)}
                               rows={1}
@@ -363,14 +454,6 @@ export default function AddMrnItemPurchasewopo() {
                           <td className="p-2">
                             <input
                               type="number"
-                              className="w-full p-1 border rounded text-sm bg-gray-100 dark:bg-dark-900 dark:border-dark-600 cursor-not-allowed"
-                              value={item.ordered_qty || 0}
-                              readOnly
-                            />
-                          </td>
-                          <td className="p-2">
-                            <input
-                              type="number"
                               min="0"
                               step="any"
                               className="w-full p-1 border rounded text-sm dark:bg-dark-900 dark:border-dark-600"
@@ -402,19 +485,42 @@ export default function AddMrnItemPurchasewopo() {
                             />
                           </td>
                           <td className="p-2 font-medium">{item.taxableamount.toFixed(2)}</td>
-                          <td className="p-2">
-                            <input
-                              type="number"
-                              min="0"
-                              step="any"
-                              className="w-full p-1 border rounded text-sm dark:bg-dark-900 dark:border-dark-600"
-                              value={item.tax_rate}
-                              onChange={(e) => handleItemChange(index, "tax_rate", e.target.value)}
-                            />
-                          </td>
-                          {!isSgst && <td className="p-2">{item.igstper.toFixed(2)}%</td>}
-                          {isSgst && <td className="p-2">{item.sgstper.toFixed(2)}%</td>}
-                          {isSgst && <td className="p-2">{item.cgstper.toFixed(2)}%</td>}
+                          {!isSgst && (
+                            <td className="p-2">
+                              <input
+                                type="number"
+                                min="0"
+                                step="any"
+                                className="w-full p-1 border rounded text-sm dark:bg-dark-900 dark:border-dark-600"
+                                value={item.igstper}
+                                onChange={(e) => handleItemChange(index, "igstper", e.target.value)}
+                              />
+                            </td>
+                          )}
+                          {isSgst && (
+                            <>
+                              <td className="p-2">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="any"
+                                  className="w-full p-1 border rounded text-sm dark:bg-dark-900 dark:border-dark-600"
+                                  value={item.sgstper}
+                                  onChange={(e) => handleItemChange(index, "sgstper", e.target.value)}
+                                />
+                              </td>
+                              <td className="p-2">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="any"
+                                  className="w-full p-1 border rounded text-sm dark:bg-dark-900 dark:border-dark-600"
+                                  value={item.cgstper}
+                                  onChange={(e) => handleItemChange(index, "cgstper", e.target.value)}
+                                />
+                              </td>
+                            </>
+                          )}
                           <td className="p-2 font-medium">{item.totaltaxamountitem.toFixed(2)}</td>
                           <td className="p-2 font-bold text-gray-800 dark:text-dark-50">{item.finalamount.toFixed(2)}</td>
                           <td className="p-2">

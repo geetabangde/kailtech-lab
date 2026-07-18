@@ -1,6 +1,6 @@
 import dayjs from "dayjs";
 
-export default function ExportToPdfConsentLetter({ data, companyInfo, logoBase64, sigBase64, withLH = true }) {
+export default function ExportToPdfConsentLetter({ data, companyInfo, logoBase64, sigBase64, sealBase64, withLH = true }) {
     if (!data) return null;
 
     const formattedDate = data.consentletterdate
@@ -98,31 +98,32 @@ export default function ExportToPdfConsentLetter({ data, companyInfo, logoBase64
                         {companyInfo?.company?.name || data.company_name || "KAILTECH TEST & RESEARCH CENTRE PVT. LTD."}
                     </p>
 
-                    {sigBase64 ? (
-                        <div className="mt-2 text-left">
+                    <div className="mt-2 flex items-center gap-2 text-left">
+                        {sealBase64 && (
+                            <img
+                                src={sealBase64}
+                                alt="Seal"
+                                className="w-[80px] object-contain"
+                            />
+                        )}
+                        {sigBase64 ? (
                             <img
                                 src={sigBase64}
                                 alt="Signature"
                                 className="max-h-[110px] object-contain"
                             />
-                        </div>
-                    ) : (
-                        <div className="mt-1 font-mono text-[12px] leading-tight text-black opacity-90 whitespace-pre-line text-left">
-                            <p>Electronically signed by</p>
-                            <p>{data.signature_by || data.approved_by_name} {data.signature_emp_id ? `(${data.signature_emp_id})` : ""}</p>
-                            <p>Designation:{data.signature_designation || "Authorized Signatory"}</p>
-                            <p>{data.datedon ? data.datedon : (data.approved_on ? `Date:${formattedDate}` : "")}</p>
-                        </div>
-                    )}
+                        ) : (
+                            <div className="font-mono text-[12px] leading-tight text-black opacity-90 whitespace-pre-line text-left">
+                                <p>Electronically signed by</p>
+                                <p>{data.signature_by || data.approved_by_name} {data.signature_emp_id ? `(Emp - ${data.signature_emp_id})` : ""}</p>
+                                <p>Designation:{data.signature_designation || "Manager-Accounts"}</p>
+                                <p>Date:{data.datedon ? data.datedon : (data.approved_on ? formattedDate : "")}</p>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
 
-            {/* Letterhead Footer */}
-            {withLH && (
-                <div className="absolute bottom-0 left-0 w-full h-[80px]">
-                    <img src="/images/letterheadfootermono.png" alt="Footer" className="w-full h-full object-cover" />
-                </div>
-            )}
         </div>
     );
 }
