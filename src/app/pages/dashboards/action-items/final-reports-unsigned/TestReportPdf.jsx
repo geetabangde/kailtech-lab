@@ -260,7 +260,7 @@ function PdfSampleRows({ data }) {
       <View style={[SS.infoFull, { borderTopWidth: 0.5, borderTopColor: BC }]}>
         <Text>
           <Text style={SS.bold}>Sample Particulars : </Text>
-          {data.productName}  Grade: {data.grade ?? ""}  {data.batchnoClean}
+          {data.productName} , Grade: {data.grade ?? ""}
         </Text>
       </View>
     </>

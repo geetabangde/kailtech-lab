@@ -205,8 +205,8 @@ function InvoicePrintTemplate({
     (parseFloat(inv.freight) || 0) +
     (parseFloat(inv.mobilisation) || 0);
 
-  return (
-    <div style={S.wrap}>
+  const HeaderSection = () => (
+    <>
       {withLH && (
         <div
           style={{
@@ -294,6 +294,12 @@ function InvoicePrintTemplate({
           ORIGINAL FOR RECIPIENT
         </div>
       </div>
+    </>
+  );
+
+  return (
+    <div style={S.wrap}>
+      <HeaderSection />
 
       <table style={S.table}>
         <tbody>
@@ -465,7 +471,7 @@ function InvoicePrintTemplate({
                 </div>
               )}
               {inv.brnnos?.trim() && (
-                <div>
+                <div style={{ wordBreak: "break-all" }}>
                   <strong>BRN No :</strong> {inv.brnnos}
                 </div>
               )}
@@ -574,135 +580,138 @@ function InvoicePrintTemplate({
         </tbody>
       </table>
 
-      <table style={S.table}>
-        <colgroup>
-          <col style={{ width: "60%" }} />
-          <col style={{ width: "40%" }} />
-        </colgroup>
-        <tbody>
-          <tr>
-            <td style={{ verticalAlign: "top" }}>
-              <div>
-                For online payments -{" "}
-                {inv.bankaccountname ||
-                  companyInfo?.bank?.account_name ||
-                  "KAILTECH TEST AND RESEARCH CENTRE PVT LTD."}
-              </div>
-              <div>
-                Bank Name : {inv.bankname || companyInfo?.bank?.bank_name || ""}
-                , Branch Name :{" "}
-                {inv.bankbranch || companyInfo?.bank?.branch || ""}
-              </div>
-              <div>
-                Bank Account No. :{" "}
-                {inv.bankaccountno || companyInfo?.bank?.account_no || ""}, A/c
-                Type : {inv.bankactype || companyInfo?.bank?.account_type || ""}
-              </div>
-              <div>
-                IFSC CODE: {inv.bankifsccode || companyInfo?.bank?.ifsc || ""},
-                MICR CODE: {inv.bankmicr || companyInfo?.bank?.micr || ""}
-              </div>
-              <div style={{ marginTop: 6, fontSize: 10 }}>
-                Certified that the particulars given above are true and correct.
-                The commercial values in this document are as per
-                contract/Agreement/Purchase order terms with the customer.
-                <br />
-                <strong> Declaration u/s 206 AB of Income Tax Act:</strong> We
-                have filed our Income Tax Return for previous two years with in
-                specified due dates.
-              </div>
-            </td>
-            <td
-              style={{ ...S.td, borderLeft: "none", textAlign: "right" }}
-              colSpan={2}
-            >
-              <div
-                style={{
-                  height: 120,
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "space-between",
-                }}
+      <div style={{ pageBreakBefore: "always", paddingTop: 10 }}>
+        <HeaderSection />
+        <table style={S.table}>
+          <colgroup>
+            <col style={{ width: "60%" }} />
+            <col style={{ width: "40%" }} />
+          </colgroup>
+          <tbody>
+            <tr>
+              <td style={{ verticalAlign: "top" }}>
+                <div>
+                  For online payments -{" "}
+                  {inv.bankaccountname ||
+                    companyInfo?.bank?.account_name ||
+                    "KAILTECH TEST AND RESEARCH CENTRE PVT LTD."}
+                </div>
+                <div>
+                  Bank Name : {inv.bankname || companyInfo?.bank?.bank_name || ""}
+                  , Branch Name :{" "}
+                  {inv.bankbranch || companyInfo?.bank?.branch || ""}
+                </div>
+                <div>
+                  Bank Account No. :{" "}
+                  {inv.bankaccountno || companyInfo?.bank?.account_no || ""}, A/c
+                  Type : {inv.bankactype || companyInfo?.bank?.account_type || ""}
+                </div>
+                <div>
+                  IFSC CODE: {inv.bankifsccode || companyInfo?.bank?.ifsc || ""},
+                  MICR CODE: {inv.bankmicr || companyInfo?.bank?.micr || ""}
+                </div>
+                <div style={{ marginTop: 6, fontSize: 10 }}>
+                  Certified that the particulars given above are true and correct.
+                  The commercial values in this document are as per
+                  contract/Agreement/Purchase order terms with the customer.
+                  <br />
+                  <strong> Declaration u/s 206 AB of Income Tax Act:</strong> We
+                  have filed our Income Tax Return for previous two years with in
+                  specified due dates.
+                </div>
+              </td>
+              <td
+                style={{ ...S.td, borderLeft: "none", textAlign: "right" }}
+                colSpan={2}
               >
-                <div>
-                  For{" "}
-                  {companyInfo?.company?.name ||
-                    "Kailtech Test And Research Centre Pvt. Ltd."}
-                </div>
-                {(status === 1 || status === 2) && (
+                <div
+                  style={{
+                    height: 120,
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "space-between",
+                  }}
+                >
                   <div>
-                    {signUrl && (
-                      <img
-                        src={signUrl}
-                        alt="Sign"
-                        style={{ width: 100, height: 40, objectFit: "contain" }}
-                      />
-                    )}
-                    {digitalSignUrl && (
-                      <img
-                        src={digitalSignUrl}
-                        alt="DigSign"
-                        style={{ maxHeight: 50, objectFit: "contain" }}
-                      />
-                    )}
+                    For{" "}
+                    {companyInfo?.company?.name ||
+                      "Kailtech Test And Research Centre Pvt. Ltd."}
                   </div>
-                )}
-                <div>
-                  <u>Authorised Signatory</u>
+                  {(status === 1 || status === 2) && (
+                    <div>
+                      {signUrl && (
+                        <img
+                          src={signUrl}
+                          alt="Sign"
+                          style={{ width: 100, height: 40, objectFit: "contain" }}
+                        />
+                      )}
+                      {digitalSignUrl && (
+                        <img
+                          src={digitalSignUrl}
+                          alt="DigSign"
+                          style={{ maxHeight: 50, objectFit: "contain" }}
+                        />
+                      )}
+                    </div>
+                  )}
+                  <div>
+                    <u>Authorised Signatory</u>
+                  </div>
                 </div>
-              </div>
-            </td>
-          </tr>
-          <tr>
-            <td colSpan={2} style={{ fontSize: 10 }}>
-              <strong>
-                <u>Terms &amp; Conditions:</u>
-              </strong>
-              <ol style={{ paddingLeft: 18, marginTop: 4, lineHeight: 1.6 }}>
-                <li>
-                  Cross Cheque/DD should be drawn in favour of{" "}
-                  {companyInfo?.company?.name ||
-                    "Kailtech Test And Research Centre Pvt. Ltd."}{" "}
-                  Payable at Indore
-                </li>
-                <li>
-                  Please attached bill details indicating Invoice No. Quotation
-                  no &amp; TDS deductions if any along with your payment.
-                </li>
-                <li>
-                  As per existing GST rules. the GSTR-1 has to be filed in the
-                  immediate next month of billing. So if you have any issue in
-                  this tax invoice viz customer Name, Address, GST No., Amount
-                  etc, please inform positively in writing before 5th of next
-                  month, otherwise no such request will be entertained.
-                </li>
-                <li>
-                  Payment not made with in 15 days from the date of issued bill
-                  will attract interest @ 24% P.A.
-                </li>
-                <li>
-                  If the payment is to be paid in Cash pay to UPI{" "}
-                  <strong>0795933A0099960.bqr@kotak</strong> only and take
-                  official receipt. Else claim of payment, shall not be accepted
-                </li>
-                <li>
-                  Subject to exclusive jurisdiction of courts at Indore only.
-                </li>
-                <li>Errors &amp; omissions accepted.</li>
-              </ol>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <div
-        style={{
-          textAlign: "center",
-          fontSize: 10,
-          color: "#999",
-          marginTop: 8,
-        }}
-      >
-        This is a system generated invoice
+              </td>
+            </tr>
+            <tr>
+              <td colSpan={2} style={{ fontSize: 10 }}>
+                <strong>
+                  <u>Terms &amp; Conditions:</u>
+                </strong>
+                <ol style={{ paddingLeft: 18, marginTop: 4, lineHeight: 1.6 }}>
+                  <li>
+                    Cross Cheque/DD should be drawn in favour of{" "}
+                    {companyInfo?.company?.name ||
+                      "Kailtech Test And Research Centre Pvt. Ltd."}{" "}
+                    Payable at Indore
+                  </li>
+                  <li>
+                    Please attached bill details indicating Invoice No. Quotation
+                    no &amp; TDS deductions if any along with your payment.
+                  </li>
+                  <li>
+                    As per existing GST rules. the GSTR-1 has to be filed in the
+                    immediate next month of billing. So if you have any issue in
+                    this tax invoice viz customer Name, Address, GST No., Amount
+                    etc, please inform positively in writing before 5th of next
+                    month, otherwise no such request will be entertained.
+                  </li>
+                  <li>
+                    Payment not made with in 15 days from the date of issued bill
+                    will attract interest @ 24% P.A.
+                  </li>
+                  <li>
+                    If the payment is to be paid in Cash pay to UPI{" "}
+                    <strong>0795933A0099960.bqr@kotak</strong> only and take
+                    official receipt. Else claim of payment, shall not be accepted
+                  </li>
+                  <li>
+                    Subject to exclusive jurisdiction of courts at Indore only.
+                  </li>
+                  <li>Errors &amp; omissions accepted.</li>
+                </ol>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div
+          style={{
+            textAlign: "center",
+            fontSize: 10,
+            color: "#999",
+            marginTop: 8,
+          }}
+        >
+          This is a system generated invoice
+        </div>
       </div>
     </div>
   );
@@ -1058,8 +1067,15 @@ export default function ViewCalibrationInvoice() {
         buyerGstin = "URP";
         supTyp = "B2C";
       }
+
+      const totalTaxPer = (parseFloat(invoice.cgstper) || 0) + (parseFloat(invoice.sgstper) || 0) + (parseFloat(invoice.igstper) || 0);
+      const isSezName = invoice.customername && invoice.customername.toUpperCase().includes("SEZ");
+
       if (isOutsideIndia) {
         supTyp = "EXPWOP";
+      } else if (buyerGstin !== "URP" && (totalTaxPer === 0 || isSezName)) {
+        // Bina API ke check: Agar taxes 0 hain aur GSTIN available hai (ya customer ke naam me SEZ hai), toh yeh SEZWOP hoga.
+        supTyp = "SEZWOP";
       }
 
       const dateParts = invoice.approved_on ? invoice.approved_on.split(' ')[0].split('-') : [];
@@ -1165,7 +1181,7 @@ export default function ViewCalibrationInvoice() {
         setBusy(false);
         return;
       }
-      // Validation passed
+      // Pincode matching with Alankit API removed as requested by user.
       await doEInvoice();
     } else {
       await doEInvoice();
@@ -1464,7 +1480,7 @@ export default function ViewCalibrationInvoice() {
                     </div>
                   )}
                   {invoice.brnnos?.trim() && (
-                    <div>
+                    <div style={{ wordBreak: "break-all" }}>
                       <b>BRN No :</b> {invoice.brnnos}
                     </div>
                   )}

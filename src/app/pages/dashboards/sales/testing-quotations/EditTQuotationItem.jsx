@@ -159,7 +159,7 @@ export default function EditTQuotationItem() {
         }
     };
 
-    const fetchData = useCallback(async () => {
+    const fetchData = useCallback(async (isInitial = false) => {
         try {
             setLoading(true);
             const [quoteRes, stdRes, prodRes] = await Promise.all([
@@ -171,17 +171,20 @@ export default function EditTQuotationItem() {
             if (quoteRes.data?.status) {
                 const q = quoteRes.data.quotation;
                 setQuoteData(q || null);
-                setTaxData({
-                    discnumber: q?.discnumber || 0,
-                    disctype: q?.disctype || 1,
-                    mobilisation: q?.mobilisation || 0,
-                    witness: q?.witness || 0,
-                    sampleprep: q?.sampleprep || 0,
-                    gstnumber: q?.gstnumber || 18,
-                    gsttype: q?.gsttype || 2,
-                    freight: q?.freight || 0,
-                    revised_from: q?.revised_from || 0
-                });
+                
+                if (isInitial) {
+                    setTaxData({
+                        discnumber: q?.discnumber || 0,
+                        disctype: q?.disctype || 1,
+                        mobilisation: q?.mobilisation || 0,
+                        witness: q?.witness || 0,
+                        sampleprep: q?.sampleprep || 0,
+                        gstnumber: q?.gstnumber || 18,
+                        gsttype: q?.gsttype || 2,
+                        freight: q?.freight || 0,
+                        revised_from: q?.revised_from || 0
+                    });
+                }
                 setExistingItems(quoteRes.data.items || []);
                 console.log('Fetched existing items:', quoteRes.data.items);
             }
@@ -196,7 +199,7 @@ export default function EditTQuotationItem() {
     }, [id]);
 
     useEffect(() => {
-        fetchData();
+        fetchData(true);
     }, [fetchData]);
 
     const addNewRow = () => {

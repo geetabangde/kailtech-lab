@@ -281,7 +281,7 @@ function InvoicePrintTemplate({ inv, addr, items, qrUrl, signUrl, digitalSignUrl
           </table>
 
           {/* Totals + BRN + Bank — colgroup: 60% left info, 25% label, 15% value */}
-          <table style={{ ...S.table, pageBreakBefore: "always", pageBreakInside: "avoid", breakInside: "avoid" }}>
+          <table style={{ ...S.table, pageBreakInside: "avoid", breakInside: "avoid" }}>
             <colgroup>
               <col style={{ width: "60%" }} />
               <col style={{ width: "22%" }} />
@@ -696,8 +696,15 @@ export default function ViewInvoiceCalibration() {
         buyerGstin = "URP";
         supTyp = "B2C";
       }
+
+      const totalTaxPer = (parseFloat(invoice.cgstper) || 0) + (parseFloat(invoice.sgstper) || 0) + (parseFloat(invoice.igstper) || 0);
+      const isSezName = invoice.customername && invoice.customername.toUpperCase().includes("SEZ");
+
       if (isOutsideIndia) {
         supTyp = "EXPWOP";
+      } else if (buyerGstin !== "URP" && (totalTaxPer === 0 || isSezName)) {
+        // Bina API ke check: Agar taxes 0 hain aur GSTIN available hai (ya customer ke naam me SEZ hai), toh yeh SEZWOP hoga.
+        supTyp = "SEZWOP";
       }
 
       const dateParts = invoice.approved_on ? invoice.approved_on.split(' ')[0].split('-') : [];
@@ -791,7 +798,7 @@ export default function ViewInvoiceCalibration() {
         setBusy(false);
         return;
       }
-      // Validation passed
+      // Pincode matching with Alankit API removed as requested by user.
       await doEInvoice();
     } else {
       await doEInvoice();

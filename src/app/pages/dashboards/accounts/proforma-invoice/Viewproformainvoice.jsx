@@ -801,7 +801,7 @@ export default function ViewProformaInvoice() {
           const signUrl = invData.digitalSign || invData.signatureImage || "";
           setInvoice({
             ...invData.invoice,
-            digitalSign: signUrl.replace("https://lims.kailtech.in", "/pdf-proxy")
+            digitalSign: signUrl
           });
           setItems(invData.items ?? []);
         } else {

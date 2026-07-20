@@ -1,138 +1,138 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import PropTypes from "prop-types";
 import { toast } from "sonner";
-import { 
+import {
   getPdfImageUrl,
   HtmlCustomerLeft,
   HtmlInfoRows,
   HtmlSampleRows,
   HtmlResultsTable,
   HtmlRemarks,
-  HtmlSignatories 
+  HtmlSignatories
 } from "./ExportTestingReport";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 function fmtDate(d) {
-    if (!d) return "—";
-    try {
-        return new Date(d)
-            .toLocaleDateString("en-IN", { day: "2-digit", month: "2-digit", year: "numeric" })
-            .replace(/\//g, ".");
-    } catch { return d; }
+  if (!d) return "—";
+  try {
+    return new Date(d)
+      .toLocaleDateString("en-IN", { day: "2-digit", month: "2-digit", year: "numeric" })
+      .replace(/\//g, ".");
+  } catch { return d; }
 }
 
 const toArray = (val) => Array.isArray(val) ? val : (val && typeof val === 'object' ? Object.values(val) : []);
 
 function extractDataTwoSign(report) {
-    const {
-        trf_product = {},
-        nabl: nablObj = {},
-        size,
-        grade,
-        batchno = "",
-        report_status: rsObj = {},
-        dates = {},
-        customer = {},
-        product = {},
-        trf = {},
-        received_items = [],
-        test_results = [],
-        remarks: remarksObj = {},
-        signatories = [],
-        meta = {},
-    } = report;
+  const {
+    trf_product = {},
+    nabl: nablObj = {},
+    size,
+    grade,
+    batchno = "",
+    report_status: rsObj = {},
+    dates = {},
+    customer = {},
+    product = {},
+    trf = {},
+    received_items = [],
+    test_results = [],
+    remarks: remarksObj = {},
+    signatories = [],
+    meta = {},
+  } = report;
 
-    const { brn, ulr, condition_name, sealed_name, reportdate, lrn } = trf_product;
-    const nablStatus = (typeof nablObj === "object" ? nablObj?.status : Number(nablObj)) ?? 0;
-    const reportStatus = typeof rsObj === "object" ? (rsObj?.code ?? 0) : (Number(rsObj) || 0);
-    // In PHP, it is $reportstatus < 10 for draft
-    const isDraft = reportStatus < 10;
+  const { brn, ulr, condition_name, sealed_name, reportdate, lrn } = trf_product;
+  const nablStatus = (typeof nablObj === "object" ? nablObj?.status : Number(nablObj)) ?? 0;
+  const reportStatus = typeof rsObj === "object" ? (rsObj?.code ?? 0) : (Number(rsObj) || 0);
+  // In PHP, it is $reportstatus < 10 for draft
+  const isDraft = reportStatus < 10;
 
-    const { start_date, end_date } = dates;
+  const { start_date, end_date } = dates;
 
-    const hodRemark = remarksObj?.hod_remark ?? "";
-    const witnessVal = remarksObj?.witness ?? "";
-    const witnessDetail = remarksObj?.witness_detail ?? "";
-    const bdlRemark = remarksObj?.bdl_remark ?? "";
-    const adlRemark = remarksObj?.adl_remark ?? "";
+  const hodRemark = remarksObj?.hod_remark ?? "";
+  const witnessVal = remarksObj?.witness ?? "";
+  const witnessDetail = remarksObj?.witness_detail ?? "";
+  const bdlRemark = remarksObj?.bdl_remark ?? "";
+  const adlRemark = remarksObj?.adl_remark ?? "";
 
-    const remarkLines = [];
-    if (hodRemark?.trim()) remarkLines.push(hodRemark.trim());
-    if (witnessVal === "1" && witnessDetail) remarkLines.push(`The test was witnessed by ${witnessDetail}`);
-    if (bdlRemark) remarkLines.push(bdlRemark);
-    if (adlRemark) remarkLines.push(adlRemark);
+  const remarkLines = [];
+  if (hodRemark?.trim()) remarkLines.push(hodRemark.trim());
+  if (witnessVal === "1" && witnessDetail) remarkLines.push(`The test was witnessed by ${witnessDetail}`);
+  if (bdlRemark) remarkLines.push(bdlRemark);
+  if (adlRemark) remarkLines.push(adlRemark);
 
-    const qtyStr = toArray(received_items)
-        .filter((q) => (q.received ?? 0) > 0)
-        .map((q) => {
-            const name = q.quantity_name ?? "";
-            if (name.toUpperCase().trim() === "NA") return "NA";
-            return `${q.received} ${q.unit_name ?? ""}`.trim();
-        })
-        .join(", ") || "—";
+  const qtyStr = toArray(received_items)
+    .filter((q) => (q.received ?? 0) > 0)
+    .map((q) => {
+      const name = q.quantity_name ?? "";
+      if (name.toUpperCase().trim() === "NA") return "NA";
+      return `${q.received} ${q.unit_name ?? ""}`.trim();
+    })
+    .join(", ") || "—";
 
-    const hasSpecs = Number(trf_product?.specification_flag) === 2 ? false : (Number(trf_product?.specification_flag) === 1 || Number(trf_product?.specification) === 1 || toArray(test_results).some((r) => r.specification && r.specification !== "—" && r.specification !== "-"));
+  const hasSpecs = Number(trf_product?.specification_flag) === 2 ? false : (Number(trf_product?.specification_flag) === 1 || Number(trf_product?.specification) === 1 || toArray(test_results).some((r) => r.specification && r.specification !== "—" && r.specification !== "-"));
 
-    const customerName = customer?.name ?? "—";
-    const customerAddress = [customer?.address, customer?.city, customer?.pincode].filter(Boolean).join(", ");
-    const contactPerson = customer?.contact_person ?? "";
-    const showContact = Number(trf?.specificpurpose ?? customer?.specific_purpose) === 2;
-    const customerRef = customer?.letterrefno ?? "";
-    const productName = product?.name ?? "—";
-    const productDesc = product?.description ?? size ?? "—";
-    const displayLRN = lrn ?? brn ?? "—";
-    const ktrcRef = meta?.ktrc_ref ?? "KTRC/QF/0708/01";
-    const batchnoClean = batchno.replace(/<br\s*\/?>/gi, " ").trim();
-    const receiptDate = fmtDate(trf?.date ?? dates?.receipt_date);
+  const customerName = customer?.name ?? "—";
+  const customerAddress = [customer?.address, customer?.city, customer?.pincode].filter(Boolean).join(", ");
+  const contactPerson = customer?.contact_person ?? "";
+  const showContact = Number(trf?.specificpurpose ?? customer?.specific_purpose) === 2;
+  const customerRef = customer?.letterrefno ?? "";
+  const productName = product?.name ?? "—";
+  const productDesc = product?.description ?? size ?? "—";
+  const displayLRN = lrn ?? brn ?? "—";
+  const ktrcRef = meta?.ktrc_ref ?? "KTRC/QF/0708/01";
+  const batchnoClean = batchno.replace(/<br\s*\/?>/gi, " ").trim();
+  const receiptDate = fmtDate(trf?.date ?? dates?.receipt_date);
 
-    // Use CUTOFF DATE logic for signatories as implemented in PHP
-    const cutoffdate = new Date('2025-04-25T14:00:00');
+  // Use CUTOFF DATE logic for signatories as implemented in PHP
+  const cutoffdate = new Date('2025-04-25T14:00:00');
 
-    // Find max updated_on from signatures that are signed (status = 1)
-    let maxUpdatedOn = null;
-    const safeSignatories = toArray(signatories);
-    safeSignatories.forEach(s => {
-        if (s.is_signed && s.updated_on) {
-            const d = new Date(s.updated_on);
-            if (!maxUpdatedOn || d > maxUpdatedOn) {
-                maxUpdatedOn = d;
-            }
-        }
-    });
-
-    const approvedate = maxUpdatedOn ? maxUpdatedOn : new Date('2025-04-25T14:00:00');
-    let finalSignatories = [...safeSignatories];
-
-    if (approvedate >= cutoffdate && finalSignatories.length > 0) {
-        // array_unshift($signatories, array_pop($signatories))
-        const lastElement = finalSignatories.pop();
-        finalSignatories.unshift(lastElement);
+  // Find max updated_on from signatures that are signed (status = 1)
+  let maxUpdatedOn = null;
+  const safeSignatories = toArray(signatories);
+  safeSignatories.forEach(s => {
+    if (s.is_signed && s.updated_on) {
+      const d = new Date(s.updated_on);
+      if (!maxUpdatedOn || d > maxUpdatedOn) {
+        maxUpdatedOn = d;
+      }
     }
+  });
 
-    // Add titles for Reviewed By / Authorized By
-    finalSignatories = finalSignatories.map((s, i) => {
-        let title = s.title;
-        if (approvedate >= cutoffdate) {
-            // PHP logic explicitly checks $i==0 for "Reviewed By", else "Authorized By"
-            title = i === 0 ? "Reviewed By:" : "Authorized By:";
-        }
-        return { ...s, displayTitle: title };
-    });
+  const approvedate = maxUpdatedOn ? maxUpdatedOn : new Date('2025-04-25T14:00:00');
+  let finalSignatories = [...safeSignatories];
 
-    const nablLogo = typeof nablObj === "object" ? nablObj?.logo : null;
-    const tid = trf_product?.id ?? report?.id ?? null; // For the End of Report check
+  if (approvedate >= cutoffdate && finalSignatories.length > 0) {
+    // array_unshift($signatories, array_pop($signatories))
+    const lastElement = finalSignatories.pop();
+    finalSignatories.unshift(lastElement);
+  }
 
-    return {
-        ulr, ktrcRef, displayLRN, receiptDate,
-        condition_name, sealed_name, qtyStr,
-        start_date, end_date, reportdate, dates,
-        customerName, customerAddress, contactPerson, showContact, customerRef,
-        productDesc, productName, grade, batchnoClean,
-        hasSpecs, test_results: toArray(test_results), remarkLines, signatories: finalSignatories,
-        nablStatus, nablLogo, isDraft, tid
-    };
+  // Add titles for Reviewed By / Authorized By
+  finalSignatories = finalSignatories.map((s, i) => {
+    let title = s.title;
+    if (approvedate >= cutoffdate) {
+      // PHP logic explicitly checks $i==0 for "Reviewed By", else "Authorized By"
+      title = i === 0 ? "Reviewed By:" : "Authorized By:";
+    }
+    return { ...s, displayTitle: title };
+  });
+
+  const nablLogo = typeof nablObj === "object" ? nablObj?.logo : null;
+  const tid = trf_product?.id ?? report?.id ?? null; // For the End of Report check
+
+  return {
+    ulr, ktrcRef, displayLRN, receiptDate,
+    condition_name, sealed_name, qtyStr,
+    start_date, end_date, reportdate, dates,
+    customerName, customerAddress, contactPerson, showContact, customerRef,
+    productDesc, productName, grade, batchnoClean,
+    hasSpecs, test_results: toArray(test_results), remarkLines, signatories: finalSignatories,
+    nablStatus, nablLogo, isDraft, tid
+  };
 }
 
 
@@ -148,41 +148,41 @@ const S1 = {
     position: 'relative',
     padding: "10px 0"
   },
-  topRow: { 
-    display: "flex", 
-    flexDirection: "row", 
-    justifyContent: "space-between", 
-    alignItems: "flex-start", 
-    marginBottom: "15px" 
+  topRow: {
+    display: "flex",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: "15px"
   },
-  tcBlock: { 
-    display: "flex", 
-    alignItems: "center", 
-    justifyContent: "center" 
+  tcBlock: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center"
   },
-  tcStamp: { 
-    width: "58px", 
-    height: "58px", 
-    objectFit: "contain" 
+  tcStamp: {
+    width: "58px",
+    height: "58px",
+    objectFit: "contain"
   },
-  pageRow: { 
-    display: "flex", 
-    justifyContent: "space-between", 
-    marginBottom: "4px", 
-    fontSize: '12px' 
+  pageRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    marginBottom: "4px",
+    fontSize: '12px'
   },
-  title: { 
-    textAlign: "center", 
-    fontSize: '19px', 
-    fontWeight: "bold", 
-    textDecoration: "underline", 
-    marginBottom: "7px" 
+  title: {
+    textAlign: "center",
+    fontSize: '19px',
+    fontWeight: "bold",
+    textDecoration: "underline",
+    marginBottom: "7px"
   },
-  ulrRow: { 
-    display: "flex", 
-    justifyContent: "space-between", 
-    marginBottom: "8px", 
-    fontSize: '13px' 
+  ulrRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    marginBottom: "8px",
+    fontSize: '13px'
   },
   isoSide: {
     position: "absolute",
@@ -217,7 +217,7 @@ function HtmlDocWithoutLHTwoSign({ report }) {
   return (
     <div style={S1.page}>
       {data.isDraft && <div style={S1.draft}>DRAFT</div>}
-      
+
       {/* Iso side mark */}
       <div style={S1.isoSide}>An ISO 9001 : 2015 Certified Laboratory</div>
 
@@ -228,60 +228,60 @@ function HtmlDocWithoutLHTwoSign({ report }) {
             <td style={{ border: 'none', padding: 0 }}>
               {/* ── TOP HEADER (Without letter head, only NABL and LRN) ── */}
               <div style={S1.topRow}>
-                  <div style={{ width: "120px" }} />
-                  <div style={S1.tcBlock}>
-                      {data.nablStatus === 1 && (
-                          <>
-                              {data.nablLogo ? <img src={getPdfImageUrl(data.nablLogo)} alt="" style={S1.tcStamp} /> : <div style={S1.tcStamp} />}
-                          </>
-                      )}
-                  </div>
-                  <div style={{ width: "120px", textAlign: "right" }}>
-                      <span style={{ fontSize: '13px', fontWeight: "bold" }}>LRN: {data.displayLRN}</span>
-                  </div>
+                <div style={{ width: "120px" }} />
+                <div style={S1.tcBlock}>
+                  {data.nablStatus === 1 && (
+                    <>
+                      {data.nablLogo ? <img src={getPdfImageUrl(data.nablLogo)} alt="" style={S1.tcStamp} /> : <div style={S1.tcStamp} />}
+                    </>
+                  )}
+                </div>
+                <div style={{ width: "120px", textAlign: "right" }}>
+                  <span style={{ fontSize: '13px', fontWeight: "bold" }}>LRN: {data.displayLRN}</span>
+                </div>
               </div>
             </td>
           </tr>
         </thead>
-        
+
         <tbody>
           <tr>
             <td style={{ border: 'none', padding: 0 }}>
               <div style={S1.pageRow}>
-                  <div> </div>
-                  <div></div>
+                <div> </div>
+                <div></div>
               </div>
 
               {data.nablStatus === 3 && (
-                  <div style={{ display: "flex", justifyContent: "center", marginBottom: "4px" }}>
-                      <img src={`${window.location.origin}/images/qai.jpeg`} alt="" style={{ width: "80px", height: "32px", objectFit: "contain" }} />
-                  </div>
+                <div style={{ display: "flex", justifyContent: "center", marginBottom: "4px" }}>
+                  <img src={`${window.location.origin}/images/qai.jpeg`} alt="" style={{ width: "80px", height: "32px", objectFit: "contain" }} />
+                </div>
               )}
 
               <div style={S1.title}>TEST REPORT</div>
 
               <div style={S1.ulrRow}>
-                  <div><span style={SS.bold}>ULR:</span>{data.nablStatus === 1 && data.ulr ? data.ulr : ""}</div>
-                  <div style={SS.bold}>{data.ktrcRef}</div>
+                <div><span style={SS.bold}>ULR:</span>{data.nablStatus === 1 && data.ulr ? data.ulr : ""}</div>
+                <div style={SS.bold}>{data.ktrcRef}</div>
               </div>
 
               <div style={SS.infoWrap}>
-                  <div style={{ display: "flex" }}>
-                      <HtmlCustomerLeft data={data} />
-                      <HtmlInfoRows data={data} />
-                  </div>
-                  <HtmlSampleRows data={data} />
+                <div style={{ display: "flex" }}>
+                  <HtmlCustomerLeft data={data} />
+                  <HtmlInfoRows data={data} />
+                </div>
+                <HtmlSampleRows data={data} />
               </div>
 
               <div style={SS.secTitle}>TEST RESULTS</div>
               <HtmlResultsTable data={data} />
 
               <HtmlRemarks remarkLines={data.remarkLines} />
-              
+
               {String(data.tid) !== "1356" && (
                 <div style={SS.endOfReport}>**End of Report**</div>
               )}
-              
+
               <HtmlSignatories signatories={data.signatories} />
             </td>
           </tr>
@@ -297,7 +297,7 @@ HtmlDocWithoutLHTwoSign.propTypes = { report: PropTypes.object.isRequired };
 // ─────────────────────────────────────────────────────────────────────────────
 function printReportWOLHTwoSign(report, title) {
   const bodyHtml = renderToStaticMarkup(<HtmlDocWithoutLHTwoSign report={report} />);
-  
+
   const full = `<!DOCTYPE html>
 <html lang="en">
 <head>

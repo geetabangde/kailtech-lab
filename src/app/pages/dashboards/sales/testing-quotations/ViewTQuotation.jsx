@@ -135,9 +135,9 @@ export default function ViewTQuotation() {
                         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", border: border, marginBottom: 20 }}>
                             <div style={{ padding: 15, borderRight: border }}>
                                 <div style={{ fontSize: 13, color: "#666", textDecoration: "underline", marginBottom: 5 }}>Customer Name:</div>
-                                <div>M/s {quote.customer === "new" ? quote.customername : (customerInfo?.name || quote.customername)}</div>
+                                <div>M/s {(!quote.customer || String(quote.customer) === "0" || quote.customer === "new") ? quote.customername : (customerInfo?.name || quote.customername)}</div>
                                 <div style={{ marginTop: 5, fontSize: 12 }}>
-                                    {quote.customer === "new" ? quote.customeraddress : (addressInfo?.full_address || "Address details missing")}
+                                    {(!quote.customer || String(quote.customer) === "0" || quote.customer === "new") ? quote.customeraddress : (addressInfo?.full_address || "Address details missing")}
                                 </div>
                             </div>
                             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr" }}>
@@ -158,12 +158,12 @@ export default function ViewTQuotation() {
                         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", border: border, borderTop: "none", marginBottom: 30 }}>
                             <div style={{ padding: 10, borderRight: border }}>
                                 <div style={{ fontSize: 13, color: "#666", marginBottom: 2 }}>Kind Attn:</div>
-                                <div style={{ fontWeight: "600" }}>{quote.customer === "new" ? quote.contactpersonname : (contactPerson?.name || quote.contactpersonname)}</div>
+                                <div style={{ fontWeight: "600" }}>{(!quote.customer || String(quote.customer) === "0" || quote.customer === "new") ? quote.contactpersonname : (contactPerson?.name || quote.contactpersonname)}</div>
                             </div>
                             <div style={{ padding: 10, borderRight: border }}>
                                 <div style={{ fontSize: 13, color: "#666", marginBottom: 2 }}>Contact Details:</div>
-                                <div style={{ fontSize: 13 }}>Mobile: {quote.customer === "new" ? quote.concernpersonmobile : (customerInfo?.mobile || quote.concernpersonmobile)}</div>
-                                <div style={{ fontSize: 13 }}>Email: {quote.customer === "new" ? quote.concernpersonemail : (customerInfo?.email || quote.concernpersonemail)}</div>
+                                <div style={{ fontSize: 13 }}>Mobile: {(!quote.customer || String(quote.customer) === "0" || quote.customer === "new") ? quote.concernpersonmobile : (customerInfo?.mobile || quote.concernpersonmobile)}</div>
+                                <div style={{ fontSize: 13 }}>Email: {(!quote.customer || String(quote.customer) === "0" || quote.customer === "new") ? quote.concernpersonemail : (customerInfo?.email || quote.concernpersonemail)}</div>
                             </div>
                             <div style={{ padding: 10, borderRight: border }}>
                                 <div style={{ fontSize: 13, color: "#666", marginBottom: 2 }}>Enquiry No:</div>

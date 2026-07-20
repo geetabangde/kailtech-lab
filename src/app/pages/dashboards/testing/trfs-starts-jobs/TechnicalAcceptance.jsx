@@ -6,51 +6,50 @@ import { toast } from "sonner";
 // ── Field config — PHP form ke exact fields ───────────────────────────────────
 const REVIEW_FIELDS = [
   {
-    key:        "quantity",
-    remarkKey:  "quantityremark",
-    label:      "Quantity of Sample Received",
-    options:    [{ value: 1, label: "Sufficient" }, { value: 0, label: "Not Sufficient" }],
+    key: "quantity",
+    remarkKey: "quantityremark",
+    label: "Quantity of Sample Received",
+    options: [{ value: 1, label: "Sufficient" }, { value: 0, label: "Not Sufficient" }],
   },
   {
-    key:        "specification",
-    remarkKey:  "specificationremark",
-    label:      "Specifications",
-    options:    [{ value: 1, label: "Clear" }, { value: 0, label: "Not Clear" }],
+    key: "specification",
+    remarkKey: "specificationremark",
+    label: "Specifications",
+    options: [{ value: 1, label: "Clear" }, { value: 0, label: "Not Clear" }],
   },
   {
-    key:        "method",
-    remarkKey:  "methodremark",
-    label:      "Methods of Testing",
-    options:    [{ value: 1, label: "Clear" }, { value: 0, label: "Not Clear" }],
+    key: "method",
+    remarkKey: "methodremark",
+    label: "Methods of Testing",
+    options: [{ value: 1, label: "Clear" }, { value: 0, label: "Not Clear" }],
   },
   {
-    key:        "declaration",
-    remarkKey:  "declarationremark",
-    label:      "Declaration if Required",
-    options:    [{ value: 1, label: "Clear" }, { value: 0, label: "Not Clear" }],
+    key: "declaration",
+    remarkKey: "declarationremark",
+    label: "Declaration if Required",
+    options: [{ value: 1, label: "Clear" }, { value: 0, label: "Not Clear" }],
   },
   {
-    key:        "conformity",
-    remarkKey:  "conformityremark",
-    label:      "Statement of Conformity",
-    options:    [{ value: 1, label: "Yes" }, { value: 0, label: "No" }],
+    key: "conformity",
+    remarkKey: "conformityremark",
+    label: "Statement of Conformity",
+    options: [{ value: 1, label: "Yes" }, { value: 0, label: "No" }],
   },
 ];
 
 const INITIAL_FORM = {
-  quantity:           1,
-  quantityremark:     "",
-  specification:      1,
-  specificationremark:"",
-  method:             1,
-  methodremark:       "",
-  declaration:        1,
-  declarationremark:  "",
-  conformity:         1,
-  conformityremark:   "",
-  brand:              "",
-  accepted:           1,
-  acceptedremark:     "",
+  quantity: 1,
+  quantityremark: "",
+  specification: 1,
+  specificationremark: "",
+  method: 1,
+  methodremark: "",
+  declaration: 1,
+  declarationremark: "",
+  conformity: 1,
+  conformityremark: "",
+  accepted: 1,
+  acceptedremark: "",
 };
 
 // ── Shared class strings ──────────────────────────────────────────────────────
@@ -69,13 +68,13 @@ const textareaCls =
 export default function TechnicalAcceptance() {
   // Route param — jo bhi naam ho handle ho jayega
   // /dashboards/testing/technical/:itemId
-  const params   = useParams();
-  const itemId   = params.itemId ?? params.id ?? params.tid ?? params.trfItemId;
+  const params = useParams();
+  const itemId = params.itemId ?? params.id ?? params.tid ?? params.trfItemId;
   const navigate = useNavigate();
 
-  const [form,       setForm]       = useState(INITIAL_FORM);
+  const [form, setForm] = useState(INITIAL_FORM);
   const [submitting, setSubmitting] = useState(false);
-  const [error,      setError]      = useState(null);
+  const [error, setError] = useState(null);
 
   const handleSelect = (key, val) =>
     setForm((prev) => ({ ...prev, [key]: Number(val) }));
@@ -96,20 +95,19 @@ export default function TechnicalAcceptance() {
         return;
       }
       await axios.post("testing/submit-trf-technicalacceptance", {
-        quantity:            Number(form.quantity),
-        quantityremark:      form.quantityremark,
-        specification:       Number(form.specification),
+        quantity: Number(form.quantity),
+        quantityremark: form.quantityremark,
+        specification: Number(form.specification),
         specificationremark: form.specificationremark,
-        method:              Number(form.method),
-        methodremark:        form.methodremark,
-        declaration:         Number(form.declaration),
-        declarationremark:   form.declarationremark,
-        conformity:          Number(form.conformity),
-        conformityremark:    form.conformityremark,
-        brand:               form.brand,
-        accepted:            Number(form.accepted),
-        acceptedremark:      form.acceptedremark,
-        trfitem:             trfItemInt,
+        method: Number(form.method),
+        methodremark: form.methodremark,
+        declaration: Number(form.declaration),
+        declarationremark: form.declarationremark,
+        conformity: Number(form.conformity),
+        conformityremark: form.conformityremark,
+        accepted: Number(form.accepted),
+        acceptedremark: form.acceptedremark,
+        trfitem: trfItemInt,
       });
       toast.success("Technical Acceptance submitted successfully ✅");
       navigate("/dashboards/action-items/pending-technical-acceptance");
@@ -173,11 +171,10 @@ export default function TechnicalAcceptance() {
               {REVIEW_FIELDS.map((field, idx) => (
                 <tr
                   key={field.key}
-                  className={`border-b border-gray-100 dark:border-gray-800 ${
-                    idx % 2 === 0
-                      ? "bg-white dark:bg-gray-900"
-                      : "bg-gray-50/50 dark:bg-gray-800/30"
-                  }`}
+                  className={`border-b border-gray-100 dark:border-gray-800 ${idx % 2 === 0
+                    ? "bg-white dark:bg-gray-900"
+                    : "bg-gray-50/50 dark:bg-gray-800/30"
+                    }`}
                 >
                   {/* Label */}
                   <td className="px-5 py-3 font-medium text-gray-700 dark:text-gray-300">
@@ -211,22 +208,6 @@ export default function TechnicalAcceptance() {
                   </td>
                 </tr>
               ))}
-
-              {/* Brand Name/Source — full width remark only */}
-              <tr className="border-b border-gray-100 bg-white dark:border-gray-800 dark:bg-gray-900">
-                <td className="px-5 py-3 font-medium text-gray-700 dark:text-gray-300">
-                  Brand Name / Source
-                </td>
-                <td colSpan={2} className="px-5 py-3">
-                  <textarea
-                    rows={2}
-                    className={textareaCls}
-                    placeholder="Enter brand name or source..."
-                    value={form.brand}
-                    onChange={(e) => handleText("brand", e.target.value)}
-                  />
-                </td>
-              </tr>
 
               {/* Sample Accepted */}
               <tr className="bg-gray-50/50 dark:bg-gray-800/30">
@@ -263,11 +244,10 @@ export default function TechnicalAcceptance() {
           <div className="flex items-center gap-2">
             <span className="text-sm text-gray-500 dark:text-gray-400">Decision:</span>
             <span
-              className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                form.accepted === 1
-                  ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                  : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-              }`}
+              className={`rounded-full px-3 py-1 text-xs font-semibold ${form.accepted === 1
+                ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                }`}
             >
               {form.accepted === 1 ? "✓ Sample Accepted" : "✗ Sample Rejected"}
             </span>
@@ -284,9 +264,8 @@ export default function TechnicalAcceptance() {
             <button
               onClick={handleSubmit}
               disabled={submitting}
-              className={`flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white shadow transition hover:bg-blue-700 ${
-                submitting ? "cursor-not-allowed opacity-60" : ""
-              }`}
+              className={`flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white shadow transition hover:bg-blue-700 ${submitting ? "cursor-not-allowed opacity-60" : ""
+                }`}
             >
               {submitting ? (
                 <>

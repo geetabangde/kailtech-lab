@@ -72,7 +72,7 @@ export function RowActions({ row, table }) {
     if (!confirmDelete) return;
 
     try {
-      const res = await axios.post(`/sales/delete-testing-quotation/${id}`);
+      const res = await axios.delete(`/sales/delete-testing-quotation/${id}`);
 
       if (res.data?.status === "true" || res.data?.status === true) {
         toast.success(res.data.message || "Quotation deleted successfully");

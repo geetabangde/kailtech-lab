@@ -18,7 +18,7 @@ const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
 // ── Permissions from localStorage ────────────────────────────────────────────
 function usePermissions() {
-  return localStorage.getItem("userPermissions")?.split(",").map(Number) || [];
+  return JSON.parse(localStorage.getItem("userPermissions") || "[]");
 }
 
 // ── Action Buttons ────────────────────────────────────────────────────────────
@@ -276,7 +276,7 @@ export default function TrfProductsList() {
   const [deleteModal, setDeleteModal] = useState({ show: false, itemId: null, deleting: false });
 
   const [columnFilters, setColumnFilters] = useState({});
-  const [sortConfig, setSortConfig] = useState({ key: "id", direction: "desc" });
+  const [sortConfig, setSortConfig] = useState({ key: "id", direction: "asc" });
   const [search, setSearch] = useState("");
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
@@ -302,7 +302,23 @@ export default function TrfProductsList() {
         const candidate = apiData.trf_status ?? apiData.trfStatus ?? null;
         if (candidate !== null && typeof candidate !== "boolean") {
           trfSt = Number(candidate);
-        } else if (products.length > 0) {
+        }
+      }
+
+      if (trfSt === null) {
+        try {
+          const trfRes = await axios.get(`/testing/get-trf-byid/${id}`);
+          const fetchedStatus = trfRes.data?.data?.status;
+          if (fetchedStatus !== undefined && fetchedStatus !== null) {
+            trfSt = Number(fetchedStatus);
+          }
+        } catch (e) {
+          console.error("Failed to fetch TRF status fallback", e);
+        }
+      }
+
+      if (trfSt === null) {
+        if (products.length > 0) {
           // Fallback to the first item's status if root status is missing
           const itemStatus = products[0].trf_status ?? products[0].status ?? null;
           if (itemStatus !== null) {
@@ -609,10 +625,10 @@ export default function TrfProductsList() {
                     <tr
                       key={row.id}
                       className={`border-b border-gray-100 transition-colors dark:border-gray-800 ${(formMode === "clone" && cloneItemId === row.id)
-                          ? "bg-blue-50 dark:bg-blue-900/20"
-                          : idx % 2 === 0
-                            ? "bg-white dark:bg-gray-900"
-                            : "bg-gray-50 dark:bg-gray-800/50"
+                        ? "bg-blue-50 dark:bg-blue-900/20"
+                        : idx % 2 === 0
+                          ? "bg-white dark:bg-gray-900"
+                          : "bg-gray-50 dark:bg-gray-800/50"
                         }`}
                     >
                       {columns.map((col) => (

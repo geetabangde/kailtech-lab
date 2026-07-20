@@ -217,9 +217,7 @@ export default function Slip() {
                 <td className="text-center font-bold px-2">{item.s_no || index + 1}</td>
                 <td>
                   <div className="font-bold text-[12px]">{item.product_name}</div>
-                  {item.bis_codes && item.bis_codes.length > 0 && item.bis_codes[0] !== "-" && (
-                    <div className="text-[9px] mt-1 text-gray-500 font-medium">BIS: {item.bis_codes.join(", ")}</div>
-                  )}
+
                 </td>
                 <td>
                   {item.brand && <div className="font-medium">{item.brand}</div>}
@@ -245,6 +243,9 @@ export default function Slip() {
                       ? item.departments.map((dept, i) => (
                         <span key={i} className="bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200 print:border-none print:px-0">
                           {dept}
+                          {item.bis_codes && item.bis_codes.length > 0 && item.bis_codes[0] !== "-" && (
+                            <div className="text-[9px] mt-1 text-gray-500 font-medium">BIS: {item.bis_codes.join(", ")}</div>
+                          )}
                         </span>
                       ))
                       : item.departments

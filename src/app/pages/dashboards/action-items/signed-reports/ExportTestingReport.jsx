@@ -71,14 +71,14 @@ export function extractData(report) {
   const hodRemark = remarksObj?.hod_remark ?? remarksObj?.hodremark ?? report?.hod_remark ?? report?.hodremark ?? "";
   const witnessVal = remarksObj?.witness ?? report?.trf?.witness ?? "";
   const witnessDetail = remarksObj?.witness_detail ?? remarksObj?.wdetail ?? report?.trf?.wdetail ?? "";
-  
+
   const testResultsArr = toArray(test_results);
   let bdlRemark = remarksObj?.bdl_remark ?? remarksObj?.bdlremark ?? report?.bdl_remark ?? "";
   let adlRemark = remarksObj?.adl_remark ?? remarksObj?.adlremark ?? report?.adl_remark ?? "";
 
   const hasBdl = testResultsArr.some((r) => r.result?.display_value?.includes("BDL") || String(r.result?.value ?? r.result ?? "").includes("BDL"));
   const hasAdl = testResultsArr.some((r) => r.result?.display_value?.includes("ADL") || String(r.result?.value ?? r.result ?? "").includes("ADL"));
-  
+
   if (hasBdl && !bdlRemark) bdlRemark = "BDL : Below Detection Limit";
   if (hasAdl && !adlRemark) adlRemark = "ADL : Above Detection Limit";
 
@@ -259,7 +259,7 @@ export function HtmlSampleRows({ data }) {
       )}
       <div style={{ ...SS.infoFull }}>
         <span style={SS.bold}>Sample Particulars : </span>
-        {data.productName}  Grade: {data.grade ?? ''}  {data.batchnoClean}
+        {data.productName}, Grade: {data.grade ?? ''}
       </div>
     </>
   );

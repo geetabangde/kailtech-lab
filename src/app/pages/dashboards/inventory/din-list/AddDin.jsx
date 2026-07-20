@@ -61,6 +61,7 @@ export default function AddDin() {
   const [customerAddresses, setCustomerAddresses] = useState([]);
   const [customerContacts, setCustomerContacts] = useState([]);
   const [trfEntries, setTrfEntries] = useState([]);
+  const [isTrfLoading, setIsTrfLoading] = useState(false);
 
   // Form State
   const [purpose11Type, setPurpose11Type] = useState("");
@@ -85,6 +86,8 @@ export default function AddDin() {
     expectedreturn: "",
     consignname: "",
     consignphone: "",
+    empname: "",
+    courrierno: "",
     dispatchdetial: "",
     dinremark: "",
   });
@@ -283,6 +286,14 @@ export default function AddDin() {
         setPurpose11Type("");
       }
 
+      // If dispatchthrough changes
+      if (name === "dispatchthrough") {
+        next.empname = "";
+        next.consignname = "";
+        next.consignphone = "";
+        next.courrierno = "";
+      }
+
       return next;
     });
 
@@ -293,9 +304,13 @@ export default function AddDin() {
     if (name === "purpose") {
       fetchCustomerVendorData(value);
       if (["6", "8", "10"].includes(String(value))) {
+        setIsTrfLoading(true);
         axios.get("inventory/get-trfs-din", { params: { pval: value } })
           .then(res => { if (res.data.status) setTrfEntries(res.data.data); })
-          .catch(console.error);
+          .catch(console.error)
+          .finally(() => setIsTrfLoading(false));
+      } else {
+        setTrfEntries([]);
       }
     }
 
@@ -545,15 +560,16 @@ export default function AddDin() {
       return;
     }
 
-    if (["2", "3"].includes(String(formData.dispatchthrough)) && !formData.consignname.trim()) {
-      toast.error("Please enter consignee name");
+    if (String(formData.dispatchthrough) === "1" && !formData.empname) {
+      toast.error("Please select an employee");
       return;
     }
 
-    if (["2", "3"].includes(String(formData.dispatchthrough)) && !formData.consignphone.trim()) {
-      toast.error("Please enter consignee phone");
+    if (String(formData.dispatchthrough) === "2" && (!formData.consignname.trim() || !formData.consignphone.trim())) {
+      toast.error("Please enter consignee name and phone");
       return;
     }
+
 
     if ([1, 2, 3, 4, 5, 11].includes(pval) && items.length === 0) {
       toast.error("No Item is Added");
@@ -565,24 +581,35 @@ export default function AddDin() {
       return;
     }
 
-    if ([6, 8, 10].includes(pval) && trfItems.length === 0) {
-      toast.error("No TRF Item is Added");
-      return;
-    }
+    if ([6, 8, 10].includes(pval)) {
+      if (trfItems.length === 0) {
+        toast.error("No TRF Item is Added");
+        return;
+      }
 
-    if ([1, 2, 3, 4, 5, 11].includes(pval) && items.some(item => !item.remark || !item.remark.trim())) {
-      toast.error("Please enter Remark for all items in Material Details");
-      return;
-    }
+      let hasSelectedAnything = false;
+      trfItems.forEach(item => {
+        if (item.report || item.invoice) {
+          hasSelectedAnything = true;
+        }
+        if (item.packages) {
+          item.packages.forEach(pkg => {
+            if (item.selected_packages && item.selected_packages[pkg.id]) {
+              hasSelectedAnything = true;
+            }
+          });
+        }
+      });
 
-    if ([7, 9].includes(pval) && inwardItems.some(item => !item.user_remark || !item.user_remark.trim())) {
-      toast.error("Please enter Remark for all items in Inward Material Details");
-      return;
-    }
+      if (!hasSelectedAnything) {
+        toast.error("Please select at least one item, package, report, or invoice to dispatch");
+        return;
+      }
 
-    if ([6, 8, 10].includes(pval) && trfItems.some(item => !item.remark || !item.remark.trim())) {
-      toast.error("Please enter Remark for all items in TRF Material Details");
-      return;
+      if (trfItems.some(item => !item.remark || !item.remark.trim())) {
+        toast.error("Please enter Remark for all items in TRF Material Details");
+        return;
+      }
     }
 
     if (!formData.dinremark || !formData.dinremark.trim()) {
@@ -608,13 +635,14 @@ export default function AddDin() {
         gstno: formData.gstno || "",
         custdesignation: formData.custdesignation || "",
 
-        dindate: formData.dindate ? dayjs(formData.dindate).format("DD/MM/YYYY") : "",
+        dindate: formData.dindate ? dayjs(formData.dindate).format("YYYY-MM-DD") : "",
         issuedtoid: formData.issuedtoid || "",
         dispatchthrough: formData.dispatchthrough || "",
-        consignname: formData.consignname || "",
-        consignphone: formData.consignphone || "",
-        dispatchdate: formData.dispatchdate ? dayjs(formData.dispatchdate).format("DD/MM/YYYY") : "",
-        expectedreturn: formData.expectedreturn ? dayjs(formData.expectedreturn).format("DD/MM/YYYY") : "",
+        ...(String(formData.dispatchthrough) === "1" && { empname: formData.empname || "" }),
+        ...(String(formData.dispatchthrough) === "2" && { consignname: formData.consignname || "", consignphone: formData.consignphone || "" }),
+        ...(String(formData.dispatchthrough) === "3" && { courrierno: formData.courrierno || "" }),
+        dispatchdate: formData.dispatchdate ? dayjs(formData.dispatchdate).format("YYYY-MM-DD") : "",
+        expectedreturn: formData.expectedreturn ? dayjs(formData.expectedreturn).format("YYYY-MM-DD") : "",
         dispatchdetial: formData.dispatchdetial || "",
         dinremark: formData.dinremark || "",
 
@@ -769,14 +797,51 @@ export default function AddDin() {
                 {["6", "8", "10"].includes(String(formData.purpose)) && (
                   <div className="flex flex-col gap-1">
                     <label className="text-sm font-semibold text-gray-700 dark:text-dark-200">TRFS</label>
-                    <SearchableSelect
+                    <AsyncSelect
+                      key={isTrfLoading ? "loading" : "loaded_" + trfEntries.length}
+                      styles={{
+                        control: (base) => ({
+                          ...base,
+                          minHeight: "42px",
+                          borderRadius: "0.5rem",
+                          borderColor: "#D1D5DB",
+                          boxShadow: "none",
+                          "&:hover": { borderColor: "#9CA3AF" },
+                        }),
+                        menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+                      }}
+                      menuPortalTarget={document.body}
                       isMulti
-                      options={trfEntries.map(entry => ({
+                      isLoading={isTrfLoading}
+                      placeholder="Search TRFS..."
+                      defaultOptions={trfEntries.slice(0, 50).map(entry => ({
                         value: entry.id,
                         label: entry.label || entry.name || `TRF - ${entry.id}`
                       }))}
-                      value={formData.trf_id}
-                      onChange={(val) => handleSelectChange("trf_id", val)}
+                      loadOptions={(inputValue, callback) => {
+                        const lower = inputValue.toLowerCase();
+                        const filtered = trfEntries
+                          .map(entry => ({
+                            value: entry.id,
+                            label: entry.label || entry.name || `TRF - ${entry.id}`
+                          }))
+                          .filter(opt => opt.label.toLowerCase().includes(lower));
+                        
+                        setTimeout(() => {
+                          callback(filtered.slice(0, 50));
+                        }, 300);
+                      }}
+                      value={
+                        trfEntries
+                          .filter(entry => formData.trf_id.includes(entry.id))
+                          .map(entry => ({
+                            value: entry.id,
+                            label: entry.label || entry.name || `TRF - ${entry.id}`
+                          }))
+                      }
+                      onChange={(selected) => {
+                        handleSelectChange("trf_id", selected ? selected.map(s => s.value) : []);
+                      }}
                     />
                   </div>
                 )}
@@ -963,26 +1028,44 @@ export default function AddDin() {
                     <label className="text-sm font-semibold text-gray-700 dark:text-dark-200">Dispatch Through</label>
                     <SearchableSelect
                       options={[
-                        { value: "1", label: "By Hand" },
-                        { value: "2", label: "Consignee" },
-                        { value: "3", label: "Courier" }
+                        { value: "1", label: "By Kailtech Person" },
+                        { value: "2", label: "By Customer Person" },
+                        { value: "3", label: "By Courier" }
                       ]}
                       value={formData.dispatchthrough}
                       onChange={(val) => handleSelectChange("dispatchthrough", val)}
                     />
                   </div>
 
-                  {["2", "3"].includes(String(formData.dispatchthrough)) && (
+                  {String(formData.dispatchthrough) === "1" && (
+                    <div className="flex flex-col gap-1">
+                      <label className="text-sm font-semibold text-gray-700 dark:text-dark-200">Employee Name</label>
+                      <SearchableSelect
+                        options={employees.map(e => ({ value: e.id, label: `${e.firstname} ${e.lastname}` }))}
+                        value={formData.empname}
+                        onChange={(val) => handleSelectChange("empname", val)}
+                      />
+                    </div>
+                  )}
+
+                  {String(formData.dispatchthrough) === "2" && (
                     <>
                       <div className="flex flex-col gap-1">
-                        <label className="text-sm font-semibold text-gray-700 dark:text-dark-200">Consignee Name</label>
-                        <input type="text" name="consignname" value={formData.consignname} onChange={handleInputChange} className="form-input rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-900" />
+                        <label className="text-sm font-semibold text-gray-700 dark:text-dark-200">Person Name</label>
+                        <input type="text" name="consignname" value={formData.consignname} onChange={handleInputChange} className="form-input rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-900" placeholder="Enter Person Name" />
                       </div>
                       <div className="flex flex-col gap-1">
-                        <label className="text-sm font-semibold text-gray-700 dark:text-dark-200">Consignee Phone</label>
-                        <input type="text" name="consignphone" value={formData.consignphone} onChange={handleInputChange} className="form-input rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-900" />
+                        <label className="text-sm font-semibold text-gray-700 dark:text-dark-200">Phone No.</label>
+                        <input type="text" name="consignphone" value={formData.consignphone} onChange={handleInputChange} className="form-input rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-900" placeholder="Enter Person Phone No" />
                       </div>
                     </>
+                  )}
+
+                  {String(formData.dispatchthrough) === "3" && (
+                    <div className="flex flex-col gap-1">
+                      <label className="text-sm font-semibold text-gray-700 dark:text-dark-200">Courier No.</label>
+                      <input type="text" name="courrierno" value={formData.courrierno} onChange={handleInputChange} className="form-input rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-900" placeholder="Enter Courier No" />
+                    </div>
                   )}
 
                   <div className="flex flex-col gap-1">
@@ -1007,7 +1090,7 @@ export default function AddDin() {
                     <textarea name="dinremark" value={formData.dinremark} onChange={handleInputChange} className="form-input rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-900" rows="3" />
                   </div>
 
-                  {String(formData.purpose) !== "11" && (
+                  {["1", "2", "3", "4", "5"].includes(String(formData.purpose)) && (
                     <div className="flex flex-col gap-1 mt-6">
                       <label className="text-sm font-semibold text-gray-700 dark:text-dark-200">Search Material Details</label>
                       <div className="flex gap-2">
@@ -1356,6 +1439,16 @@ export default function AddDin() {
                               value={item.serialno} 
                               onChange={(e) => handleItemChange(index, "serialno", e.target.value)}
                               className={`form-input w-24 rounded-lg ${String(formData.purpose) !== "11" ? "bg-gray-100 dark:bg-dark-800 border-none" : "border-gray-300 dark:border-dark-600 dark:bg-dark-900"}`} 
+                            />
+                          </Td>
+                          <Td className="px-4 py-2">
+                            <input
+                              type="number"
+                              min="0"
+                              step="any"
+                              value={item.qty || ""}
+                              onChange={(e) => handleItemChange(index, "qty", e.target.value)}
+                              className="form-input w-20 rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-900"
                             />
                           </Td>
                           <Td className="px-4 py-2">

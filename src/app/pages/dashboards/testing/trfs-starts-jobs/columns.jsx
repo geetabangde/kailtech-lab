@@ -1,15 +1,185 @@
 // Import Dependencies
 import { createColumnHelper } from "@tanstack/react-table";
+import { useState, useEffect } from "react";
+import axios from "utils/axios";
 
 // Local Imports
-import { RowActions } from "./RowActions";
+
+function ProductNamesCell({ value }) {
+  const [names, setNames] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!value) {
+      setLoading(false);
+      return;
+    }
+
+    const ids = String(value).split(",").map(id => id.trim()).filter(id => id && id !== "-");
+    if (ids.length === 0) {
+      setLoading(false);
+      return;
+    }
+
+    const uniqueIds = [...new Set(ids)];
+    
+    Promise.all(
+      uniqueIds.map(id => 
+        axios.get(`/testing/get-products-byid/${id}`)
+          .then(res => ({ id, name: res.data?.data?.name || id }))
+          .catch(() => ({ id, name: id }))
+      )
+    ).then(results => {
+      const nameMap = {};
+      results.forEach(r => { nameMap[r.id] = r.name; });
+      setNames(ids.map(id => nameMap[id]));
+      setLoading(false);
+    });
+  }, [value]);
+
+  if (!value) return <span>—</span>;
+  if (loading) return <span className="animate-pulse text-gray-400">Loading...</span>;
+
+  return (
+    <div className="block max-w-[250px] whitespace-normal text-sm text-gray-700 dark:text-dark-200">
+      {names.join(", ")}
+    </div>
+  );
+}
+
+function GradeNamesCell({ value }) {
+  const [names, setNames] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!value) {
+      setLoading(false);
+      return;
+    }
+
+    const ids = String(value).split(",").map(id => id.trim()).filter(id => id && id !== "-");
+    if (ids.length === 0) {
+      setLoading(false);
+      return;
+    }
+
+    const uniqueIds = [...new Set(ids)];
+    
+    Promise.all(
+      uniqueIds.map(id => 
+        axios.get(`/testing/get-grade-byid/${id}`)
+          .then(res => ({ id, name: res.data?.data?.name || id }))
+          .catch(() => ({ id, name: id }))
+      )
+    ).then(results => {
+      const nameMap = {};
+      results.forEach(r => { nameMap[r.id] = r.name; });
+      setNames(ids.map(id => nameMap[id]));
+      setLoading(false);
+    });
+  }, [value]);
+
+  if (!value || String(value).trim() === "") return <span>—</span>;
+  if (loading) return <span className="animate-pulse text-gray-400">Loading...</span>;
+
+  return (
+    <div className="block max-w-[250px] whitespace-normal text-sm text-gray-700 dark:text-dark-200">
+      {names.join(", ")}
+    </div>
+  );
+}
+
+function SizeNamesCell({ value }) {
+  const [names, setNames] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!value) {
+      setLoading(false);
+      return;
+    }
+
+    const ids = String(value).split(",").map(id => id.trim()).filter(id => id && id !== "-");
+    if (ids.length === 0) {
+      setLoading(false);
+      return;
+    }
+
+    const uniqueIds = [...new Set(ids)];
+    
+    Promise.all(
+      uniqueIds.map(id => 
+        axios.get(`/testing/get-size-byid/${id}`)
+          .then(res => ({ id, name: res.data?.data?.name || id }))
+          .catch(() => ({ id, name: id }))
+      )
+    ).then(results => {
+      const nameMap = {};
+      results.forEach(r => { nameMap[r.id] = r.name; });
+      setNames(ids.map(id => nameMap[id]));
+      setLoading(false);
+    });
+  }, [value]);
+
+  if (!value || String(value).trim() === "") return <span>—</span>;
+  if (loading) return <span className="animate-pulse text-gray-400">Loading...</span>;
+
+  return (
+    <div className="block max-w-[250px] whitespace-normal text-sm text-gray-700 dark:text-dark-200">
+      {names.join(", ")}
+    </div>
+  );
+}
+
+function ReportNamesCell({ value }) {
+  const [names, setNames] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!value) {
+      setLoading(false);
+      return;
+    }
+
+    const ids = String(value).split(",").map(id => id.trim()).filter(id => id && id !== "-");
+    if (ids.length === 0) {
+      setLoading(false);
+      return;
+    }
+
+    const uniqueIds = [...new Set(ids)];
+    
+    Promise.all(
+      uniqueIds.map(id => 
+        axios.get(`/people/get-single-customer/${id}`)
+          .then(res => ({ id, name: res.data?.data?.name || id }))
+          .catch(() => ({ id, name: id }))
+      )
+    ).then(results => {
+      const nameMap = {};
+      results.forEach(r => { nameMap[r.id] = r.name; });
+      setNames(ids.map(id => nameMap[id]));
+      setLoading(false);
+    });
+  }, [value]);
+
+  if (!value || String(value).trim() === "") return <span>—</span>;
+  if (loading) return <span className="animate-pulse text-gray-400">Loading...</span>;
+
+  return (
+    <div className="block max-w-[250px] whitespace-normal text-sm text-gray-700 dark:text-dark-200">
+      {names.join(", ")}
+    </div>
+  );
+}
 
 const columnHelper = createColumnHelper();
 
 export const columns = [
-  columnHelper.accessor((_row, index) => index + 1, {
-    id: "s_no",
-    header: "S No",
+  // ✅ TRF Entry No — kept only one
+  columnHelper.accessor("trf_entry_no", {
+    id: "trf_entry_no",
+    header: "TRF Entry No",
     cell: ({ row, getValue }) => (
       <div className="flex items-center gap-2">
         <button
@@ -17,12 +187,13 @@ export const columns = [
             e.stopPropagation();
             row.toggleExpanded();
           }}
-          className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full font-bold text-white shadow-sm transition-colors ${row.getIsExpanded() ? "bg-red-500 hover:bg-red-600" : "bg-green-500 hover:bg-green-600"
-            }`}
+          className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full font-bold text-white shadow-sm transition-colors ${
+            row.getIsExpanded() ? "bg-red-500 hover:bg-red-600" : "bg-green-500 hover:bg-green-600"
+          }`}
         >
           {row.getIsExpanded() ? "−" : "+"}
         </button>
-        <span className="text-sm text-gray-700 dark:text-dark-200">
+        <span className="text-sm font-medium text-gray-700 dark:text-dark-200">
           {getValue()}
         </span>
       </div>
@@ -30,17 +201,75 @@ export const columns = [
     filterFn: "textContains",
   }),
 
-  // ✅ TRF Entry No — kept only one
-  columnHelper.accessor("trf_entry_no", {
-    id: "trf_entry_no",
-    header: "TRF Entry No",
-    cell: (info) => (
-      <span className="text-sm font-medium text-gray-700 dark:text-dark-200">
-        {info.getValue()}
-      </span>
-    ),
-    filterFn: "textContains",
+  // ✅ Date
+  columnHelper.accessor("date", {
+    id: "date",
+    header: "Date",
+    cell: (info) => {
+      const date = info.getValue();
+      return (
+        <span className="text-sm text-gray-700 dark:text-dark-200">
+          {date ? new Date(date).toLocaleDateString() : "—"}
+        </span>
+      );
+    },
   }),
+
+  // ✅ Customer
+  columnHelper.accessor("customername", {
+    id: "customer",
+    header: "Customer",
+    cell: (info) => {
+      const permissions = JSON.parse(localStorage.getItem("userPermissions") || "[]");
+      if (!permissions.includes(358)) return "Not Permitted";
+      return (
+        <div className="block max-w-[200px] whitespace-normal text-sm text-gray-700 dark:text-dark-200">
+          {info.getValue() || "—"}
+        </div>
+      );
+    },
+  }),
+
+  // ✅ Products
+  columnHelper.accessor("products_display", {
+    id: "products",
+    header: "Products",
+    cell: (info) => <ProductNamesCell value={info.getValue()} />,
+  }),
+
+
+  // ✅ BRN Nos
+  columnHelper.accessor("brn_nos_display", {
+    id: "brn_nos",
+    header: "BRN Nos",
+    cell: (info) => {
+      const permissions = JSON.parse(localStorage.getItem("userPermissions") || "[]");
+      if (!permissions.includes(376)) return "Not Permitted";
+      return (
+        <div className="block max-w-[150px] whitespace-normal text-sm text-gray-700 dark:text-dark-200">
+          {info.getValue() || "—"}
+        </div>
+      );
+    },
+  }),
+
+  // ✅ LRN Nos
+  columnHelper.accessor("lrn_nos_display", {
+    id: "lrn_nos",
+    header: "LRN Nos",
+    cell: (info) => {
+      const permissions = JSON.parse(localStorage.getItem("userPermissions") || "[]");
+      if (!permissions.includes(375)) return "Not Permitted";
+      return (
+        <div className="block max-w-[150px] whitespace-normal text-sm text-gray-700 dark:text-dark-200">
+          {info.getValue() || "—"}
+        </div>
+      );
+    },
+  }),
+
+
+
   // ✅ Status — PHP ke saath fully matched
   columnHelper.accessor("status", {
     id: "status",
@@ -161,96 +390,23 @@ export const columns = [
     },
   }),
 
-  // ✅ Date
-  columnHelper.accessor("date", {
-    id: "date",
-    header: "Date",
-    cell: (info) => {
-      const date = info.getValue();
-      return (
-        <span className="text-sm text-gray-700 dark:text-dark-200">
-          {date ? new Date(date).toLocaleDateString() : "—"}
-        </span>
-      );
-    },
-  }),
 
-  // ✅ Customer
-  columnHelper.accessor("customername", {
-    id: "customer",
-    header: "Customer",
-    cell: (info) => {
-      const permissions = JSON.parse(localStorage.getItem("userPermissions") || "[]");
-      if (!permissions.includes(358)) return "Not Permitted";
-      return (
-        <div className="block max-w-[200px] whitespace-normal text-sm text-gray-700 dark:text-dark-200">
-          {info.getValue() || "—"}
-        </div>
-      );
-    },
-  }),
 
-  // ✅ Products
-  columnHelper.accessor("products_display", {
-    id: "products",
-    header: "Products",
-    cell: (info) => (
-      <div className="block max-w-[250px] whitespace-normal text-sm text-gray-700 dark:text-dark-200">
-        {info.getValue() || "—"}
-      </div>
-    ),
-  }),
 
-  // ✅ BRN Nos
-  columnHelper.accessor("brn_nos_display", {
-    id: "brn_nos",
-    header: "BRN Nos",
-    cell: (info) => {
-      const permissions = JSON.parse(localStorage.getItem("userPermissions") || "[]");
-      if (!permissions.includes(376)) return "Not Permitted";
-      return (
-        <div className="block max-w-[150px] whitespace-normal text-sm text-gray-700 dark:text-dark-200">
-          {info.getValue() || "—"}
-        </div>
-      );
-    },
-  }),
 
-  // ✅ LRN Nos
-  columnHelper.accessor("lrn_nos_display", {
-    id: "lrn_nos",
-    header: "LRN Nos",
-    cell: (info) => {
-      const permissions = JSON.parse(localStorage.getItem("userPermissions") || "[]");
-      if (!permissions.includes(375)) return "Not Permitted";
-      return (
-        <div className="block max-w-[150px] whitespace-normal text-sm text-gray-700 dark:text-dark-200">
-          {info.getValue() || "—"}
-        </div>
-      );
-    },
-  }),
 
   // ✅ Grades
   columnHelper.accessor("grades_display", {
     id: "grades",
     header: "Grades",
-    cell: (info) => (
-      <div className="max-w-xs truncate" title={info.getValue()}>
-        {info.getValue() || "-"}
-      </div>
-    ),
+    cell: (info) => <GradeNamesCell value={info.getValue()} />,
   }),
 
   // ✅ Sizes
   columnHelper.accessor("sizes_display", {
     id: "sizes",
     header: "Sizes",
-    cell: (info) => (
-      <div className="max-w-xs truncate" title={info.getValue()}>
-        {info.getValue() || "-"}
-      </div>
-    ),
+    cell: (info) => <SizeNamesCell value={info.getValue()} />,
   }),
 
   // ✅ PO Number
@@ -268,11 +424,7 @@ export const columns = [
   columnHelper.accessor("reportname", {
     id: "report_name",
     header: "Report Name",
-    cell: (info) => (
-      <div className="max-w-xs truncate" title={info.getValue()}>
-        {info.getValue() || "-"}
-      </div>
-    ),
+    cell: (info) => <ReportNamesCell value={info.getValue()} />,
   }),
 
   // ✅ Customer Type
@@ -315,15 +467,5 @@ export const columns = [
     ),
   }),
 
-  // ✅ Actions
-  columnHelper.display({
-    id: "actions",
-    header: "Actions",
-    cell: ({ row, table }) => (
-      <div className="w-[450px]">
-        <RowActions row={row} table={table} />
-      </div>
-    ),
-    filterFn: "alwaysTrue",
-  }),
+  
 ];

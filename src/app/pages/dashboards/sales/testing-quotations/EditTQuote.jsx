@@ -102,15 +102,26 @@ export default function EditTestingQuotation() {
                 return;
             }
 
-            setCustomers(custRes.data?.Data || custRes.data?.data || []);
+            const allCustomers = custRes.data?.Data || custRes.data?.data || [];
+            setCustomers(allCustomers);
             setCustomerTypes(ctypeRes.data?.Data || ctypeRes.data?.data || []);
             setSpecificPurposes(purposeRes.data?.Data || purposeRes.data?.data || []);
             setCountries(countryRes.data?.Data || countryRes.data?.data || []);
 
+            let newCustomer = String(quote.customer || "");
+
+            // Fallback: match customer by customername if ID is 0 or "new"
+            if ((!newCustomer || newCustomer === "0" || newCustomer === "new") && quote.customername) {
+                const matchedCustomer = allCustomers.find(
+                    (c) => c.name?.trim().toLowerCase() === quote.customername.trim().toLowerCase()
+                );
+                if (matchedCustomer) newCustomer = String(matchedCustomer.id);
+            }
+
             let addrs = [];
             let conts = [];
-            if (quote.customer && quote.customer !== "new") {
-                const deps = await fetchDependencies(quote.customer);
+            if (newCustomer && newCustomer !== "0" && newCustomer !== "new") {
+                const deps = await fetchDependencies(newCustomer);
                 addrs = deps.addresses;
                 conts = deps.contacts;
             }
@@ -135,7 +146,7 @@ export default function EditTestingQuotation() {
             }
 
             setFormData({
-                customer: String(quote.customer || "new"),
+                customer: newCustomer || "new",
                 customername: quote.customername || "",
                 customeraddress: quote.customeraddress || "",
                 contactpersonname: quote.contactpersonname || "",
@@ -207,9 +218,9 @@ export default function EditTestingQuotation() {
         setSubmitting(true);
         try {
             const payload = {
-                customer: Number(formData.customer),
-                caddress: Number(formData.caddress),
-                cperson: Number(formData.cperson),
+                customer: formData.customer === "new" || formData.customer === "0" ? "new" : Number(formData.customer),
+                caddress: formData.caddress ? Number(formData.caddress) : 0,
+                cperson: formData.cperson ? Number(formData.cperson) : 0,
                 ctype: Number(formData.ctype),
                 specificpurpose: Number(formData.specificpurpose),
                 enquirydate: dayjs(formData.enquirydate).format("DD/MM/YYYY"),
@@ -285,9 +296,11 @@ export default function EditTestingQuotation() {
                                     Customer Name
                                 </label>
                                 <Select
-                                    options={customers.map((c) => ({ value: c.id, label: c.name }))}
-                                    value={customers
-                                        .map((c) => ({ value: c.id, label: c.name }))
+                                    options={[
+                                        { value: "new", label: "Add New Customer" },
+                                        ...customers.map((c) => ({ value: c.id, label: c.name }))
+                                    ]}
+                                    value={[{ value: "new", label: "Add New Customer" }, ...customers.map((c) => ({ value: c.id, label: c.name }))]
                                         .find((opt) => String(opt.value) === String(formData.customer))}
                                     onChange={handleCustomerChange}
                                     placeholder="Choose Customer..."
@@ -295,40 +308,86 @@ export default function EditTestingQuotation() {
                                 />
                             </div>
 
-                            {/* Customer Address */}
-                            <div className="form-group">
-                                <label className="mb-2 block text-sm font-semibold text-gray-700">
-                                    Customer Address
-                                </label>
-                                <Select
-                                    options={addresses.map((a) => ({
-                                        value: a.id,
-                                        label: `${a.name || "Default"} (${a.address || ""})`
-                                    }))}
-                                    value={addresses
-                                        .map((a) => ({ value: a.id, label: `${a.name || "Default"} (${a.address || ""})` }))
-                                        .find((opt) => String(opt.value) === String(formData.caddress))}
-                                    onChange={(opt) => handleSelectChange("caddress", opt)}
-                                    placeholder="Select Address..."
-                                    noOptionsMessage={() => "No addresses found for this customer"}
-                                />
-                            </div>
+                            {(!formData.customer || formData.customer === "0" || formData.customer === "new") ? (
+                                <>
+                                    <div className="form-group">
+                                        <label className="mb-2 block text-sm font-semibold text-gray-700">
+                                            New Customer Name
+                                        </label>
+                                        <input
+                                            name="customername"
+                                            value={formData.customername}
+                                            onChange={handleChange}
+                                            className="h-10 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                                            placeholder="Enter customer name"
+                                            required
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="mb-2 block text-sm font-semibold text-gray-700">
+                                            Customer Address
+                                        </label>
+                                        <input
+                                            name="customeraddress"
+                                            value={formData.customeraddress}
+                                            onChange={handleChange}
+                                            className="h-10 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                                            placeholder="Enter address"
+                                            required
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="mb-2 block text-sm font-semibold text-gray-700">
+                                            Contact Person Name
+                                        </label>
+                                        <input
+                                            name="contactpersonname"
+                                            value={formData.contactpersonname}
+                                            onChange={handleChange}
+                                            className="h-10 w-full rounded-md border border-gray-300 px-3 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                                            placeholder="Enter contact person"
+                                            required
+                                        />
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    {/* Customer Address */}
+                                    <div className="form-group">
+                                        <label className="mb-2 block text-sm font-semibold text-gray-700">
+                                            Customer Address
+                                        </label>
+                                        <Select
+                                            options={addresses.map((a) => ({
+                                                value: a.id,
+                                                label: `${a.name || "Default"} (${a.address || ""})`
+                                            }))}
+                                            value={addresses
+                                                .map((a) => ({ value: a.id, label: `${a.name || "Default"} (${a.address || ""})` }))
+                                                .find((opt) => String(opt.value) === String(formData.caddress))}
+                                            onChange={(opt) => handleSelectChange("caddress", opt)}
+                                            placeholder="Select Address..."
+                                            noOptionsMessage={() => "No addresses found for this customer"}
+                                        />
+                                    </div>
 
-                            {/* Contact Person */}
-                            <div className="form-group">
-                                <label className="mb-2 block text-sm font-semibold text-gray-700">
-                                    Contact Person Name
-                                </label>
-                                <Select
-                                    options={contacts.map((c) => ({ value: c.id, label: c.name }))}
-                                    value={contacts
-                                        .map((c) => ({ value: c.id, label: c.name }))
-                                        .find((opt) => String(opt.value) === String(formData.cperson))}
-                                    onChange={(opt) => handleSelectChange("cperson", opt)}
-                                    placeholder="Select Contact..."
-                                    noOptionsMessage={() => "No contacts found for this customer"}
-                                />
-                            </div>
+                                    {/* Contact Person */}
+                                    <div className="form-group">
+                                        <label className="mb-2 block text-sm font-semibold text-gray-700">
+                                            Contact Person Name
+                                        </label>
+                                        <Select
+                                            options={contacts.map((c) => ({ value: c.id, label: c.name }))}
+                                            value={contacts
+                                                .map((c) => ({ value: c.id, label: c.name }))
+                                                .find((opt) => String(opt.value) === String(formData.cperson))}
+                                            onChange={(opt) => handleSelectChange("cperson", opt)}
+                                            placeholder="Select Contact..."
+                                            noOptionsMessage={() => "No contacts found for this customer"}
+                                        />
+                                    </div>
+                                </>
+                            )}
 
                             <div className="form-group">
                                 <label className="mb-2 block text-sm font-semibold text-gray-700">

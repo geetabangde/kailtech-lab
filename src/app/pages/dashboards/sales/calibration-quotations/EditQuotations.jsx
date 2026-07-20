@@ -109,7 +109,8 @@ export default function EditQuotations() {
 
       const getData = (res) => res.data?.Data || res.data?.data || [];
 
-      setCustomers(getData(custRes));
+      const allCustomers = getData(custRes);
+      setCustomers(allCustomers);
       setCustomerTypes(getData(ctypeRes));
       setSpecificPurposes(getData(purposeRes));
       setCountries(getData(countryRes));
@@ -118,11 +119,21 @@ export default function EditQuotations() {
         const { quotation: q, statutoryDetails, customerData } = editRes.data.data;
 
         if (q) {
-          const isNew = !q.customer || q.customer === "new";
+          let newCustomer = String(q.customer || "");
+
+          // Fallback: match customer by customername if ID is 0 or "new"
+          if ((!newCustomer || newCustomer === "0" || newCustomer === "new") && q.customername) {
+            const matchedCustomer = allCustomers.find(
+              (c) => c.name?.trim().toLowerCase() === q.customername.trim().toLowerCase()
+            );
+            if (matchedCustomer) newCustomer = String(matchedCustomer.id);
+          }
+
+          const isNew = !newCustomer || newCustomer === "0" || newCustomer === "new";
           setIsNewCustomer(isNew);
 
           setFormData({
-            customer: String(q.customer || "new"),
+            customer: newCustomer || "new",
             customername: q.customername || "",
             customeraddress: q.customeraddress || "",
             contactpersonname: q.contactpersonname || "",

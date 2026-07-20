@@ -120,8 +120,8 @@ export default function AllotSampleForm() {
 
     for (const item of items) {
       const { biscode, alloted } = rowInputs[item.id] ?? {};
-      if (!biscode || !alloted) {
-        toast.error(`Please fill BIS Code and Allot for row ${item.id} ❌`);
+      if (!alloted) {
+        toast.error(`Please fill Allot quantity for row ${item.id} ❌`);
         return;
       }
       const allotNum = parseFloat(alloted);

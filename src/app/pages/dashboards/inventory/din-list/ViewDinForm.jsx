@@ -347,11 +347,11 @@ export default function ViewDinForm() {
               
               <div className="mt-12 text-left">
                 <p className="font-bold mb-8">Regards<br/>For {companyInfo?.company?.name || "KAILTECH TEST & RESEARCH CENTRE PVT. LTD."}</p>
-                {statusInt === 1 && dinDetails.approved_by && (
+                {statusInt === 1 && (dinDetails.approved_by || dinDetails.approved_on) && (
                   <div className="mb-4">
                     {/* If approved_on is a URL, render it as an image (Digital Signature) */}
                     {dinDetails.approved_on && dinDetails.approved_on.startsWith("http") ? (
-                      <img src={dinDetails.approved_on} alt="Digital Signature" className="h-20 object-contain" />
+                      <img src={dinDetails.approved_on} alt="Digital Signature" className="h-16 object-contain" />
                     ) : (
                       <div className="text-xs italic text-gray-600 border border-gray-300 inline-block p-2 rounded">
                         Electronically signed by<br/>

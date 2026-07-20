@@ -43,6 +43,17 @@ export default function ViewQuotation() {
           if (q) {
             viewData.notes = q.notes || viewData.notes;
             viewData.customterms = q.customterms || viewData.customterms;
+            
+            // If unregistered customer, use the data saved in the quotation directly
+            if (!q.customer || String(q.customer) === "0" || q.customer === "new") {
+              viewData.customer = {
+                name: q.customername || "",
+                address: q.customeraddress || "",
+                mobile: q.concernpersonmobile || "",
+                email: q.concernpersonemail || "",
+                contact_person: q.contactpersonname || ""
+              };
+            }
           }
         }
         setData(viewData);
