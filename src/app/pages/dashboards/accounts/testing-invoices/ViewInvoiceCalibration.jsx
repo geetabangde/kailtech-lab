@@ -671,7 +671,7 @@ export default function ViewInvoiceCalibration() {
     }
   };
 
-  const doEInvoice = async () => {
+  const einvoice = async (parsedData) => {
     try {
       setBusy(true);
 
@@ -690,21 +690,54 @@ export default function ViewInvoiceCalibration() {
       const totInvValFc = Number((assAmt + cgstVal + sgstVal + igstVal).toFixed(2));
       const totInvVal = Number((totInvValFc + roundoff).toFixed(2));
 
-      let buyerGstin = invoice.gstno || "URP";
-      let supTyp = "B2B";
-      if (!invoice.gstno || invoice.gstno === "0" || invoice.gstno === "NA") {
-        buyerGstin = "URP";
-        supTyp = "B2C";
+      var taxTypeToSend, reverseCharge;
+      var country = getCountryCode();
+      if (country === "1") {
+        if (parsedData && parsedData.TxpType) {
+          if (parsedData.TxpType === "REG" || parsedData.TxpType === "TDS" || parsedData.TxpType === "COM") {
+            taxTypeToSend = "B2B";
+            reverseCharge = "N";
+          } else if (parsedData.TxpType === "SEZ") {
+            taxTypeToSend = "SEZWOP";
+            reverseCharge = "N";
+          } else {
+            console.error("Unsupported taxType:", parsedData.TxpType);
+            toast.error("Unsupported taxType: " + parsedData.TxpType);
+            setBusy(false);
+            return; 
+          }
+        } else {
+          // Fallback if parsedData is not available
+          taxTypeToSend = "B2B";
+          reverseCharge = "N";
+        }
+      } else {
+        taxTypeToSend = "EXPWOP";
+        reverseCharge = "N";
       }
 
-      const totalTaxPer = (parseFloat(invoice.cgstper) || 0) + (parseFloat(invoice.sgstper) || 0) + (parseFloat(invoice.igstper) || 0);
-      const isSezName = invoice.customername && invoice.customername.toUpperCase().includes("SEZ");
+      var gstin = (country === "1") ? invoice.gstno : "URP";
+      if (!gstin || gstin === "0" || gstin === "NA") {
+        gstin = "URP";
+      } else {
+        const match = gstin.match(/^([0-9]{2}[A-Z 0-9]{13})|URP$/i);
+        if (match && match[1]) {
+          gstin = match[1].replace(/^-+/, '');
+        }
+      }
 
-      if (isOutsideIndia) {
-        supTyp = "EXPWOP";
-      } else if (buyerGstin !== "URP" && (totalTaxPer === 0 || isSezName)) {
-        // Bina API ke check: Agar taxes 0 hain aur GSTIN available hai (ya customer ke naam me SEZ hai), toh yeh SEZWOP hoga.
-        supTyp = "SEZWOP";
+      let cntCode = "IN";
+      if (country !== "1") {
+        try {
+          const countryRes = await axios.get("/api/people/get-country");
+          const countryList = countryRes.data?.data || [];
+          const countryObj = countryList.find(c => String(c.id) === country);
+          if (countryObj && countryObj.iso) {
+            cntCode = countryObj.iso;
+          }
+        } catch (e) {
+          console.error("Failed to fetch country ISO code", e);
+        }
       }
 
       const dateParts = invoice.approved_on ? invoice.approved_on.split(' ')[0].split('-') : [];
@@ -712,7 +745,7 @@ export default function ViewInvoiceCalibration() {
 
       const payload = {
         Version: "1.1",
-        TranDtls: { TaxSch: "GST", SupTyp: supTyp, RegRev: "N", EcmGstin: null, IgstOnIntra: "N" },
+        TranDtls: { TaxSch: "GST", SupTyp: taxTypeToSend, RegRev: reverseCharge, EcmGstin: null, IgstOnIntra: "N" },
         DocDtls: { Typ: "INV", No: invoice.invoiceno, Dt: formattedDate },
         SellerDtls: {
           Gstin: "23AADCK0799A1ZV",
@@ -724,7 +757,7 @@ export default function ViewInvoiceCalibration() {
           Stcd: "23"
         },
         BuyerDtls: {
-          Gstin: isOutsideIndia ? "URP" : buyerGstin,
+          Gstin: isOutsideIndia ? "URP" : gstin,
           LglNm: invoice.customername ? invoice.customername.substring(0, 99) : "",
           Pos: isOutsideIndia ? "96" : (isNaN(Number(statecode)) ? "96" : String(statecode).padStart(2, '0')),
           Addr1: (invoice._address?.address || invoice.address || "").replace(/[\r\n]+/g, ' ').substring(0, 99),
@@ -742,37 +775,65 @@ export default function ViewInvoiceCalibration() {
           })(),
           Stcd: isOutsideIndia ? "96" : (isNaN(Number(statecode)) ? "96" : String(statecode).padStart(2, '0'))
         },
-        ItemList: computedItems.map((item, index) => ({
-          SlNo: String(index + 1),
-          PrdDesc: (item.description || "").replace(/<[^>]*>?/gm, ' ').substring(0, 300).trim(),
-          IsServc: "Y",
-          HsnCd: companyInfo?.company?.sac_code || "998394",
-          Qty: item.meter_option == 1 ? Number(item.meter) : Number(item.qty),
-          UnitPrice: Number(item.rate),
-          TotAmt: Number(item.itemAmount.toFixed(2)),
-          Discount: Number(item.itemDiscount.toFixed(2)),
-          AssAmt: Number(item.itemAssAmt.toFixed(2)),
-          GstRt: Number(item.gstRate.toFixed(2)),
-          IgstAmt: Number(item.itemIgst.toFixed(2)),
-          CgstAmt: Number(item.itemCgst.toFixed(2)),
-          SgstAmt: Number(item.itemSgst.toFixed(2)),
-          OthChrg: 0,
-          TotItemVal: Number(item.itemTotVal.toFixed(2))
-        })),
+        ItemList: items.map((item, index) => {
+          let itemDiscount = 0, itemAssAmt = 0, itemCgst = 0, itemSgst = 0, itemIgst = 0, gstRate = 0, itemTotVal = 0, itemAmount = 0;
+          
+          if (!isFoc) {
+            const itemAmountOld = parseFloat(item.amount) || 0;
+            const qty = parseFloat(item.qty) || 0;
+            const itemOtherCharge = otherCharges > 0 && totalQuantity > 0
+                ? parseFloat(((otherCharges / totalQuantity) * qty).toFixed(2))
+                : 0;
+            itemAmount = itemAmountOld + itemOtherCharge;
+            
+            if (amountNew > 0) {
+              if (invoice.disctype === "amount") {
+                itemDiscount = parseFloat(((itemAmount / amountNew) * (parseFloat(invoice.discnumber) || 0)).toFixed(2));
+              } else {
+                itemDiscount = parseFloat(((itemAmount / amountNew) * (parseFloat(invoice.discount) || 0)).toFixed(2));
+              }
+            }
+            itemAssAmt = itemAmount - itemDiscount;
+            
+            if (isSgst) {
+              itemCgst = parseFloat((itemAssAmt * ((parseFloat(invoice.cgstper) || 0) / 100)).toFixed(2));
+              itemSgst = parseFloat((itemAssAmt * ((parseFloat(invoice.sgstper) || 0) / 100)).toFixed(2));
+            } else {
+              itemIgst = parseFloat((itemAssAmt * ((parseFloat(invoice.igstper) || 0) / 100)).toFixed(2));
+            }
+            gstRate = (parseFloat(invoice.cgstper) || 0) + (parseFloat(invoice.sgstper) || 0) + (parseFloat(invoice.igstper) || 0);
+            itemTotVal = itemAssAmt + itemCgst + itemSgst + itemIgst;
+          }
+
+          return {
+            SlNo: String(index + 1),
+            PrdDesc: (item.description || "").replace(/<[^>]*>?/gm, ' ').substring(0, 300).trim(),
+            IsServc: "Y",
+            HsnCd: companyInfo?.company?.sac_code || "998393",
+            Qty: item.meter_option == 1 ? Number(item.meter) : Number(item.qty),
+            UnitPrice: Number(item.rate),
+            TotAmt: Number(itemAmount.toFixed(2)),
+            Discount: Number(itemDiscount.toFixed(2)),
+            AssAmt: Number(itemAssAmt.toFixed(2)),
+            GstRt: Number(gstRate.toFixed(2)),
+            IgstAmt: Number(itemIgst.toFixed(2)),
+            CgstAmt: Number(itemCgst.toFixed(2)),
+            SgstAmt: Number(itemSgst.toFixed(2)),
+            OthChrg: 0,
+            TotItemVal: Number(itemTotVal.toFixed(2))
+          };
+        }),
         ValDtls: {
           AssVal: Number(assAmt.toFixed(2)),
-          ...(isSgst ? {
-            CgstVal: cgstVal,
-            SgstVal: sgstVal
-          } : {
-            IgstVal: igstVal
-          }),
+          CgstVal: isSgst ? cgstVal : 0,
+          SgstVal: isSgst ? sgstVal : 0,
+          IgstVal: isSgst ? 0 : igstVal,
           OthChrg: 0,
           RndOffAmt: roundoff,
           TotInvVal: totInvVal,
           TotInvValFc: totInvValFc
         },
-        ExpDtls: { CntCode: "IN" }
+        ExpDtls: { CntCode: cntCode }
       };
 
       await axios.post(`/einvoice/generate?invoiceid=${id}`, payload);
@@ -789,6 +850,12 @@ export default function ViewInvoiceCalibration() {
   const validateGSTINPincode = async () => {
     setBusy(true);
     var gstin = invoice.gstno;
+    if (gstin && gstin !== "URP") {
+      const match = gstin.match(/^([0-9]{2}[A-Z 0-9]{13})|URP$/i);
+      if (match && match[1]) {
+        gstin = match[1].replace(/^-+/, '');
+      }
+    }
     var pincode = parseInt(invoice._address?.pincode || 0, 10);
     var country = getCountryCode();
 
@@ -798,10 +865,11 @@ export default function ViewInvoiceCalibration() {
         setBusy(false);
         return;
       }
-      // Pincode matching with Alankit API removed as requested by user.
-      await doEInvoice();
+      
+      // Validation skipped since /alankitGST endpoint is removed from the new backend
+      await einvoice(null);
     } else {
-      await doEInvoice();
+      await einvoice(null);
     }
   };
 

@@ -5811,6 +5811,26 @@ const protectedRoutes = {
                         ).default,
                       }),
                     },
+                    {
+                      path: "fill-checklist",
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/profile/my-issue-item-list/FillCheckList"
+                          )
+                        ).default,
+                      }),
+                    },
+                    {
+                      path: "fill-return-checklist",
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/profile/my-issue-item-list/FillReturnCheckList"
+                          )
+                        ).default,
+                      }),
+                    },
                   ],
                 },
                 {

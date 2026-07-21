@@ -309,9 +309,9 @@ export default function AddEditProformaInvoice() {
           witnessnumber: d.witnessnumber || 0,
           samplehandling: d.samplehandling || 0,
           sampleprep: d.sampleprep ?? 0,
-          cgstper: d.cgstper ?? 9,
-          sgstper: d.sgstper ?? 9,
-          igstper: d.igstper ?? 18,
+          cgstper: d.cgstper || 9,
+          sgstper: d.sgstper || 9,
+          igstper: d.igstper || 18,
           statecode: String(d.statecode ?? ""),
         });
         if (d.items)
@@ -371,16 +371,51 @@ export default function AddEditProformaInvoice() {
       let currentId = invoiceId;
       if (!isEdit && !currentId) {
         const res = await axios.post("/accounts/add-proforma-inovice", payload);
+
         if (
           res.data.success === true ||
           res.data.status === true ||
           res.data.status === "true"
         ) {
-          currentId = res.data.id ?? res.data.data?.id;
+          let extractedId =
+            res.data.id ??
+            res.data.data?.id ??
+            res.data.insertId ??
+            res.data.data?.insertId ??
+            res.data.proformainvoiceid;
+
+          if (!extractedId && (typeof res.data.data === 'number' || typeof res.data.data === 'string')) {
+            extractedId = res.data.data;
+          }
+
+          if (!extractedId) {
+            // BACKEND WORKAROUND: API doesn't return the new ID.
+            // Let's fetch the list and find the invoice we just created by its refno.
+            try {
+              const listRes = await axios.get("/accounts/proforma-invoicelist");
+              const invoices = listRes.data?.data || [];
+              const match = invoices.find(i => String(i.refno) === String(payload.refno));
+              if (match && match.id) {
+                extractedId = match.id;
+              } else if (invoices.length > 0) {
+                extractedId = Math.max(...invoices.map(i => i.id));
+              }
+            } catch (err) {
+              console.error("Failed to fetch list for fallback ID extraction", err);
+            }
+          }
+
+          if (!extractedId) {
+            toast.success("Invoice created but couldn't retrieve ID. Redirecting to list.");
+            navigate("/dashboards/accounts/proforma-invoice");
+            return;
+          }
+
+          currentId = extractedId;
           setInvoiceId(currentId);
           toast.success("Invoice created ✅");
-          // ✅ FIX: navigate to list after add
-          navigate("/dashboards/accounts/proforma-invoice");
+          // ✅ FIX: navigate to edit screen to add items
+          navigate(`/dashboards/accounts/proforma-invoice/edit/${currentId}`);
         } else {
           toast.error(res.data.message ?? "Failed to create invoice");
           return;

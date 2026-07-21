@@ -33,7 +33,7 @@ export const columns = [
   }),
 
   // 5. Instrument Code
-  columnHelper.accessor((row) => row.idno || row.instrumentcode || row.instrument_code || "", {
+  columnHelper.accessor((row) => row.instrument_no || row.idno || row.instrumentcode || row.instrument_code || "", {
     id: "instrument_code",
     header: "Instrument Code",
     cell: (info) => info.getValue() || "—",
@@ -47,7 +47,7 @@ export const columns = [
   }),
 
   // 7. Party Name
-  columnHelper.accessor((row) => row.employee_name || row.partyname || row.party_name || "", {
+  columnHelper.accessor((row) => row.issued_to || row.employee_name || row.partyname || row.party_name || "", {
     id: "party_name",
     header: "Party Name",
     cell: (info) => info.getValue() || "—",
@@ -68,7 +68,7 @@ export const columns = [
   }),
 
   // 10. Customer
-  columnHelper.accessor((row) => row.customer_name || row.customer || row.customername || "", {
+  columnHelper.accessor((row) => row.company || row.customer_name || row.customer || row.customername || "", {
     id: "customer",
     header: "Customer",
     cell: (info) => info.getValue() || "—",

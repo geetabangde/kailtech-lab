@@ -61,7 +61,7 @@ export function extractData(report) {
     meta = {},
   } = report;
 
-  const { brn, ulr, condition_name, sealed_name, reportdate, lrn } = trf_product;
+  const { brn, ulr, condition_name, sealed_name, reportdate, lrn, brand } = trf_product;
   const nablStatus = (typeof nablObj === "object" ? nablObj?.status : Number(nablObj)) ?? 0;
   const reportStatus = typeof rsObj === "object" ? (rsObj?.code ?? 0) : (Number(rsObj) || 0);
   const isDraft = reportStatus < 9;
@@ -109,6 +109,7 @@ export function extractData(report) {
   const displayLRN = lrn ?? brn ?? "—";
   const ktrcRef = meta?.ktrc_ref ?? "KTRC/QF/0708/01";
   const batchnoClean = batchno.replace(/<br\s*\/?>/gi, " ").trim();
+  const brandValue = (brand ?? "").replace(/<br\s*\/?>/gi, " ").trim();
   const receiptDate = fmtDate(trf?.date ?? dates?.receipt_date);
 
   // Use CUTOFF DATE logic for signatories as implemented in PHP
@@ -156,7 +157,7 @@ export function extractData(report) {
     condition_name, sealed_name, qtyStr,
     start_date, end_date, reportdate, dates,
     customerName, customerAddress, contactPerson, showContact, customerRef,
-    productDesc, productName, grade, batchnoClean,
+    productDesc, productName, grade, batchnoClean, brandValue,
     hasSpecs, test_results: toArray(test_results), remarkLines, signatories: finalSignatories,
     nablStatus, nablLogo, isDraft,
   };
@@ -260,6 +261,7 @@ export function HtmlSampleRows({ data }) {
       <div style={{ ...SS.infoFull }}>
         <span style={SS.bold}>Sample Particulars : </span>
         {data.productName}, Grade: {data.grade ?? ''}
+        {data.brandValue ? `, ${data.brandValue}` : ''}
       </div>
     </>
   );
@@ -371,11 +373,19 @@ const S1 = {
     alignItems: 'center',
     border: 'none',
     paddingBottom: '8px',
-    marginBottom: '7px',
+    marginBottom: '2px',
   },
   logoLeft: { width: '190px', height: '85px', objectFit: 'contain' },
   logoCenter: { width: '115px', height: '100px', objectFit: 'contain' },
   logoRight: { width: '230px', height: '120px', objectFit: 'contain' },
+  // NEW: dedicated LRN row, sits in normal document flow right below the
+  // letterhead logos so it can never overlap the KAILTECH logo image.
+  lrnRow: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    marginBottom: '6px',
+    fontSize: '12px',
+  },
   pageRow: { display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '12px' },
   title: { textAlign: 'center', fontSize: '19px', fontWeight: 'bold', textDecoration: 'underline', marginBottom: '7px' },
   ulrRow: { display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '13px' },
@@ -419,6 +429,12 @@ export function HtmlDocWithLH({ report }) {
                   {data.nablLogo ? <img src={getPdfImageUrl(data.nablLogo)} alt="" style={S1.logoCenter} /> : <div style={S1.logoCenter} />}
                 </div>
                 <img src={`${window.location.origin}/images/logo.png`} alt="" style={S1.logoRight} />
+              </div>
+
+              {/* ── LRN — placed BELOW the letterhead, in normal flow,
+                     so it never overlaps the KAILTECH logo image ── */}
+              <div style={S1.lrnRow}>
+                <span style={SS.bold}>LRN: {data.displayLRN}</span>
               </div>
             </td>
           </tr>

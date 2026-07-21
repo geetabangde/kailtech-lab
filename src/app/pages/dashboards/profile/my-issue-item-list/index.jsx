@@ -55,17 +55,11 @@ export default function MyIssuedItemList() {
   const fetchIssuedItems = useCallback(async () => {
     try {
       setLoading(true);
-      
-      // Primary API endpoint, with fallback list endpoints
-      const res = await axios.get("profile/get-my-issue-list").catch(() => {
-        return axios.get("profile/get-issued-items").catch(() => {
-          return axios.get("profile/get-my-issue-items").catch(() => {
-            return axios.get("profile/get-issue-list");
-          });
-        });
-      });
 
-      if (res.data.status && Array.isArray(res.data.data)) {
+      // Primary API endpoint, with fallback list endpoints
+      const res = await axios.get("profile/get-issue-records");
+
+      if (res.data && Array.isArray(res.data.data)) {
         setIssuedData(res.data.data);
       } else {
         setIssuedData([]);
@@ -138,7 +132,7 @@ export default function MyIssuedItemList() {
           className={clsx(
             "flex h-full w-full flex-col",
             tableSettings.enableFullScreen &&
-              "fixed inset-0 z-61 bg-white pt-3 dark:bg-dark-900",
+            "fixed inset-0 z-61 bg-white pt-3 dark:bg-dark-900",
           )}
         >
           <Card className="border-none shadow-soft dark:bg-dark-700">
@@ -182,9 +176,9 @@ export default function MyIssuedItemList() {
                             "bg-gray-55 text-xs font-bold uppercase text-gray-600 dark:bg-dark-800 dark:text-dark-200 align-top",
                             header.column.getCanPin() && [
                               header.column.getIsPinned() === "left" &&
-                                "sticky z-2 ltr:left-0 rtl:right-0",
+                              "sticky z-2 ltr:left-0 rtl:right-0",
                               header.column.getIsPinned() === "right" &&
-                                "sticky z-2 ltr:right-0 rtl:left-0",
+                              "sticky z-2 ltr:right-0 rtl:left-0",
                             ]
                           )}
                         >
@@ -232,9 +226,9 @@ export default function MyIssuedItemList() {
                               "bg-white dark:bg-dark-700",
                               cell.column.getCanPin() && [
                                 cell.column.getIsPinned() === "left" &&
-                                  "sticky z-2 ltr:left-0 rtl:right-0",
+                                "sticky z-2 ltr:left-0 rtl:right-0",
                                 cell.column.getIsPinned() === "right" &&
-                                  "sticky z-2 ltr:right-0 rtl:left-0",
+                                "sticky z-2 ltr:right-0 rtl:left-0",
                               ]
                             )}
                           >

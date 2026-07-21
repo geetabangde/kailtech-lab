@@ -107,6 +107,8 @@ export default function FinalReportDetail() {
   const nablStatus = report.nabl?.status ?? 0;
   const hasSpecs = Number(trfProduct?.specification_flag) === 2 ? false : (Number(trfProduct?.specification_flag) === 1 || Number(trfProduct?.specification) === 1 || testResults.some((r) => r.specification && r.specification !== "—" && r.specification !== "-"));
   const reportStatus = report.report_status?.code ?? 0;
+  // "brand" key from trf_product — shown after Grade in Sample Particulars
+  const brandValue = trfProduct.brand ?? "";
 
   return (
     <Page title={`Final Report — ${trfProduct.ulr ?? trfProduct.lrn ?? tid}`}>
@@ -193,6 +195,7 @@ export default function FinalReportDetail() {
                     <td colSpan={3} className="border-t border-gray-300 p-2 text-base dark:border-dark-500">
                       <strong>Sample Particulars: </strong>
                       {product.name ?? "—"} &nbsp; Grade: {report.grade ?? "—"}
+                      {brandValue ? <>, {brandValue}</> : null}
                     </td>
                   </tr>
                 </tbody>

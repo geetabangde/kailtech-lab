@@ -100,6 +100,9 @@ export default function ViewDinForm() {
       <style>
         {`
           @media print {
+            @page {
+              margin: 5mm;
+            }
             .app-header,
             .sidebar-panel,
             .prime-panel,
@@ -135,6 +138,27 @@ export default function ViewDinForm() {
               border: 0 !important;
               box-shadow: none !important;
               background: #fff !important;
+            }
+            
+            /* Reduce white space to fit on one page without shrinking text */
+            #printable-challan table th,
+            #printable-challan table td {
+              padding: 6px !important;
+            }
+            #printable-challan .mb-8 {
+              margin-bottom: 12px !important;
+            }
+            #printable-challan .mb-6 {
+              margin-bottom: 12px !important;
+            }
+            #printable-challan .mt-12 {
+              margin-top: 16px !important;
+            }
+            #printable-challan .gap-y-4 {
+              row-gap: 8px !important;
+            }
+            #printable-challan .pb-4 {
+              padding-bottom: 8px !important;
             }
           }
         `}
@@ -340,20 +364,20 @@ export default function ViewDinForm() {
             {/* Remarks and Signatures */}
             <div className="text-sm">
               {dinDetails.remark && (
-                <div className="mb-8">
+                <div className="mb-8 print:mb-2">
                   <span className="font-bold">Remark:</span> {dinDetails.remark}
                 </div>
               )}
               
-              <div className="mt-12 text-left">
-                <p className="font-bold mb-8">Regards<br/>For {companyInfo?.company?.name || "KAILTECH TEST & RESEARCH CENTRE PVT. LTD."}</p>
-                {statusInt === 1 && (dinDetails.approved_by || dinDetails.approved_on) && (
-                  <div className="mb-4">
+              <div className="mt-12 print:mt-6 text-left print:break-inside-avoid">
+                <p className="font-bold mb-8 print:mb-2">Regards<br/>For {companyInfo?.company?.name || "KAILTECH TEST & RESEARCH CENTRE PVT. LTD."}</p>
+                {(dinDetails.approved_by || dinDetails.approved_on) && (
+                  <div className="mb-4 print:mb-2">
                     {/* If approved_on is a URL, render it as an image (Digital Signature) */}
-                    {dinDetails.approved_on && dinDetails.approved_on.startsWith("http") ? (
-                      <img src={dinDetails.approved_on} alt="Digital Signature" className="h-16 object-contain" />
+                    {dinDetails.approved_on && dinDetails.approved_on.includes("http") ? (
+                      <img src={dinDetails.approved_on} alt="Digital Signature" className="h-20 print:h-16 object-contain print:block" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }} />
                     ) : (
-                      <div className="text-xs italic text-gray-600 border border-gray-300 inline-block p-2 rounded">
+                      <div className="text-xs italic text-gray-600 border border-gray-300 inline-block p-2 print:p-1 rounded print:border-gray-500" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
                         Electronically signed by<br/>
                         {dinDetails.approved_by}<br/>
                         Date: {safeDate(dinDetails.approved_on)}

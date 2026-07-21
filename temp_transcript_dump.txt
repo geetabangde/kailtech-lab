@@ -1,0 +1,1910 @@
+<USER_REQUEST>
+in the account section's calibration-invoice-list ViewCalibrationInvoice.jsx analyse this file and compare it's logic with this php codel logic i am not talking about the ui but logic <?php
+include './session.php';
+include "phpqrcode/qrlib.php";
+
+/* @var $obj  db */
+
+$invoiceid = $_GET['matata'];
+$resultinvoice = $obj->selectextrawhere("invoices", " id=$invoiceid");
+$rowinvoice = $obj->fetch_assoc($resultinvoice);
+$resultaddressID = $obj->selectextrawhere("`customer-address`", " id=" . $rowinvoice['addressid']);
+$rowaddressID = $obj->fetch_assoc($resultaddressID);
+$meterinvoicerow = $obj->selectextrawhere("invoicerow", "invoiceid=$invoiceid and status=1");
+$meter_invoicerow = $obj->fetch_assoc($meterinvoicerow);
+$inwardid = $rowinvoice['inwardid'];
+$id = $rowinvoice['id'];
+$rowinward = array();
+if (!empty($inwardid)) {
+    if ($rowinvoice['typeofinvoice'] == "Testing") {
+        $resultinward = $obj->selectextrawhere("trfs", "id in ($inwardid)");
+        $rowinward = $obj->fetch_assoc($resultinward);
+    } else {
+        $resultinward = $obj->selectextrawhere("inwardentry", "id in ($inwardid)");
+        $rowinward = $obj->fetch_assoc($resultinward);
+    }
+}
+$statecode = (is_numeric($rowinvoice['statecode'])) ? sprintf("%02d", $rowinvoice['statecode']) : $rowinvoice['statecode'];
+
+$panno = $rowinvoice['pan'];
+$sgst = 0;
+if ($statecode == 23) {
+    $sgst = 1;
+}
+?>
+
+<style>
+    @media screen {
+        div.letterheadfooter {
+            display: none;
+        }
+
+        .letterheadfooter {
+            display: none;
+        }
+    }
+
+    /*@media print {*/
+    table,
+    td,
+    th,
+    tr {
+        background: transparent !important;
+    }
+
+    @media print {
+        .letterheadfooter {
+            position: absolute;
+            margin-top: 12.57in;
+            left: 0;
+        }
+    }
+
+    <?php if ($rowinvoice['status'] == 0) {
+    ?>.box-body {
+        /*background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' version='1.1' ><text x='0%' y='0%' fill='grey' font-size='100'>DRAFT</text></svg>") no-repeat center ;*/
+        overflow-x: hidden;
+
+        background-image: url("images/draft.png");
+        background-repeat: no-repeat;
+        background-position: center;
+    }
+
+    <?php } ?>
+</style>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+
+
+<div class="box box-info">
+    <div class="box-header no-print" id="catid">
+        <a href="exportinvoicetopdf.php?matata=<?php echo $invoiceid; ?>" class="btn bconsoletn-info">Export PDF Invoice</a>
+        <!-- <?php // if(in_array(485,$permissions)){
+                ?>
+        <button type="button" class="btn btn-success" onclick=viewMail(<?php echo $invoiceid; ?>)>Send Mail</button>
+        <?php // } 
+        ?> -->
+        <a href="exportinvoicewithoutletterheadtopdf.php?matata=<?php echo $invoiceid; ?>" class="btn btn-info">Export PDF Without LetterHead Invoice</a>
+
+        <?php if ($rowinvoice['typeofinvoice'] == "Calibration") { ?>
+            <a href="invoiceList.php" class="btn btn-info">Back To Invoice list</a>
+        <?php } else { ?>
+            <a href="tinvoices.php" class="btn btn-info">Back To Invoice list</a>
+        <?php } ?>
+    </div>
+    <div class="box-body" id="catid" style="overflow: hidden;">
+        <div class="page">
+            <div class="row">
+                <div class="col-xs-3"><img src="<?php echo $companylogo; ?>" /></div>
+                <div class="col-xs-9">
+                    <div style="font-size: 15px;font-family: monospace;font-style: italic;text-align: right">NABL Accredited as per IS/ISO/IEC 17025 (Certificate Nos. TC-7832 & CC-2348),<br>
+                        BIS Recognized & ISO 9001 Certified Test & Calibration Laboratory</div>
+                    <h2 style="color: navy;font-weight: bold"><?php echo $companyname; ?> </h2>
+
+                </div>
+                <div class="col-xs-4">
+                    <div style="font-size: 17px;text-align: center;"><b>TAX INVOICE</b><br><!-- comment -->
+                        For <?php echo $rowinvoice['typeofinvoice']; ?> Charges</div>
+
+                </div>
+                <div class="col-xs-4">
+                    <div style="font-size: 17px;text-align: right;">ORIGINAL FOR RECIPIENT<br><!-- comment -->
+                    </div>
+
+                </div>
+            </div>
+            <div class='letterheadfooter'>
+                <img src="images/letterheadfootermono.png">
+            </div>
+            <table class="table table-bordered">
+                <tr>
+                    <td colspan="2" style="width: 60%">
+                        <div class="col-xs-12">
+                            <b>Customer:<br></b>
+                            <?php
+                            echo "M / s . " . $rowinvoice['customername'] . "<br>";
+                            echo $rowaddressID['address'] . ", " . $rowaddressID['city'] . ", " . $rowaddressID['pincode'];
+                            // echo $rowinvoice['address'] . "<br>";
+                            ?>
+
+                        </div>
+
+                        <div class="col-xs-8"><?php echo "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>State name : </b>" . ((is_numeric($statecode)) ? $gstarray[$statecode] : $statecode); ?>
+                        </div>
+                        <div class="col-xs-4"><?php echo "<b>State code : </b>" . ((is_numeric($statecode)) ? $statecode : "NA"); ?></div>
+
+
+
+                        <div class="col-xs-8"> <?php echo "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>GSTIN/UIN : </b>" . $rowinvoice['gstno']; ?></div>
+                        <div class="col-xs-4"><?php echo "<b>PAN : </b>" . $panno; ?></div>
+                        <div class="col-xs-12" style="font-size: 12px">
+                            <br>
+                            <?php if (isset($rowinward['concernpersonname'])) { ?>
+                                Kind Attn. <?php echo $obj->selectfieldwhere("`customer-contact`", "name", "id='" . $rowinward['concernpersonname'] . "'"); ?>
+                        </div>
+                    <?php } ?>
+                    </td>
+                    <td colspan="3" style="border-right:none;"> <?php echo "<b>Invoice No. : </b> " . $rowinvoice['invoiceno']; ?><br>
+                        <?php echo "<b>Date : </b>", isset($rowinvoice['approved_on']) && ($rowinvoice['approved_on'] != '0000-00-00 00:00:00') ? date("d/m/Y", strtotime($rowinvoice['approved_on'])) : ''; ?><br>
+                        <?php echo "<b>P.O. No./ Date : </b> " . $rowinvoice['ponumber']; ?><br>
+                    </td>
+                    <?php if ($rowinvoice['status'] == 2) {
+
+                        //$rowinvoice['signed_qr_code'] = "eyJhbGciOiJSUzI1NiIsImtpZCI6IkI4RDYzRUNCNThFQTVFNkY0QUFDM0Q1MjQ1NDNCMjI0NjY2OUIwRjgiLCJ4NXQiOiJ1TlkteTFqcVhtOUtyRDFTUlVPeUpHWnBzUGciLCJ0eXAiOiJKV1QifQ.eyJkYXRhIjoie1wiU2VsbGVyR3N0aW5cIjpcIjIzQUFEQ0swNzk5QTFaVlwiLFwiQnV5ZXJHc3RpblwiOlwiMjNBQkJQVzYwNTJFMVpVXCIsXCJEb2NOb1wiOlwiS1RSQy8yMDIzMTIyNFwiLFwiRG9jVHlwXCI6XCJJTlZcIixcIkRvY0R0XCI6XCIwMS8wOC8yMDIzXCIsXCJUb3RJbnZWYWxcIjoxMzgwNixcIkl0ZW1DbnRcIjozLFwiTWFpbkhzbkNvZGVcIjpcIjk5ODM5M1wiLFwiSXJuXCI6XCI2ZWQ0MWY0MGQ2YTYwZGExZDQzY2NlZGEwMWVjZTcxNzJiMDliNTI3NWU2NGE3YTJiYzA3Y2RjOTI3OGY3ODRlXCIsXCJJcm5EdFwiOlwiMjAyMy0wOC0wMSAxMTo1ODowMFwifSIsImlzcyI6Ik5JQyJ9.HACEKknrFo4UWDwHyw3xscS_kwS8eqAVOdvJlTFRZFLgEiVWcKge5s6lwFJ75QDHBtyI99k0xkOaAA_JCSJoBamsBzhwAsoW0OEiQ2lYyea6zI301_0dkBTDjvdImo6JpG-N2GRXONxepWE8m9VCe-oNa9bLFB0xNNvBujU_V9lRChLfQMTesdNKboaHGBhzKXxs678wVR7oEo5iar_an5Z216d9sBtI7LOszVAW8jnlwk_xz9PkUYFaBz3uAFKYccm69HCqYSp1xaX3RWr1nq7e-wWAocdnlr5ozIv2fBwJfio1hmIfK-VHfU5wWmpMfoTVidpQhyTT1zZEseFD8Q" ;
+                        $qname = "qrimage_" . $invoiceid . ".png";
+                        $qname_path = 'qrcodes/' . $qname;
+                        QRcode::png($rowinvoice['signed_qr_code'], $qname_path);
+                    ?>
+                        <td style="border-left:none;">
+                            <div style="border:2px solid black; overflow:hidden;">
+                                <img style="width:100%;" src="<?php echo $qname_path; ?>" alt="">
+                            </div>
+                        </td>
+                    <?php } ?>
+
+                </tr>
+            </table>
+            <table class="table table-condensed table-bordered table-striped">
+                <thead>
+                    <tr>
+                        <th class="text-center" style="width:10%">S. No. </th>
+                        <th class="text-center" style="width:50%"><b>Description</b></th>
+                        <th class="text-center"><b><?php if ($meter_invoicerow['meter_option'] == 1) {
+                                                        echo "Meter's";
+                                                    } else {
+                                                        echo "No's ";
+                                                    } ?> </b></th>
+                        <?php if ($rowinvoice['potype'] == "Normal") { ?>
+                            <th class="text-center"> <b>Rate</b></th>
+                            <th class="text-center"> <b>Amount</b></th>
+                        <?php } ?>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php
+                    $totalQuantity = 0;
+                    $resultitem = $obj->selectextrawhere("invoicerow", "invoiceid=$invoiceid and status=1");
+                    while ($rowitem = $obj->fetch_assoc($resultitem)) {
+                        $totalQuantity += $rowitem['qty'];
+                    }
+                    // echo $totalQuantity;
+                    $i = 1;
+
+                    $discount_number = floatval($rowinvoice['discnumber']);
+                    $resultitem = $obj->selectextrawhere("invoicerow", "invoiceid=$invoiceid and status=1");
+                    $numRows = $resultitem->num_rows;
+                    while ($rowitem = $obj->fetch_assoc($resultitem)) {
+                        if ($rowinvoice['invoiceno']  != 'FOC') {
+                            $item_amount_old = $rowitem['amount'];
+
+                            if (!empty($rowinvoice['witnesscharges']) || !empty($rowinvoice['samplehandling']) || !empty($rowinvoice['sampleprep']) || !empty($rowinvoice['freight']) || !empty($rowinvoice['mobilisation'])) {
+                                $item_otherCharges = sprintf("%.02f", $rowinvoice['witnesscharges'] + $rowinvoice['samplehandling'] + $rowinvoice['sampleprep'] + $rowinvoice['freight'] + $rowinvoice['mobilisation']);
+                                $item_otherCharge = sprintf("%.02f", ($item_otherCharges / $totalQuantity) * $rowitem['qty']);
+                                // $item_otherCharge = sprintf("%.02f", ($item_amount_old / $rowinvoice['subtotal']) * $item_otherCharges);
+                                // echo "other ".$item_otherCharge." ";
+                            } else {
+                                $item_otherCharge = 0;
+                            }
+                            $item_amount = $item_amount_old + $item_otherCharge;
+                            if (!empty($rowinvoice['witnesscharges']) || !empty($rowinvoice['samplehandling']) || !empty($rowinvoice['sampleprep']) || !empty($rowinvoice['freight']) || !empty($rowinvoice['mobilisation'])) {
+                                $otherCharge = sprintf("%.02f", $rowinvoice['witnesscharges'] + $rowinvoice['samplehandling'] + $rowinvoice['sampleprep'] + $rowinvoice['freight'] + $rowinvoice['mobilisation']);
+                            } else {
+                                $otherCharge = 0;
+                            }
+                            $amount_new = $rowinvoice['subtotal'] + $otherCharge;
+                            // echo $rowinvoice['subtotal'];   
+                            // echo "amount ".$item_amount." ";
+                            if ($rowinvoice['disctype'] == 'amount') {
+                                // $item_discount = sprintf("%.02f", ($rowinvoice['discnumber'] / $totalQuantity)*$rowitem['qty']);
+                                // $item_discount = sprintf("%.02f", ($item_amount/$rowinvoice['subtotal'])*$rowinvoice['discnumber'] );
+                                $item_discount = sprintf("%.02f", ($item_amount / $amount_new) * $rowinvoice['discnumber']);
+                            } else {
+                                // $item_discount = sprintf("%.02f", $item_amount * ($discount_number / 100));
+                                // $item_discount = sprintf("%.02f",($rowinvoice['discount'] / $totalQuantity)*$rowitem['qty']);
+                                // $item_discount = sprintf("%.02f", ($item_amount/$rowinvoice['subtotal'])*$rowinvoice['discount'] );           
+                                $item_discount = sprintf("%.02f", ($item_amount / $amount_new) * $rowinvoice['discount']);
+                            }
+                            $item_assAmt = $item_amount - $item_discount;
+                            $item_assAmt2 = $item_assAmt;
+                            // $item_discount=$item_amount*($discount_number/100);
+                            if ($sgst == 1) {
+                                $item_cgstper = sprintf("%.02f", $item_assAmt2 * ($rowinvoice['cgstper'] / 100));
+                                $item_sgstper = sprintf("%.02f", $item_assAmt2 * ($rowinvoice['sgstper'] / 100));
+                                $item_igstper = 0;
+                            } else {
+                                $item_igstper = sprintf("%.02f", $item_assAmt2 * ($rowinvoice['igstper'] / 100));
+                                $item_cgstper = 0;
+                                $item_sgstper = 0;
+                            }
+                            $item_totItemVal = $item_assAmt2 + $item_cgstper + $item_sgstper + $item_igstper;
+                            // echo "tot ".$item_totItemVal."<br>";
+                            $item_gstRate = $rowinvoice['cgstper'] + $rowinvoice['sgstper'] + $rowinvoice['igstper'];
+                        }
+                    ?>
+                        <?php if ($rowitem['meter_option'] == 1) {
+                        ?>
+                            <tr>
+                                <td class="text-center"><?php echo $i; ?></td>
+                                <td><?php echo $rowitem['description']; ?></td>
+                                <td class="text-center"><?php echo $rowitem['meter']; ?></td>
+                                <?php if ($rowinvoice['potype'] == "Normal") { ?>
+                                    <td class="text-center"><?php echo $rowitem['rate']; ?></td>
+                                    <td class="text-right" style="padding-right: 8px;"> <?php echo sprintf("%.02f", $rowitem['amount']); ?></td>
+                                <?php } ?>
+                            </tr>
+                        <?php
+                        } else { ?>
+                            <tr>
+                                <td class="text-center"><?php echo $i; ?></td>
+                                <td><?php echo $rowitem['description']; ?></td>
+                                <td class="text-center"><?php echo $rowitem['qty']; ?></td>
+                                <?php if ($rowinvoice['potype'] == "Normal") { ?>
+                                    <td class="text-center"><?php echo $rowitem['rate']; ?></td>
+                                    <td class="text-right" style="padding-right: 8px;"> <?php echo sprintf("%.02f", $rowitem['amount']); ?></td>
+                                <?php } ?>
+                            </tr>
+                        <?php } ?>
+
+                    <?php
+                        $i++;
+                    }
+                    ?>
+                </tbody>
+            </table>
+            <table class="table table-bordered">
+                <tr>
+                    <td colspan="2" style="width: 60%;vertical-align: bottom">
+                        <?php if ($rowinvoice['status'] == 2) { ?>
+                            <div>
+                                <p>
+                                    <b>Irn No:</b> <?php echo $rowinvoice['irn']; ?> <br>
+                                    <b>Acknowledgment No:</b> <?php echo $rowinvoice['ack_no']; ?> <br>
+                                    <b>Acknowledgement Date:</b> <?php echo $rowinvoice['ack_dt']; ?> <br>
+                                    <!-- <b>Signed Invoice:</b> <?php // echo $rowinvoice['signed_invoice']; 
+                                                                ?> <br> -->
+                                </p>
+                            </div>
+                        <?php } ?>
+                        <?php
+                        if (!empty(trim($rowinvoice['brnnos']))) {
+                            echo "<b>BRN No :</b> " . $rowinvoice['brnnos'] . "<br>";
+                        }
+                        ?>
+                        <?php
+                        if (!empty(trim($rowinvoice['remark']))) {
+                            echo "<b>Remark :</b> " . $rowinvoice['remark'] . "<br>";
+                        }
+                        if (!empty(trim($rowinvoice['brnnos'])) || (!empty(trim($rowinvoice['remark'])))) {
+                            echo "<br>";
+                        }
+                        ?>
+                        PAN : AADCK0799A<br>
+                        GSTIN : 23AADCK0799A1ZV<br>
+                        SAC Code : 998393 Category : Scientific and Technical Consultancy Services<br>
+                        Udhyam Registeration No. Type of MSME : 230262102537<br>
+                        CIN NO.U73100MP2006PTC019006
+                        <br>
+
+                    </td>
+                    <td colspan="3">
+
+
+                        <div class="form-group row">
+                            <label class="col-xs-9 control-label text-right">
+                                Subtotal
+                            </label>
+                            <div class="col-xs-3 text-right"> <?php echo sprintf("%.02f", $rowinvoice['subtotal']); ?>
+                            </div>
+                        </div>
+                        <?php if (!empty($rowinvoice['discnumber'])) { ?>
+                            <div class="form-group row">
+                                <label class="col-xs-9 control-label text-right">Discount
+                                    (<?php echo $rowinvoice['discnumber']; ?><?php echo ($rowinvoice['disctype'] == "%") ? "%" : ""; ?>)
+                                </label>
+
+
+
+                                <div class="col-xs-3 text-right"> <?php echo sprintf("%.02f", $rowinvoice['discount']); ?></div>
+
+                            </div>
+                        <?php }
+                        if (!empty($rowinvoice['witnesscharges'])) { ?>
+
+                            <div class="form-group row">
+                                <label class="col-xs-9 control-label text-right">
+                                    Witness Charges (<?php echo $rowinvoice['witnessnumber']; ?><?php echo ($rowinvoice['witnesstype'] == "%") ? "%" : ""; ?>)
+                                </label>
+                                <div class="col-xs-3 text-right"><?php echo sprintf("%.02f", $rowinvoice['witnesscharges']); ?></div>
+                            </div>
+                        <?php }
+                        if (!empty($rowinvoice['samplehandling'])) { ?>
+
+                            <div class="form-group row">
+                                <label class="col-xs-9 control-label text-right">
+                                    Sample Handling
+                                </label>
+                                <div class="col-xs-3 text-right"><?php echo sprintf("%.02f", $rowinvoice['samplehandling']); ?></div>
+                            </div>
+                        <?php }
+                        if (!empty($rowinvoice['sampleprep'])) { ?>
+
+                            <div class="form-group row">
+                                <label class="col-xs-9 control-label text-right">
+                                    Sample Preparation Charges
+                                </label>
+                                <div class="col-xs-3 text-right"><?php echo sprintf("%.02f", $rowinvoice['sampleprep']); ?></div>
+                            </div>
+                        <?php }
+                        if (!empty($rowinvoice['freight'])) { ?>
+
+                            <div class="form-group row">
+                                <label class="col-xs-9 control-label text-right">
+                                    Freight Charges
+                                </label>
+                                <div class="col-xs-3 text-right"><?php echo sprintf("%.02f", $rowinvoice['freight']); ?></div>
+                            </div>
+                        <?php }
+                        if (!empty($rowinvoice['mobilisation'])) { ?>
+                            <div class="form-group row">
+                                <label class="col-xs-9 control-label text-right">
+                                    Mobilization and Demobilization Charges
+                                </label>
+                                <div class="col-xs-3 text-right">
+                                    <?php echo sprintf("%.02f", $rowinvoice['mobilisation']); ?>
+                                </div>
+                            </div>
+                        <?php } ?>
+                        <div class="form-group row">
+                            <label class="col-xs-9 control-label text-right">
+                                Total
+                            </label>
+                            <div class="col-xs-3 text-right"> <?php echo sprintf("%.02f", $rowinvoice['subtotal2']); ?>
+                            </div>
+                        </div>
+                        <div id="taxdiv">
+                            <?php if ($sgst == 1) { ?>
+                                <div class=" form-group row">
+                                    <label class="col-xs-9 control-label text-right">CGST <?php echo $rowinvoice['cgstper']; ?>%</label>
+                                    <div class="col-xs-3 text-right"><?php echo sprintf("%.02f", $rowinvoice['cgstamount']); ?></div>
+                                </div>
+                                <div class="form-group row">
+                                    <label class="col-xs-9 control-label text-right">SGST <?php echo $rowinvoice['sgstper']; ?>%</label>
+                                    <div class="col-xs-3 text-right"><?php echo sprintf("%.02f", $rowinvoice['sgstamount']); ?></div>
+                                </div>
+                            <?php } else { ?>
+                                <div class="form-group row">
+                                    <label class="col-xs-9 control-label text-right">IGST <?php echo $rowinvoice['igstper']; ?>%</label>
+                                    <div class="col-xs-3 text-right"><?php echo sprintf("%.02f", $rowinvoice['igstamount']); ?></div>
+                                </div>
+                            <?php } ?>
+                        </div>
+                        <div class="form-group row">
+                            <label class="col-xs-9 control-label text-right">
+                                Total Charges With tax
+                            </label>
+                            <div class="col-xs-3 text-right"> <?php echo sprintf("%.02f", $rowinvoice['total']); ?>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <label class="col-xs-9 control-label text-right">Round off </label>
+                            <div class="col-xs-3 text-right"><?php echo sprintf("%.02f", $rowinvoice['roundoff']); ?></div>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="2">
+                        (IN WORDS): Rs. <?php echo ucfirst(convert_number_to_words(round($rowinvoice['finaltotal']))) . " Only"; ?>
+                    </td>
+                    <td colspan="3">
+                        <div class=" form-group row">
+                            <label class="col-xs-9 control-label text-right">
+                                Total <?php echo $rowinvoice['typeofinvoice']; ?> Charges
+                            </label>
+
+                            <div class="col-xs-3 text-right"> <?php echo sprintf("%.02f", round($rowinvoice['finaltotal'])); ?>
+                            </div>
+                        </div>
+                    </td>
+
+                </tr>
+                <tr class="no-border">
+                    <td colspan="2">For online payments - <?php echo $bankaccountname; ?><br>
+                        Bank Name : <?php echo $bankname; ?>, Branch Name : <?php echo $bankbranch; ?> <br>
+                        Bank Account No. : <?php echo $bankaccountno; ?>, A/c Type : <?php echo $bankactype; ?> <br>
+                        IFSC CODE: <?php echo $bankifsccode; ?>, MICR CODE: <?php echo $bankmicr; ?>
+                        <br><!-- comment -->
+                        Certified that the particulars given above are true and correct. The commercial values in this document are as per contract/ Agreement/ Purchase order terms with the customer.
+                        <b>Declaration u/s 206 AB of Income Tax Act:</b> We have filed our Income Tax Return for previous two years with in specified due dates.
+                    </td>
+                    <td colspan="3">For <?php echo $companyname; ?><br>
+                        <?php
+                        if ($rowinvoice['status'] == 1 || $rowinvoice['status'] == 2) {
+                            if (!empty($rowinvoice['approved_by'])) {
+                                $username = $obj->selectfieldwhere("admin", "concat(firstname,' ',lastname,'\n','Designation:',designation)", "id ='" . $rowinvoice['approved_by'] . "'");
+                                $datedon = "";
+
+                                $datedon = "Date:" . isset($rowinvoice['approved_on']) && ($rowinvoice['approved_on'] != '0000-00-00 00:00:00') ? date("d/m/Y", strtotime($rowinvoice['approved_on'])) : '';
+                                $sign = $obj->selectextrawhere("admin", "id= " . $rowinvoice['approved_by']);
+                                $sign_user = $obj->fetch_assoc($sign);
+                        ?>
+                                <img src='<?php echo $obj->fetchattachment($sign_user['sign_image']); ?>' style="width: 100px; height:40px;" />
+                                <!-- <br> -->
+
+                        <?php
+                                $text = "Electronically signed by \n$username \n";
+
+                                $text .= "$datedon ";
+                                $name = "approvedby" . $rowinvoice['id'];
+
+                                $savepath = "uploads/invoicesign";
+                                $log = "";
+                                $digitalsign = PlaceWatermark("", $text, 2, 20, 100, TRUE, $name, $savepath, $log);
+                                echo '<img src="images/seal.png" style="width:80px;"/><img src="' . $digitalsign . '" />';
+                            }
+                        }
+                        ?>
+                        <br><u>Authorised Signatory </u>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="5">
+
+                        <b><u>Terms & Conditions: </u></b><br>
+                        <ol>
+                            <li>Cross Cheque/DD should be drawn in favour of <?php echo $companyname; ?> Payable at <?php echo $companycity; ?> </li>
+                            <li>Please attached bill details indicating Invoice No. Quotation no & TDS deductions if any along with your payment.</li>
+                            <li>As per existing GST rules. the GSTR-1 has to be filed in the immediate next month of billing. So if you have any issue in this tax invoice viz customer Name, Address, GST No., Amount etc, please inform positively in writing before 5th of next month, otherwise no such request will be entertained. </li>
+                            <li>Payment not made with in 15 days from the date of issued bill will attract interest @ 24% P.A.</li>
+			    <li>If the payment is to be paid in Cash pay to UPI <b>0795933A0099960.bqr@kotak</b> only and take official receipt. Else claim of payment, shall not be accepted</li>
+                            <li>Subject to exclusive jurisdiction of courts at <?php echo $companycity; ?> only. </li>
+                            <li>Errors & omissions accepted. </li>
+
+                        </ol>
+                    </td>
+                </tr>
+            </table>
+            <span style="text-align: center">This is a system generated invoice</span>
+
+
+            <?php
+            if ($rowinvoice['status'] == 0) {
+                if (in_array(269, $permissions) && $rowinvoice['finaltotal'] <= 5000) {
+                    echo '<button type="button" class="btn btn-success" onclick="del(\'' . $rowinvoice['id'] . '\',\'approveinvoice.php\',\'resultiddiv\',\'\',\'Approve\')">Approve</button>';
+                }
+                if (in_array(270, $permissions) && $rowinvoice['finaltotal'] > 5000) {
+                    echo  '<button type="button" class="btn btn-success" onclick="del(\'' . $rowinvoice['id'] . '\',\'approveinvoice.php\',\'resultiddiv\',\'\',\'Approve\')">Approve</button>';
+                }
+            }
+
+            $invoiceDateTimestamp = $rowinvoice['approved_on'];
+            $date = date("Y-m-d", strtotime($invoiceDateTimestamp));
+            $currentDateTimestamp = strtotime('2023-08-01');
+
+            // Check if the invoice date is greater than or equal to 2023-08-01
+            if (strtotime($date) >= $currentDateTimestamp && $rowinvoice['status'] == 1) {
+                if (in_array(466, $permissions) && $rowinvoice['finaltotal'] <= 5000 && $rowinvoice['finaltotal'] != 0) {  // && $rowinvoice['finaltotal'] != 0 -> for item value equal to zero then not generate einvoice
+                    echo '<button type="button" class="btn btn-success" onclick="validateGSTINPincode()">Generate E-Invoice</button>';
+                }
+                if (in_array(466, $permissions) && $rowinvoice['finaltotal'] > 5000 ) {
+                    echo '<button type="button" class="btn btn-success" onclick="validateGSTINPincode()">Generate E-Invoice</button>';
+                }
+            }
+            ?>
+        </div>
+    </div>
+</div>
+
+<?php
+$customerId = $rowinvoice['customerid'];
+$customer = $obj->selectextrawhere("customers", "id = $customerId");
+$customerdesc = $obj->fetch_assoc($customer);
+$country = $customerdesc['country'];
+$countrydesc = $obj->selectextrawhere("country", "id = $country");
+$countryCode = $obj->fetch_assoc($countrydesc);
+$countryIso = $countryCode['iso'];
+$addressId = $rowinvoice['addressid'];
+$address = $obj->selectextrawhere("`customer-address`", "id = $addressId");
+$customer_address = $obj->fetch_assoc($address);
+$customeraddress = $customer_address['address'];
+$restrictedCustomerAddress = substr($customeraddress, 0, 99);
+$invoice_date = $rowinvoice['approved_on'];
+$formatted_date = date_format(date_create($invoice_date), 'd/m/Y');
+$customerName = $rowinvoice['customername'];
+$restrictedCustomerName = substr($customerName, 0, 99);
+$gstin = $rowinvoice['gstno'];
+
+$pattern = "/^([0-9]{2}[A-Z 0-9]{13})|URP$/";
+
+if (preg_match($pattern, $gstin, $matches)) {
+    $gstin = ltrim($matches[1], "-");
+    // echo "Gstin: " . $gstin;
+}
+$statename = ((is_numeric($statecode)) ? $gstarray[$statecode] : $statecode);
+$total = sprintf("%.02f", $rowinvoice['total']);
+// echo $total . " ";
+
+$subtotal = sprintf("%.02f", $rowinvoice['subtotal']);
+// echo $subtotal . " ";
+
+$discount = sprintf("%.02f", $rowinvoice['discount']);
+// echo $discount . " ";
+
+$discount_number = floatval($rowinvoice['discnumber']);
+
+if (!empty($rowinvoice['witnesscharges']) || !empty($rowinvoice['samplehandling']) || !empty($rowinvoice['sampleprep']) || !empty($rowinvoice['freight']) || !empty($rowinvoice['mobilisation'])) {
+    $otherCharge = sprintf("%.02f", $rowinvoice['witnesscharges'] + $rowinvoice['samplehandling'] + $rowinvoice['sampleprep'] + $rowinvoice['freight'] + $rowinvoice['mobilisation']);
+} else {
+    $otherCharge = 0;
+}
+
+$assAmt = ($subtotal - $discount) + $otherCharge;
+// echo $assAmt . " ";
+
+if ($sgst == 1) {
+    // $cgstper = sprintf("%.02f", $assAmt * ($rowinvoice['cgstper'] / 100));
+    $cgstper = round($assAmt * ($rowinvoice['cgstper'] / 100), 2);
+    // $sgstper = sprintf("%.02f", $assAmt * ($rowinvoice['sgstper'] / 100));
+    $sgstper = round($assAmt * ($rowinvoice['sgstper'] / 100), 2);
+    $igstper = 0;
+} else {
+    // $igstper = sprintf("%.02f", $assAmt * ($rowinvoice['igstper'] / 100));
+    $igstper = round($assAmt * ($rowinvoice['igstper'] / 100), 2);
+    $cgstper = 0;
+    $sgstper = 0;
+}
+
+// $roundoff = sprintf("%.02f", $rowinvoice['roundoff']);
+$roundoff = round($rowinvoice['roundoff'], 2);
+
+$TotInvValFc = $assAmt + $cgstper + $sgstper + $igstper;
+// echo $TotInvValFc . " ";
+$TotInvVal = $assAmt + $cgstper + $sgstper + $igstper + $roundoff;
+// echo $TotInvVal . " ";
+
+?>
+
+
+<script>
+var parsedData = null; // Global variable
+    var country = "<?php echo $country; ?>"; // Get the value of $country from PHP
+
+    $(document).ready(function() {
+        detailsGST()
+            .then(function(result) {
+                parsedData = result; // Store the taxType value in the global variable
+                // Add validation for parsedData here
+                console.log(parsedData);
+                if (parsedData === null) {
+                    var errorMessage = "GST info is null. Unable to proceed further.";
+                    alertify.alert('Error', errorMessage);
+                    // Optionally, you can also log the error message to the console
+                    console.error(errorMessage);
+                    return;
+                }
+            })
+            .catch(function(error) {
+                console.error("Error in fetching taxType:", error);
+            });
+    });
+
+    // Your existing detailsGST() function with Promise implementation
+    function detailsGST() {
+        return new Promise(function(resolve, reject) {
+            var url = "./alankitGST.php?invoiceid=<?php echo $invoiceid; ?>&gst=<?php echo $gstin; ?>";
+            // var url = "./alankitGST_Test.php?invoiceid=<?php // echo $invoiceid; 
+                                                            ?>&gst=<?php // echo $gstin; 
+                                                            ?>";
+        
+            $.ajax({
+                url: url,
+                type: "GET",
+                dataType: "json",
+                success: function(response) {
+                    var parsedData = response;
+                    console.log(' run the alankitGST ');
+                    // var taxType = parsedData.TxpType;
+                    resolve(parsedData); // Resolve the Promise with the taxType value
+                },
+                error: function(xhr, status, error) {
+                    console.log("AJAX Request Error:", error);
+
+                    reject(error); // Reject the Promise if there's an error
+                }
+            });
+        });
+    }
+    <?php if ($rowinvoice['invoiceno']  != 'FOC') { ?>
+
+        function einvoice() {
+            // console.log(parsedData.TxpType);
+            var taxTypeToSend, reverseCharge;
+            if (country === "1") {
+                if (parsedData.TxpType === "REG" || parsedData.TxpType === "TDS" || parsedData.TxpType === "COM") {
+                    taxTypeToSend = "B2B";
+                    reverseCharge = "N";
+                } else if (parsedData.TxpType === "SEZ") {
+                    taxTypeToSend = "SEZWOP";
+                    reverseCharge = "N";
+                } else {
+                    // Handle other tax types if needed
+                    console.error("Unsupported taxType:", parsedData.TxpType);
+                    return; // Exit the function if the taxType is not supported
+                }
+            } else {
+                taxTypeToSend = "EXPWOP";
+                reverseCharge = "N";
+            }
+            var gstin = (country === "1") ? "<?php echo $rowinvoice['gstno']; ?>" : "URP";
+            var pincode = (country === "1") ? <?php echo intval($customer_address['pincode']); ?> : 999999;
+            var statecode = (country === "1") ? "<?php echo (is_numeric($statecode)) ? $statecode : 'NA'; ?>" : "96";
+            // var reverseCharge = (country === "1") ? "Y" : "N";
+
+            var url = "./alankitGSTProcessig.php?invoiceid=<?php echo $invoiceid; ?>";
+            // var url = "./alankitGSTProcessig_Test.php?invoiceid=<?php // echo $invoiceid; 
+                                                                    ?>";
+
+            var itemList = [];
+            <?php
+            $totalQuantity = 0;
+            $resultitem = $obj->selectextrawhere("invoicerow", "invoiceid=$invoiceid and status=1");
+            while ($rowitem = $obj->fetch_assoc($resultitem)) {
+                $totalQuantity += $rowitem['qty'];
+            }
+            $i = 1;
+            $resultitem = $obj->selectextrawhere("invoicerow", "invoiceid=$invoiceid and status=1");
+            // Get the number of rows
+            $numRows = $resultitem->num_rows;
+            while ($rowitem = $obj->fetch_assoc($resultitem)) {
+
+                $item_amount_old = $rowitem['amount'];
+
+                if (!empty($rowinvoice['witnesscharges']) || !empty($rowinvoice['samplehandling']) || !empty($rowinvoice['sampleprep']) || !empty($rowinvoice['freight']) || !empty($rowinvoice['mobilisation'])) {
+                    $item_otherCharges = sprintf("%.02f", $rowinvoice['witnesscharges'] + $rowinvoice['samplehandling'] + $rowinvoice['sampleprep'] + $rowinvoice['freight'] + $rowinvoice['mobilisation']);
+                    $item_otherCharge = sprintf("%.02f", ($item_otherCharges / $totalQuantity) * $rowitem['qty']);
+                    // $item_otherCharge = sprintf("%.02f", ($item_amount_old / $rowinvoice['subtotal']) * $item_otherCharges);
+                } else {
+                    $item_otherCharge = 0;
+                }
+                $item_amount = $item_amount_old + $item_otherCharge;
+
+                $amount_new = $rowinvoice['subtotal'] + $otherCharge;
+                // echo $item_amount." ";
+                if ($rowinvoice['disctype'] == 'amount') {
+                    // $item_discount = sprintf("%.02f", ($rowinvoice['discnumber'] / $totalQuantity)*$rowitem['qty']);
+                    // $item_discount = sprintf("%.02f", ($item_amount/$rowinvoice['subtotal'])*$rowinvoice['discnumber'] );                
+                    $item_discount = sprintf("%.02f", ($item_amount / $amount_new) * $rowinvoice['discnumber']);
+                } else {
+                    // $item_discount = sprintf("%.02f", $item_amount * ($discount_number / 100));
+                    // $item_discount = sprintf("%.02f",($rowinvoice['discount'] / $totalQuantity)*$rowitem['qty']);
+                    // $item_discount = sprintf("%.02f", ($item_amount/$rowinvoice['subtotal'])*$rowinvoice['discount'] );      
+                    $item_discount = sprintf("%.02f", ($item_amount / $amount_new) * $rowinvoice['discount']);
+                }
+                $item_assAmt = $item_amount - $item_discount;
+                $item_assAmt2 = $item_assAmt;
+                // $item_discount=$item_amount*($discount_number/100);
+                if ($sgst == 1) {
+                    $item_cgstper = sprintf("%.02f", $item_assAmt2 * ($rowinvoice['cgstper'] / 100));
+                    $item_sgstper = sprintf("%.02f", $item_assAmt2 * ($rowinvoice['sgstper'] / 100));
+                    $item_igstper = 0;
+                } else {
+                    $item_igstper = sprintf("%.02f", $item_assAmt2 * ($rowinvoice['igstper'] / 100));
+                    $item_cgstper = 0;
+                    $item_sgstper = 0;
+                }
+                $item_totItemVal = $item_assAmt2 + $item_cgstper + $item_sgstper + $item_igstper;
+
+                $item_gstRate = $rowinvoice['cgstper'] + $rowinvoice['sgstper'] + $rowinvoice['igstper'];
+
+            ?>
+                var item = {
+                    "SlNo": "<?php echo $i; ?>",
+                    "PrdDesc": "<?php echo $rowitem['description']; ?>",
+                    "IsServc": "Y",
+                    "HsnCd": "998393",
+                    "Qty": <?php if ($rowitem['meter_option'] == 1) {
+                                echo $rowitem['meter'];
+                            } else {
+                                echo $rowitem['qty'];
+                            } ?>,
+                    "UnitPrice": "<?php echo $rowitem['rate']; ?>",
+                    "TotAmt": "<?php echo $item_amount; ?>",
+                    "Discount": "<?php echo ($item_discount); ?>",
+                    "AssAmt": "<?php echo $item_assAmt; ?>",
+                    "GstRt": "<?php echo $item_gstRate; ?>",
+                    "IgstAmt": "<?php echo ($item_igstper); ?>",
+                    "CgstAmt": "<?php echo ($item_cgstper); ?>",
+                    "SgstAmt": "<?php echo ($item_sgstper); ?>",
+                    "OthChrg": "0",
+                    "TotItemVal": "<?php echo ($item_totItemVal); ?>"
+                }
+                itemList.push(item);
+            <?php
+                $i++;
+            }
+            ?>
+            // RegRev and IgstOnIntra
+            var payload = {
+                "Version": "1.1",
+                "TranDtls": {
+                    "TaxSch": "GST",
+                    "SupTyp": taxTypeToSend,
+                    "RegRev": reverseCharge,
+                    "EcmGstin": null,
+                    "IgstOnIntra": "N"
+                },
+                "DocDtls": {
+                    "Typ": "INV",
+                    "No": "<?php echo $rowinvoice['invoiceno']; ?>",
+                    "Dt": "<?php echo $formatted_date; ?>"
+                },
+                "SellerDtls": {
+                    "Gstin": "23AADCK0799A1ZV",
+                    "LglNm": "KAILTECH TEST AND RESEARCH CENTRE PVT LTD.",
+                    "TrdNm": "KAILTECH TEST AND RESEARCH CENTRE PVT LTD.",
+                    "Addr1": "Plot No. 141-C, Electronic Complex Industrial Area, Indore",
+                    "Loc": "BHOPAL",
+                    "Pin": 452010,
+                    "Stcd": "23"
+                },
+                "BuyerDtls": {
+                    "Gstin": gstin,
+                    "LglNm": "<?php echo $restrictedCustomerName; ?>",
+                    "Pin": pincode,
+                    "Pos": statecode,
+                    "Addr1": "<?php echo str_replace(["\r", "\n"], ' ', $restrictedCustomerAddress); ?>",
+                    "Loc": "<?php echo $customer_address['city']; ?>",
+                    "Stcd": statecode
+                },
+                "ItemList": itemList,
+                "ValDtls": {
+                    "AssVal": "<?php echo ($assAmt); ?>",
+                    "CgstVal": "<?php echo ($cgstper); ?>",
+                    "SgstVal": "<?php echo ($sgstper); ?>",
+                    "IgstVal": "<?php echo ($igstper); ?>",
+                    "OthChrg": "0",
+                    "RndOffAmt": "<?php echo $roundoff; ?>",
+                    "TotInvVal": "<?php echo ($TotInvVal); ?>",
+                    "TotInvValFc": "<?php echo ($TotInvValFc); ?>"
+                },
+                "ExpDtls": {
+                    "CntCode": "<?php echo $countryIso; ?>"
+                }
+            }
+
+            var request = new Request(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload)
+            });
+            alertify.confirm('Validate', 'Are you sure you want to generate E-Invoice?', async function() {
+                    try {
+
+                        // Send the request and wait for the response
+                        var response = await fetch(request);
+                        // Get the response text
+                        var responseText = await response.text();
+                        // Handle the response
+                        if (response.ok) {
+                            try {
+                                // var data = JSON.parse(responseText);
+                                //                                     console.log('now i am here')
+                                //   console.log(data);
+                            } catch (e) {
+                                console.error('Error parsing JSON data:', e);
+                            }
+
+                            // Show success message and reload the page
+                            alertify.alert('E-Invoice Generated', 'Successfully !! ', function() {
+                                location.reload();
+                            });
+                        } else {
+                            console.error('Error:', response.status, responseText);
+                            // Show error message
+                            alertify.alert('Error', 'Failed to generate E-Invoice. Please try again later.');
+                        }
+                    } catch (error) {
+                        // Handle any errors
+                        
+
+                        console.error('Error:', error);
+                        // Show error message
+                        alertify.alert('Error', 'An error occurred while generating E-Invoice. Please try again later.');
+                    }
+                },
+                function() {
+                    alertify.error('Cancel')
+                }).set('closable', false);
+        }
+    <?php } ?>
+
+    function validateGSTINPincode() {
+        // Get the values of gstin and pincode
+        var gstin = "<?php echo $gstin; ?>";
+        var pincode = <?php echo intval($customer_address['pincode']); ?>;
+        var statename = "<?php echo $statename; ?>";
+        if (country === "1") {
+            if (!gstin || gstin === "0" || gstin === "NA" || !pincode || pincode === 0 || pincode === "NA") {
+                // Show alert message for invalid GSTIN or pincode
+                alertify.alert("Invalid GSTIN or pincode. Unable to generate E-Invoice.");
+                return;
+            }
+// 		console.log(parsedData+"sesee"+pincode);
+		
+            if (parsedData.AddrPncd === pincode) {
+                einvoice(); // Call the einvoice function
+            } else {
+                // State name does not match with the provided pincode
+                alertify.alert("Pincode and state do not match. The provided pincode is " + pincode + " but the actual pincode is " + parsedData.AddrPncd + ". Unable to generate E-Invoice.");
+            }
+        } else {
+            einvoice();
+        }
+    }
+
+    function viewMail(id) {
+        alertify.confirm('Validate', 'Are you sure you want to Send Mail?', async function() {
+                // User confirmed, proceed with the action
+                var url = "mailInvoice.php?&matata=" + id;
+                addoverlay(); // Show loader
+                $.ajax({
+                    url: url,
+                    type: "GET",
+                    success: function(data) {
+                        alert("Successfully approved.");
+                        location.reload(); // Reload the current page
+                    },
+                    error: function() {
+                        alert("An error occurred while processing the request.");
+                    },
+                    complete: function() {
+                        removeoverlay(); // Hide loader in any case (success or error)
+                    }
+                });
+            },
+            function() {
+                alertify.error('Cancel'); // User canceled the action
+            });
+    }
+
+    function addoverlay() {
+        var overlay = $('<div id="overlay"></div>');
+        overlay.appendTo("body");
+    }
+
+    function removeoverlay() {
+        $("#overlay").remove();
+    }
+</script>
+
+<?php
+//Assign all Page Specific variables
+$pagemaincontent = ob_get_contents();
+ob_end_clean();
+$pagetitle = "Manage Inward Enry";
+$pagemeta = "Some Meta Goes Here";
+$pagekeywords = "Some keywords Goes here";
+$contentheader = "Inward Entry List";
+//Apply the template
+include("template.php");
+?>
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-07-20T11:54:24+05:30.
+
+The user's current state is as follows:
+Active Document: c:\Users\pc-obe\Desktop\lims-kailtech\src\app\pages\dashboards\inventory\din-list\AddDin.jsx (LANGUAGE_JAVASCRIPT)
+Cursor is on line: 1
+Other open documents:
+- c:\Users\pc-obe\Desktop\lims-kailtech\src\app\pages\dashboards\action-items\allot-sample\AllotSampleForm.jsx (LANGUAGE_JAVASCRIPT)
+- c:\Users\pc-obe\Desktop\lims-kailtech\src\app\pages\dashboards\action-i
+<truncated 850 bytes>
+
+NOTE: The output was truncated because it was too long. Use a more targeted query or a smaller range to get the information you need.
+
+---
+
+<USER_REQUEST>
+in this api `/einvoice/generate?invoiceid=${id}` can you tell me the payload we are sending
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-07-20T11:59:12+05:30.
+
+The user's current state is as follows:
+Active Document: c:\Users\pc-obe\Desktop\lims-kailtech\src\app\pages\dashboards\accounts\calibration-invoice-list\ViewCalibrationInvoice.jsx (LANGUAGE_JAVASCRIPT)
+Cursor is on line: 1161
+Other open documents:
+- c:\Users\pc-obe\Desktop\lims-kailtech\src\app\pages\dashboards\accounts\calibration-invoice-list\ViewCalibrationInvoice.jsx (LANGUAGE_JAVASCRIPT)
+- c:\Users\pc-obe\Desktop\lims-kailtech\src\app\pages\dashboards\inventory\din-list\AddDin.jsx (LANGUAGE_JAVASCRIPT)
+Running terminal commands:
+- npm run dev (in c:\Users\pc-obe\Desktop\lims-kailtech, running for 52m21s)
+</ADDITIONAL_METADATA>
+
+---
+
+<USER_REQUEST>
+what's the difference between code and this php code logic <?php
+include './session.php';
+include "phpqrcode/qrlib.php";
+
+/* @var $obj  db */
+
+$invoiceid = $_GET['matata'];
+$resultinvoice = $obj->selectextrawhere("invoices", " id=$invoiceid");
+$rowinvoice = $obj->fetch_assoc($resultinvoice);
+$resultaddressID = $obj->selectextrawhere("`customer-address`", " id=" . $rowinvoice['addressid']);
+$rowaddressID = $obj->fetch_assoc($resultaddressID);
+$meterinvoicerow = $obj->selectextrawhere("invoicerow", "invoiceid=$invoiceid and status=1");
+$meter_invoicerow = $obj->fetch_assoc($meterinvoicerow);
+$inwardid = $rowinvoice['inwardid'];
+$id = $rowinvoice['id'];
+$rowinward = array();
+if (!empty($inwardid)) {
+    if ($rowinvoice['typeofinvoice'] == "Testing") {
+        $resultinward = $obj->selectextrawhere("trfs", "id in ($inwardid)");
+        $rowinward = $obj->fetch_assoc($resultinward);
+    } else {
+        $resultinward = $obj->selectextrawhere("inwardentry", "id in ($inwardid)");
+        $rowinward = $obj->fetch_assoc($resultinward);
+    }
+}
+$statecode = (is_numeric($rowinvoice['statecode'])) ? sprintf("%02d", $rowinvoice['statecode']) : $rowinvoice['statecode'];
+
+$panno = $rowinvoice['pan'];
+$sgst = 0;
+if ($statecode == 23) {
+    $sgst = 1;
+}
+?>
+
+<style>
+    @media screen {
+        div.letterheadfooter {
+            display: none;
+        }
+
+        .letterheadfooter {
+            display: none;
+        }
+    }
+
+    /*@media print {*/
+    table,
+    td,
+    th,
+    tr {
+        background: transparent !important;
+    }
+
+    @media print {
+        .letterheadfooter {
+            position: absolute;
+            margin-top: 12.57in;
+            left: 0;
+        }
+    }
+
+    <?php if ($rowinvoice['status'] == 0) {
+    ?>.box-body {
+        /*background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' version='1.1' ><text x='0%' y='0%' fill='grey' font-size='100'>DRAFT</text></svg>") no-repeat center ;*/
+        overflow-x: hidden;
+
+        background-image: url("images/draft.png");
+        background-repeat: no-repeat;
+        background-position: center;
+    }
+
+    <?php } ?>
+</style>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+
+
+<div class="box box-info">
+    <div class="box-header no-print" id="catid">
+        <a href="exportinvoicetopdf.php?matata=<?php echo $invoiceid; ?>" class="btn bconsoletn-info">Export PDF Invoice</a>
+        <!-- <?php // if(in_array(485,$permissions)){
+                ?>
+        <button type="button" class="btn btn-success" onclick=viewMail(<?php echo $invoiceid; ?>)>Send Mail</button>
+        <?php // } 
+        ?> -->
+        <a href="exportinvoicewithoutletterheadtopdf.php?matata=<?php echo $invoiceid; ?>" class="btn btn-info">Export PDF Without LetterHead Invoice</a>
+
+        <?php if ($rowinvoice['typeofinvoice'] == "Calibration") { ?>
+            <a href="invoiceList.php" class="btn btn-info">Back To Invoice list</a>
+        <?php } else { ?>
+            <a href="tinvoices.php" class="btn btn-info">Back To Invoice list</a>
+        <?php } ?>
+    </div>
+    <div class="box-body" id="catid" style="overflow: hidden;">
+        <div class="page">
+            <div class="row">
+                <div class="col-xs-3"><img src="<?php echo $companylogo; ?>" /></div>
+                <div class="col-xs-9">
+                    <div style="font-size: 15px;font-family: monospace;font-style: italic;text-align: right">NABL Accredited as per IS/ISO/IEC 17025 (Certificate Nos. TC-7832 & CC-2348),<br>
+                        BIS Recognized & ISO 9001 Certified Test & Calibration Laboratory</div>
+                    <h2 style="color: navy;font-weight: bold"><?php echo $companyname; ?> </h2>
+
+                </div>
+                <div class="col-xs-4">
+                    <div style="font-size: 17px;text-align: center;"><b>TAX INVOICE</b><br><!-- comment -->
+                        For <?php echo $rowinvoice['typeofinvoice']; ?> Charges</div>
+
+                </div>
+                <div class="col-xs-4">
+                    <div style="font-size: 17px;text-align: right;">ORIGINAL FOR RECIPIENT<br><!-- comment -->
+                    </div>
+
+                </div>
+            </div>
+            <div class='letterheadfooter'>
+                <img src="images/letterheadfootermono.png">
+            </div>
+            <table class="table table-bordered">
+                <tr>
+                    <td colspan="2" style="width: 60%">
+                        <div class="col-xs-12">
+                            <b>Customer:<br></b>
+                            <?php
+                            echo "M / s . " . $rowinvoice['customername'] . "<br>";
+                            echo $rowaddressID['address'] . ", " . $rowaddressID['city'] . ", " . $rowaddressID['pincode'];
+                            // echo $rowinvoice['address'] . "<br>";
+                            ?>
+
+                        </div>
+
+                        <div class="col-xs-8"><?php echo "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>State name : </b>" . ((is_numeric($statecode)) ? $gstarray[$statecode] : $statecode); ?>
+                        </div>
+                        <div class="col-xs-4"><?php echo "<b>State code : </b>" . ((is_numeric($statecode)) ? $statecode : "NA"); ?></div>
+
+
+
+                        <div class="col-xs-8"> <?php echo "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>GSTIN/UIN : </b>" . $rowinvoice['gstno']; ?></div>
+                        <div class="col-xs-4"><?php echo "<b>PAN : </b>" . $panno; ?></div>
+                        <div class="col-xs-12" style="font-size: 12px">
+                            <br>
+                            <?php if (isset($rowinward['concernpersonname'])) { ?>
+                                Kind Attn. <?php echo $obj->selectfieldwhere("`customer-contact`", "name", "id='" . $rowinward['concernpersonname'] . "'"); ?>
+                        </div>
+                    <?php } ?>
+                    </td>
+                    <td colspan="3" style="border-right:none;"> <?php echo "<b>Invoice No. : </b> " . $rowinvoice['invoiceno']; ?><br>
+                        <?php echo "<b>Date : </b>", isset($rowinvoice['approved_on']) && ($rowinvoice['approved_on'] != '0000-00-00 00:00:00') ? date("d/m/Y", strtotime($rowinvoice['approved_on'])) : ''; ?><br>
+                        <?php echo "<b>P.O. No./ Date : </b> " . $rowinvoice['ponumber']; ?><br>
+                    </td>
+                    <?php if ($rowinvoice['status'] == 2) {
+
+                        //$rowinvoice['signed_qr_code'] = "eyJhbGciOiJSUzI1NiIsImtpZCI6IkI4RDYzRUNCNThFQTVFNkY0QUFDM0Q1MjQ1NDNCMjI0NjY2OUIwRjgiLCJ4NXQiOiJ1TlkteTFqcVhtOUtyRDFTUlVPeUpHWnBzUGciLCJ0eXAiOiJKV1QifQ.eyJkYXRhIjoie1wiU2VsbGVyR3N0aW5cIjpcIjIzQUFEQ0swNzk5QTFaVlwiLFwiQnV5ZXJHc3RpblwiOlwiMjNBQkJQVzYwNTJFMVpVXCIsXCJEb2NOb1wiOlwiS1RSQy8yMDIzMTIyNFwiLFwiRG9jVHlwXCI6XCJJTlZcIixcIkRvY0R0XCI6XCIwMS8wOC8yMDIzXCIsXCJUb3RJbnZWYWxcIjoxMzgwNixcIkl0ZW1DbnRcIjozLFwiTWFpbkhzbkNvZGVcIjpcIjk5ODM5M1wiLFwiSXJuXCI6XCI2ZWQ0MWY0MGQ2YTYwZGExZDQzY2NlZGEwMWVjZTcxNzJiMDliNTI3NWU2NGE3YTJiYzA3Y2RjOTI3OGY3ODRlXCIsXCJJcm5EdFwiOlwiMjAyMy0wOC0wMSAxMTo1ODowMFwifSIsImlzcyI6Ik5JQyJ9.HACEKknrFo4UWDwHyw3xscS_kwS8eqAVOdvJlTFRZFLgEiVWcKge5s6lwFJ75QDHBtyI99k0xkOaAA_JCSJoBamsBzhwAsoW0OEiQ2lYyea6zI301_0dkBTDjvdImo6JpG-N2GRXONxepWE8m9VCe-oNa9bLFB0xNNvBujU_V9lRChLfQMTesdNKboaHGBhzKXxs678wVR7oEo5iar_an5Z216d9sBtI7LOszVAW8jnlwk_xz9PkUYFaBz3uAFKYccm69HCqYSp1xaX3RWr1nq7e-wWAocdnlr5ozIv2fBwJfio1hmIfK-VHfU5wWmpMfoTVidpQhyTT1zZEseFD8Q" ;
+                        $qname = "qrimage_" . $invoiceid . ".png";
+                        $qname_path = 'qrcodes/' . $qname;
+                        QRcode::png($rowinvoice['signed_qr_code'], $qname_path);
+                    ?>
+                        <td style="border-left:none;">
+                            <div style="border:2px solid black; overflow:hidden;">
+                                <img style="width:100%;" src="<?php echo $qname_path; ?>" alt="">
+                            </div>
+                        </td>
+                    <?php } ?>
+
+                </tr>
+            </table>
+            <table class="table table-condensed table-bordered table-striped">
+                <thead>
+                    <tr>
+                        <th class="text-center" style="width:10%">S. No. </th>
+                        <th class="text-center" style="width:50%"><b>Description</b></th>
+                        <th class="text-center"><b><?php if ($meter_invoicerow['meter_option'] == 1) {
+                                                        echo "Meter's";
+                                                    } else {
+                                                        echo "No's ";
+                                                    } ?> </b></th>
+                        <?php if ($rowinvoice['potype'] == "Normal") { ?>
+                            <th class="text-center"> <b>Rate</b></th>
+                            <th class="text-center"> <b>Amount</b></th>
+                        <?php } ?>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php
+                    $totalQuantity = 0;
+                    $resultitem = $obj->selectextrawhere("invoicerow", "invoiceid=$invoiceid and status=1");
+                    while ($rowitem = $obj->fetch_assoc($resultitem)) {
+                        $totalQuantity += $rowitem['qty'];
+                    }
+                    // echo $totalQuantity;
+                    $i = 1;
+
+                    $discount_number = floatval($rowinvoice['discnumber']);
+                    $resultitem = $obj->selectextrawhere("invoicerow", "invoiceid=$invoiceid and status=1");
+                    $numRows = $resultitem->num_rows;
+                    while ($rowitem = $obj->fetch_assoc($resultitem)) {
+                        if ($rowinvoice['invoiceno']  != 'FOC') {
+                            $item_amount_old = $rowitem['amount'];
+
+                            if (!empty($rowinvoice['witnesscharges']) || !empty($rowinvoice['samplehandling']) || !empty($rowinvoice['sampleprep']) || !empty($rowinvoice['freight']) || !empty($rowinvoice['mobilisation'])) {
+                                $item_otherCharges = sprintf("%.02f", $rowinvoice['witnesscharges'] + $rowinvoice['samplehandling'] + $rowinvoice['sampleprep'] + $rowinvoice['freight'] + $rowinvoice['mobilisation']);
+                                $item_otherCharge = sprintf("%.02f", ($item_otherCharges / $totalQuantity) * $rowitem['qty']);
+                                // $item_otherCharge = sprintf("%.02f", ($item_amount_old / $rowinvoice['subtotal']) * $item_otherCharges);
+                                // echo "other ".$item_otherCharge." ";
+                            } else {
+                                $item_otherCharge = 0;
+                            }
+                            $item_amount = $item_amount_old + $item_otherCharge;
+                            if (!empty($rowinvoice['witnesscharges']) || !empty($rowinvoice['samplehandling']) || !empty($rowinvoice['sampleprep']) || !empty($rowinvoice['freight']) || !empty($rowinvoice['mobilisation'])) {
+                                $otherCharge = sprintf("%.02f", $rowinvoice['witnesscharges'] + $rowinvoice['samplehandling'] + $rowinvoice['sampleprep'] + $rowinvoice['freight'] + $rowinvoice['mobilisation']);
+                            } else {
+                                $otherCharge = 0;
+                            }
+                            $amount_new = $rowinvoice['subtotal'] + $otherCharge;
+                            // echo $rowinvoice['subtotal'];   
+                            // echo "amount ".$item_amount." ";
+                            if ($rowinvoice['disctype'] == 'amount') {
+                                // $item_discount = sprintf("%.02f", ($rowinvoice['discnumber'] / $totalQuantity)*$rowitem['qty']);
+                                // $item_discount = sprintf("%.02f", ($item_amount/$rowinvoice['subtotal'])*$rowinvoice['discnumber'] );
+                                $item_discount = sprintf("%.02f", ($item_amount / $amount_new) * $rowinvoice['discnumber']);
+                            } else {
+                                // $item_discount = sprintf("%.02f", $item_amount * ($discount_number / 100));
+                                // $item_discount = sprintf("%.02f",($rowinvoice['discount'] / $totalQuantity)*$rowitem['qty']);
+                                // $item_discount = sprintf("%.02f", ($item_amount/$rowinvoice['subtotal'])*$rowinvoice['discount'] );           
+                                $item_discount = sprintf("%.02f", ($item_amount / $amount_new) * $rowinvoice['discount']);
+                            }
+                            $item_assAmt = $item_amount - $item_discount;
+                            $item_assAmt2 = $item_assAmt;
+                            // $item_discount=$item_amount*($discount_number/100);
+                            if ($sgst == 1) {
+                                $item_cgstper = sprintf("%.02f", $item_assAmt2 * ($rowinvoice['cgstper'] / 100));
+                                $item_sgstper = sprintf("%.02f", $item_assAmt2 * ($rowinvoice['sgstper'] / 100));
+                                $item_igstper = 0;
+                            } else {
+                                $item_igstper = sprintf("%.02f", $item_assAmt2 * ($rowinvoice['igstper'] / 100));
+                                $item_cgstper = 0;
+                                $item_sgstper = 0;
+                            }
+                            $item_totItemVal = $item_assAmt2 + $item_cgstper + $item_sgstper + $item_igstper;
+                            // echo "tot ".$item_totItemVal."<br>";
+                            $item_gstRate = $rowinvoice['cgstper'] + $rowinvoice['sgstper'] + $rowinvoice['igstper'];
+                        }
+                    ?>
+                        <?php if ($rowitem['meter_option'] == 1) {
+                        ?>
+                            <tr>
+                                <td class="text-center"><?php echo $i; ?></td>
+                                <td><?php echo $rowitem['description']; ?></td>
+                                <td class="text-center"><?php echo $rowitem['meter']; ?></td>
+                                <?php if ($rowinvoice['potype'] == "Normal") { ?>
+                                    <td class="text-center"><?php echo $rowitem['rate']; ?></td>
+                                    <td class="text-right" style="padding-right: 8px;"> <?php echo sprintf("%.02f", $rowitem['amount']); ?></td>
+                                <?php } ?>
+                            </tr>
+                        <?php
+                        } else { ?>
+                            <tr>
+                                <td class="text-center"><?php echo $i; ?></td>
+                                <td><?php echo $rowitem['description']; ?></td>
+                                <td class="text-center"><?php echo $rowitem['qty']; ?></td>
+                                <?php if ($rowinvoice['potype'] == "Normal") { ?>
+                                    <td class="text-center"><?php echo $rowitem['rate']; ?></td>
+                                    <td class="text-right" style="padding-right: 8px;"> <?php echo sprintf("%.02f", $rowitem['amount']); ?></td>
+                                <?php } ?>
+                            </tr>
+                        <?php } ?>
+
+                    <?php
+                        $i++;
+                    }
+                    ?>
+                </tbody>
+            </table>
+            <table class="table table-bordered">
+                <tr>
+                    <td colspan="2" style="width: 60%;vertical-align: bottom">
+                        <?php if ($rowinvoice['status'] == 2) { ?>
+                            <div>
+                                <p>
+                                    <b>Irn No:</b> <?php echo $rowinvoice['irn']; ?> <br>
+                                    <b>Acknowledgment No:</b> <?php echo $rowinvoice['ack_no']; ?> <br>
+                                    <b>Acknowledgement Date:</b> <?php echo $rowinvoice['ack_dt']; ?> <br>
+                                    <!-- <b>Signed Invoice:</b> <?php // echo $rowinvoice['signed_invoice']; 
+                                                                ?> <br> -->
+                                </p>
+                            </div>
+                        <?php } ?>
+                        <?php
+                        if (!empty(trim($rowinvoice['brnnos']))) {
+                            echo "<b>BRN No :</b> " . $rowinvoice['brnnos'] . "<br>";
+                        }
+                        ?>
+                        <?php
+                        if (!empty(trim($rowinvoice['remark']))) {
+                            echo "<b>Remark :</b> " . $rowinvoice['remark'] . "<br>";
+                        }
+                        if (!empty(trim($rowinvoice['brnnos'])) || (!empty(trim($rowinvoice['remark'])))) {
+                            echo "<br>";
+                        }
+                        ?>
+                        PAN : AADCK0799A<br>
+                        GSTIN : 23AADCK0799A1ZV<br>
+                        SAC Code : 998393 Category : Scientific and Technical Consultancy Services<br>
+                        Udhyam Registeration No. Type of MSME : 230262102537<br>
+                        CIN NO.U73100MP2006PTC019006
+                        <br>
+
+                    </td>
+                    <td colspan="3">
+
+
+                        <div class="form-group row">
+                            <label class="col-xs-9 control-label text-right">
+                                Subtotal
+                            </label>
+                            <div class="col-xs-3 text-right"> <?php echo sprintf("%.02f", $rowinvoice['subtotal']); ?>
+                            </div>
+                        </div>
+                        <?php if (!empty($rowinvoice['discnumber'])) { ?>
+                            <div class="form-group row">
+                                <label class="col-xs-9 control-label text-right">Discount
+                                    (<?php echo $rowinvoice['discnumber']; ?><?php echo ($rowinvoice['disctype'] == "%") ? "%" : ""; ?>)
+                                </label>
+
+
+
+                                <div class="col-xs-3 text-right"> <?php echo sprintf("%.02f", $rowinvoice['discount']); ?></div>
+
+                            </div>
+                        <?php }
+                        if (!empty($rowinvoice['witnesscharges'])) { ?>
+
+                            <div class="form-group row">
+                                <label class="col-xs-9 control-label text-right">
+                                    Witness Charges (<?php echo $rowinvoice['witnessnumber']; ?><?php echo ($rowinvoice['witnesstype'] == "%") ? "%" : ""; ?>)
+                                </label>
+                                <div class="col-xs-3 text-right"><?php echo sprintf("%.02f", $rowinvoice['witnesscharges']); ?></div>
+                            </div>
+                        <?php }
+                        if (!empty($rowinvoice['samplehandling'])) { ?>
+
+                            <div class="form-group row">
+                                <label class="col-xs-9 control-label text-right">
+                                    Sample Handling
+                                </label>
+                                <div class="col-xs-3 text-right"><?php echo sprintf("%.02f", $rowinvoice['samplehandling']); ?></div>
+                            </div>
+                        <?php }
+                        if (!empty($rowinvoice['sampleprep'])) { ?>
+
+                            <div class="form-group row">
+                                <label class="col-xs-9 control-label text-right">
+                                    Sample Preparation Charges
+                                </label>
+                                <div class="col-xs-3 text-right"><?php echo sprintf("%.02f", $rowinvoice['sampleprep']); ?></div>
+                            </div>
+                        <?php }
+                        if (!empty($rowinvoice['freight'])) { ?>
+
+                            <div class="form-group row">
+                                <label class="col-xs-9 control-label text-right">
+                                    Freight Charges
+                                </label>
+                                <div class="col-xs-3 text-right"><?php echo sprintf("%.02f", $rowinvoice['freight']); ?></div>
+                            </div>
+                        <?php }
+                        if (!empty($rowinvoice['mobilisation'])) { ?>
+                            <div class="form-group row">
+                                <label class="col-xs-9 control-label text-right">
+                                    Mobilization and Demobilization Charges
+                                </label>
+                                <div class="col-xs-3 text-right">
+                                    <?php echo sprintf("%.02f", $rowinvoice['mobilisation']); ?>
+                                </div>
+                            </div>
+                        <?php } ?>
+                        <div class="form-group row">
+                            <label class="col-xs-9 control-label text-right">
+                                Total
+                            </label>
+                            <div class="col-xs-3 text-right"> <?php echo sprintf("%.02f", $rowinvoice['subtotal2']); ?>
+                            </div>
+                        </div>
+                        <div id="taxdiv">
+                            <?php if ($sgst == 1) { ?>
+                                <div class=" form-group row">
+                                    <label class="col-xs-9 control-label text-right">CGST <?php echo $rowinvoice['cgstper']; ?>%</label>
+                                    <div class="col-xs-3 text-right"><?php echo sprintf("%.02f", $rowinvoice['cgstamount']); ?></div>
+                                </div>
+                                <div class="form-group row">
+                                    <label class="col-xs-9 control-label text-right">SGST <?php echo $rowinvoice['sgstper']; ?>%</label>
+                                    <div class="col-xs-3 text-right"><?php echo sprintf("%.02f", $rowinvoice['sgstamount']); ?></div>
+                                </div>
+                            <?php } else { ?>
+                                <div class="form-group row">
+                                    <label class="col-xs-9 control-label text-right">IGST <?php echo $rowinvoice['igstper']; ?>%</label>
+                                    <div class="col-xs-3 text-right"><?php echo sprintf("%.02f", $rowinvoice['igstamount']); ?></div>
+                                </div>
+                            <?php } ?>
+                        </div>
+                        <div class="form-group row">
+                            <label class="col-xs-9 control-label text-right">
+                                Total Charges With tax
+                            </label>
+                            <div class="col-xs-3 text-right"> <?php echo sprintf("%.02f", $rowinvoice['total']); ?>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <label class="col-xs-9 control-label text-right">Round off </label>
+                            <div class="col-xs-3 text-right"><?php echo sprintf("%.02f", $rowinvoice['roundoff']); ?></div>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="2">
+                        (IN WORDS): Rs. <?php echo ucfirst(convert_number_to_words(round($rowinvoice['finaltotal']))) . " Only"; ?>
+                    </td>
+                    <td colspan="3">
+                        <div class=" form-group row">
+                            <label class="col-xs-9 control-label text-right">
+                                Total <?php echo $rowinvoice['typeofinvoice']; ?> Charges
+                            </label>
+
+                            <div class="col-xs-3 text-right"> <?php echo sprintf("%.02f", round($rowinvoice['finaltotal'])); ?>
+                            </div>
+                        </div>
+                    </td>
+
+                </tr>
+                <tr class="no-border">
+                    <td colspan="2">For online payments - <?php echo $bankaccountname; ?><br>
+                        Bank Name : <?php echo $bankname; ?>, Branch Name : <?php echo $bankbranch; ?> <br>
+                        Bank Account No. : <?php echo $bankaccountno; ?>, A/c Type : <?php echo $bankactype; ?> <br>
+                        IFSC CODE: <?php echo $bankifsccode; ?>, MICR CODE: <?php echo $bankmicr; ?>
+                        <br><!-- comment -->
+                        Certified that the particulars given above are true and correct. The commercial values in this document are as per contract/ Agreement/ Purchase order terms with the customer.
+                        <b>Declaration u/s 206 AB of Income Tax Act:</b> We have filed our Income Tax Return for previous two years with in specified due dates.
+                    </td>
+                    <td colspan="3">For <?php echo $companyname; ?><br>
+                        <?php
+                        if ($rowinvoice['status'] == 1 || $rowinvoice['status'] == 2) {
+                            if (!empty($rowinvoice['approved_by'])) {
+                                $username = $obj->selectfieldwhere("admin", "concat(firstname,' ',lastname,'\n','Designation:',designation)", "id ='" . $rowinvoice['approved_by'] . "'");
+                                $datedon = "";
+
+                                $datedon = "Date:" . isset($rowinvoice['approved_on']) && ($rowinvoice['approved_on'] != '0000-00-00 00:00:00') ? date("d/m/Y", strtotime($rowinvoice['approved_on'])) : '';
+                                $sign = $obj->selectextrawhere("admin", "id= " . $rowinvoice['approved_by']);
+                                $sign_user = $obj->fetch_assoc($sign);
+                        ?>
+                                <img src='<?php echo $obj->fetchattachment($sign_user['sign_image']); ?>' style="width: 100px; height:40px;" />
+                                <!-- <br> -->
+
+                        <?php
+                                $text = "Electronically signed by \n$username \n";
+
+                                $text .= "$datedon ";
+                                $name = "approvedby" . $rowinvoice['id'];
+
+                                $savepath = "uploads/invoicesign";
+                                $log = "";
+                                $digitalsign = PlaceWatermark("", $text, 2, 20, 100, TRUE, $name, $savepath, $log);
+                                echo '<img src="images/seal.png" style="width:80px;"/><img src="' . $digitalsign . '" />';
+                            }
+                        }
+                        ?>
+                        <br><u>Authorised Signatory </u>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="5">
+
+                        <b><u>Terms & Conditions: </u></b><br>
+                        <ol>
+                            <li>Cross Cheque/DD should be drawn in favour of <?php echo $companyname; ?> Payable at <?php echo $companycity; ?> </li>
+                            <li>Please attached bill details indicating Invoice No. Quotation no & TDS deductions if any along with your payment.</li>
+                            <li>As per existing GST rules. the GSTR-1 has to be filed in the immediate next month of billing. So if you have any issue in this tax invoice viz customer Name, Address, GST No., Amount etc, please inform positively in writing before 5th of next month, otherwise no such request will be entertained. </li>
+                            <li>Payment not made with in 15 days from the date of issued bill will attract interest @ 24% P.A.</li>
+			    <li>If the payment is to be paid in Cash pay to UPI <b>0795933A0099960.bqr@kotak</b> only and take official receipt. Else claim of payment, shall not be accepted</li>
+                            <li>Subject to exclusive jurisdiction of courts at <?php echo $companycity; ?> only. </li>
+                            <li>Errors & omissions accepted. </li>
+
+                        </ol>
+                    </td>
+                </tr>
+            </table>
+            <span style="text-align: center">This is a system generated invoice</span>
+
+
+            <?php
+            if ($rowinvoice['status'] == 0) {
+                if (in_array(269, $permissions) && $rowinvoice['finaltotal'] <= 5000) {
+                    echo '<button type="button" class="btn btn-success" onclick="del(\'' . $rowinvoice['id'] . '\',\'approveinvoice.php\',\'resultiddiv\',\'\',\'Approve\')">Approve</button>';
+                }
+                if (in_array(270, $permissions) && $rowinvoice['finaltotal'] > 5000) {
+                    echo  '<button type="button" class="btn btn-success" onclick="del(\'' . $rowinvoice['id'] . '\',\'approveinvoice.php\',\'resultiddiv\',\'\',\'Approve\')">Approve</button>';
+                }
+            }
+
+            $invoiceDateTimestamp = $rowinvoice['approved_on'];
+            $date = date("Y-m-d", strtotime($invoiceDateTimestamp));
+            $currentDateTimestamp = strtotime('2023-08-01');
+
+            // Check if the invoice date is greater than or equal to 2023-08-01
+            if (strtotime($date) >= $currentDateTimestamp && $rowinvoice['status'] == 1) {
+                if (in_array(466, $permissions) && $rowinvoice['finaltotal'] <= 5000 && $rowinvoice['finaltotal'] != 0) {  // && $rowinvoice['finaltotal'] != 0 -> for item value equal to zero then not generate einvoice
+                    echo '<button type="button" class="btn btn-success" onclick="validateGSTINPincode()">Generate E-Invoice</button>';
+                }
+                if (in_array(466, $permissions) && $rowinvoice['finaltotal'] > 5000 ) {
+                    echo '<button type="button" class="btn btn-success" onclick="validateGSTINPincode()">Generate E-Invoice</button>';
+                }
+            }
+            ?>
+        </div>
+    </div>
+</div>
+
+<?php
+$customerId = $rowinvoice['customerid'];
+$customer = $obj->selectextrawhere("customers", "id = $customerId");
+$customerdesc = $obj->fetch_assoc($customer);
+$country = $customerdesc['country'];
+$countrydesc = $obj->selectextrawhere("country", "id = $country");
+$countryCode = $obj->fetch_assoc($countrydesc);
+$countryIso = $countryCode['iso'];
+$addressId = $rowinvoice['addressid'];
+$address = $obj->selectextrawhere("`customer-address`", "id = $addressId");
+$customer_address = $obj->fetch_assoc($address);
+$customeraddress = $customer_address['address'];
+$restrictedCustomerAddress = substr($customeraddress, 0, 99);
+$invoice_date = $rowinvoice['approved_on'];
+$formatted_date = date_format(date_create($invoice_date), 'd/m/Y');
+$customerName = $rowinvoice['customername'];
+$restrictedCustomerName = substr($customerName, 0, 99);
+$gstin = $rowinvoice['gstno'];
+
+$pattern = "/^([0-9]{2}[A-Z 0-9]{13})|URP$/";
+
+if (preg_match($pattern, $gstin, $matches)) {
+    $gstin = ltrim($matches[1], "-");
+    // echo "Gstin: " . $gstin;
+}
+$statename = ((is_numeric($statecode)) ? $gstarray[$statecode] : $statecode);
+$total = sprintf("%.02f", $rowinvoice['total']);
+// echo $total . " ";
+
+$subtotal = sprintf("%.02f", $rowinvoice['subtotal']);
+// echo $subtotal . " ";
+
+$discount = sprintf("%.02f", $rowinvoice['discount']);
+// echo $discount . " ";
+
+$discount_number = floatval($rowinvoice['discnumber']);
+
+if (!empty($rowinvoice['witnesscharges']) || !empty($rowinvoice['samplehandling']) || !empty($rowinvoice['sampleprep']) || !empty($rowinvoice['freight']) || !empty($rowinvoice['mobilisation'])) {
+    $otherCharge = sprintf("%.02f", $rowinvoice['witnesscharges'] + $rowinvoice['samplehandling'] + $rowinvoice['sampleprep'] + $rowinvoice['freight'] + $rowinvoice['mobilisation']);
+} else {
+    $otherCharge = 0;
+}
+
+$assAmt = ($subtotal - $discount) + $otherCharge;
+// echo $assAmt . " ";
+
+if ($sgst == 1) {
+    // $cgstper = sprintf("%.02f", $assAmt * ($rowinvoice['cgstper'] / 100));
+    $cgstper = round($assAmt * ($rowinvoice['cgstper'] / 100), 2);
+    // $sgstper = sprintf("%.02f", $assAmt * ($rowinvoice['sgstper'] / 100));
+    $sgstper = round($assAmt * ($rowinvoice['sgstper'] / 100), 2);
+    $igstper = 0;
+} else {
+    // $igstper = sprintf("%.02f", $assAmt * ($rowinvoice['igstper'] / 100));
+    $igstper = round($assAmt * ($rowinvoice['igstper'] / 100), 2);
+    $cgstper = 0;
+    $sgstper = 0;
+}
+
+// $roundoff = sprintf("%.02f", $rowinvoice['roundoff']);
+$roundoff = round($rowinvoice['roundoff'], 2);
+
+$TotInvValFc = $assAmt + $cgstper + $sgstper + $igstper;
+// echo $TotInvValFc . " ";
+$TotInvVal = $assAmt + $cgstper + $sgstper + $igstper + $roundoff;
+// echo $TotInvVal . " ";
+
+?>
+
+
+<script>
+var parsedData = null; // Global variable
+    var country = "<?php echo $country; ?>"; // Get the value of $country from PHP
+
+    $(document).ready(function() {
+        detailsGST()
+            .then(function(result) {
+                parsedData = result; // Store the taxType value in the global variable
+                // Add validation for parsedData here
+                console.log(parsedData);
+                if (parsedData === null) {
+                    var errorMessage = "GST info is null. Unable to proceed further.";
+                    alertify.alert('Error', errorMessage);
+                    // Optionally, you can also log the error message to the console
+                    console.error(errorMessage);
+                    return;
+                }
+            })
+            .catch(function(error) {
+                console.error("Error in fetching taxType:", error);
+            });
+    });
+
+    // Your existing detailsGST() function with Promise implementation
+    function detailsGST() {
+        return new Promise(function(resolve, reject) {
+            var url = "./alankitGST.php?invoiceid=<?php echo $invoiceid; ?>&gst=<?php echo $gstin; ?>";
+            // var url = "./alankitGST_Test.php?invoiceid=<?php // echo $invoiceid; 
+                                                            ?>&gst=<?php // echo $gstin; 
+                                                            ?>";
+        
+            $.ajax({
+                url: url,
+                type: "GET",
+                dataType: "json",
+                success: function(response) {
+                    var parsedData = response;
+                    console.log(' run the alankitGST ');
+                    // var taxType = parsedData.TxpType;
+                    resolve(parsedData); // Resolve the Promise with the taxType value
+                },
+                error: function(xhr, status, error) {
+                    console.log("AJAX Request Error:", error);
+
+                    reject(error); // Reject the Promise if there's an error
+                }
+            });
+        });
+    }
+    <?php if ($rowinvoice['invoiceno']  != 'FOC') { ?>
+
+        function einvoice() {
+            // console.log(parsedData.TxpType);
+            var taxTypeToSend, reverseCharge;
+            if (country === "1") {
+                if (parsedData.TxpType === "REG" || parsedData.TxpType === "TDS" || parsedData.TxpType === "COM") {
+                    taxTypeToSend = "B2B";
+                    reverseCharge = "N";
+                } else if (parsedData.TxpType === "SEZ") {
+                    taxTypeToSend = "SEZWOP";
+                    reverseCharge = "N";
+                } else {
+                    // Handle other tax types if needed
+                    console.error("Unsupported taxType:", parsedData.TxpType);
+                    return; // Exit the function if the taxType is not supported
+                }
+            } else {
+                taxTypeToSend = "EXPWOP";
+                reverseCharge = "N";
+            }
+            var gstin = (country === "1") ? "<?php echo $rowinvoice['gstno']; ?>" : "URP";
+            var pincode = (country === "1") ? <?php echo intval($customer_address['pincode']); ?> : 999999;
+            var statecode = (country === "1") ? "<?php echo (is_numeric($statecode)) ? $statecode : 'NA'; ?>" : "96";
+            // var reverseCharge = (country === "1") ? "Y" : "N";
+
+            var url = "./alankitGSTProcessig.php?invoiceid=<?php echo $invoiceid; ?>";
+            // var url = "./alankitGSTProcessig_Test.php?invoiceid=<?php // echo $invoiceid; 
+                                                                    ?>";
+
+            var itemList = [];
+            <?php
+            $totalQuantity = 0;
+            $resultitem = $obj->selectextrawhere("invoicerow", "invoiceid=$invoiceid and status=1");
+            while ($rowitem = $obj->fetch_assoc($resultitem)) {
+                $totalQuantity += $rowitem['qty'];
+            }
+            $i = 1;
+            $resultitem = $obj->selectextrawhere("invoicerow", "invoiceid=$invoiceid and status=1");
+            // Get the number of rows
+            $numRows = $resultitem->num_rows;
+            while ($rowitem = $obj->fetch_assoc($resultitem)) {
+
+                $item_amount_old = $rowitem['amount'];
+
+                if (!empty($rowinvoice['witnesscharges']) || !empty($rowinvoice['samplehandling']) || !empty($rowinvoice['sampleprep']) || !empty($rowinvoice['freight']) || !empty($rowinvoice['mobilisation'])) {
+                    $item_otherCharges = sprintf("%.02f", $rowinvoice['witnesscharges'] + $rowinvoice['samplehandling'] + $rowinvoice['sampleprep'] + $rowinvoice['freight'] + $rowinvoice['mobilisation']);
+                    $item_otherCharge = sprintf("%.02f", ($item_otherCharges / $totalQuantity) * $rowitem['qty']);
+                    // $item_otherCharge = sprintf("%.02f", ($item_amount_old / $rowinvoice['subtotal']) * $item_otherCharges);
+                } else {
+                    $item_otherCharge = 0;
+                }
+                $item_amount = $item_amount_old + $item_otherCharge;
+
+                $amount_new = $rowinvoice['subtotal'] + $otherCharge;
+                // echo $item_amount." ";
+                if ($rowinvoice['disctype'] == 'amount') {
+                    // $item_discount = sprintf("%.02f", ($rowinvoice['discnumber'] / $totalQuantity)*$rowitem['qty']);
+                    // $item_discount = sprintf("%.02f", ($item_amount/$rowinvoice['subtotal'])*$rowinvoice['discnumber'] );                
+                    $item_discount = sprintf("%.02f", ($item_amount / $amount_new) * $rowinvoice['discnumber']);
+                } else {
+                    // $item_discount = sprintf("%.02f", $item_amount * ($discount_number / 100));
+                    // $item_discount = sprintf("%.02f",($rowinvoice['discount'] / $totalQuantity)*$rowitem['qty']);
+                    // $item_discount = sprintf("%.02f", ($item_amount/$rowinvoice['subtotal'])*$rowinvoice['discount'] );      
+                    $item_discount = sprintf("%.02f", ($item_amount / $amount_new) * $rowinvoice['discount']);
+                }
+                $item_assAmt = $item_amount - $item_discount;
+                $item_assAmt2 = $item_assAmt;
+                // $item_discount=$item_amount*($discount_number/100);
+                if ($sgst == 1) {
+                    $item_cgstper = sprintf("%.02f", $item_assAmt2 * ($rowinvoice['cgstper'] / 100));
+                    $item_sgstper = sprintf("%.02f", $item_assAmt2 * ($rowinvoice['sgstper'] / 100));
+                    $item_igstper = 0;
+                } else {
+                    $item_igstper = sprintf("%.02f", $item_assAmt2 * ($rowinvoice['igstper'] / 100));
+                    $item_cgstper = 0;
+                    $item_sgstper = 0;
+                }
+                $item_totItemVal = $item_assAmt2 + $item_cgstper + $item_sgstper + $item_igstper;
+
+                $item_gstRate = $rowinvoice['cgstper'] + $rowinvoice['sgstper'] + $rowinvoice['igstper'];
+
+            ?>
+                var item = {
+                    "SlNo": "<?php echo $i; ?>",
+                    "PrdDesc": "<?php echo $rowitem['description']; ?>",
+                    "IsServc": "Y",
+                    "HsnCd": "998393",
+                    "Qty": <?php if ($rowitem['meter_option'] == 1) {
+                                echo $rowitem['meter'];
+                            } else {
+                                echo $rowitem['qty'];
+                            } ?>,
+                    "UnitPrice": "<?php echo $rowitem['rate']; ?>",
+                    "TotAmt": "<?php echo $item_amount; ?>",
+                    "Discount": "<?php echo ($item_discount); ?>",
+                    "AssAmt": "<?php echo $item_assAmt; ?>",
+                    "GstRt": "<?php echo $item_gstRate; ?>",
+                    "IgstAmt": "<?php echo ($item_igstper); ?>",
+                    "CgstAmt": "<?php echo ($item_cgstper); ?>",
+                    "SgstAmt": "<?php echo ($item_sgstper); ?>",
+                    "OthChrg": "0",
+                    "TotItemVal": "<?php echo ($item_totItemVal); ?>"
+                }
+                itemList.push(item);
+            <?php
+                $i++;
+            }
+            ?>
+            // RegRev and IgstOnIntra
+            var payload = {
+                "Version": "1.1",
+                "TranDtls": {
+                    "TaxSch": "GST",
+                    "SupTyp": taxTypeToSend,
+                    "RegRev": reverseCharge,
+                    "EcmGstin": null,
+                    "IgstOnIntra": "N"
+                },
+                "DocDtls": {
+                    "Typ": "INV",
+                    "No": "<?php echo $rowinvoice['invoiceno']; ?>",
+                    "Dt": "<?php echo $formatted_date; ?>"
+                },
+                "SellerDtls": {
+                    "Gstin": "23AADCK0799A1ZV",
+                    "LglNm": "KAILTECH TEST AND RESEARCH CENTRE PVT LTD.",
+                    "TrdNm": "KAILTECH TEST AND RESEARCH CENTRE PVT LTD.",
+                    "Addr1": "Plot No. 141-C, Electronic Complex Industrial Area, Indore",
+                    "Loc": "BHOPAL",
+                    "Pin": 452010,
+                    "Stcd": "23"
+                },
+                "BuyerDtls": {
+                    "Gstin": gstin,
+                    "LglNm": "<?php echo $restrictedCustomerName; ?>",
+                    "Pin": pincode,
+                    "Pos": statecode,
+                    "Addr1": "<?php echo str_replace(["\r", "\n"], ' ', $restrictedCustomerAddress); ?>",
+                    "Loc": "<?php echo $customer_address['city']; ?>",
+                    "Stcd": statecode
+                },
+                "ItemList": itemList,
+                "ValDtls": {
+                    "AssVal": "<?php echo ($assAmt); ?>",
+                    "CgstVal": "<?php echo ($cgstper); ?>",
+                    "SgstVal": "<?php echo ($sgstper); ?>",
+                    "IgstVal": "<?php echo ($igstper); ?>",
+                    "OthChrg": "0",
+                    "RndOffAmt": "<?php echo $roundoff; ?>",
+                    "TotInvVal": "<?php echo ($TotInvVal); ?>",
+                    "TotInvValFc": "<?php echo ($TotInvValFc); ?>"
+                },
+                "ExpDtls": {
+                    "CntCode": "<?php echo $countryIso; ?>"
+                }
+            }
+
+            var request = new Request(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload)
+            });
+            alertify.confirm('Validate', 'Are you sure you want to generate E-Invoice?', async function() {
+                    try {
+
+                        // Send the request and wait for the response
+                        var response = await fetch(request);
+                        // Get the response text
+                        var responseText = await response.text();
+                        // Handle the response
+                        if (response.ok) {
+                            try {
+                                // var data = JSON.parse(responseText);
+                                //                                     console.log('now i am here')
+                                //   console.log(data);
+                            } catch (e) {
+                                console.error('Error parsing JSON data:', e);
+                            }
+
+                            // Show success message and reload the page
+                            alertify.alert('E-Invoice Generated', 'Successfully !! ', function() {
+                                location.reload();
+                            });
+                        } else {
+                            console.error('Error:', response.status, responseText);
+                            // Show error message
+                            alertify.alert('Error', 'Failed to generate E-Invoice. Please try again later.');
+                        }
+                    } catch (error) {
+                        // Handle any errors
+                        
+
+                        console.error('Error:', error);
+                        // Show error message
+                        alertify.alert('Error', 'An error occurred while generating E-Invoice. Please try again later.');
+                    }
+                },
+                function() {
+                    alertify.error('Cancel')
+                }).set('closable', false);
+        }
+    <?php } ?>
+
+    function validateGSTINPincode() {
+        // Get the values of gstin and pincode
+        var gstin = "<?php echo $gstin; ?>";
+        var pincode = <?php echo intval($customer_address['pincode']); ?>;
+        var statename = "<?php echo $statename; ?>";
+        if (country === "1") {
+            if (!gstin || gstin === "0" || gstin === "NA" || !pincode || pincode === 0 || pincode === "NA") {
+                // Show alert message for invalid GSTIN or pincode
+                alertify.alert("Invalid GSTIN or pincode. Unable to generate E-Invoice.");
+                return;
+            }
+// 		console.log(parsedData+"sesee"+pincode);
+		
+            if (parsedData.AddrPncd === pincode) {
+                einvoice(); // Call the einvoice function
+            } else {
+                // State name does not match with the provided pincode
+                alertify.alert("Pincode and state do not match. The provided pincode is " + pincode + " but the actual pincode is " + parsedData.AddrPncd + ". Unable to generate E-Invoice.");
+            }
+        } else {
+            einvoice();
+        }
+    }
+
+    function viewMail(id) {
+        alertify.confirm('Validate', 'Are you sure you want to Send Mail?', async function() {
+                // User confirmed, proceed with the action
+                var url = "mailInvoice.php?&matata=" + id;
+                addoverlay(); // Show loader
+                $.ajax({
+                    url: url,
+                    type: "GET",
+                    success: function(data) {
+                        alert("Successfully approved.");
+                        location.reload(); // Reload the current page
+                    },
+                    error: function() {
+                        alert("An error occurred while processing the request.");
+                    },
+                    complete: function() {
+                        removeoverlay(); // Hide loader in any case (success or error)
+                    }
+                });
+            },
+            function() {
+                alertify.error('Cancel'); // User canceled the action
+            });
+    }
+
+    function addoverlay() {
+        var overlay = $('<div id="overlay"></div>');
+        overlay.appendTo("body");
+    }
+
+    function removeoverlay() {
+        $("#overlay").remove();
+    }
+</script>
+
+<?php
+//Assign all Page Specific variables
+$pagemaincontent = ob_get_contents();
+ob_end_clean();
+$pagetitle = "Manage Inward Enry";
+$pagemeta = "Some Meta Goes Here";
+$pagekeywords = "Some keywords Goes here";
+$contentheader = "Inward Entry List";
+//Apply the template
+include("template.php");
+?>
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-07-20T12:00:30+05:30.
+
+The user's current state is as follows:
+Active Document: c:\Users\pc-obe\Desktop\lims-kailtech\src\app\pages\dashboards\accounts\calibration-invoice-list\ViewCalibrationInvoice.jsx (LANGUAGE_JAVASCRIPT)
+Cursor is on line: 1165
+Other open documents:
+- c:\Users\pc-obe\Desktop\lims-kailtech\src\app\pages\dashboards\accounts\calibration-invoice-list\ViewCalibrationInvoice.jsx (LANGUAGE_JAVASCRIPT)
+- c:\Users\pc-obe\Desktop\lims-kailtech\src\app\pages\dashboards\inventory\din-list\AddDin.jsx (LANGUAGE_JAVASCRIPT)
+Running terminal commands:
+- npm
+<truncated 94 bytes>
+
+NOTE: The output was truncated because it was too long. Use a more targeted query or a smaller range to get the information you need.
+
+---
+
+<USER_REQUEST>
+Pincode Validation Bypass
+PHP: Strictly validates the customer's pincode against the official pincode returned from the GST API (parsedData.AddrPncd === pincode). If they don't match, it blocks the E-Invoice generation.
+React: Removes this validation. As noted in the code comments (// Pincode matching with Alankit API removed as requested by user.), it only verifies that a pincode exists in the database, but does not cross-check it with the GST portal before generating the invoice. it should be same as the php code
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-07-20T12:02:06+05:30.
+
+The user's current state is as follows:
+Active Document: c:\Users\pc-obe\Desktop\lims-kailtech\src\app\pages\dashboards\accounts\calibration-invoice-list\ViewCalibrationInvoice.jsx (LANGUAGE_JAVASCRIPT)
+Cursor is on line: 1165
+Other open documents:
+- c:\Users\pc-obe\Desktop\lims-kailtech\src\app\pages\dashboards\accounts\calibration-invoice-list\ViewCalibrationInvoice.jsx (LANGUAGE_JAVASCRIPT)
+- c:\Users\pc-obe\Desktop\lims-kailtech\src\app\pages\dashboards\inventory\din-list\AddDin.jsx (LANGUAGE_JAVASCRIPT)
+Running terminal commands:
+- npm run dev (in c:\Users\pc-obe\Desktop\lims-kailtech, running for 55m15s)
+</ADDITIONAL_METADATA>
+
+---
+
+<USER_REQUEST>
+can you please check if there's any fallback logic
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-07-20T12:08:19+05:30.
+
+The user's current state is as follows:
+Active Document: c:\Users\pc-obe\Desktop\lims-kailtech\src\app\pages\dashboards\accounts\calibration-invoice-list\ViewCalibrationInvoice.jsx (LANGUAGE_JAVASCRIPT)
+Cursor is on line: 927
+Other open documents:
+- c:\Users\pc-obe\Desktop\lims-kailtech\src\app\pages\dashboards\accounts\calibration-invoice-list\ViewCalibrationInvoice.jsx (LANGUAGE_JAVASCRIPT)
+- c:\Users\pc-obe\Desktop\lims-kailtech\src\app\pages\dashboards\inventory\din-list\AddDin.jsx (LANGUAGE_JAVASCRIPT)
+Running terminal commands:
+- npm run dev (in c:\Users\pc-obe\Desktop\lims-kailtech, running for 1h1m28s)
+</ADDITIONAL_METADATA>
+
+---
+
