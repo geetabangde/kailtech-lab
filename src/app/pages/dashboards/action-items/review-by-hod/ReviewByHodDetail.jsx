@@ -374,14 +374,14 @@ export default function ReviewByHodDetail() {
     .map(p => p.trim())
     .filter(Boolean);
 
-  const hasPermission = (p) => 
+  const hasPermission = (p) =>
     Object.keys(permsObj).length > 0
       ? (permsObj.permissions?.includes(p) || permsObj.permissions?.includes(String(p)))
       : sessionPermissions.includes(String(p));
 
   // PHP: in_array(180, $permissions) || in_array(181, $permissions)
   const canHod = hasPermission(180) || permsObj?.has_hod_permission === true;
-  const canQa  = hasPermission(181) || permsObj?.has_qa_permission === true;
+  const canQa = hasPermission(181) || permsObj?.has_qa_permission === true;
 
   // PHP: if(perm 180||181) && reportstatus<9 → show Actions column
   const showActionsColumn = (canHod || canQa) && reportStatus < 9;

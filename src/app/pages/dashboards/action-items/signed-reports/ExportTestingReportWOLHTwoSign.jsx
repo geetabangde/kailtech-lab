@@ -1,4 +1,5 @@
 import { renderToStaticMarkup } from "react-dom/server";
+import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import { toast } from "sonner";
 import {
@@ -142,7 +143,7 @@ function extractDataTwoSign(report) {
 const S1 = {
   page: {
     fontFamily: "Arial, Helvetica, sans-serif",
-    fontSize: '13px',
+    fontSize: '13.5px',
     color: "#111",
     lineHeight: "1.3",
     position: 'relative',
@@ -169,11 +170,11 @@ const S1 = {
     display: "flex",
     justifyContent: "space-between",
     marginBottom: "4px",
-    fontSize: '12px'
+    fontSize: '13.5px'
   },
   title: {
     textAlign: "center",
-    fontSize: '19px',
+    fontSize: '19.5px',
     fontWeight: "bold",
     textDecoration: "underline",
     marginBottom: "7px"
@@ -182,12 +183,12 @@ const S1 = {
     display: "flex",
     justifyContent: "space-between",
     marginBottom: "8px",
-    fontSize: '13px'
+    fontSize: '14.5px'
   },
   isoSide: {
     position: "absolute",
     right: "-46px", bottom: "110px",
-    fontSize: '11px', color: "#555",
+    fontSize: '11.5px', color: "#555",
     transform: "rotate(90deg)",
     width: "165px",
     transformOrigin: "bottom right",
@@ -195,7 +196,7 @@ const S1 = {
   draft: {
     position: "absolute",
     top: "32%", left: "8%",
-    fontSize: "130px",
+    fontSize: "130.5px",
     fontWeight: "bold",
     color: "#cccccc",
     opacity: 0.28,
@@ -207,8 +208,8 @@ const S1 = {
 const SS = {
   bold: { fontWeight: "bold" },
   infoWrap: { border: `1px solid #999`, marginBottom: '8px' },
-  secTitle: { fontWeight: 'bold', fontSize: '14px', marginBottom: '4px', marginTop: '5px' },
-  endOfReport: { textAlign: 'center', fontWeight: 'bold', margin: '12px 0', fontSize: '13px' },
+  secTitle: { fontWeight: 'bold', fontSize: '14.5px', marginBottom: '4px', marginTop: '5px' },
+  endOfReport: { textAlign: 'center', fontWeight: 'bold', margin: '12px 0', fontSize: '13.5px' },
 };
 
 function HtmlDocWithoutLHTwoSign({ report }) {
@@ -236,8 +237,11 @@ function HtmlDocWithoutLHTwoSign({ report }) {
                     </>
                   )}
                 </div>
-                <div style={{ width: "120px", textAlign: "right" }}>
-                  <span style={{ fontSize: '13px', fontWeight: "bold" }}>LRN: {data.displayLRN}</span>
+                <div style={{ width: "120px", textAlign: "right", paddingTop: "85px" }}>
+                  <div style={{ fontSize: '13.5px', fontWeight: "bold", display: 'flex', justifyContent: 'flex-end', gap: '15px' }}>
+                    <span>LRN: {data.displayLRN}</span>
+                    <span className="page-number"></span>
+                  </div>
                 </div>
               </div>
             </td>
@@ -295,18 +299,20 @@ HtmlDocWithoutLHTwoSign.propTypes = { report: PropTypes.object.isRequired };
 // ─────────────────────────────────────────────────────────────────────────────
 // EXPORTED BUTTON
 // ─────────────────────────────────────────────────────────────────────────────
-function printReportWOLHTwoSign(report, title) {
+export function printReportWOLHTwoSign(report, title) {
+  const data = extractDataTwoSign(report);
+  const safeTitle = data.ulr || data.ktrcRef || title || 'Test_Report';
   const bodyHtml = renderToStaticMarkup(<HtmlDocWithoutLHTwoSign report={report} />);
 
   const full = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>${title || 'Test Report'}</title>
+  <title>${safeTitle}</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
-    @page { size: A4; margin: 10mm; }
-    body  { margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #111; background: #fff; }
+    @page { size: A4; margin: 8mm 4mm; }
+    body  { margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; font-size: 11.5px; color: #111; background: #fff; }
     @media print { 
       body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       head { display: none; }
@@ -316,31 +322,69 @@ function printReportWOLHTwoSign(report, title) {
 <body>${bodyHtml}</body>
 </html>`;
 
-  const win = window.open('', '_blank', 'width=900,height=700');
+  const win = window.open(`/${safeTitle.replace(/[^a-zA-Z0-9_-]/g, '_')}.html`, '_blank');
   if (!win) { toast.error('Pop-up blocked — please allow pop-ups and try again.'); return; }
+
+  // Write the HTML to the new window
   win.document.open();
   win.document.write(full);
   win.document.close();
-  win.onafterprint = () => { try { win.close(); } catch (e) { void e; } };
+
+  // Immediately stop the browser from completing the network request so it doesn't overwrite our HTML
   win.onload = () => {
     win.focus();
-    win.print();
   };
-  setTimeout(() => {
-    try {
-      win.focus();
-      win.print();
-    } catch (e) { void e; }
-  }, 800);
+
 }
 
 export function PrintExportTestingReportWOLHTwoSignButton({ report, className }) {
-  const btnClass = className ?? "rounded bg-orange-500 px-3 py-1.5 text-xs font-semibold text-white shadow transition hover:bg-orange-600 inline-block";
+  const btnClass = className ?? "rounded bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow transition hover:bg-blue-700 inline-block text-center cursor-pointer";
+  const [blobUrl, setBlobUrl] = useState('#');
+
+  useEffect(() => {
+    if (!report) return;
+    try {
+      const data = extractDataTwoSign(report);
+      const safeTitle = data.ulr || data.ktrcRef || 'Test_Report';
+      const bodyHtml = renderToStaticMarkup(<HtmlDocWithoutLHTwoSign report={report} />);
+      const full = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>${safeTitle}</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    @page { size: A4; margin: 8mm 4mm; }
+    body  { margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; font-size: 11.5px; color: #111; background: #fff; counter-reset: page; }
+    .page-number::after { counter-increment: page; content: "Page " counter(page) " of 1"; }
+    @media print { 
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      head { display: none; }
+    }
+  </style>
+</head>
+<body>
+${bodyHtml}
+</body>
+</html>`;
+      const blob = new Blob([full], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      setBlobUrl(url);
+      return () => URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error('Failed to generate report blob', e);
+    }
+  }, [report]);
 
   return (
-    <button onClick={() => printReportWOLHTwoSign(report, 'Test Report')} className={btnClass}>
-      Print Report WOLH (Two Signatures)
-    </button>
+    <a href={blobUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => {
+      if (blobUrl === '#' && e.button === 0) {
+        e.preventDefault();
+        printReportWOLHTwoSign(report, 'Test Report');
+      }
+    }} className={btnClass}>
+      Print Report Without Letter Head (2 Signs)
+    </a>
   );
 }
 PrintExportTestingReportWOLHTwoSignButton.propTypes = { report: PropTypes.object.isRequired, className: PropTypes.string };

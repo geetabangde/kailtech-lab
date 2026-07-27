@@ -218,6 +218,55 @@ export default function AddCustomer() {
     return true;
   };
 
+  // ─────────────────────────────────────────────────────────────────────
+  // ✅ FIX: Fallback ID lookup.
+  // The `/people/add-customer` API often does NOT return the new
+  // customer's ID directly in the response (same issue as Proforma
+  // Invoice). So if we can't extract an ID from the response, we fetch
+  // the full customer list and find the one we JUST created by matching
+  // name + mobile + email (all three, since name alone can repeat).
+  // If more than one row matches (rare), we pick the one with the
+  // highest id (i.e. most recently created).
+  // ─────────────────────────────────────────────────────────────────────
+  const findNewlyCreatedCustomerId = async () => {
+    try {
+      const listRes = await axios.get("/people/get-all-customers");
+      const list = Array.isArray(listRes?.data?.data) ? listRes.data.data : [];
+
+      const matches = list.filter(
+        (c) =>
+          String(c.name || "").trim().toLowerCase() ===
+          String(formData.name || "").trim().toLowerCase() &&
+          String(c.mobile || "").trim() === String(formData.mobile || "").trim() &&
+          String(c.email || "").trim().toLowerCase() ===
+          String(formData.email || "").trim().toLowerCase(),
+      );
+
+      if (matches.length > 0) {
+        // Pick the highest id among matches (most recently created)
+        return Math.max(...matches.map((m) => Number(m.id) || 0));
+      }
+
+      // Fallback: match on name only (in case mobile/email got normalized differently)
+      const nameMatches = list.filter(
+        (c) =>
+          String(c.name || "").trim().toLowerCase() ===
+          String(formData.name || "").trim().toLowerCase(),
+      );
+      if (nameMatches.length > 0) {
+        return Math.max(...nameMatches.map((m) => Number(m.id) || 0));
+      }
+
+      // Last resort: assume the highest id in the whole list is the new one
+      if (list.length > 0) {
+        return Math.max(...list.map((m) => Number(m.id) || 0));
+      }
+    } catch (err) {
+      console.error("Failed to fetch customer list for fallback ID lookup", err);
+    }
+    return null;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -259,9 +308,15 @@ export default function AddCustomer() {
       console.log("Add Customer Response:", res.data);
 
       if (res.data.status === true || res.data.status === "true") {
-        window.alert("Success : New Customer has been Added");
-        // Redirect to edit page to add addresses and contacts
-        let customerId = res.data.id || res.data.customer_id || res.data.customerid || res.data.insertId || res.data.hakuna || res.data.pradin;
+        // Try direct extraction first (some backends do return it)
+        let customerId =
+          res.data.id ||
+          res.data.customer_id ||
+          res.data.customerid ||
+          res.data.insertId ||
+          res.data.hakuna ||
+          res.data.pradin;
+
         if (!customerId && res.data.data) {
           if (typeof res.data.data === 'object') {
             customerId = res.data.data.id || res.data.data.customer_id;
@@ -270,13 +325,22 @@ export default function AddCustomer() {
           }
         }
 
+        // ✅ FIX: if still no ID, fall back to list lookup
+        if (!customerId) {
+          customerId = await findNewlyCreatedCustomerId();
+        }
+
         console.log("Full API Response:", res.data);
         console.log("Extracted Customer ID:", customerId);
 
+        toast.success("New Customer has been Added");
+
         if (customerId) {
+          // ✅ Always go to the edit page of the customer we just created
           navigate(`/dashboards/people/customers/edit/${customerId}`);
         } else {
-          console.warn("No customer ID found in response, redirecting to list");
+          console.warn("No customer ID found even after fallback, redirecting to list");
+          toast.error("Customer added, but couldn't open edit page automatically.");
           navigate("/dashboards/people/customers");
         }
       } else {

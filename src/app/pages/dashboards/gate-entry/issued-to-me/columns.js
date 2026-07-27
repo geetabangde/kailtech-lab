@@ -3,6 +3,7 @@ import { createColumnHelper } from "@tanstack/react-table";
 
 // Local Imports
 import { RowActions } from "./RowActions";
+import { EditableRemarkCell } from "./EditableRemarkCell";
 
 const columnHelper = createColumnHelper();
 
@@ -60,7 +61,7 @@ export const columns = [
   columnHelper.accessor("remark", {
     id: "remark",
     header: "Remark",
-    cell: (info) => info.getValue() || " ",
+    cell: EditableRemarkCell,
   }),
 
   // ✅ Actions

@@ -22,26 +22,11 @@ import { TableConfig } from "./TableConfig";
 import { useBreakpointsContext } from "app/contexts/breakpoint/context";
 import { useNavigate } from "react-router";
 
-// import { orderStatusOptions } from "./data";
-
-// PHP: if(!in_array(172, $permissions)) header("location:index.php");
-function usePermissions() {
-  const p = localStorage.getItem("userPermissions");
-  try {
-    return JSON.parse(p) || [];
-  } catch {
-    return p?.split(",").map(Number) || [];
-  }
-}
-
-// ----------------------------------------------------------------------
-
 export function Toolbar({ table }) {
   const { isXs } = useBreakpointsContext();
   const isFullScreenEnabled = table.getState().tableSettings.enableFullScreen;
   const navigate = useNavigate();
-  const permissions = usePermissions(); 
-  
+
   return (
     <div className="table-toolbar">
       <div
@@ -50,12 +35,12 @@ export function Toolbar({ table }) {
           isFullScreenEnabled ? "px-4 sm:px-5" : "px-[var(--margin-x)] pt-4",
         )}
       >
-          {/*  */}
+        {/*  */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
           {/* Heading */}
           <div className="min-w-0">
             <h2 className="text-xl font-semibold tracking-wide text-gray-800 dark:text-dark-50">
-            Mrn Item List Pending For Coding
+              Mrn Item List Pending For Coding
             </h2>
           </div>
 
@@ -71,9 +56,9 @@ export function Toolbar({ table }) {
           </div>
         </div>
 
-          
-        
-        
+
+
+
         {isXs ? (
           <Menu as="div" className="relative inline-block text-left">
             <MenuButton
@@ -102,7 +87,7 @@ export function Toolbar({ table }) {
                       className={clsx(
                         "flex h-9 w-full items-center px-3 tracking-wide outline-none transition-colors",
                         focus &&
-                          "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
+                        "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
                       )}
                     >
                       <span>{`<< MRN List`}</span>
@@ -116,7 +101,7 @@ export function Toolbar({ table }) {
                     className={clsx(
                       "flex h-9 w-full items-center px-3 tracking-wide outline-none transition-colors",
                       focus &&
-                        "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
+                      "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
                     )}
                   >
                     <span>Share</span>
@@ -129,7 +114,7 @@ export function Toolbar({ table }) {
                     className={clsx(
                       "flex h-9 w-full items-center px-3 tracking-wide outline-none transition-colors",
                       focus &&
-                        "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
+                      "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
                     )}
                   >
                     <span>Print</span>
@@ -143,7 +128,7 @@ export function Toolbar({ table }) {
                     className={clsx(
                       "flex h-9 w-full items-center px-3 tracking-wide outline-none transition-colors",
                       focus &&
-                        "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
+                      "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
                     )}
                   >
                     <span>Import Orders</span>
@@ -157,7 +142,7 @@ export function Toolbar({ table }) {
                     className={clsx(
                       "flex h-9 w-full items-center px-3 tracking-wide outline-none transition-colors",
                       focus &&
-                        "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
+                      "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
                     )}
                   >
                     <span>Export as PDF</span>
@@ -170,7 +155,7 @@ export function Toolbar({ table }) {
                     className={clsx(
                       "flex h-9 w-full items-center px-3 tracking-wide outline-none transition-colors",
                       focus &&
-                        "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
+                      "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
                     )}
                   >
                     <span>Export as CSV</span>
@@ -183,7 +168,7 @@ export function Toolbar({ table }) {
                     className={clsx(
                       "flex h-9 w-full items-center px-3 tracking-wide outline-none transition-colors",
                       focus &&
-                        "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
+                      "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
                     )}
                   >
                     <span>Save Table as View</span>
@@ -194,10 +179,10 @@ export function Toolbar({ table }) {
           </Menu>
         ) : (
           <div className="flex space-x-2 ">
-          
 
-          
-            
+
+
+
           </div>
         )}
       </div>
@@ -219,7 +204,7 @@ export function Toolbar({ table }) {
               isFullScreenEnabled ? "px-4 sm:px-5" : "px-[var(--margin-x)]",
             )}
           >
-          
+
           </div>
         </>
       ) : (
@@ -236,10 +221,10 @@ export function Toolbar({ table }) {
         >
           <div className="flex shrink-0 space-x-2 ">
             <SearchInput table={table} />
-            
+
           </div>
 
-          
+
         </div>
       )}
     </div>

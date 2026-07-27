@@ -101,30 +101,7 @@ export default function TestingQuotationList() {
         }
       }
 
-      // Add sorting parameters - PHP column mapping: [id, customer, ctype, specificpurpose, enquirydate, '']
-      if (sorting.length > 0) {
-        const columnMapping = {
-          'id': 0,
-          'quotationno': 1, 
-          'customer': 2,
-          'ctype': 3,
-          'specificpurpose': 4,
-          'enquirydate': 5
-        };
-        
-        params.order = [{
-          column: columnMapping[sorting[0].id] ?? 0,
-          dir: sorting[0].desc ? 'desc' : 'asc'
-        }];
-      }
-
-      // Add search parameter - PHP: searches across customers.name, tquotations.customername, customertypes.name, specificpurposes.name
-      if (globalFilter) {
-        params.search = {
-          value: globalFilter
-        };
-      }
-
+      // Client-side sorting and searching is handled by React Table
       
       const res = await axios.get("/sales/testing-quotation-list", { params });
       
@@ -140,7 +117,7 @@ export default function TestingQuotationList() {
     } finally {
       setLoading(false);
     }
-  }, [sorting, globalFilter, minDate, maxDate, statusFilter, permissions]);
+  }, [minDate, maxDate, statusFilter, permissions]);
 
   useEffect(() => {
     fetchData();
@@ -208,7 +185,7 @@ export default function TestingQuotationList() {
       setTableSettings,
     },
     filterFns: { fuzzy: fuzzyFilter },
-    globalFilterFn: fuzzyFilter,
+    globalFilterFn: "includesString",
     enableSorting: tableSettings.enableSorting,
     enableColumnFilters: tableSettings.enableColumnFilters,
     getCoreRowModel: getCoreRowModel(),

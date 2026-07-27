@@ -82,6 +82,6 @@ export const columns = [
     id: "actions",
     header: "Action",
     enableColumnFilter: false,
-    cell: ({ row }) => <RowActions row={row} />,
+    cell: ({ row, table }) => <RowActions row={row} table={table} />,
   }),
 ];

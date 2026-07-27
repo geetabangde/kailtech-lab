@@ -61,28 +61,38 @@ export default function ExportPoToPdf() {
           console.warn("Failed to fetch company info:", companyErr);
         }
 
-        // Calculate tax combinations matching legacy calculations
+        // ------------------------------------------------------------
+        // Calculate tax combinations matching legacy calculations.
+        //
+        // FIX: the API can return tax_rate in inconsistent formats per
+        // item (e.g. "18%", "18%%", "18.00%"), and the additional-charges
+        // GST was always added under a hardcoded "18%" key. Combining by
+        // the *raw* string caused the same 18% rate to be split across
+        // two different object keys, which showed up as "IGST 18%"
+        // twice on the PDF (once from items, once from charges, with the
+        // charges one at 0.00 when there were no extra charges). Now we
+        // normalize every rate down to its plain numeric value first, so
+        // any formatting variant of "18%" always lands in the same key.
+        // ------------------------------------------------------------
         const combineTax = {};
         items.forEach(item => {
-          const taxRate = item.tax_rate || "0";
-          const taxRateString = typeof taxRate === "string" ? taxRate : `${taxRate}%`;
-          const taxRateFiltered = taxRateString.replace(/[\s%]/g, "");
+          const rawTaxRate = item.tax_rate ?? "0";
+          const taxRateNum = parseFloat(String(rawTaxRate).replace(/[\s%]/g, "")) || 0;
+          const taxRateKey = String(taxRateNum);
 
           // taxable amount is either directly available or derived
           const price = parseFloat(item.price || item.list_price || 0);
           const quantity = parseFloat(item.quantity || 0);
           const taxableAmount = parseFloat(item.taxableamount || item.amount || (price * quantity) || 0);
 
-          const taxAmount = (taxableAmount * parseFloat(taxRateFiltered || 0)) / 100;
+          const taxAmount = (taxableAmount * taxRateNum) / 100;
 
-          if (combineTax[taxRateString]) {
-            combineTax[taxRateString] += taxAmount;
-          } else {
-            combineTax[taxRateString] = taxAmount;
-          }
+          combineTax[taxRateKey] = (combineTax[taxRateKey] || 0) + taxAmount;
         });
 
-        // Add tax on additional charges (GST 18%)
+        // Add tax on additional charges (GST 18%) - now uses the same
+        // normalized "18" key so it merges with items at 18% instead of
+        // creating a second row.
         const miscCharges =
           (parseFloat(purchaseOrderData.packaginchrgs || purchaseOrderData.packing_charges || summary.packing_charges || 0) +
             parseFloat(purchaseOrderData.freightchrgs || purchaseOrderData.freight_charges || summary.freight_charges || 0) +
@@ -91,11 +101,7 @@ export default function ExportPoToPdf() {
             parseFloat(purchaseOrderData.trainingchrgs || purchaseOrderData.training_charges || summary.training_charges || 0));
 
         const gstOnCharges = (miscCharges * 18) / 100;
-        if (combineTax["18%"]) {
-          combineTax["18%"] += gstOnCharges;
-        } else {
-          combineTax["18%"] = gstOnCharges;
-        }
+        combineTax["18"] = (combineTax["18"] || 0) + gstOnCharges;
 
         // Determine GST state logic
         const companyGstCode = companyData.gstno ? companyData.gstno.substring(0, 2) : "";
@@ -125,6 +131,14 @@ export default function ExportPoToPdf() {
         setPdfData({
           purchaseOrder: {
             ...purchaseOrderData,
+            // FIX: API returns these as quotation_no / quotation_date /
+            // other_details (snake_case). The rest of this component reads
+            // quotationno / quotationdate / otherdetails (no underscore),
+            // so without this mapping they always came through as
+            // undefined and silently rendered blank on the PDF.
+            quotationno: purchaseOrderData.quotationno || purchaseOrderData.quotation_no,
+            quotationdate: purchaseOrderData.quotationdate || purchaseOrderData.quotation_date,
+            otherdetails: purchaseOrderData.otherdetails || purchaseOrderData.other_details,
             discount: purchaseOrderData.discount || summary.discount,
             totalafterdisc: purchaseOrderData.totalafterdisc || summary.total_after_discount,
             packaginchrgs: purchaseOrderData.packaginchrgs || purchaseOrderData.packing_charges || summary.packing_charges,
@@ -172,40 +186,57 @@ export default function ExportPoToPdf() {
     return date.toLocaleDateString('en-GB'); // dd/mm/yyyy format
   };
 
-  // PHP: convert_number_to_words function (simplified)
+  // ----------------------------------------------------------------------
+  // FIX: convert_number_to_words - the old version only handled numbers up
+  // to 9999 correctly. It computed `thousands = Math.floor(num / 1000)`,
+  // which for 23600 gives 23 - a two-digit number - and then tried to look
+  // it up directly in `ones[23]`, an array that only has indexes 0-9. That
+  // lookup returned `undefined`, which is exactly what showed up on the
+  // PDF ("Rs. UNDEFINED THOUSAND SIX HUNDRED"). Rewritten below using the
+  // Indian numbering system (crore / lakh / thousand / hundred), with each
+  // group properly converted through a two-digit converter so any amount
+  // (not just < 10,000) converts correctly.
+  // ----------------------------------------------------------------------
   const numberToWords = (num) => {
+    num = Math.floor(Math.abs(Number(num) || 0));
     if (num === 0) return "zero";
-    const ones = ["", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"];
-    const teens = ["ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"];
-    const tens = ["", "ten", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"];
-    const thousands = Math.floor(num / 1000);
-    const hundreds = Math.floor((num % 1000) / 100);
-    const remainder = num % 100;
+
+    const ones = [
+      "", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
+      "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen",
+      "seventeen", "eighteen", "nineteen"
+    ];
+    const tens = ["", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"];
+
+    const twoDigits = (n) => {
+      if (n === 0) return "";
+      if (n < 20) return ones[n];
+      return tens[Math.floor(n / 10)] + (n % 10 ? " " + ones[n % 10] : "");
+    };
+
+    const threeDigits = (n) => {
+      if (n === 0) return "";
+      const hundred = Math.floor(n / 100);
+      const rest = n % 100;
+      return (hundred ? ones[hundred] + " hundred " : "") + twoDigits(rest);
+    };
+
+    // Indian numbering: crore (1,00,00,000) / lakh (1,00,000) / thousand / hundred
+    const crore = Math.floor(num / 10000000);
+    num %= 10000000;
+    const lakh = Math.floor(num / 100000);
+    num %= 100000;
+    const thousand = Math.floor(num / 1000);
+    num %= 1000;
+    const hundred = num;
 
     let words = "";
+    if (crore) words += threeDigits(crore) + " crore ";
+    if (lakh) words += threeDigits(lakh) + " lakh ";
+    if (thousand) words += threeDigits(thousand) + " thousand ";
+    if (hundred) words += threeDigits(hundred);
 
-    if (thousands > 0) {
-      words += ones[thousands] + " thousand ";
-    }
-
-    if (hundreds > 0) {
-      words += ones[hundreds] + " hundred ";
-    }
-
-    if (remainder > 0) {
-      if (remainder < 10) {
-        words += ones[remainder];
-      } else if (remainder < 20) {
-        words += teens[remainder - 10];
-      } else {
-        words += tens[Math.floor(remainder / 10)];
-        if (remainder % 10 > 0) {
-          words += " " + ones[remainder % 10];
-        }
-      }
-    }
-
-    return words.trim();
+    return words.trim().replace(/\s+/g, " ");
   };
 
   // Generate HTML content for PDF
@@ -429,11 +460,13 @@ export default function ExportPoToPdf() {
           ` : ''}
           
           <!-- Tax Breakdown -->
-          ${Object.entries(combineTax).map(([taxRate, taxAmount]) => {
+          ${Object.entries(combineTax)
+        .filter(([, taxAmount]) => taxAmount > 0)
+        .map(([taxRate, taxAmount]) => {
           if (isSameState) {
             const cgstAmount = taxAmount / 2;
             const sgstAmount = taxAmount / 2;
-            const rate = taxRate.replace(/[\s%]/g, "") / 2;
+            const rate = parseFloat(taxRate) / 2;
             return `
                 <tr>
                   <td colspan="2"><strong>CGST ${rate}%</strong></td>
@@ -445,10 +478,9 @@ export default function ExportPoToPdf() {
                 </tr>
               `;
           } else {
-            const rate = taxRate.replace(/[\s%]/g, "");
             return `
                 <tr>
-                  <td colspan="2"><strong>IGST ${rate}%</strong></td>
+                  <td colspan="2"><strong>IGST ${taxRate}%</strong></td>
                   <td colspan="4" class="text-right">${taxAmount.toFixed(2)}/-</td>
                 </tr>
               `;

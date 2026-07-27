@@ -9,25 +9,35 @@ import axios from "utils/axios";
 import { Page } from "components/shared/Page";
 
 // ----------------------------------------------------------------------
-
-function CustomerSearch({ customers, value, onChange, disabled, error }) {
+// Generic Searchable Select (used for Customer + Standard)
+// items: array of { id, name }
+// ----------------------------------------------------------------------
+function SearchableSelect({
+  items,
+  value,
+  onChange,
+  disabled,
+  error,
+  placeholder = "Search and select...",
+  loadingPlaceholder = "Loading...",
+}) {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
   const selectedName = useMemo(
-    () => customers.find((c) => String(c.id) === String(value))?.name ?? "",
-    [customers, value],
+    () => items.find((c) => String(c.id) === String(value))?.name ?? "",
+    [items, value],
   );
 
-  const filteredCustomers = useMemo(() => {
+  const filteredItems = useMemo(() => {
     const q = query.trim().toLowerCase();
     return (
       q
-        ? customers.filter((c) => (c.name ?? "").toLowerCase().includes(q))
-        : customers
+        ? items.filter((c) => (c.name ?? "").toLowerCase().includes(q))
+        : items
     ).slice(0, 80);
-  }, [customers, query]);
+  }, [items, query]);
 
   useEffect(() => {
     const handleOutsideClick = (event) => {
@@ -64,7 +74,7 @@ function CustomerSearch({ customers, value, onChange, disabled, error }) {
         onFocus={() => {
           if (!disabled) setOpen(true);
         }}
-        placeholder={disabled ? "Loading customers..." : "Search and select customer..."}
+        placeholder={disabled ? loadingPlaceholder : placeholder}
         className={inputClass}
         autoComplete="off"
         disabled={disabled}
@@ -81,23 +91,23 @@ function CustomerSearch({ customers, value, onChange, disabled, error }) {
 
       {open && !disabled && (
         <div className="absolute z-50 mt-1 max-h-60 w-full overflow-y-auto rounded-md border border-gray-200 bg-white shadow-xl dark:border-dark-600 dark:bg-dark-800">
-          {filteredCustomers.length === 0 ? (
-            <div className="px-3 py-2 text-sm text-gray-400">No customers found</div>
+          {filteredItems.length === 0 ? (
+            <div className="px-3 py-2 text-sm text-gray-400">No results found</div>
           ) : (
-            filteredCustomers.map((customer) => (
+            filteredItems.map((item) => (
               <div
-                key={customer.id}
+                key={item.id}
                 onMouseDown={() => {
-                  onChange(String(customer.id));
+                  onChange(String(item.id));
                   setQuery("");
                   setOpen(false);
                 }}
-                className={`cursor-pointer px-3 py-2 text-sm transition-colors hover:bg-primary-50 dark:hover:bg-dark-700 ${String(customer.id) === String(value)
-                    ? "bg-primary-50 font-semibold text-primary-700 dark:bg-dark-700 dark:text-primary-400"
-                    : "text-gray-700 dark:text-dark-200"
+                className={`cursor-pointer px-3 py-2 text-sm transition-colors hover:bg-primary-50 dark:hover:bg-dark-700 ${String(item.id) === String(value)
+                  ? "bg-primary-50 font-semibold text-primary-700 dark:bg-dark-700 dark:text-primary-400"
+                  : "text-gray-700 dark:text-dark-200"
                   }`}
               >
-                {customer.name}
+                {item.name}
               </div>
             ))
           )}
@@ -214,6 +224,14 @@ export default function AddConsentLetter() {
     }
   };
 
+  // ── Handle Standard Selection from Search ──
+  const handleStandardChange = (sid) => {
+    setFormData((prev) => ({ ...prev, iscode: sid }));
+    if (errors.iscode) {
+      setErrors((prev) => ({ ...prev, iscode: "" }));
+    }
+  };
+
   // ── Validation ──
   const validate = () => {
     const newErrors = {};
@@ -297,35 +315,29 @@ export default function AddConsentLetter() {
               />
             </FormRow>
 
-            {/* Standard */}
+            {/* Standard — implemented with Searchable Dropdown */}
             <FormRow label="Standard" required error={errors.iscode}>
-              <select
-                name="iscode"
+              <SearchableSelect
+                items={standards}
                 value={formData.iscode}
-                onChange={handleChange}
+                onChange={handleStandardChange}
                 disabled={standardsLoading}
-                className={inputClass(errors.iscode)}
-              >
-                {standardsLoading ? (
-                  <option value="">Loading...</option>
-                ) : (
-                  standards.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name}
-                    </option>
-                  ))
-                )}
-              </select>
+                error={errors.iscode}
+                placeholder="Search and select standard..."
+                loadingPlaceholder="Loading standards..."
+              />
             </FormRow>
 
             {/* Customer Name — implemented with Searchable Dropdown */}
             <FormRow label="Customer Name" required error={errors.customerid}>
-              <CustomerSearch
-                customers={customers}
+              <SearchableSelect
+                items={customers}
                 value={formData.customerid}
                 onChange={handleCustomerChange}
                 disabled={customersLoading}
                 error={errors.customerid}
+                placeholder="Search and select customer..."
+                loadingPlaceholder="Loading customers..."
               />
             </FormRow>
 

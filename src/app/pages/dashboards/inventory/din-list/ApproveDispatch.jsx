@@ -24,9 +24,9 @@ export default function ApproveDispatch() {
     const fetchInitialData = useCallback(async () => {
         try {
             setLoading(true);
-            const [reportRes, purpRes, companyRes] = await Promise.all([
+            const [reportRes, depRes, companyRes] = await Promise.all([
                 axios.get(`inventory/get-din-report/${id}`),
-                axios.get("inventory/din-purpose-data").catch(() => ({ data: { status: false, data: [] } })),
+                axios.get("inventory/get-add-din-dependency").catch(() => ({ data: { status: false, data: null } })),
                 axios.get("get-company-info").catch(() => ({ data: { status: false, data: null } }))
             ]);
 
@@ -39,8 +39,8 @@ export default function ApproveDispatch() {
                 }
 
                 // Try to map the purpose string back to an ID for logic gates
-                if (purpRes.data.status) {
-                    const matchedPurpose = purpRes.data.data.find(p => p.name === details.dispatch_purpose);
+                if (depRes.data.status && depRes.data.data?.purposes) {
+                    const matchedPurpose = depRes.data.data.purposes.find(p => p.name === details.dispatch_purpose);
                     if (matchedPurpose) {
                         setPurposeId(parseInt(matchedPurpose.id));
                     }

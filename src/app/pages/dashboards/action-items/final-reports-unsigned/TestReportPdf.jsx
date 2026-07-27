@@ -296,6 +296,8 @@ function PdfResultsTable({ data, landscape = false }) {
           let displayResult = String(row.result?.display_value ?? row.result?.value ?? row.result ?? "—");
           if (displayResult.trim().startsWith("<") && !displayResult.includes("BDL")) {
             displayResult = "BDL " + displayResult.trim();
+          } else if (/^-?\d+$/.test(displayResult.trim())) {
+            displayResult = displayResult.trim() + ".0";
           }
           const unitDisplay = row.unit?.description ?? row.unit?.name ?? row.unit ?? "—";
           const methodName = row.method?.name ?? row.method ?? "—";

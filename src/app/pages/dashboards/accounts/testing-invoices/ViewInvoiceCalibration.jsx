@@ -49,9 +49,9 @@ function printInvoice(templateProps, withLH, logoSrc, pageTitle) {
   <title>${safeTitle}</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
-    @page { size: A4; margin: 10mm; margin-top: 10mm; }
-    @page :first { margin-top: 10mm; }
-    body  { margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; font-size: 14px; color: #111; background: #fff; }
+    @page { size: A4; margin: 0; }
+    @page :first { margin-top: 0; }
+    body  { margin: 0; padding: 10mm; padding-bottom: 5mm; box-sizing: border-box; font-family: Arial, Helvetica, sans-serif; font-size: 14px; color: #111; background: #fff; }
     @media print { 
       body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       head { display: none; }
@@ -144,7 +144,6 @@ function InvoicePrintTemplate({ inv, addr, items, qrUrl, signUrl, digitalSignUrl
   const matchedState = states.find(s => String(s.gst_code).padStart(2, "0") === String(statecode).padStart(2, "0"));
   const stateLabel = inv.statename ?? matchedState?.state ?? statecode ?? "";
   const finalTotal = parseFloat(inv.finaltotal ?? 0);
-  const isFoc = inv.invoiceno === "FOC";
   const isNormalPo = inv.potype === "Normal";
   // hasMeter removed to standardize on "Nos."
   const status = Number(inv.status);
@@ -152,10 +151,7 @@ function InvoicePrintTemplate({ inv, addr, items, qrUrl, signUrl, digitalSignUrl
   const safeQrUrl = qrUrl || null;
 
   // Per-item calculations (same PHP logic)
-  const totalQty = items.reduce((s, it) => s + (parseFloat(it.qty) || 0), 0);
-  const otherCharges = (parseFloat(inv.witnesscharges) || 0) + (parseFloat(inv.samplehandling) || 0) +
-    (parseFloat(inv.sampleprep) || 0) + (parseFloat(inv.freight) || 0) + (parseFloat(inv.mobilisation) || 0);
-
+  
   const HeaderSection = () => (
     <>
       {/* Letterhead */}
@@ -257,14 +253,7 @@ function InvoicePrintTemplate({ inv, addr, items, qrUrl, signUrl, digitalSignUrl
             </thead>
             <tbody>
               {items.map((item, idx) => {
-                // Per-item calc (skip for FOC)
                 let displayAmount = f2(item.amount);
-                if (!isFoc && isNormalPo) {
-                  const itemAmountOld = parseFloat(item.amount) || 0;
-                  const itemOtherCharge = otherCharges > 0 && totalQty > 0
-                    ? parseFloat(((otherCharges / totalQty) * parseFloat(item.qty || 0)).toFixed(2)) : 0;
-                  displayAmount = f2(itemAmountOld + itemOtherCharge);
-                }
                 return (
                   <tr key={item.id ?? idx}>
                     <td className="center">{idx + 1}</td>
@@ -380,7 +369,8 @@ function InvoicePrintTemplate({ inv, addr, items, qrUrl, signUrl, digitalSignUrl
       </div>{/* end page 1 wrapper */}
 
       {/* Page 2: Bank + Signatory */}
-      <div style={{ pageBreakBefore: "always", paddingTop: 10 }}>
+      <div style={{ pageBreakBefore: "always", paddingTop: 10, display: "flex", flexDirection: "column", minHeight: "270mm" }}>
+        <div style={{ flex: 1 }}>
         <HeaderSection />
         <table style={S.table}>
           <colgroup>
@@ -443,6 +433,16 @@ function InvoicePrintTemplate({ inv, addr, items, qrUrl, signUrl, digitalSignUrl
         </table>
         <div style={{ textAlign: "left", fontSize: 10, marginTop: 4 }}>
           This is a system generated invoice //
+        </div>
+        </div>{/* end flex:1 */}
+        {/* Page 2 Footer: Company Address — pushed to bottom */}
+        <div style={{ textAlign: "center", fontSize: 11, paddingTop: 8, borderTop: "1px solid #000", marginTop: "auto" }}>
+          <div style={{ fontWeight: "bold" }}>
+            Plot No.141 C, Electronic Complex, Pardeshipura, Indore-452010 (INDIA) Ph. +91-4787555 (30 Lines), 4046055,4048055
+          </div>
+          <div>
+            Email : contact@kailtech.net,calibration@kailtech.net, Web: www.kailtech.net, CIN-U73100MP2006PTC019006
+          </div>
         </div>
       </div>
     </div>
@@ -671,7 +671,7 @@ export default function ViewInvoiceCalibration() {
     }
   };
 
-  const einvoice = async (parsedData) => {
+  const doEInvoice = async (apiTxpType = null) => {
     try {
       setBusy(true);
 
@@ -690,48 +690,45 @@ export default function ViewInvoiceCalibration() {
       const totInvValFc = Number((assAmt + cgstVal + sgstVal + igstVal).toFixed(2));
       const totInvVal = Number((totInvValFc + roundoff).toFixed(2));
 
-      var taxTypeToSend, reverseCharge;
       var country = getCountryCode();
+      let buyerGstin = invoice.gstno || "URP";
+      let supTyp = "B2B";
+      let reverseCharge = "N";
+
+      // Use apiTxpType from validate-gst, otherwise fallback to DB
+      let txpType = apiTxpType || invoice.txptype || invoice._address?.txptype || "REG";
+
       if (country === "1") {
-        if (parsedData && parsedData.TxpType) {
-          if (parsedData.TxpType === "REG" || parsedData.TxpType === "TDS" || parsedData.TxpType === "COM") {
-            taxTypeToSend = "B2B";
-            reverseCharge = "N";
-          } else if (parsedData.TxpType === "SEZ") {
-            taxTypeToSend = "SEZWOP";
-            reverseCharge = "N";
-          } else {
-            console.error("Unsupported taxType:", parsedData.TxpType);
-            toast.error("Unsupported taxType: " + parsedData.TxpType);
-            setBusy(false);
-            return; 
-          }
+        if (!invoice.gstno || invoice.gstno === "0" || invoice.gstno === "NA") {
+          buyerGstin = "URP";
+          supTyp = "B2C";
+          reverseCharge = "N";
+        } else if (txpType === "REG" || txpType === "TDS" || txpType === "COM") {
+          supTyp = "B2B";
+          reverseCharge = "N";
+        } else if (txpType === "SEZ") {
+          supTyp = "SEZWOP";
+          reverseCharge = "N";
         } else {
-          // Fallback if parsedData is not available
-          taxTypeToSend = "B2B";
+          // Fallback if unknown
+          supTyp = "B2B";
           reverseCharge = "N";
         }
       } else {
-        taxTypeToSend = "EXPWOP";
+        supTyp = "EXPWOP";
         reverseCharge = "N";
+        buyerGstin = "URP";
       }
 
-      var gstin = (country === "1") ? invoice.gstno : "URP";
-      if (!gstin || gstin === "0" || gstin === "NA") {
-        gstin = "URP";
-      } else {
-        const match = gstin.match(/^([0-9]{2}[A-Z 0-9]{13})|URP$/i);
-        if (match && match[1]) {
-          gstin = match[1].replace(/^-+/, '');
-        }
-      }
+      const dateParts = invoice.approved_on ? invoice.approved_on.split(' ')[0].split('-') : [];
+      const formattedDate = dateParts.length === 3 ? `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}` : "";
 
       let cntCode = "IN";
       if (country !== "1") {
         try {
-          const countryRes = await axios.get("/api/people/get-country");
-          const countryList = countryRes.data?.data || [];
-          const countryObj = countryList.find(c => String(c.id) === country);
+          const countryRes = await axios.get("/people/get-country");
+          const countryList = countryRes.data?.data || countryRes.data || [];
+          const countryObj = countryList.find(c => String(c.id) === String(country));
           if (countryObj && countryObj.iso) {
             cntCode = countryObj.iso;
           }
@@ -740,12 +737,9 @@ export default function ViewInvoiceCalibration() {
         }
       }
 
-      const dateParts = invoice.approved_on ? invoice.approved_on.split(' ')[0].split('-') : [];
-      const formattedDate = dateParts.length === 3 ? `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}` : "";
-
       const payload = {
         Version: "1.1",
-        TranDtls: { TaxSch: "GST", SupTyp: taxTypeToSend, RegRev: reverseCharge, EcmGstin: null, IgstOnIntra: "N" },
+        TranDtls: { TaxSch: "GST", SupTyp: supTyp, RegRev: reverseCharge, EcmGstin: null, IgstOnIntra: "N" },
         DocDtls: { Typ: "INV", No: invoice.invoiceno, Dt: formattedDate },
         SellerDtls: {
           Gstin: "23AADCK0799A1ZV",
@@ -757,9 +751,9 @@ export default function ViewInvoiceCalibration() {
           Stcd: "23"
         },
         BuyerDtls: {
-          Gstin: isOutsideIndia ? "URP" : gstin,
+          Gstin: isOutsideIndia ? "URP" : buyerGstin,
           LglNm: invoice.customername ? invoice.customername.substring(0, 99) : "",
-          Pos: isOutsideIndia ? "96" : (isNaN(Number(statecode)) ? "96" : String(statecode).padStart(2, '0')),
+          Pos: isOutsideIndia ? "96" : (isNaN(Number(statecode)) ? "NA" : String(Number(statecode)).padStart(2, '0')),
           Addr1: (invoice._address?.address || invoice.address || "").replace(/[\r\n]+/g, ' ').substring(0, 99),
           Loc: invoice._address?.city || "",
           Pin: isOutsideIndia ? 999999 : (() => {
@@ -773,61 +767,30 @@ export default function ViewInvoiceCalibration() {
 
             return 999999;
           })(),
-          Stcd: isOutsideIndia ? "96" : (isNaN(Number(statecode)) ? "96" : String(statecode).padStart(2, '0'))
+          Stcd: isOutsideIndia ? "96" : (isNaN(Number(statecode)) ? "NA" : String(Number(statecode)).padStart(2, '0'))
         },
-        ItemList: items.map((item, index) => {
-          let itemDiscount = 0, itemAssAmt = 0, itemCgst = 0, itemSgst = 0, itemIgst = 0, gstRate = 0, itemTotVal = 0, itemAmount = 0;
-          
-          if (!isFoc) {
-            const itemAmountOld = parseFloat(item.amount) || 0;
-            const qty = parseFloat(item.qty) || 0;
-            const itemOtherCharge = otherCharges > 0 && totalQuantity > 0
-                ? parseFloat(((otherCharges / totalQuantity) * qty).toFixed(2))
-                : 0;
-            itemAmount = itemAmountOld + itemOtherCharge;
-            
-            if (amountNew > 0) {
-              if (invoice.disctype === "amount") {
-                itemDiscount = parseFloat(((itemAmount / amountNew) * (parseFloat(invoice.discnumber) || 0)).toFixed(2));
-              } else {
-                itemDiscount = parseFloat(((itemAmount / amountNew) * (parseFloat(invoice.discount) || 0)).toFixed(2));
-              }
-            }
-            itemAssAmt = itemAmount - itemDiscount;
-            
-            if (isSgst) {
-              itemCgst = parseFloat((itemAssAmt * ((parseFloat(invoice.cgstper) || 0) / 100)).toFixed(2));
-              itemSgst = parseFloat((itemAssAmt * ((parseFloat(invoice.sgstper) || 0) / 100)).toFixed(2));
-            } else {
-              itemIgst = parseFloat((itemAssAmt * ((parseFloat(invoice.igstper) || 0) / 100)).toFixed(2));
-            }
-            gstRate = (parseFloat(invoice.cgstper) || 0) + (parseFloat(invoice.sgstper) || 0) + (parseFloat(invoice.igstper) || 0);
-            itemTotVal = itemAssAmt + itemCgst + itemSgst + itemIgst;
-          }
-
-          return {
-            SlNo: String(index + 1),
-            PrdDesc: (item.description || "").replace(/<[^>]*>?/gm, ' ').substring(0, 300).trim(),
-            IsServc: "Y",
-            HsnCd: companyInfo?.company?.sac_code || "998393",
-            Qty: item.meter_option == 1 ? Number(item.meter) : Number(item.qty),
-            UnitPrice: Number(item.rate),
-            TotAmt: Number(itemAmount.toFixed(2)),
-            Discount: Number(itemDiscount.toFixed(2)),
-            AssAmt: Number(itemAssAmt.toFixed(2)),
-            GstRt: Number(gstRate.toFixed(2)),
-            IgstAmt: Number(itemIgst.toFixed(2)),
-            CgstAmt: Number(itemCgst.toFixed(2)),
-            SgstAmt: Number(itemSgst.toFixed(2)),
-            OthChrg: 0,
-            TotItemVal: Number(itemTotVal.toFixed(2))
-          };
-        }),
+        ItemList: computedItems.map((item, index) => ({
+          SlNo: String(index + 1),
+          PrdDesc: (item.description || "").replace(/<[^>]*>?/gm, ' ').substring(0, 300).trim(),
+          IsServc: "Y",
+          HsnCd: companyInfo?.company?.sac_code || "998393",
+          Qty: item.meter_option == 1 ? Number(item.meter) : Number(item.qty),
+          UnitPrice: Number(item.rate),
+          TotAmt: Number(item.itemAmount.toFixed(2)),
+          Discount: Number(item.itemDiscount.toFixed(2)),
+          AssAmt: Number(item.itemAssAmt.toFixed(2)),
+          GstRt: Number(item.gstRate.toFixed(2)),
+          IgstAmt: Number(item.itemIgst.toFixed(2)),
+          CgstAmt: Number(item.itemCgst.toFixed(2)),
+          SgstAmt: Number(item.itemSgst.toFixed(2)),
+          OthChrg: 0,
+          TotItemVal: Number(item.itemTotVal.toFixed(2))
+        })),
         ValDtls: {
           AssVal: Number(assAmt.toFixed(2)),
-          CgstVal: isSgst ? cgstVal : 0,
-          SgstVal: isSgst ? sgstVal : 0,
-          IgstVal: isSgst ? 0 : igstVal,
+          CgstVal: cgstVal,
+          SgstVal: sgstVal,
+          IgstVal: igstVal,
           OthChrg: 0,
           RndOffAmt: roundoff,
           TotInvVal: totInvVal,
@@ -850,12 +813,6 @@ export default function ViewInvoiceCalibration() {
   const validateGSTINPincode = async () => {
     setBusy(true);
     var gstin = invoice.gstno;
-    if (gstin && gstin !== "URP") {
-      const match = gstin.match(/^([0-9]{2}[A-Z 0-9]{13})|URP$/i);
-      if (match && match[1]) {
-        gstin = match[1].replace(/^-+/, '');
-      }
-    }
     var pincode = parseInt(invoice._address?.pincode || 0, 10);
     var country = getCountryCode();
 
@@ -866,10 +823,24 @@ export default function ViewInvoiceCalibration() {
         return;
       }
       
-      // Validation skipped since /alankitGST endpoint is removed from the new backend
-      await einvoice(null);
+      try {
+        // Call the new Laravel API to fetch actual GST details
+        const response = await axios.post("/einvoice/validate-gst", { gstin: gstin });
+        const parsedData = response.data?.data;
+        
+        if (parsedData && Number(parsedData.AddrPncd) === pincode) {
+          // Validation passed - Pass TxpType to doEInvoice so it matches PHP exactly
+          await doEInvoice(parsedData.TxpType);
+        } else {
+          toast.error(`Pincode and state do not match. The provided pincode is ${pincode} but the actual pincode is ${parsedData?.AddrPncd || "Not Found"}. Unable to generate E-Invoice.`);
+          setBusy(false);
+        }
+      } catch (err) {
+        toast.error(err?.response?.data?.message || err.message || "Failed to validate GSTIN from Govt Portal.");
+        setBusy(false);
+      }
     } else {
-      await einvoice(null);
+      await doEInvoice();
     }
   };
 

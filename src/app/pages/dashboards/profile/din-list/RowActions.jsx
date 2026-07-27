@@ -4,7 +4,7 @@ import { Button } from "components/ui";
 
 // ----------------------------------------------------------------------
 
-export function RowActions({ row }) {
+export function RowActions({ row, table }) {
   const actions = row.original.actions || [];
 
   return (
@@ -32,11 +32,16 @@ export function RowActions({ row }) {
           }
         }
 
+        if (titleLower.includes("fill check") || titleLower.includes("fill checklist")) {
+          href = `/dashboards/profile/my-issue-item-list`;
+          isInternalLink = true;
+        }
+
         if (titleLower.includes("dispatch detail") || titleLower.includes("dispach detail")) {
           return (
             <Button
               key={idx}
-              onClick={() => row.getTable().options.meta?.openDispatchModal(row.original)}
+              onClick={() => table?.options?.meta?.openDispatchModal(row.original)}
               size="xs"
               color={color}
               variant="soft"
@@ -83,4 +88,5 @@ export function RowActions({ row }) {
 
 RowActions.propTypes = {
   row: PropTypes.object.isRequired,
+  table: PropTypes.object,
 };

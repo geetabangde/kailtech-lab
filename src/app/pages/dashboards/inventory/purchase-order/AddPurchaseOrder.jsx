@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "utils/axios";
 import { toast } from "sonner";
 import { Page } from "components/shared/Page";
+import Select from "react-select"; // npm install react-select
 
 export default function AddPurchaseOrder() {
   const navigate = useNavigate();
@@ -15,8 +16,7 @@ export default function AddPurchaseOrder() {
   const [vendorData, setVendorData] = useState(null);
   const [items, setItems] = useState([]);
   const [searchResults, setSearchResults] = useState([]);
-  const [subcategories, setSubcategories] = useState([]);
-  
+
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     po_number: "",
@@ -77,14 +77,6 @@ export default function AddPurchaseOrder() {
           setUnits(unitsResponse.data.data || []);
         }
         try {
-          const subcatResponse = await axios.get("/inventory/subcategory-list");
-          if (subcatResponse.data.status) {
-            setSubcategories(subcatResponse.data.data || []);
-          }
-        } catch (err) {
-          console.error("Failed to load subcategories", err);
-        }
-        try {
           const companyResponse = await axios.get("/get-company-info");
           if (companyResponse.data.status) {
             const d = companyResponse.data.data;
@@ -123,8 +115,11 @@ export default function AddPurchaseOrder() {
       semail: "",
       saddress: ""
     }));
+    // Same as original: $("#result").html("") + resetting cgst/sgst/igst
+    // whenever the business changes, since items belonged to the old vendor.
     setItems([]);
     setVendorData(null);
+    setSearchResults([]);
     if (!supplierId || supplierId === "-1" || supplierId === "") return;
 
     try {
@@ -134,7 +129,6 @@ export default function AddPurchaseOrder() {
         setVendorData(details);
         setFormData(prev => ({
           ...prev,
-          // Correctly map actual API response fields
           sname: details?.contact_person || "",
           sphone: details?.contact_phone || details?.mobile || "",
           designation: details?.designation || "",
@@ -150,11 +144,28 @@ export default function AddPurchaseOrder() {
     }
   };
 
+  // ---------------------------------------------------------------------
+  // Helper: generate a guaranteed-unique id for every row we add to the
+  // items table, so any number of rows can be added without id clashes.
+  // ---------------------------------------------------------------------
+  const generateUniqueId = () =>
+    (typeof crypto !== "undefined" && crypto.randomUUID)
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+  // ---------------------------------------------------------------------
+  // WO ONLY - mirrors the legacy `additem()` JS function, which is the
+  // ONLY way items get added for a Work Order. It builds a fully blank,
+  // fully editable row. There is no subcategory dropdown anywhere in the
+  // legacy flow - the hidden `subid`/`subcategory_id` input is created
+  // empty and is simply never filled in for a WO item.
+  // ---------------------------------------------------------------------
   const addNewItem = () => {
     const newItem = {
-      id: Date.now(),
+      id: generateUniqueId(),
+      _dedupeKey: generateUniqueId(), // manual rows are never "duplicates" of each other
       hsn_code: "",
-      subcategory_id: "",
+      subcategory_id: "", // stays blank for WO, exactly like the legacy hidden #subid input
       indent_item_id: "",
       itemname: "",
       price: "",
@@ -179,6 +190,11 @@ export default function AddPurchaseOrder() {
     setItems(prev => [...prev, newItem]);
   };
 
+  // ---------------------------------------------------------------------
+  // PO ONLY - mirrors `searchmminstrumentforpo.php` autocomplete. Legacy
+  // WO flow never calls this (fetchinstrumentsearch.php only renders the
+  // search box when wopo != "WO").
+  // ---------------------------------------------------------------------
   const handleSearchChange = async (val) => {
     if (val.length < 3) {
       setSearchResults([]);
@@ -199,21 +215,31 @@ export default function AddPurchaseOrder() {
   };
 
   const handleSearchResultSelect = (result) => {
-    // Debug: log what fields the API is returning so we can map correctly
-    console.log("[Search Material Result]", result);
-    
-    const subcatId = result.material || result.subcategory_id || result.subcatid || result.sub_id || result.id || "0";
-    if (items.some(item => item.subcategory_id === subcatId)) {
+    // Dedupe: don't let every result with a missing/zero id collapse into
+    // the same key - build a name+HSN based key when the backend doesn't
+    // give a real id, so distinct instruments can always be added.
+    const rawId = result.material ?? result.subcategory_id ?? result.subcatid ?? result.sub_id ?? result.id;
+    const hasValidId = rawId !== undefined && rawId !== null && String(rawId).trim() !== "" && String(rawId) !== "0";
+    const subcatId = hasValidId ? String(rawId) : "0";
+
+    const resultName = result.name || result.itemname || result.instrument_name || "";
+    const resultHsn = result.hsn || result.hsn_code || "";
+    const dedupeKey = hasValidId ? subcatId : `${resultName}|${resultHsn}`;
+
+    if (items.some(item => item._dedupeKey === dedupeKey)) {
       toast.error("Instrument Already Added");
       setSearchResults([]);
       return;
     }
+
+    const newId = generateUniqueId();
     const newItem = {
-      id: Date.now(),
-      hsn_code: result.hsn || result.hsn_code || "",
-      subcategory_id: String(subcatId),
+      id: newId,
+      _dedupeKey: dedupeKey,
+      hsn_code: resultHsn,
+      subcategory_id: subcatId, // populated from the search result, like the legacy autocomplete row
       indent_item_id: "",
-      itemname: result.name || result.itemname || result.instrument_name || "",
+      itemname: resultName,
       price: result.subprice || result.list_price || result.rate || result.price || "",
       specification: "",
       quantity: 1,
@@ -226,98 +252,59 @@ export default function AddPurchaseOrder() {
       igstper: 0, igstamount: 0, sgstper: 0, sgstamount: 0, cgstper: 0, cgstamount: 0,
       totaltaxamountitem: 0, taxableamount: 0, finalamount: 0
     };
+
     setItems(prev => [...prev, newItem]);
     setSearchResults([]);
-    setTimeout(() => calculateItemAmount(newItem.id, "quantity", 1), 0);
+    setTimeout(() => calculateItemAmount(newId, "quantity", 1), 0);
+  };
+
+  const computeItemTax = (updatedItem) => {
+    const qty = parseFloat(updatedItem.quantity) || 0;
+    const rate = parseFloat(updatedItem.price) || 0;
+    const finalamount = qty * rate;
+    updatedItem.amount = finalamount;
+
+    const discountpercent = parseFloat(updatedItem.discountperitem) || 0;
+    const discountamount = (finalamount / 100) * discountpercent;
+    updatedItem.discamount = discountamount;
+
+    const taxableamount = finalamount - discountamount;
+    updatedItem.taxableamount = taxableamount;
+
+    const tax_rate = parseFloat(updatedItem.tax_rate) || 0;
+    let cgstamount = 0, sgstamount = 0, igstamount = 0;
+    let cgstper = 0, sgstper = 0, igstper = 0;
+    let totaltaxamount = 0;
+
+    const myGstCode = "23"; // Madhya Pradesh state code
+    const supplierGstNo = vendorData?.gstno || "";
+    const supplierGstCode = supplierGstNo.trim().substring(0, 2);
+    const supplierStateCode = String(vendorData?.gst_state_code || "");
+    const isSameState = supplierGstCode === myGstCode || supplierStateCode === myGstCode;
+
+    if (isSameState) {
+      const taxRateHalf = tax_rate / 2;
+      cgstamount = (taxableamount * taxRateHalf) / 100;
+      sgstamount = (taxableamount * taxRateHalf) / 100;
+      cgstper = taxRateHalf; sgstper = taxRateHalf;
+      totaltaxamount = cgstamount + sgstamount;
+    } else {
+      igstamount = (taxableamount * tax_rate) / 100;
+      igstper = tax_rate; totaltaxamount = igstamount;
+    }
+
+    updatedItem.cgstper = cgstper; updatedItem.sgstper = sgstper; updatedItem.igstper = igstper;
+    updatedItem.cgstamount = cgstamount; updatedItem.sgstamount = sgstamount; updatedItem.igstamount = igstamount;
+    updatedItem.totaltaxamountitem = totaltaxamount;
+    updatedItem.finalamount = taxableamount + totaltaxamount;
+    return updatedItem;
   };
 
   const calculateItemAmount = (itemId, field, value) => {
     setItems(prev => prev.map(item => {
       if (item.id === itemId) {
         const updatedItem = { ...item, [field]: value };
-        const qty = parseFloat(updatedItem.quantity) || 0;
-        const rate = parseFloat(updatedItem.price) || 0;
-        const finalamount = qty * rate;
-        updatedItem.amount = finalamount;
-
-        const discountpercent = parseFloat(updatedItem.discountperitem) || 0;
-        const discountamount = (finalamount / 100) * discountpercent;
-        updatedItem.discamount = discountamount;
-        
-        const taxableamount = finalamount - discountamount;
-        updatedItem.taxableamount = taxableamount;
-        
-        const tax_rate = parseFloat(updatedItem.tax_rate) || 0;
-        let cgstamount = 0, sgstamount = 0, igstamount = 0;
-        let cgstper = 0, sgstper = 0, igstper = 0;
-        let totaltaxamount = 0;
-
-        const myGstCode = "23"; // Madhya Pradesh state code
-        const supplierGstNo = vendorData?.gstno || "";
-        const supplierGstCode = supplierGstNo.trim().substring(0, 2);
-        // Also check gst_state_code from API (numeric string like "27")
-        const supplierStateCode = String(vendorData?.gst_state_code || "");
-        const isSameState = supplierGstCode === myGstCode || supplierStateCode === myGstCode;
-
-        if (isSameState) {
-          const taxRateHalf = tax_rate / 2;
-          cgstamount = (taxableamount * taxRateHalf) / 100;
-          sgstamount = (taxableamount * taxRateHalf) / 100;
-          cgstper = taxRateHalf; sgstper = taxRateHalf;
-          totaltaxamount = cgstamount + sgstamount;
-        } else {
-          igstamount = (taxableamount * tax_rate) / 100;
-          igstper = tax_rate; totaltaxamount = igstamount;
-        }
-
-        updatedItem.cgstper = cgstper; updatedItem.sgstper = sgstper; updatedItem.igstper = igstper;
-        updatedItem.cgstamount = cgstamount; updatedItem.sgstamount = sgstamount; updatedItem.igstamount = igstamount;
-        updatedItem.totaltaxamountitem = totaltaxamount;
-        updatedItem.finalamount = taxableamount + totaltaxamount;
-        return updatedItem;
-      }
-      return item;
-    }));
-  };
-
-  // Update multiple fields atomically in one setItems call to avoid React batching losing subcategory_id
-  const updateItemMultiFields = (itemId, fieldsObj) => {
-    setItems(prev => prev.map(item => {
-      if (item.id === itemId) {
-        const updatedItem = { ...item, ...fieldsObj };
-        const qty = parseFloat(updatedItem.quantity) || 0;
-        const rate = parseFloat(updatedItem.price) || 0;
-        const finalamount = qty * rate;
-        updatedItem.amount = finalamount;
-        const discountpercent = parseFloat(updatedItem.discountperitem) || 0;
-        const discountamount = (finalamount / 100) * discountpercent;
-        updatedItem.discamount = discountamount;
-        const taxableamount = finalamount - discountamount;
-        updatedItem.taxableamount = taxableamount;
-        const tax_rate = parseFloat(updatedItem.tax_rate) || 0;
-        let cgstamount = 0, sgstamount = 0, igstamount = 0;
-        let cgstper = 0, sgstper = 0, igstper = 0;
-        let totaltaxamount = 0;
-        const myGstCode = "23"; // Madhya Pradesh state code
-        const supplierGstNo = vendorData?.gstno || "";
-        const supplierGstCode = supplierGstNo.trim().substring(0, 2);
-        const supplierStateCode = String(vendorData?.gst_state_code || "");
-        const isSameState = supplierGstCode === myGstCode || supplierStateCode === myGstCode;
-        if (isSameState) {
-          const taxRateHalf = tax_rate / 2;
-          cgstamount = (taxableamount * taxRateHalf) / 100;
-          sgstamount = (taxableamount * taxRateHalf) / 100;
-          cgstper = taxRateHalf; sgstper = taxRateHalf;
-          totaltaxamount = cgstamount + sgstamount;
-        } else {
-          igstamount = (taxableamount * tax_rate) / 100;
-          igstper = tax_rate; totaltaxamount = igstamount;
-        }
-        updatedItem.cgstper = cgstper; updatedItem.sgstper = sgstper; updatedItem.igstper = igstper;
-        updatedItem.cgstamount = cgstamount; updatedItem.sgstamount = sgstamount; updatedItem.igstamount = igstamount;
-        updatedItem.totaltaxamountitem = totaltaxamount;
-        updatedItem.finalamount = taxableamount + totaltaxamount;
-        return updatedItem;
+        return computeItemTax(updatedItem);
       }
       return item;
     }));
@@ -340,7 +327,7 @@ export default function AddPurchaseOrder() {
       const calibrationchrgs = parseFloat(prev.calibrationchrgs) || 0;
       const trainingchrgs = parseFloat(prev.trainingchrgs) || 0;
       const customdutychrgs = parseFloat(prev.customdutychrgs) || 0;
-      
+
       const additionalCharges = packchrgs + freightchrgs + insurancechrgs + calibrationchrgs + trainingchrgs;
       const additionalChargesTax = (additionalCharges * 18) / 100;
       const totaltaxamount = cgst + sgst + igst + additionalChargesTax;
@@ -392,26 +379,33 @@ export default function AddPurchaseOrder() {
     if (!formData.ordertype) return toast.error("Please select order type (PO/WO)");
     if (!formData.customer_id || formData.customer_id === "-1") return toast.error("Please select a supplier");
 
-    // Validate that subcategory_id exists for all items
     for (let item of items) {
-      if (!item.subcategory_id || item.subcategory_id === "") {
-        return toast.error(`Item "${item.itemname || "Unknown"}" is missing a subcategory. Please select a subcategory.`);
+      if (!item.itemname || item.itemname.trim() === "") {
+        return toast.error("One of the items is missing a name. Please fill it in.");
+      }
+      // subcategory_id only ever gets populated for PO (comes from the
+      // instrument search). WO items are manual and legitimately have no
+      // subcategory, exactly like the legacy hidden #subid input.
+      if (formData.ordertype === "PO" && (item.subcategory_id === "" || item.subcategory_id === undefined || item.subcategory_id === null)) {
+        return toast.error(`Item "${item.itemname || "Unknown"}" could not be matched to an instrument. Please re-select it from search.`);
       }
       if (!item.unit || item.unit === "") {
         return toast.error(`Item "${item.itemname || "Unknown"}" is missing a unit. Please select a unit.`);
       }
+      if (!item.price || parseFloat(item.price) <= 0) {
+        return toast.error(`Item "${item.itemname || "Unknown"}" needs a valid price.`);
+      }
     }
 
     setSubmitting(true);
-    
+
     // Format dates from YYYY-MM-DD to DD/MM/YYYY for the backend
     const formattedDate = formData.date ? formData.date.split('-').reverse().join('/') : "";
     const formattedQuotationDate = formData.quotationdate ? formData.quotationdate.split('-').reverse().join('/') : "";
 
-    // Transform data to match the legacy PHP/API expected payload structure
     const payload = {
       ...formData,
-      sname: formData.sname || "-", // Prevent null constraint violation on backend
+      sname: formData.sname || "-",
       semail: formData.semail || "-",
       designation: formData.designation || "-",
       sphone: formData.sphone || "-",
@@ -423,8 +417,7 @@ export default function AddPurchaseOrder() {
       otherdetails: formData.otherdetails || "-",
       date: formattedDate,
       quotationdate: formattedQuotationDate,
-      
-      // Map tax calculations
+
       subtotal: taxCalculations.subtotal,
       discount: taxCalculations.discount,
       totalafterdisc: taxCalculations.totalafterdisc,
@@ -441,10 +434,15 @@ export default function AddPurchaseOrder() {
       totalinvoiceamount: taxCalculations.totalamount,
       roundoff: taxCalculations.roundoff,
       finaltotal: taxCalculations.finaltotal,
-      
-      // Map items array into flat arrays
+
       hsn_code: items.map(i => String(i.hsn_code || "-")),
-      subcategory_id: items.map(i => String(i.subcategory_id || "0")),
+      // Blank for WO (matches legacy hidden #subid input which is never
+      // filled in for a manually added WO item), real id for PO.
+      subcategory_id: items.map(i =>
+        i.subcategory_id !== undefined && i.subcategory_id !== null && i.subcategory_id !== ""
+          ? String(i.subcategory_id)
+          : ""
+      ),
       indent_item_id: items.map(i => String(i.indent_item_id || "0")),
       itemname: items.map(i => String(i.itemname || "-")),
       price: items.map(i => String(i.price || "0")),
@@ -454,7 +452,11 @@ export default function AddPurchaseOrder() {
       list_price: items.map(i => String(i.amount || "0")),
       discountperitem: items.map(i => String(i.discountperitem || "0")),
       discamount: items.map(i => String(i.discamount || "0")),
-      tax_rate: items.map(i => String(i.tax_rate || "18")),
+      // insert_purchase_order.php appends "%" to tax_rate ONLY for WO
+      // ($x['tax_rate'] = $_POST["tax_rate"][$key]."%";), PO stays numeric.
+      tax_rate: items.map(i =>
+        formData.ordertype === "WO" ? `${i.tax_rate || "18"}%` : String(i.tax_rate || "18")
+      ),
       igstper: items.map(i => String(i.igstper || "0")),
       igstamount: items.map(i => String(i.igstamount || "0")),
       sgstper: items.map(i => String(i.sgstper || "0")),
@@ -464,9 +466,10 @@ export default function AddPurchaseOrder() {
       totaltaxamountitem: items.map(i => String(i.totaltaxamountitem || "0")),
       taxableamount: items.map(i => String(i.taxableamount || "0")),
       finalamount: items.map(i => String(i.finalamount || "0")),
-      
-      // Ensure currency is passed as array of integers to match PHP $_POST['currency'][0] logic
-      currency: [parseInt(formData.currency, 10) || 1]
+
+      // Backend reads $_POST["currency"][$key] per item (and $_POST["currency"][0]
+      // as the header currency) - must be one entry per item, not a single value.
+      currency: items.map(i => String(i.currency || formData.currency || "1"))
     };
 
     try {
@@ -486,16 +489,34 @@ export default function AddPurchaseOrder() {
   };
 
   const handleInputChange = async (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
     if (field === "ordertype") {
-      if (!value) return setFormData(prev => ({ ...prev, po_number: "" }));
+      // Mirrors the legacy $("#wopo").change() handler: switching PO/WO
+      // resets the chosen business, contact info and any items already
+      // added, because item-entry mode (search vs manual) depends on it.
+      setItems([]);
+      setVendorData(null);
+      setSearchResults([]);
+      setFormData(prev => ({
+        ...prev,
+        ordertype: value,
+        customer_id: "",
+        sname: "",
+        sphone: "",
+        designation: "",
+        semail: "",
+        saddress: "",
+        po_number: ""
+      }));
+      if (!value) return;
       try {
         const response = await axios.get(`/inventory/generate-po-wo-number?type=${value}`);
         if (response.data.status) setFormData(prev => ({ ...prev, po_number: response.data.code }));
       } catch (error) {
         console.error(error);
       }
+      return;
     }
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   if (loading) {
@@ -508,12 +529,35 @@ export default function AddPurchaseOrder() {
 
   const inputClass = "w-full border border-blue-400 dark:border-blue-600 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-shadow";
   const labelClass = "text-sm font-bold text-slate-700 dark:text-slate-300 block mb-1";
-  
+
+  const supplierOptions = suppliers.map(s => ({ value: String(s.id), label: s.company }));
+  const selectedSupplierOption = supplierOptions.find(o => o.value === String(formData.customer_id)) || null;
+
+  const reactSelectStyles = {
+    control: (base, state) => ({
+      ...base,
+      minHeight: "38px",
+      borderRadius: "0.375rem",
+      borderColor: state.isFocused ? "#3b82f6" : "#60a5fa",
+      borderWidth: "1px",
+      boxShadow: state.isFocused ? "0 0 0 2px rgba(59,130,246,0.5)" : "none",
+      backgroundColor: "var(--rs-bg, #ffffff)",
+      "&:hover": { borderColor: "#3b82f6" }
+    }),
+    menu: (base) => ({ ...base, zIndex: 60 }),
+    singleValue: (base) => ({ ...base, color: "inherit" }),
+    input: (base) => ({ ...base, color: "inherit" }),
+    placeholder: (base) => ({ ...base, color: "#94a3b8" })
+  };
+
+  const canAddItems = formData.ordertype && formData.customer_id && formData.customer_id !== "-1";
+  const isPO = formData.ordertype === "PO";
+  const isWO = formData.ordertype === "WO";
+
   return (
     <Page title="Add Purchase Order">
       <div className="w-full bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 p-4 overflow-x-hidden">
-        
-        {/* Header */}
+
         <div className="flex justify-between items-center border-b pb-4 mb-6">
           <h1 className="text-xl font-black text-slate-800 dark:text-slate-100">Add Purchase Order/Work Order</h1>
           <button type="button" onClick={() => navigate("/dashboards/inventory/purchase-order")} className="border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-2 text-sm font-bold bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
@@ -522,11 +566,9 @@ export default function AddPurchaseOrder() {
         </div>
 
         <form onSubmit={handleSubmit}>
-          
-          {/* Top Form Grid */}
+
           <div className="flex flex-col md:flex-row gap-4">
-            
-            {/* Left Column */}
+
             <div className="flex-1 space-y-2">
               <div className="mb-2">
                 <label className={labelClass}>Currency</label>
@@ -542,12 +584,21 @@ export default function AddPurchaseOrder() {
                   <option value="WO">WO</option>
                 </select>
               </div>
+
               <div className="mb-2">
                 <label className={labelClass}>Business Name</label>
-                <select className={inputClass} value={formData.customer_id} onChange={(e) => handleSupplierChange(e.target.value)} required>
-                  <option value="-1">Choose One..</option>
-                  {suppliers.map(s => <option key={s.id} value={s.id}>{s.company}</option>)}
-                </select>
+                <Select
+                  classNamePrefix="rs"
+                  styles={reactSelectStyles}
+                  options={supplierOptions}
+                  value={selectedSupplierOption}
+                  onChange={(option) => handleSupplierChange(option ? option.value : "")}
+                  placeholder="Search Business Name..."
+                  isClearable
+                  isSearchable
+                  isDisabled={!formData.ordertype}
+                  noOptionsMessage={() => "No supplier found"}
+                />
               </div>
 
               {vendorData && (
@@ -584,7 +635,7 @@ export default function AddPurchaseOrder() {
                     <label className={labelClass}>Email</label>
                     <input type="email" className={inputClass} value={formData.semail} onChange={(e) => handleInputChange("semail", e.target.value)} />
                   </div>
-                  
+
                   <h5 className="font-black mt-4 mb-2 text-sm text-slate-800 dark:text-slate-200 border-b pb-1">Address Information</h5>
                   <div className="mb-3">
                     <label className={labelClass}>Address</label>
@@ -594,14 +645,13 @@ export default function AddPurchaseOrder() {
               )}
             </div>
 
-            {/* Right Column */}
             <div className="flex-1 space-y-2">
               <div className="flex items-center justify-end mb-2">
                 <label className="text-xs font-semibold mr-2">Date:</label>
                 <input type="date" className={`w-2/3 ${inputClass}`} value={formData.date} onChange={(e) => handleInputChange("date", e.target.value)} />
               </div>
               <div className="flex items-center justify-end mb-4">
-                <label className="text-xs font-semibold mr-2">PO No.</label>
+                <label className="text-xs font-semibold mr-2">{isWO ? "WO No." : "PO No."}</label>
                 <input type="text" className={`w-2/3 ${inputClass} bg-gray-100`} value={formData.po_number} disabled />
               </div>
 
@@ -638,35 +688,63 @@ export default function AddPurchaseOrder() {
                 <textarea className={inputClass} rows={2} value={formData.otherdetails} onChange={(e) => handleInputChange("otherdetails", e.target.value)} />
               </div>
             </div>
-            
+
           </div>
 
-          {/* Product Details Section */}
           <div className="mt-8 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
-            <h5 className="font-black text-lg mb-4 flex items-center gap-2">Product Details</h5>
-            
-            {/* Search Box */}
-            <div className="mb-3">
-              <label className={labelClass}>Search Instrument</label>
-              <div className="flex gap-2 relative">
-                {formData.ordertype === "WO" ? (
-                  <button type="button" onClick={addNewItem} className="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1 rounded-sm text-xs font-bold">
-                    + Manual Add Item
-                  </button>
-                ) : (
-                  <input type="text" className={inputClass} placeholder="Type 3+ chars to search..." onChange={(e) => handleSearchChange(e.target.value)} disabled={!formData.customer_id || formData.customer_id === "-1"} />
-                )}
-                {searchResults.length > 0 && (
-                  <div className="absolute top-8 left-0 w-full bg-white border border-gray-300 shadow-md max-h-48 overflow-y-auto z-50">
-                    {searchResults.map(result => (
-                      <div key={result.id || result.material} onClick={() => handleSearchResultSelect(result)} className="px-4 py-3 hover:bg-blue-50 dark:hover:bg-slate-700 cursor-pointer text-sm font-medium border-b dark:border-slate-600 transition-colors">
-                        {result.name} - ₹{result.subprice} ({result.tax_rate || result.percentage || result.tax || "18"}% Tax)
-                      </div>
-                    ))}
-                  </div>
+            <div className="flex items-center justify-between mb-4">
+              <h5 className="font-black text-lg flex items-center gap-2">Product Details</h5>
+              <span className="text-xs font-bold px-2 py-1 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
+                {items.length} item{items.length !== 1 ? "s" : ""} added
+              </span>
+            </div>
+
+            {!formData.ordertype ? (
+              <div className="mb-3 text-sm text-slate-500 italic">Select Order Type (PO/WO) to add items.</div>
+            ) : (
+              <div className="mb-3">
+                <label className={labelClass}>{isWO ? "Add Item" : "Search Instrument"}</label>
+                <div className="flex gap-2 relative">
+                  {/* PO: instrument search only, no manual add - matches
+                      fetchinstrumentsearch.php rendering the #search1
+                      autocomplete box when wopo != "WO". */}
+                  {isPO && (
+                    <input
+                      type="text"
+                      className={inputClass}
+                      placeholder="Type 3+ chars to search..."
+                      onChange={(e) => handleSearchChange(e.target.value)}
+                      disabled={!canAddItems}
+                    />
+                  )}
+                  {/* WO: manual "Add Item" button only, no search box -
+                      matches fetchinstrumentsearch.php rendering the
+                      "Add Item" button when wopo == "WO". */}
+                  {isWO && (
+                    <button
+                      type="button"
+                      onClick={addNewItem}
+                      disabled={!canAddItems}
+                      className="bg-orange-500 hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-white px-3 py-1 rounded-sm text-xs font-bold whitespace-nowrap"
+                    >
+                      + Add Item
+                    </button>
+                  )}
+                  {isPO && searchResults.length > 0 && (
+                    <div className="absolute top-8 left-0 w-full bg-white border border-gray-300 shadow-md max-h-48 overflow-y-auto z-50">
+                      {searchResults.map((result, idx) => (
+                        <div key={result.id ?? result.material ?? idx} onClick={() => handleSearchResultSelect(result)} className="px-4 py-3 hover:bg-blue-50 dark:hover:bg-slate-700 cursor-pointer text-sm font-medium border-b dark:border-slate-600 transition-colors">
+                          {result.name} - ₹{result.subprice} ({result.tax_rate || result.percentage || result.tax || "18"}% Tax)
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {!canAddItems && (
+                  <div className="text-xs text-slate-500 mt-1">Select a Business Name first.</div>
                 )}
               </div>
-            </div>
+            )}
 
             <div className="w-full overflow-x-auto border border-gray-200">
               <table className="w-full text-center border-collapse whitespace-nowrap">
@@ -695,31 +773,16 @@ export default function AddPurchaseOrder() {
                     <tr key={item.id} className="hover:bg-gray-50">
                       <td className="p-2 border-r border-gray-200">{index + 1}</td>
                       <td className="p-2 border-r border-gray-200 text-left min-w-[200px]">
-                        <div className="mb-1">HSN/SAC: <input type="text" className="w-16 border px-1" value={item.hsn_code} onChange={(e) => calculateItemAmount(item.id, "hsn_code", e.target.value)} readOnly={formData.ordertype === "PO"} /></div>
-                        <div className="mb-1 flex flex-col gap-1">
-                          <span className="text-xs font-semibold">Name:</span>
-                          {formData.ordertype === "PO" ? (
-                            <input type="text" className="w-full border px-1" value={item.itemname} onChange={(e) => calculateItemAmount(item.id, "itemname", e.target.value)} readOnly />
-                          ) : (
-                            <>
-                              <select className="w-full border px-1 bg-yellow-50 mb-1 text-sm" value={item.subcategory_id} onChange={(e) => {
-                                const selectedVal = e.target.value;
-                                const subcat = subcategories.find(s => String(s.id) === selectedVal);
-                                // Single atomic update - prevents React state batching from losing subcategory_id
-                                updateItemMultiFields(item.id, {
-                                  subcategory_id: selectedVal,
-                                  itemname: subcat?.name || subcat?.subcategory_name || "",
-                                  hsn_code: subcat?.hsn || item.hsn_code || ""
-                                });
-                              }}>
-                                <option value="">- Select Subcategory -</option>
-                                {subcategories.map(s => <option key={s.id} value={s.id}>{s.name || s.subcategory_name || `Subcategory ${s.id}`}</option>)}
-                              </select>
-                              <input type="text" className="w-full border px-1" placeholder="Item Name / Description" value={item.itemname} onChange={(e) => calculateItemAmount(item.id, "itemname", e.target.value)} />
-                            </>
-                          )}
+                        <div className="mb-1">
+                          HSN/SAC: <input type="text" className="w-16 border px-1" value={item.hsn_code} onChange={(e) => calculateItemAmount(item.id, "hsn_code", e.target.value)} readOnly={isPO} />
                         </div>
-                        <div className="mt-1">Price: <input type="number" className="w-24 border px-1 bg-yellow-50" value={item.price} onChange={(e) => calculateItemAmount(item.id, "price", e.target.value)} readOnly={formData.ordertype === "PO"} /></div>
+                        <div className="mb-1">
+                          <span className="text-xs font-semibold block mb-1">Name:</span>
+                          <input type="text" className="w-full border px-1" value={item.itemname} onChange={(e) => calculateItemAmount(item.id, "itemname", e.target.value)} readOnly={isPO} placeholder={isWO ? "Item Name / Description" : ""} />
+                        </div>
+                        <div className="mt-1">
+                          Price: <input type="number" className="w-24 border px-1 bg-yellow-50" value={item.price} onChange={(e) => calculateItemAmount(item.id, "price", e.target.value)} readOnly={isPO} />
+                        </div>
                       </td>
                       <td className="p-2 border-r border-gray-200">
                         <textarea className="w-24 border px-1" rows={2} value={item.specification} onChange={(e) => calculateItemAmount(item.id, "specification", e.target.value)} />
@@ -728,8 +791,8 @@ export default function AddPurchaseOrder() {
                         <input type="number" className="w-16 border px-1 text-center bg-yellow-50" value={item.quantity} min="1" onChange={(e) => calculateItemAmount(item.id, "quantity", e.target.value)} />
                       </td>
                       <td className="p-2 border-r border-gray-200">
-                        {formData.ordertype === "PO" ? (
-                           <input type="text" className="w-16 border px-1 bg-gray-100 text-center" value={units.find(u => String(u.id) === String(item.unit))?.name || item.unit || ""} readOnly />
+                        {isPO ? (
+                          <input type="text" className="w-16 border px-1 bg-gray-100 text-center" value={units.find(u => String(u.id) === String(item.unit))?.name || item.unit || ""} readOnly />
                         ) : (
                           <select className="w-20 border px-1" value={item.unit} onChange={(e) => calculateItemAmount(item.id, "unit", e.target.value)}>
                             <option value="">-</option>
@@ -741,7 +804,7 @@ export default function AddPurchaseOrder() {
                         <input type="text" className="w-16 border px-1 bg-gray-100 text-center" value={currencies.find(c => String(c.id) === String(item.currency))?.name || ""} readOnly />
                       </td>
                       <td className="p-2 border-r border-gray-200">
-                        <input type="number" className="w-20 border px-1 bg-gray-100 text-right" value={parseFloat(item.amount||0).toFixed(2)} readOnly />
+                        <input type="number" className="w-20 border px-1 bg-gray-100 text-right" value={parseFloat(item.amount || 0).toFixed(2)} readOnly />
                       </td>
                       <td className="p-2 border-r border-gray-200">
                         <input type="number" className="w-16 border px-1 text-center" value={item.discountperitem} onChange={(e) => calculateItemAmount(item.id, "discountperitem", e.target.value)} />
@@ -751,24 +814,24 @@ export default function AddPurchaseOrder() {
                       </td>
                       <td className="p-2 border-r border-gray-200 text-right">
                         <div>{item.igstper}%</div>
-                        <input type="text" className="w-16 border px-1 bg-gray-100 text-right" value={parseFloat(item.igstamount||0).toFixed(2)} readOnly />
+                        <input type="text" className="w-16 border px-1 bg-gray-100 text-right" value={parseFloat(item.igstamount || 0).toFixed(2)} readOnly />
                       </td>
                       <td className="p-2 border-r border-gray-200 text-right">
                         <div>{item.cgstper}%</div>
-                        <input type="text" className="w-16 border px-1 bg-gray-100 text-right" value={parseFloat(item.cgstamount||0).toFixed(2)} readOnly />
+                        <input type="text" className="w-16 border px-1 bg-gray-100 text-right" value={parseFloat(item.cgstamount || 0).toFixed(2)} readOnly />
                       </td>
                       <td className="p-2 border-r border-gray-200 text-right">
                         <div>{item.sgstper}%</div>
-                        <input type="text" className="w-16 border px-1 bg-gray-100 text-right" value={parseFloat(item.sgstamount||0).toFixed(2)} readOnly />
+                        <input type="text" className="w-16 border px-1 bg-gray-100 text-right" value={parseFloat(item.sgstamount || 0).toFixed(2)} readOnly />
                       </td>
                       <td className="p-2 border-r border-gray-200">
-                        <input type="text" className="w-20 border px-1 bg-gray-100 text-right" value={parseFloat(item.totaltaxamountitem||0).toFixed(2)} readOnly />
+                        <input type="text" className="w-20 border px-1 bg-gray-100 text-right" value={parseFloat(item.totaltaxamountitem || 0).toFixed(2)} readOnly />
                       </td>
                       <td className="p-2 border-r border-gray-200">
-                        <input type="text" className="w-20 border px-1 bg-gray-100 text-right" value={parseFloat(item.taxableamount||0).toFixed(2)} readOnly />
+                        <input type="text" className="w-20 border px-1 bg-gray-100 text-right" value={parseFloat(item.taxableamount || 0).toFixed(2)} readOnly />
                       </td>
                       <td className="p-2 border-r border-gray-200">
-                        <input type="text" className="w-24 border px-1 bg-gray-100 text-right font-bold" value={parseFloat(item.finalamount||0).toFixed(2)} readOnly />
+                        <input type="text" className="w-24 border px-1 bg-gray-100 text-right font-bold" value={parseFloat(item.finalamount || 0).toFixed(2)} readOnly />
                       </td>
                       <td className="p-2">
                         <button type="button" onClick={() => setItems(prev => prev.filter(i => i.id !== item.id))} className="text-red-500 font-bold px-2 py-1 bg-red-50 hover:bg-red-100 border border-red-200 rounded">X</button>
@@ -777,33 +840,34 @@ export default function AddPurchaseOrder() {
                   ))}
                   {items.length === 0 && (
                     <tr>
-                      <td colSpan="16" className="p-8 text-slate-500 italic text-sm font-medium">No items added. Search and add an instrument above.</td>
+                      <td colSpan="16" className="p-8 text-slate-500 italic text-sm font-medium">
+                        No items added. {isWO ? 'Use "+ Add Item" above to add one manually.' : 'Search and add an instrument above.'}
+                      </td>
                     </tr>
                   )}
                 </tbody>
               </table>
             </div>
 
-            {/* Totals Section */}
             {items.length > 0 && (
               <div className="flex justify-end mt-4">
                 <div className="w-full md:w-1/2 space-y-1 text-xs">
                   <div className="flex justify-between items-center"><span className="text-right flex-1 pr-2">Total Item Amount</span><input type="text" className="w-32 border px-2 py-1 bg-gray-100 text-right" value={taxCalculations.subtotal.toFixed(2)} readOnly /></div>
                   <div className="flex justify-between items-center"><span className="text-right flex-1 pr-2">Discount</span><input type="text" className="w-32 border px-2 py-1 bg-gray-100 text-right" value={taxCalculations.discount.toFixed(2)} readOnly /></div>
                   <div className="flex justify-between items-center"><span className="text-right flex-1 pr-2 font-semibold">Total After Discount Value</span><input type="text" className="w-32 border px-2 py-1 bg-gray-100 text-right font-semibold" value={taxCalculations.totalafterdisc.toFixed(2)} readOnly /></div>
-                  
+
                   <div className="flex justify-between items-center"><span className="text-right flex-1 pr-2">Packing & Forwarding Charges</span><input type="number" className="w-32 border px-2 py-1 text-right" value={taxCalculations.packaginchrgs} onChange={(e) => handleAdditionalChargeChange("packaginchrgs", e.target.value)} /></div>
                   <div className="flex justify-between items-center"><span className="text-right flex-1 pr-2">Freight Charges</span><input type="number" className="w-32 border px-2 py-1 text-right" value={taxCalculations.freightchrgs} onChange={(e) => handleAdditionalChargeChange("freightchrgs", e.target.value)} /></div>
                   <div className="flex justify-between items-center"><span className="text-right flex-1 pr-2">Insurance charges</span><input type="number" className="w-32 border px-2 py-1 text-right" value={taxCalculations.insurancechrgs} onChange={(e) => handleAdditionalChargeChange("insurancechrgs", e.target.value)} /></div>
                   <div className="flex justify-between items-center"><span className="text-right flex-1 pr-2">Calibration Certificate Charges</span><input type="number" className="w-32 border px-2 py-1 text-right" value={taxCalculations.calibrationchrgs} onChange={(e) => handleAdditionalChargeChange("calibrationchrgs", e.target.value)} /></div>
                   <div className="flex justify-between items-center"><span className="text-right flex-1 pr-2">Installation,Demonstration&Training Charges</span><input type="number" className="w-32 border px-2 py-1 text-right" value={taxCalculations.trainingchrgs} onChange={(e) => handleAdditionalChargeChange("trainingchrgs", e.target.value)} /></div>
                   <div className="flex justify-between items-center"><span className="text-right flex-1 pr-2">Import /Custom Duty Charges</span><input type="number" className="w-32 border px-2 py-1 text-right" value={taxCalculations.customdutychrgs} onChange={(e) => handleAdditionalChargeChange("customdutychrgs", e.target.value)} /></div>
-                  
+
                   <div className="flex justify-between items-center"><span className="text-right flex-1 pr-2 font-semibold">Total Tax Value</span><input type="text" className="w-32 border px-2 py-1 bg-gray-100 text-right font-semibold" value={taxCalculations.totaltaxamount.toFixed(2)} readOnly /></div>
                   <div className="flex justify-between items-center"><span className="text-right flex-1 pr-2">CGST Total</span><input type="text" className="w-32 border px-2 py-1 bg-gray-100 text-right" value={taxCalculations.cgsttotal.toFixed(2)} readOnly /></div>
                   <div className="flex justify-between items-center"><span className="text-right flex-1 pr-2">SGST Total</span><input type="text" className="w-32 border px-2 py-1 bg-gray-100 text-right" value={taxCalculations.sgsttotal.toFixed(2)} readOnly /></div>
                   <div className="flex justify-between items-center"><span className="text-right flex-1 pr-2">IGST Total</span><input type="text" className="w-32 border px-2 py-1 bg-gray-100 text-right" value={taxCalculations.igsttotal.toFixed(2)} readOnly /></div>
-                  
+
                   <div className="flex justify-between items-center"><span className="text-right flex-1 pr-2 font-bold text-[13px]">Total Invoice Amount</span><input type="text" className="w-32 border border-gray-400 px-2 py-1 bg-gray-100 text-right font-bold" value={taxCalculations.totalamount.toFixed(2)} readOnly /></div>
                   <div className="flex justify-between items-center"><span className="text-right flex-1 pr-2">Round Off</span><input type="text" className="w-32 border px-2 py-1 bg-gray-100 text-right text-gray-500" value={taxCalculations.roundoff.toFixed(2)} readOnly /></div>
                   <div className="flex justify-between items-center mt-2 pt-2 border-t border-slate-300 dark:border-slate-600"><span className="text-right flex-1 pr-4 font-black text-lg">Total</span><input type="text" className="w-36 border-2 border-blue-600 bg-blue-50 dark:bg-blue-900/20 px-3 py-2 text-right font-black text-blue-900 dark:text-blue-300 rounded-lg text-lg" value={taxCalculations.finaltotal.toLocaleString()} readOnly /></div>
@@ -811,7 +875,7 @@ export default function AddPurchaseOrder() {
               </div>
             )}
           </div>
-          
+
           <div className="mt-8 border-t border-slate-200 dark:border-slate-700 pt-4">
             <button type="submit" disabled={submitting} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded shadow-md font-bold text-sm">
               {submitting ? "Submitting..." : "Submit"}

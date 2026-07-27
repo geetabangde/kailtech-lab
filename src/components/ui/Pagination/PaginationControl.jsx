@@ -26,7 +26,7 @@ const PaginationControl = forwardRef((props, ref) => {
         "pagination-control cursor-pointer",
         [
           active
-            ? "active this:primary bg-this text-white disabled:cursor-not-allowed disabled:bg-this-light disabled:opacity-60 dark:bg-this-light dark:disabled:bg-this-darker"
+            ? "active !bg-blue-600 !text-white disabled:cursor-not-allowed disabled:opacity-60 dark:!bg-blue-600"
             : [
                 disabled
                   ? "disabled:cursor-not-allowed disabled:opacity-60"

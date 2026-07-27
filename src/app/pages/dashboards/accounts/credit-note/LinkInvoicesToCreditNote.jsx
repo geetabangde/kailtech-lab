@@ -78,11 +78,7 @@ export default function LinkInvoicesToCreditNote() {
       return;
     }
 
-    // 2. Enforce 0 TDS
-    if (Math.abs(totalTds) > 0) {
-      toast.error("Total TDS must be precisely 0 across all invoices.");
-      return;
-    }
+    // 2. TDS is allowed, no zero restriction needed.
 
     // 3. Prevent Over-Allocation inside Rows
     for (const inv of invoices) {

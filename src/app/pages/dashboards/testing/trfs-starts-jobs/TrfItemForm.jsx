@@ -124,6 +124,7 @@ export default function TrfItemForm({ trfId, itemId, cloneId, onSuccess, onCance
   const [received, setReceived] = useState([]);
   const [parameters, setParameters] = useState([]);
   const [selectedParams, setSelectedParams] = useState([]);
+  const [isSpecialPackage, setIsSpecialPackage] = useState(false);
   const [loadingPkgDetails, setLoadingPkgDetails] = useState(false);
 
   // ─── Form state ───────────────────────────────────────────────────────────
@@ -143,6 +144,7 @@ export default function TrfItemForm({ trfId, itemId, cloneId, onSuccess, onCance
   const clearPkgDetails = () => {
     setQuantities([]); setReceived([]);
     setParameters([]); setSelectedParams([]);
+    setIsSpecialPackage(false);
   };
 
   // ── Helper: set form from item data + mark refs so cascades skip reset ────
@@ -224,7 +226,7 @@ export default function TrfItemForm({ trfId, itemId, cloneId, onSuccess, onCance
         setSizes(toArray(d, "sizes"));
         setPackages(toArray(d, "packages"));
         setParameters(toArray(d, "parameters"));
-        
+
         const clonedItem = d.trf_product ?? {};
         const clonePkgId = String(clonedItem.package ?? "");
         if (clonePkgId && clonePkgId !== "undefined") {
@@ -247,17 +249,27 @@ export default function TrfItemForm({ trfId, itemId, cloneId, onSuccess, onCance
           setReceived(toArray(d, "quantities").map(() => ""));
         }
 
-        setSelectedParams(toArray(d, "parameters").filter((p) => p.selected).map((p) => p.id));
+        const allParams = toArray(d, "parameters");
+        const selectedParamsList = allParams.filter((p) => {
+          if (p.status !== undefined && (p.status === 99 || String(p.status) === "99")) return false;
+          if (p.ispresent !== undefined && Number(p.ispresent) > 0) return false;
+          return p.selected === true || p.selected === 1 || p.selected === "1" || String(p.selected).toLowerCase() === "true";
+        });
+        
+        setParameters(selectedParamsList);
+        setSelectedParams(selectedParamsList.map((p) => p.id));
 
         // trf_product se form fill
         const item = d.trf_product ?? {};
 
-        // package_type trf_product mein nahi hota —
-        // packages array se package ka nabl field = package_type value
-        // nabl: 1=NABL, 3=QAI, 2=NO  (same as PACKAGE_TYPE_OPTIONS)
         const pkgList = toArray(d, "packages");
         const matchedPkg = pkgList.find((p) => String(p.id) === String(item.package));
         const derivedPkgType = matchedPkg ? String(matchedPkg.nabl ?? "") : "";
+
+        // User requested: "there it don't need to show the checkbbox" when cloning
+        // So we explicitly treat it as a non-special package on initial clone load,
+        // which renders a bulleted list of the selected parameters.
+        setIsSpecialPackage(false);
 
         const price = d.price ?? item.unitcost ?? 0;
 
@@ -297,7 +309,7 @@ export default function TrfItemForm({ trfId, itemId, cloneId, onSuccess, onCance
   useEffect(() => {
     if (!loadingDropdowns && isNew) {
       const defaultCondition = conditions.find(c => c.name?.toLowerCase() === "satisfactory") || conditions[0];
-      
+
       setForm((prev) => ({
         ...prev,
         isok: prev.isok || String(choices[0]?.id ?? ""),
@@ -402,6 +414,13 @@ export default function TrfItemForm({ trfId, itemId, cloneId, onSuccess, onCance
         setForm((prev) => ({ ...prev, unitcost: price, total }));
         setParameters(params);
         setSelectedParams(params.map((p) => p.id));
+
+        const isSpec = Boolean(
+          paramRes.data?.special === 1 || paramRes.data?.special === "1" || paramRes.data?.special === true ||
+          paramRes.data?.is_special === 1 || paramRes.data?.is_special === "1" || paramRes.data?.is_special === true ||
+          cached?.special === 1 || cached?.special === "1" || cached?.special === true
+        );
+        setIsSpecialPackage(isSpec);
       } catch { /* silent */ }
       finally { setLoadingPkgDetails(false); }
     };
@@ -448,6 +467,11 @@ export default function TrfItemForm({ trfId, itemId, cloneId, onSuccess, onCance
       errs.received = "At least one received quantity must be greater than 0";
     }
 
+    // Validate parameters for special packages - at least one must be selected
+    if (isSpecialPackage && parameters.length > 0 && selectedParams.length === 0) {
+      errs.parameters = "At least one parameter must be selected for special packages";
+    }
+
     return errs;
   };
 
@@ -459,6 +483,8 @@ export default function TrfItemForm({ trfId, itemId, cloneId, onSuccess, onCance
     if (Object.keys(validationErrors).length) { setErrors(validationErrors); return; }
     setSubmitting(true); setSubmitError(null);
     try {
+      const finalParams = isSpecialPackage ? selectedParams : parameters.map((p) => p.id);
+
       const payload = {
         product: Number(form.product),
         brand: form.brand,
@@ -479,8 +505,7 @@ export default function TrfItemForm({ trfId, itemId, cloneId, onSuccess, onCance
         quantities: quantities.map((q) => q.id),
         received: received.map((r) => Number(r) || 0),
         id: Number(trfId),
-        ...(selectedParams.length ? { parameters: selectedParams } : {}),
-
+        ...(finalParams.length ? { parameters: finalParams } : {}),
       };
 
       let res;
@@ -640,9 +665,37 @@ export default function TrfItemForm({ trfId, itemId, cloneId, onSuccess, onCance
           {/* Package Type */}
           <div>
             <label className={labelCls}>Packages Type <span className="text-red-500">*</span></label>
-            <select name="package_type" className={sCls(errors.package_type)} value={form.package_type} onChange={handleChange}>
-              {PACKAGE_TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-            </select>
+            <Select
+              options={PACKAGE_TYPE_OPTIONS.map((o) => ({
+                value: String(o.value),
+                label: o.label
+              }))}
+              value={
+                PACKAGE_TYPE_OPTIONS.map((o) => ({
+                  value: String(o.value),
+                  label: o.label
+                })).find(opt => opt.value === String(form.package_type)) || null
+              }
+              onChange={(selectedOption) => {
+                const value = selectedOption ? selectedOption.value : "";
+                handleChange({ target: { name: "package_type", value } });
+              }}
+              placeholder="Select Package Type"
+              isClearable
+              isSearchable
+              styles={{
+                control: (base, state) => ({
+                  ...base,
+                  minHeight: "42px",
+                  borderColor: errors.package_type ? "#ef4444" : state.isFocused ? "#3b82f6" : "rgb(209 213 219)",
+                  boxShadow: errors.package_type ? "0 0 0 1px #ef4444" : state.isFocused ? "0 0 0 2px rgb(59 130 246 / 0.5)" : "none",
+                  "&:hover": { borderColor: errors.package_type ? "#ef4444" : "#3b82f6" },
+                  backgroundColor: state.isDisabled ? "#f3f4f6" : "white",
+                }),
+                menuPortal: (base) => ({ ...base, zIndex: 9999 })
+              }}
+              menuPortalTarget={document.body}
+            />
             {errors.package_type && <p className={errCls}>{errors.package_type}</p>}
           </div>
 
@@ -650,12 +703,39 @@ export default function TrfItemForm({ trfId, itemId, cloneId, onSuccess, onCance
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className={labelCls}>Grades <span className="text-red-500">*</span></label>
-              <select name="grade" className={sCls(errors.grade)} value={form.grade} onChange={handleChange}>
-                <option value="">Select Grade</option>
-                {grades.map((g) => (
-                  <option key={g.id} value={g.id}>{g.name}{g.description ? ` — ${g.description}` : ""}</option>
-                ))}
-              </select>
+              <Select
+                options={grades.map((g) => ({
+                  value: String(g.id),
+                  label: `${g.name}${g.description ? ` — ${g.description}` : ""}`
+                }))}
+                value={
+                  grades
+                    .map((g) => ({
+                      value: String(g.id),
+                      label: `${g.name}${g.description ? ` — ${g.description}` : ""}`
+                    }))
+                    .find(opt => opt.value === String(form.grade)) || null
+                }
+                onChange={(selectedOption) => {
+                  const value = selectedOption ? selectedOption.value : "";
+                  handleChange({ target: { name: "grade", value } });
+                }}
+                placeholder="Select Grade"
+                isClearable
+                isSearchable
+                styles={{
+                  control: (base, state) => ({
+                    ...base,
+                    minHeight: "42px",
+                    borderColor: errors.grade ? "#ef4444" : state.isFocused ? "#3b82f6" : "rgb(209 213 219)",
+                    boxShadow: errors.grade ? "0 0 0 1px #ef4444" : state.isFocused ? "0 0 0 2px rgb(59 130 246 / 0.5)" : "none",
+                    "&:hover": { borderColor: errors.grade ? "#ef4444" : "#3b82f6" },
+                    backgroundColor: state.isDisabled ? "#f3f4f6" : "white",
+                  }),
+                  menuPortal: (base) => ({ ...base, zIndex: 9999 })
+                }}
+                menuPortalTarget={document.body}
+              />
               {errors.grade && <p className={errCls}>{errors.grade}</p>}
             </div>
             <div>
@@ -881,37 +961,59 @@ export default function TrfItemForm({ trfId, itemId, cloneId, onSuccess, onCance
       {/* ════ SECTION 7 — Parameters ════ */}
       {!loadingPkgDetails && parameters.length > 0 && (
         <div className="border border-blue-200 dark:border-blue-800 rounded-lg overflow-hidden">
-          <div className="px-4 py-2.5 bg-blue-50 dark:bg-blue-900/30 border-b border-blue-200 dark:border-blue-800">
+          <div className="px-4 py-2.5 bg-blue-50 dark:bg-blue-900/30 border-b border-blue-200 dark:border-blue-800 flex items-center justify-between">
             <h4 className="text-sm font-semibold text-blue-700 dark:text-blue-400">Parameters Of Package</h4>
+            {isSpecialPackage && (
+              <span className="text-xs font-medium bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-300 px-2.5 py-0.5 rounded-full">
+                Special Package (Customizable)
+              </span>
+            )}
           </div>
           <div className="px-4 py-3 space-y-1">
-            <div className="pb-2 mb-1 border-b border-gray-100 dark:border-gray-800">
-              <label className="inline-flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={allParamsSelected}
-                  onChange={(e) => handleSelectAllParams(e.target.checked)}
-                  className="w-4 h-4 accent-blue-600 rounded"
-                />
-                Select / Deselect All
-              </label>
-            </div>
-            {parameters.map((param) => (
-              <div key={param.id}>
-                <label className="inline-flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer py-0.5 hover:text-blue-600 dark:hover:text-blue-400 transition">
-                  <input
-                    type="checkbox"
-                    className="parametercheck w-4 h-4 mt-0.5 accent-blue-600 rounded flex-shrink-0"
-                    checked={selectedParams.includes(param.id)}
-                    onChange={() => handleParamToggle(param.id)}
-                  />
-                  <span>
-                    {param.name}
-                    {param.description ? <span className="text-gray-400 dark:text-gray-500"> ({param.description})</span> : ""}
-                  </span>
-                </label>
+            {isSpecialPackage ? (
+              <>
+                <div className="pb-2 mb-1 border-b border-gray-100 dark:border-gray-800">
+                  <label className="inline-flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={allParamsSelected}
+                      onChange={(e) => handleSelectAllParams(e.target.checked)}
+                      className="w-4 h-4 accent-blue-600 rounded"
+                    />
+                    Select / Deselect All
+                  </label>
+                </div>
+                {parameters.map((param) => (
+                  <div key={param.id}>
+                    <label className="inline-flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer py-0.5 hover:text-blue-600 dark:hover:text-blue-400 transition">
+                      <input
+                        type="checkbox"
+                        className="parametercheck w-4 h-4 mt-0.5 accent-blue-600 rounded flex-shrink-0"
+                        checked={selectedParams.includes(param.id)}
+                        onChange={() => handleParamToggle(param.id)}
+                      />
+                      <span>
+                        {param.name}
+                        {param.description ? <span className="text-gray-400 dark:text-gray-500"> ({param.description})</span> : ""}
+                      </span>
+                    </label>
+                  </div>
+                ))}
+              </>
+            ) : (
+              <div className="space-y-1.5 py-1">
+                {parameters.map((param) => (
+                  <div key={param.id} className="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300 py-0.5">
+                    <span className="text-blue-500 font-bold">•</span>
+                    <span>
+                      {param.name}
+                      {param.description ? <span className="text-gray-400 dark:text-gray-500"> ({param.description})</span> : ""}
+                    </span>
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
+            {errors.parameters && <p className={errCls}>{errors.parameters}</p>}
           </div>
         </div>
       )}

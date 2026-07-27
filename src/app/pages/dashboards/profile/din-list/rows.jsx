@@ -1,7 +1,8 @@
-// Import Dependencies
+import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import { Badge } from "components/ui";
 import { dinStatusOptions } from "./data";
+import axios from "utils/axios";
 
 // ----------------------------------------------------------------------
 
@@ -27,13 +28,45 @@ export function DateCell({ getValue }) {
 }
 
 export function CustomerCell({ row }) {
-  const customer = row.original.customer || "N/A";
+  // If backend returns customername and customeraddress separately, use them.
+  // Otherwise, fallback to 'customer' string.
+  const customerName = row.original.customername || row.original.customer || "N/A";
+  const initialAddress = row.original.customeraddress || "";
+  const [customerAddress, setCustomerAddress] = useState(initialAddress);
 
+  useEffect(() => {
+    // If we only have an ID for the address, fetch the full details
+    if (/^\d+$/.test(initialAddress)) {
+      const fetchAddress = async () => {
+        try {
+          const response = await axios.get(`inventory/get-customer-address-details/${initialAddress}`);
+          if (response.data?.status && response.data?.data?.addresses?.length > 0) {
+            setCustomerAddress(response.data.data.addresses[0].full_address);
+          }
+        } catch (error) {
+          console.error("Error fetching customer address details:", error);
+        }
+      };
+      fetchAddress();
+    } else {
+      setCustomerAddress(initialAddress);
+    }
+  }, [initialAddress]);
+
+  // If the backend didn't provide separate fields, and customer string contains the address,
+  // we might still just render customerName (which will be the whole string).
+  // But if we have them separate, we render them cleanly on separate lines.
+  
   return (
-    <div className="flex flex-col">
-      <span className="font-semibold text-gray-800 dark:text-dark-100">
-        {customer}
+    <div className="flex flex-col min-w-[200px] max-w-[300px] whitespace-normal">
+      <span className="font-semibold text-gray-800 dark:text-dark-100 break-words">
+        {customerName}
       </span>
+      {customerAddress && (
+        <span className="text-sm text-gray-500 dark:text-dark-400 break-words mt-1">
+          {customerAddress}
+        </span>
+      )}
     </div>
   );
 }

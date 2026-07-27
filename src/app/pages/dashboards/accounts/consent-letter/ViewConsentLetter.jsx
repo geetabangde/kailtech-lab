@@ -253,11 +253,11 @@ export default function ViewConsentLetter() {
             <p>With reference to your email regarding the consent letter.</p>
             <br />
             <p className="text-justify">
-              We intimate you that we have fully equipped laboratory for the complete testing as per <strong>{data.standard}</strong> {data.remark}
+              We intimate you that we have fully equipped laboratory for the complete testing as per <strong>{data.iscode_name}</strong> {data.remark}
             </p>
             <br />
             <p className="text-justify">
-              We hereby give consent for complete testing as per <strong>{data.standard}</strong> as and when the sample is provided by you on chargeable basis. {data.remark2}
+              We hereby give consent for complete testing as per <strong>{data.iscode_name}</strong> as and when the sample is provided by you on chargeable basis. {data.remark2}
             </p>
             <br />
             <p>Assuring you of the best services at our end.</p>

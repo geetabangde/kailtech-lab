@@ -15,17 +15,26 @@ export default function PrintPaymentReceipt() {
   const navigate = useNavigate();
 
   const [data, setData] = useState(null);
+  const [companyInfo, setCompanyInfo] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchReceipt = async () => {
       try {
         setLoading(true);
-        const res = await axios.get(`/accounts/get-payment-receipt?id=${id}`);
+        const [res, companyRes] = await Promise.all([
+          axios.get(`/accounts/get-payment-receipt?id=${id}`),
+          axios.get(`/get-company-info`)
+        ]);
+
         if (res.data.status === true || res.data.status === "true") {
           setData(res.data.data);
         } else {
           toast.error("Failed to load receipt");
+        }
+
+        if (companyRes.data.status === true || companyRes.data.status === "true") {
+          setCompanyInfo(companyRes.data.data);
         }
       } catch (err) {
         console.error(err);
@@ -48,6 +57,14 @@ export default function PrintPaymentReceipt() {
 
     // Get the absolute URL for the local logo asset
     const logoUrl = window.location.origin + logo;
+
+    const headerLogo = companyInfo?.branding?.logo || logoUrl;
+    const compName = companyInfo?.company?.name;
+    const compAddress = companyInfo?.address?.top_address;
+    const compPhone = companyInfo?.contact?.phone;
+    const compEmail = companyInfo?.contact?.email;
+    const compWeb = companyInfo?.contact?.website;
+    const altText = companyInfo?.branding?.site_logo_alt;
 
     const html = `<!DOCTYPE html>
 <html>
@@ -82,12 +99,12 @@ export default function PrintPaymentReceipt() {
 </head>
 <body>
   <div class="header">
-    <img src="${logoUrl}" alt="Kailtech" onerror="this.style.display='none'"/>
+    <img src="${headerLogo}" alt="${altText}" onerror="this.style.display='none'"/>
     <div class="company-info">
-      <div class="company-name">Kailtech Research Centre Pvt. Ltd.</div>
-      <div>Plot No. 123, Industrial Area, Indore (M.P.)</div>
-      <div>Phone: +91-731-XXXXXXX</div>
-      <div>Email: info@kailtech.in &nbsp; Web: www.kailtech.in</div>
+      <div class="company-name">${compName}</div>
+      <div>${compAddress}</div>
+      <div>${compPhone}</div>
+      <div>Email: ${compEmail} &nbsp; Web: ${compWeb}</div>
     </div>
   </div>
 
@@ -111,7 +128,7 @@ export default function PrintPaymentReceipt() {
       <div class="note">*Subject to realisation of Cheque</div>
     </div>
     <div class="sign-block">
-      <div class="for">For Kailtech Research Centre Pvt. Ltd.</div>
+      <div class="for">For ${compName}</div>
       ${data.digital_signature ? `<img src="${data.digital_signature}" alt="Signature" onerror="this.style.display='none'"/>` : ""}
       <div class="authorized">Authorized Signatory</div>
     </div>
@@ -215,17 +232,20 @@ export default function PrintPaymentReceipt() {
           {/* Company Header */}
           <div className="mb-3 flex items-start gap-4">
             <img
-              src={logo}
-              alt="Kailtech"
+              src={companyInfo?.branding?.logo || logo}
+              alt={companyInfo?.branding?.site_logo_alt || "Kailtech"}
               className="h-14 w-auto object-contain"
             />
             <div className="dark:text-dark-200 text-xs leading-relaxed text-gray-700">
               <p className="dark:text-dark-50 text-sm font-bold text-gray-900 uppercase">
-                Kailtech Research Centre Pvt. Ltd.
+                {companyInfo?.company?.name || "Kailtech Research Centre Pvt. Ltd."}
               </p>
-              <p>Plot No. 123, Industrial Area, Indore (M.P.)</p>
-              <p>Phone: +91-731-XXXXXXX</p>
-              <p>Email: info@kailtech.in &nbsp; Web: www.kailtech.in</p>
+              <p>{companyInfo?.address?.top_address || "Plot No. 123, Industrial Area, Indore (M.P.)"}</p>
+              <p>{companyInfo?.contact?.phone || "Phone: +91-731-XXXXXXX"}</p>
+              <p>
+                Email: {companyInfo?.contact?.email || "info@kailtech.in"} &nbsp; Web:{" "}
+                {companyInfo?.contact?.website || "www.kailtech.in"}
+              </p>
             </div>
           </div>
 
@@ -258,7 +278,7 @@ export default function PrintPaymentReceipt() {
             </div>
             <div className="text-right">
               <p className="dark:text-dark-200 mb-2 text-xs font-semibold text-gray-700 uppercase">
-                For Kailtech Research Centre Pvt. Ltd.
+                For {companyInfo?.company?.name}
               </p>
               {data.digital_signature && (
                 <img

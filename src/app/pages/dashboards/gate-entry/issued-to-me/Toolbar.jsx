@@ -101,6 +101,7 @@ export function Toolbar({ table }) {
               <Input
                 type="date"
                 value={table.getState().filters?.minDate || ""}
+                max={table.getState().filters?.maxDate || new Date().toISOString().split('T')[0]}
                 onChange={(e) => table.options.meta.setFilters(prev => ({ ...prev, minDate: e.target.value }))}
                 className="h-8 w-32 text-xs"
               />
@@ -110,6 +111,8 @@ export function Toolbar({ table }) {
               <Input
                 type="date"
                 value={table.getState().filters?.maxDate || ""}
+                min={table.getState().filters?.minDate || ""}
+                max={new Date().toISOString().split('T')[0]}
                 onChange={(e) => table.options.meta.setFilters(prev => ({ ...prev, maxDate: e.target.value }))}
                 className="h-8 w-32 text-xs"
               />

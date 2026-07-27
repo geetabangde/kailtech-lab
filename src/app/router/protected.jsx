@@ -3885,7 +3885,7 @@ const protectedRoutes = {
                   lazy: async () => ({
                     Component: (
                       await import(
-                        "app/pages/dashboards/accounts/proforma-invoice/AddEditProformaInvoice"
+                        "app/pages/dashboards/accounts/proforma-invoice/AddNewProformaInvoice"
                       )
                     ).default,
                   }),
@@ -3895,7 +3895,7 @@ const protectedRoutes = {
                   lazy: async () => ({
                     Component: (
                       await import(
-                        "app/pages/dashboards/accounts/proforma-invoice/AddEditProformaInvoice"
+                        "app/pages/dashboards/accounts/proforma-invoice/EditProformaInvoice"
                       )
                     ).default,
                   }),
@@ -5827,6 +5827,16 @@ const protectedRoutes = {
                         Component: (
                           await import(
                             "app/pages/dashboards/profile/my-issue-item-list/FillReturnCheckList"
+                          )
+                        ).default,
+                      }),
+                    },
+                    {
+                      path: "view-checklist",
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/profile/my-issue-item-list/ViewCheckList"
                           )
                         ).default,
                       }),

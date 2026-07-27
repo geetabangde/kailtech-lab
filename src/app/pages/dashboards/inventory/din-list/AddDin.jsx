@@ -9,15 +9,15 @@ import { Page } from "components/shared/Page";
 import ReactSelect from "react-select";
 import AsyncSelect from "react-select/async";
 
-const SearchableSelect = ({ options, value, onChange, placeholder, disabled, isMulti }) => {
+const SearchableSelect = ({ options, value, onChange, placeholder, disabled, isMulti, hasError }) => {
   const customStyles = {
     control: (base) => ({
       ...base,
       minHeight: "42px",
       borderRadius: "0.5rem",
-      borderColor: "#D1D5DB",
+      borderColor: hasError ? "#EF4444" : "#D1D5DB",
       boxShadow: "none",
-      "&:hover": { borderColor: "#9CA3AF" },
+      "&:hover": { borderColor: hasError ? "#EF4444" : "#9CA3AF" },
     }),
     menuPortal: (base) => ({ ...base, zIndex: 9999 }),
   };
@@ -88,7 +88,7 @@ export default function AddDin() {
     consignphone: "",
     empname: "",
     courrierno: "",
-    dispatchdetial: "",
+    dispatchdetail: "",
     dinremark: "",
   });
 
@@ -98,6 +98,7 @@ export default function AddDin() {
   const [globalChecks, setGlobalChecks] = useState({ received: false, report: false, invoice: false });
   const [inwardGlobalChecks, setInwardGlobalChecks] = useState({ checked_instrument: false, checked_certificate: false, checked_invoice: false });
   const [inwardGlobalRemark, setInwardGlobalRemark] = useState("");
+  const [formErrors, setFormErrors] = useState({});
 
   const fetchCustomerDetails = useCallback(async (custId, purposeId, type11) => {
     try {
@@ -495,13 +496,27 @@ export default function AddDin() {
     }
   };
 
-  const handleInstrumentSelect = (selectedOption) => {
+  const handleInstrumentSelect = async (selectedOption) => {
     if (!selectedOption) return;
     const newItem = selectedOption.instrument_data;
 
     if (items.find(i => i.instrumentid == newItem.instrument_id)) {
       toast.error("Instrument Already Added");
       return;
+    }
+
+    const defaultLocId = newItem.locations && newItem.locations.length > 0 ? newItem.locations[0].id : "";
+    let fetchedMaxQty = newItem.quantity || 1;
+
+    if (defaultLocId) {
+      try {
+        const res = await axios.get("inventory/get-quantity", { params: { id: defaultLocId } });
+        if (res.data.status && res.data.data) {
+          fetchedMaxQty = res.data.data.available_quantity;
+        }
+      } catch (err) {
+        console.error(err);
+      }
     }
 
     setItems(prev => [...prev, {
@@ -511,8 +526,9 @@ export default function AddDin() {
       name: newItem.instrument_name,
       newidno: newItem.new_id_no,
       serialno: newItem.serial_no,
-      mloc: "",
-      maxQty: newItem.quantity || 1,
+      mloc: defaultLocId,
+      locations: newItem.locations || [],
+      maxQty: fetchedMaxQty,
       qty: 1,
       unit: newItem.unit,
       description: "",
@@ -525,7 +541,7 @@ export default function AddDin() {
     try {
       const res = await axios.get("inventory/get-quantity", { params: { id: mlocId } });
       if (res.data.status && res.data.data) {
-        handleItemChange(index, "maxQty", res.data.data.validation.max);
+        handleItemChange(index, "maxQty", res.data.data.available_quantity);
       }
     } catch (err) {
       console.error(err);
@@ -535,85 +551,125 @@ export default function AddDin() {
   const saveDin = async () => {
     if (submitting) return;
 
+    const errors = [];
+    const fieldErrors = {};
+
     if (!formData.purpose) {
-      toast.error("Please select a purpose");
-      return;
+      errors.push("Please select a purpose");
+      fieldErrors.purpose = true;
     }
 
     const pval = Number(formData.purpose);
-    if (pval === 11 && !formData.customername.trim()) {
-      toast.error("Please enter company name");
-      return;
+    const showVendor = [1, 5, 6, 7, 10].includes(pval);
+    const showCustomer = [2, 3, 4, 8, 9].includes(pval);
+    const showCustomCompany = pval === 11;
+
+    if (showVendor || showCustomer) {
+      if (!formData.customerid) {
+        errors.push(`Please select a ${showVendor ? "Vendor" : "Customer"}`);
+        fieldErrors.customerid = true;
+      }
+      if (!formData.custadd) {
+        errors.push(`Please select a ${showVendor ? "Vendor" : "Customer"} Address`);
+        fieldErrors.custadd = true;
+      }
     }
-    if (pval === 11 && !formData.custadd.trim()) {
-      toast.error("Please enter company address");
-      return;
+
+    if (showCustomCompany) {
+      if (purpose11Type === "Custom") {
+        if (!String(formData.customername || "").trim()) {
+          errors.push("Please enter company name");
+          fieldErrors.customername = true;
+        }
+        if (!String(formData.custadd || "").trim()) {
+          errors.push("Please enter company address");
+          fieldErrors.custadd = true;
+        }
+      } else if (purpose11Type === "Vendor" || purpose11Type === "Customer") {
+        if (!formData.customerid) {
+          errors.push(`Please select a ${purpose11Type}`);
+          fieldErrors.customerid = true;
+        }
+        if (!formData.custadd) {
+          errors.push(`Please select a ${purpose11Type} Address`);
+          fieldErrors.custadd = true;
+        }
+      } else {
+        errors.push("Please select Vendor/Customer Type");
+        fieldErrors.purpose11Type = true;
+      }
     }
 
     if (!formData.issuedtoid) {
-      toast.error("Please select responsible person");
-      return;
+      errors.push("Please select responsible person");
+      fieldErrors.issuedtoid = true;
     }
 
     if (!formData.dispatchthrough) {
-      toast.error("Please select dispatch through");
-      return;
+      errors.push("Please select dispatch through");
+      fieldErrors.dispatchthrough = true;
     }
 
     if (String(formData.dispatchthrough) === "1" && !formData.empname) {
-      toast.error("Please select an employee");
-      return;
+      errors.push("Please select an employee");
+      fieldErrors.empname = true;
     }
-
-    if (String(formData.dispatchthrough) === "2" && (!formData.consignname.trim() || !formData.consignphone.trim())) {
-      toast.error("Please enter consignee name and phone");
-      return;
-    }
-
 
     if ([1, 2, 3, 4, 5, 11].includes(pval) && items.length === 0) {
-      toast.error("No Item is Added");
-      return;
+      errors.push("No Item is Added");
     }
 
     if ([7, 9].includes(pval) && inwardItems.length === 0) {
-      toast.error("No Inward Item is Added");
-      return;
+      errors.push("No Inward Item is Added");
     }
 
     if ([6, 8, 10].includes(pval)) {
       if (trfItems.length === 0) {
-        toast.error("No TRF Item is Added");
-        return;
-      }
+        errors.push("No TRF Item is Added");
+      } else {
+        let hasCheckboxesAvailable = false;
+        let hasSelectedAnything = false;
 
-      let hasSelectedAnything = false;
-      trfItems.forEach(item => {
-        if (item.report || item.invoice) {
-          hasSelectedAnything = true;
+        trfItems.forEach(item => {
+          // Check if this item renders any checkboxes (packages, report, or invoice)
+          if (item.show_report_checkbox || item.show_invoice_checkbox || (item.packages && item.packages.length > 0)) {
+            hasCheckboxesAvailable = true;
+          }
+
+          if (item.report || item.invoice) {
+            hasSelectedAnything = true;
+          }
+
+          if (item.packages) {
+            item.packages.forEach(pkg => {
+              if (item.selected_packages && item.selected_packages[pkg.id]) {
+                hasSelectedAnything = true;
+              }
+            });
+          }
+        });
+
+        // If there are checkboxes available on the screen, at least one MUST be checked.
+        // If there are NO checkboxes available (e.g. fully consumed Remnant), it bypasses this, matching PHP's bValidator behavior.
+        if (hasCheckboxesAvailable && !hasSelectedAnything) {
+          errors.push("Please check at least one package, report, or invoice to dispatch");
         }
-        if (item.packages) {
-          item.packages.forEach(pkg => {
-            if (item.selected_packages && item.selected_packages[pkg.id]) {
-              hasSelectedAnything = true;
-            }
-          });
+
+        if (trfItems.some(item => !item.remark || !item.remark.trim())) {
+          errors.push("Please enter Remark for all items in TRF Material Details");
         }
-      });
-
-      if (!hasSelectedAnything) {
-        toast.error("Please select at least one item, package, report, or invoice to dispatch");
-        return;
-      }
-
-      if (trfItems.some(item => !item.remark || !item.remark.trim())) {
-        toast.error("Please enter Remark for all items in TRF Material Details");
-        return;
       }
     }
 
     if (!formData.dinremark || !formData.dinremark.trim()) {
-      toast.error("Please enter Remark");
+      errors.push("Please enter Remark");
+      fieldErrors.dinremark = true;
+    }
+
+    setFormErrors(fieldErrors);
+
+    if (errors.length > 0) {
+      errors.forEach(err => toast.error(err));
       return;
     }
 
@@ -639,7 +695,7 @@ export default function AddDin() {
         issuedtoid: formData.issuedtoid || "",
         dispatchthrough: formData.dispatchthrough || "",
         ...(String(formData.dispatchthrough) === "1" && { empname: formData.empname || "" }),
-        ...(String(formData.dispatchthrough) === "2" && { consignname: formData.consignname || "", consignphone: formData.consignphone || "" }),
+        ...(String(formData.dispatchthrough) === "2" && { consignname: formData.consignname || "-", consignphone: formData.consignphone || "-" }),
         ...(String(formData.dispatchthrough) === "3" && { courrierno: formData.courrierno || "" }),
         dispatchdate: formData.dispatchdate ? dayjs(formData.dispatchdate).format("YYYY-MM-DD") : "",
         expectedreturn: formData.expectedreturn ? dayjs(formData.expectedreturn).format("YYYY-MM-DD") : "",
@@ -670,6 +726,10 @@ export default function AddDin() {
 
           if (i.report) payload[`certificate${itemid}`] = "Yes";
           if (i.invoice) payload[`invoice${itemid}`] = "Yes";
+
+          if (i.package_from) {
+            payload[`packagefrom${itemid}`] = i.package_from;
+          }
 
           if (i.packages) {
             i.packages.forEach(pkg => {
@@ -708,7 +768,7 @@ export default function AddDin() {
       }
     } catch (err) {
       console.error(err);
-      toast.error("An error occurred while saving");
+      toast.error(err.response?.data?.message || err.message || "An error occurred while saving");
     } finally {
       setSubmitting(false);
     }
@@ -775,6 +835,7 @@ export default function AddDin() {
                       options={purposes.map(p => ({ value: p.id, label: p.name }))}
                       value={formData.purpose}
                       onChange={(val) => handleSelectChange("purpose", val)}
+                      hasError={formErrors.purpose}
                     />
                   </div>
                 )}
@@ -826,7 +887,7 @@ export default function AddDin() {
                             label: entry.label || entry.name || `TRF - ${entry.id}`
                           }))
                           .filter(opt => opt.label.toLowerCase().includes(lower));
-                        
+
                         setTimeout(() => {
                           callback(filtered.slice(0, 50));
                         }, 300);
@@ -855,6 +916,7 @@ export default function AddDin() {
                         options={customerVendors.map(s => ({ value: s.id, label: s.name || s.customername || s.vendorname || "Unknown" }))}
                         value={formData.customerid}
                         onChange={(val) => handleSelectChange("customerid", val)}
+                        hasError={formErrors.customerid}
                       />
                     </div>
                     <div className="flex flex-col gap-1">
@@ -862,16 +924,17 @@ export default function AddDin() {
                       <SearchableSelect
                         options={customerAddresses.map(a => {
                           const addrString = a.full_address || `${a.address} ${a.city} Pincode: ${a.pincode}`;
-                          return { value: addrString, label: addrString };
+                          return { value: a.id, label: addrString };
                         })}
                         value={formData.custadd}
                         onChange={(val) => handleSelectChange("custadd", val)}
+                        hasError={formErrors.custadd}
                       />
                     </div>
                     <div className="flex flex-col gap-1">
                       <label className="text-sm font-semibold text-gray-700 dark:text-dark-200">Contact Name</label>
                       <SearchableSelect
-                        options={customerContacts.map(c => ({ value: c.name, label: c.name }))}
+                        options={customerContacts.map(c => ({ value: c.id, label: c.name }))}
                         value={formData.custcontact}
                         onChange={(val) => handleSelectChange("custcontact", val)}
                       />
@@ -900,6 +963,7 @@ export default function AddDin() {
                         options={customerVendors.map(c => ({ value: c.id, label: c.name || c.customername || c.vendorname || "Unknown" }))}
                         value={formData.customerid}
                         onChange={(val) => handleSelectChange("customerid", val)}
+                        hasError={formErrors.customerid}
                       />
                     </div>
                     <div className="flex flex-col gap-1">
@@ -907,10 +971,11 @@ export default function AddDin() {
                       <SearchableSelect
                         options={customerAddresses.map(a => {
                           const addrString = a.full_address || `${a.address} ${a.city} Pincode: ${a.pincode}`;
-                          return { value: addrString, label: addrString };
+                          return { value: a.id, label: addrString };
                         })}
                         value={formData.custadd}
                         onChange={(val) => handleSelectChange("custadd", val)}
+                        hasError={formErrors.custadd}
                       />
                     </div>
                     <div className="flex flex-col gap-1">
@@ -948,7 +1013,27 @@ export default function AddDin() {
                           { value: "Custom", label: "Custom" }
                         ]}
                         value={purpose11Type}
-                        onChange={(val) => setPurpose11Type(val)}
+                        onChange={(val) => {
+                          setPurpose11Type(val);
+                          if (val === "Vendor") {
+                            fetchCustomerVendorData(1);
+                          } else if (val === "Customer") {
+                            fetchCustomerVendorData(2);
+                          }
+                          setFormData(prev => ({
+                            ...prev,
+                            customerid: "",
+                            customername: "",
+                            custadd: "",
+                            custcontact: "",
+                            custcontactname: "",
+                            custphone: "",
+                            custemail: "",
+                            gstno: "",
+                            custdesignation: ""
+                          }));
+                        }}
+                        hasError={formErrors.purpose11Type}
                       />
                     </div>
 
@@ -959,18 +1044,38 @@ export default function AddDin() {
                           options={customerVendors.map(c => ({ value: c.id, label: c.name || c.customername || c.vendorname || "Unknown" }))}
                           value={formData.customerid}
                           onChange={(val) => handleSelectChange("customerid", val)}
+                          hasError={formErrors.customerid}
                         />
                       </div>
                     )}
 
-                    <div className="flex flex-col gap-1">
-                      <label className="text-sm font-semibold text-gray-700 dark:text-dark-200">Company Name</label>
-                      <input type="text" name="customername" value={formData.customername} onChange={handleInputChange} className="form-input rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-900" />
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-sm font-semibold text-gray-700 dark:text-dark-200">Company Address</label>
-                      <input type="text" name="custadd" value={formData.custadd} onChange={handleInputChange} className="form-input rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-900" />
-                    </div>
+                    {purpose11Type === "Custom" && (
+                      <>
+                        <div className="flex flex-col gap-1">
+                          <label className="text-sm font-semibold text-gray-700 dark:text-dark-200">Company Name</label>
+                          <input type="text" name="customername" value={formData.customername} onChange={handleInputChange} className={`form-input rounded-lg ${formErrors.customername ? 'border-red-500 bg-red-50' : 'border-gray-300 dark:border-dark-600'} dark:bg-dark-900`} />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <label className="text-sm font-semibold text-gray-700 dark:text-dark-200">Company Address</label>
+                          <input type="text" name="custadd" value={formData.custadd} onChange={handleInputChange} className={`form-input rounded-lg ${formErrors.custadd ? 'border-red-500 bg-red-50' : 'border-gray-300 dark:border-dark-600'} dark:bg-dark-900`} />
+                        </div>
+                      </>
+                    )}
+
+                    {["Vendor", "Customer"].includes(purpose11Type) && (
+                      <div className="flex flex-col gap-1">
+                        <label className="text-sm font-semibold text-gray-700 dark:text-dark-200">Company Address</label>
+                        <SearchableSelect
+                          options={customerAddresses.map(a => {
+                            const addrString = a.full_address || `${a.address} ${a.city} Pincode: ${a.pincode}`;
+                            return { value: a.id, label: addrString };
+                          })}
+                          value={formData.custadd}
+                          onChange={(val) => handleSelectChange("custadd", val)}
+                          hasError={formErrors.custadd}
+                        />
+                      </div>
+                    )}
                     {["Vendor", "Customer"].includes(purpose11Type) ? (
                       <div className="flex flex-col gap-1">
                         <label className="text-sm font-semibold text-gray-700 dark:text-dark-200">Contact Name</label>
@@ -1006,6 +1111,34 @@ export default function AddDin() {
                     </div>
                   </div>
                 )}
+                {["1", "2", "3", "4", "5"].includes(String(formData.purpose)) && (
+                  <div className="flex flex-col gap-1 mt-2">
+                    <label className="text-sm font-semibold text-gray-700 dark:text-dark-200">Search Material Details</label>
+                    <div className="flex gap-2">
+                      <div className="flex-1">
+                        <AsyncSelect
+                          cacheOptions
+                          loadOptions={loadInstrumentOptions}
+                          onChange={handleInstrumentSelect}
+                          value={null}
+                          placeholder="Type at least 3 chars to search..."
+                          styles={{
+                            control: (base) => ({
+                              ...base,
+                              minHeight: "42px",
+                              borderRadius: "0.5rem",
+                              borderColor: "#D1D5DB",
+                              boxShadow: "none",
+                              "&:hover": { borderColor: "#9CA3AF" },
+                            }),
+                            menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+                          }}
+                          menuPortalTarget={document.body}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Right Column */}
@@ -1021,6 +1154,7 @@ export default function AddDin() {
                       options={employees.map(e => ({ value: e.id, label: `${e.firstname} ${e.lastname}` }))}
                       value={formData.issuedtoid}
                       onChange={(val) => handleSelectChange("issuedtoid", val)}
+                      hasError={formErrors.issuedtoid}
                     />
                   </div>
 
@@ -1034,6 +1168,7 @@ export default function AddDin() {
                       ]}
                       value={formData.dispatchthrough}
                       onChange={(val) => handleSelectChange("dispatchthrough", val)}
+                      hasError={formErrors.dispatchthrough}
                     />
                   </div>
 
@@ -1044,6 +1179,7 @@ export default function AddDin() {
                         options={employees.map(e => ({ value: e.id, label: `${e.firstname} ${e.lastname}` }))}
                         value={formData.empname}
                         onChange={(val) => handleSelectChange("empname", val)}
+                        hasError={formErrors.empname}
                       />
                     </div>
                   )}
@@ -1087,37 +1223,8 @@ export default function AddDin() {
 
                   <div className="flex flex-col gap-1">
                     <label className="text-sm font-semibold text-gray-700 dark:text-dark-200">Remark</label>
-                    <textarea name="dinremark" value={formData.dinremark} onChange={handleInputChange} className="form-input rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-900" rows="3" />
+                    <textarea name="dinremark" value={formData.dinremark} onChange={handleInputChange} className={`form-input rounded-lg ${formErrors.dinremark ? 'border-red-500 bg-red-50' : 'border-gray-300 dark:border-dark-600'} dark:bg-dark-900`} rows="3" />
                   </div>
-
-                  {["1", "2", "3", "4", "5"].includes(String(formData.purpose)) && (
-                    <div className="flex flex-col gap-1 mt-6">
-                      <label className="text-sm font-semibold text-gray-700 dark:text-dark-200">Search Material Details</label>
-                      <div className="flex gap-2">
-                        <div className="flex-1">
-                          <AsyncSelect
-                            cacheOptions
-                            loadOptions={loadInstrumentOptions}
-                            onChange={handleInstrumentSelect}
-                            value={null}
-                            placeholder="Type at least 3 chars to search..."
-                            styles={{
-                              control: (base) => ({
-                                ...base,
-                                minHeight: "42px",
-                                borderRadius: "0.5rem",
-                                borderColor: "#D1D5DB",
-                                boxShadow: "none",
-                                "&:hover": { borderColor: "#9CA3AF" },
-                              }),
-                              menuPortal: (base) => ({ ...base, zIndex: 9999 }),
-                            }}
-                            menuPortalTarget={document.body}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )}
 
                   {String(formData.purpose) === "11" && (
                     <div className="mt-6">
@@ -1127,7 +1234,7 @@ export default function AddDin() {
                           setItems(prev => [...prev, {
                             id: prev.length + 1,
                             mmissueid: "",
-                            instrumentid: "", 
+                            instrumentid: "",
                             name: "",
                             newidno: "",
                             serialno: "",
@@ -1386,13 +1493,15 @@ export default function AddDin() {
                         <Th className="bg-gray-50 px-4 py-2">S.no</Th>
                         <Th className="bg-gray-50 px-4 py-2">Material Name</Th>
                         {String(formData.purpose) !== "11" && (
+                          <Th className="bg-gray-50 px-4 py-2">New ID No</Th>
+                        )}
+                        <Th className="bg-gray-50 px-4 py-2">Serial No</Th>
+                        {String(formData.purpose) !== "11" && (
                           <>
-                            <Th className="bg-gray-50 px-4 py-2">New ID No</Th>
                             <Th className="bg-gray-50 px-4 py-2">Location</Th>
                             <Th className="bg-gray-50 px-4 py-2">Unit</Th>
                           </>
                         )}
-                        <Th className="bg-gray-50 px-4 py-2">Serial No</Th>
                         <Th className="bg-gray-50 px-4 py-2">Quantity</Th>
                         <Th className="bg-gray-50 px-4 py-2">Description</Th>
                         <Th className="bg-gray-50 px-4 py-2">Remark</Th>
@@ -1404,28 +1513,55 @@ export default function AddDin() {
                         <Tr key={index}>
                           <Td className="px-4 py-2">{index + 1}</Td>
                           <Td className="px-4 py-2">
-                            <input 
-                              type="text" 
-                              readOnly={String(formData.purpose) !== "11"} 
-                              value={item.name} 
+                            <input
+                              type="text"
+                              readOnly={String(formData.purpose) !== "11"}
+                              value={item.name}
                               onChange={(e) => handleItemChange(index, "name", e.target.value)}
-                              className={`form-input w-32 rounded-lg ${String(formData.purpose) !== "11" ? "bg-gray-100 dark:bg-dark-800 border-none" : "border-gray-300 dark:border-dark-600 dark:bg-dark-900"}`} 
+                              className={`form-input w-32 rounded-lg ${String(formData.purpose) !== "11" ? "bg-gray-100 dark:bg-dark-800 border-none" : "border-gray-300 dark:border-dark-600 dark:bg-dark-900"}`}
+                            />
+                          </Td>
+                          {String(formData.purpose) !== "11" && (
+                            <Td className="px-4 py-2">
+                              <input type="text" readOnly value={item.newidno} className="form-input w-32 rounded-lg bg-gray-100 dark:bg-dark-800 border-none" />
+                            </Td>
+                          )}
+                          <Td className="px-4 py-2">
+                            <input
+                              type="text"
+                              readOnly={String(formData.purpose) !== "11"}
+                              value={item.serialno}
+                              onChange={(e) => handleItemChange(index, "serialno", e.target.value)}
+                              className={`form-input w-24 rounded-lg ${String(formData.purpose) !== "11" ? "bg-gray-100 dark:bg-dark-800 border-none" : "border-gray-300 dark:border-dark-600 dark:bg-dark-900"}`}
                             />
                           </Td>
                           {String(formData.purpose) !== "11" && (
                             <>
                               <Td className="px-4 py-2">
-                                <input type="text" readOnly value={item.newidno} className="form-input w-32 rounded-lg bg-gray-100 dark:bg-dark-800 border-none" />
-                              </Td>
-                              <Td className="px-4 py-2">
-                                <input
-                                  type="text"
-                                  value={item.mloc || ""}
-                                  placeholder="Location ID"
-                                  onChange={(e) => handleItemChange(index, "mloc", e.target.value)}
-                                  onBlur={(e) => fetchMlocQuantity(index, e.target.value)}
-                                  className="form-input w-24 rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-900"
-                                />
+                                {item.locations && item.locations.length > 0 ? (
+                                  <select
+                                    value={item.mloc || ""}
+                                    onChange={(e) => {
+                                      handleItemChange(index, "mloc", e.target.value);
+                                      fetchMlocQuantity(index, e.target.value);
+                                    }}
+                                    className="form-input w-32 rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-900"
+                                  >
+                                    <option value="">Select</option>
+                                    {item.locations.map(loc => (
+                                      <option key={loc.id} value={loc.id}>{loc.lab_name} ({loc.id})</option>
+                                    ))}
+                                  </select>
+                                ) : (
+                                  <input
+                                    type="text"
+                                    value={item.mloc || ""}
+                                    placeholder="Location ID"
+                                    onChange={(e) => handleItemChange(index, "mloc", e.target.value)}
+                                    onBlur={(e) => fetchMlocQuantity(index, e.target.value)}
+                                    className="form-input w-24 rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-900"
+                                  />
+                                )}
                               </Td>
                               <Td className="px-4 py-2">
                                 <input type="text" readOnly value={item.unit} className="form-input w-16 rounded-lg bg-gray-100 dark:bg-dark-800 border-none" />
@@ -1433,23 +1569,23 @@ export default function AddDin() {
                             </>
                           )}
                           <Td className="px-4 py-2">
-                            <input 
-                              type="text" 
-                              readOnly={String(formData.purpose) !== "11"} 
-                              value={item.serialno} 
-                              onChange={(e) => handleItemChange(index, "serialno", e.target.value)}
-                              className={`form-input w-24 rounded-lg ${String(formData.purpose) !== "11" ? "bg-gray-100 dark:bg-dark-800 border-none" : "border-gray-300 dark:border-dark-600 dark:bg-dark-900"}`} 
-                            />
-                          </Td>
-                          <Td className="px-4 py-2">
-                            <input
-                              type="number"
-                              min="0"
-                              step="any"
-                              value={item.qty || ""}
-                              onChange={(e) => handleItemChange(index, "qty", e.target.value)}
-                              className="form-input w-20 rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-900"
-                            />
+                            <div className="flex flex-col gap-2">
+                              <input
+                                type="text"
+                                readOnly
+                                value={item.maxQty || ""}
+                                className="form-input w-20 rounded-lg bg-gray-100 dark:bg-dark-800 border-none"
+                              />
+                              <input
+                                type="number"
+                                min="1"
+                                max={item.maxQty || ""}
+                                step="any"
+                                value={item.qty || ""}
+                                onChange={(e) => handleItemChange(index, "qty", e.target.value)}
+                                className={`form-input w-20 rounded-lg ${!item.qty || item.qty > (item.maxQty || 1) || item.qty < 1 ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 dark:border-dark-600'} dark:bg-dark-900`}
+                              />
+                            </div>
                           </Td>
                           <Td className="px-4 py-2">
                             <input

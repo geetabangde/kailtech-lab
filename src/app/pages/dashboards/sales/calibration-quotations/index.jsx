@@ -148,7 +148,7 @@ export default function CalibrationQuotationList() {
       setTableSettings,
     },
     filterFns: { fuzzy: fuzzyFilter },
-    globalFilterFn: fuzzyFilter,
+    globalFilterFn: "includesString",
     enableSorting: tableSettings.enableSorting,
     enableColumnFilters: tableSettings.enableColumnFilters,
     getCoreRowModel: getCoreRowModel(),

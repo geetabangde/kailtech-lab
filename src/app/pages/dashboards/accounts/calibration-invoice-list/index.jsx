@@ -76,7 +76,7 @@ export default function CalibrationInvoiceList() {
   });
 
   const [globalFilter, setGlobalFilter] = useState("");
-  const [sorting, setSorting] = useState([{ id: "date", desc: true }]);
+  const [sorting, setSorting] = useState([{ id: "invoiceno", desc: true }]);
 
   const [columnVisibility, setColumnVisibility] = useLocalStorage(
     "column-visibility-calibration-invoice-list",
@@ -167,7 +167,7 @@ export default function CalibrationInvoiceList() {
           className={clsx(
             "flex h-full w-full flex-col",
             tableSettings.enableFullScreen &&
-              "dark:bg-dark-900 fixed inset-0 z-61 bg-white pt-3",
+            "dark:bg-dark-900 fixed inset-0 z-61 bg-white pt-3",
           )}
         >
           {/* Toolbar */}
@@ -204,9 +204,9 @@ export default function CalibrationInvoiceList() {
                               "dark:bg-dark-800 dark:text-dark-100 bg-gray-200 font-semibold text-gray-800 uppercase first:ltr:rounded-tl-lg last:ltr:rounded-tr-lg first:rtl:rounded-tr-lg last:rtl:rounded-tl-lg",
                               header.column.getCanPin() && [
                                 header.column.getIsPinned() === "left" &&
-                                  "sticky z-2 ltr:left-0 rtl:right-0",
+                                "sticky z-2 ltr:left-0 rtl:right-0",
                                 header.column.getIsPinned() === "right" &&
-                                  "sticky z-2 ltr:right-0 rtl:left-0",
+                                "sticky z-2 ltr:right-0 rtl:left-0",
                               ],
                             )}
                           >
@@ -220,9 +220,9 @@ export default function CalibrationInvoiceList() {
                                   {header.isPlaceholder
                                     ? null
                                     : flexRender(
-                                        header.column.columnDef.header,
-                                        header.getContext(),
-                                      )}
+                                      header.column.columnDef.header,
+                                      header.getContext(),
+                                    )}
                                 </span>
                                 <TableSortIcon
                                   sorted={header.column.getIsSorted()}
@@ -242,7 +242,7 @@ export default function CalibrationInvoiceList() {
                             ─────────────────────────────────────────────── */}
                             {header.column.getCanFilter() ? (
                               header.column.columnDef.meta?.filterType ===
-                              "select" ? (
+                                "select" ? (
                                 // PHP: columns[8] → select dropdown exact match
                                 <select
                                   className="dark:border-dark-500 dark:bg-dark-900 dark:text-dark-100 mt-1 w-full rounded border border-gray-300 bg-white px-2 py-1 text-xs focus:ring-1 focus:ring-blue-500 focus:outline-none"
@@ -304,9 +304,9 @@ export default function CalibrationInvoiceList() {
                                   isDiff && "!bg-red-50 dark:!bg-red-900/10",
                                   cell.column.getCanPin() && [
                                     cell.column.getIsPinned() === "left" &&
-                                      "sticky z-2 ltr:left-0 rtl:right-0",
+                                    "sticky z-2 ltr:left-0 rtl:right-0",
                                     cell.column.getIsPinned() === "right" &&
-                                      "sticky z-2 ltr:right-0 rtl:left-0",
+                                    "sticky z-2 ltr:right-0 rtl:left-0",
                                   ],
                                 )}
                               >
@@ -340,7 +340,7 @@ export default function CalibrationInvoiceList() {
                   className={clsx(
                     "px-4 pb-4 sm:px-5 sm:pt-4",
                     tableSettings.enableFullScreen &&
-                      "dark:bg-dark-800 bg-gray-50",
+                    "dark:bg-dark-800 bg-gray-50",
                     !(
                       table.getIsSomeRowsSelected() ||
                       table.getIsAllRowsSelected()

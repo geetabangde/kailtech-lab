@@ -79,13 +79,17 @@ export function RowActions({ row, table }) {
   const executeApprove = async () => {
     setLoading(true);
     try {
-      // Add actual API call later
-      await new Promise((r) => setTimeout(r, 600));
-      toast.success("Credit Note Approved!");
-      setApproveOpen(false);
-      table?.options?.meta?.updateData?.(row.index, "status", 1);
-    } catch {
-      toast.error("Failed to approve.");
+      const res = await axios.post(`/accounts/approve-credit-note/${row.original.id}`);
+      // The backend returns {'message': '...', 'creditnoteno': '...'} without a status key
+      if (res.status === 200 && (!res.data.status || res.data.status === true || res.data.status === "true" || res.data.success === true || res.data.creditnoteno)) {
+        toast.success(res.data.message || "Credit Note Approved!");
+        setApproveOpen(false);
+        table?.options?.meta?.updateData?.(row.index, "status", 1);
+      } else {
+        toast.error(res.data.message || "Failed to approve credit note.");
+      }
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Failed to approve.");
     } finally {
       setLoading(false);
     }
@@ -95,7 +99,8 @@ export function RowActions({ row, table }) {
     setLoading(true);
     try {
       const res = await axios.post(`/accounts/cancel-credit-note/${row.original.id}`);
-      if (res.data.status === true || res.data.status === "true" || res.data.success === true) {
+      // The backend returns {"status":"true", "message": "..."}
+      if (res.status === 200 && (res.data.status === true || res.data.status === "true" || res.data.success === true || res.data.message === "Credit note deleted successfully.")) {
         toast.success(res.data.message || "Credit Note Canceled!");
         setCancelOpen(false);
         // Assuming cancelling changes status to 3 or you just wait for a manual refetch

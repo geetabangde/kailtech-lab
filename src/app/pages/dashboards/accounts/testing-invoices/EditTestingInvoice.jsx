@@ -341,88 +341,99 @@ export default function EditTestingInvoice() {
 
   // ── 1. Load customers + existing invoice (parallel) ────────────────────────
   useEffect(() => {
-    Promise.all([
-      axios.get("/people/get-all-customers"),
-      axios.get(`/accounts/get-testing-invoice-byid/${id}`),
-    ])
-      .then(([custRes, invRes]) => {
-        setCustomers(custRes.data?.data ?? custRes.data ?? []);
+  const fetchAll = async () => {
+    try {
+      const [custRes, invRes] = await Promise.all([
+        axios.get("/people/get-all-customers"),
+        axios.get(`/accounts/get-testing-invoice-byid/${id}`),
+      ]);
 
-        // ── Map the invoice response onto state ──
-        const d = invRes.data?.data ?? invRes.data ?? {};
-        const inv = d.invoice ?? d;
+      setCustomers(custRes.data?.data ?? custRes.data ?? []);
 
-        // 🔍 DEBUG: check browser console → confirm items have invoiceitemid
-        console.log("[EditTestingInvoice] GET response d:", d);
-        console.log("[EditTestingInvoice] items sample:", (d.items ?? []).slice(0, 2));
+      const d = invRes.data?.data ?? invRes.data ?? {};
+      const inv = d.invoice ?? d;
 
-        setInvoiceNo(inv.invoiceno ?? "");
-        setCustomerid(String(inv.customerid ?? ""));
-        setPotype(inv.potype ?? "Normal");
-        const loadedPo = inv.ponumber ?? "";
-        setSelectedPo(loadedPo);
-        setSelectedInwards(
-          Array.isArray(inv.inwardid)
-            ? inv.inwardid.map(String)
-            : String(inv.inwardid ?? "").split(",").map((s) => s.trim()).filter(Boolean),
-        );
-        setInvoicedate(slashToIso(inv.invoicedate) || new Date().toISOString().slice(0, 10));
-        setRemark(inv.remark ?? "");
-        setBrnnos(inv.brnnos ?? "");
+      setInvoiceNo(inv.invoiceno ?? "");
 
-        // Billing info
-        setBillingInfo({
-          name: inv.customername ?? "",
-          address: inv.address ?? (d.address ? `${d.address.address ?? ""}, ${d.address.city ?? ""}, ${d.address.pincode ?? ""}` : ""),
-          statecode: String(inv.statecode ?? ""),
-          gstno: inv.gstno ?? "",
-          pan: inv.pan ?? "",
-          addressid: inv.addressid ?? 0,
-        });
+      const cid = String(inv.customerid ?? "");
+      const pt  = inv.potype ?? "Normal";
+      const loadedPo = inv.ponumber ?? "";
+      const loadedInwards = Array.isArray(inv.inwardid)
+        ? inv.inwardid.map(String)
+        : String(inv.inwardid ?? "").split(",").map((s) => s.trim()).filter(Boolean);
 
-        // Charges
-        setCharges({
-          subtotal: parseFloat(inv.subtotal) || 0,
-          discnumber: parseFloat(inv.discnumber) || 0,
-          disctype: inv.disctype ?? "amount",
-          mobilisation: parseFloat(inv.mobilisation) || 0,
-          freight: parseFloat(inv.freight) || 0,
-          witnesstype: inv.witnesstype ?? "amount",
-          witnessnumber: parseFloat(inv.witnessnumber) || 0,
-          samplehandling: parseFloat(inv.samplehandling) || 0,
-          sampleprep: parseFloat(inv.sampleprep) || 0,
-          cgstper: parseFloat(inv.cgstper) || 9,
-          sgstper: parseFloat(inv.sgstper) || 9,
-          igstper: parseFloat(inv.igstper) || 18,
-        });
+      setCustomerid(cid);
+      setPotype(pt);
+      setSelectedPo(loadedPo);
+      setSelectedInwards(loadedInwards);
+      setInvoicedate(slashToIso(inv.invoicedate) || new Date().toISOString().slice(0, 10));
+      setRemark(inv.remark ?? "");
+      setBrnnos(inv.brnnos ?? "");
 
-        // Items — API response might include a 2D array of items, and potentially duplicates
-        let rawItems = Array.isArray(d.items)
-          ? (Array.isArray(d.items[0]) ? d.items.flat() : d.items)
+      setBillingInfo({
+        name:      inv.customername ?? "",
+        address:   inv.address ?? (d.address ? `${d.address.address ?? ""}, ${d.address.city ?? ""}, ${d.address.pincode ?? ""}` : ""),
+        statecode: String(inv.statecode ?? ""),
+        gstno:     inv.gstno ?? "",
+        pan:       inv.pan ?? "",
+        addressid: inv.addressid ?? 0,
+      });
+
+      setCharges({
+        subtotal:      parseFloat(inv.subtotal)      || 0,
+        discnumber:    parseFloat(inv.discnumber)    || 0,
+        disctype:      inv.disctype                  ?? "amount",
+        mobilisation:  parseFloat(inv.mobilisation)  || 0,
+        freight:       parseFloat(inv.freight)       || 0,
+        witnesstype:   inv.witnesstype               ?? "amount",
+        witnessnumber: parseFloat(inv.witnessnumber) || 0,
+        samplehandling:parseFloat(inv.samplehandling)|| 0,
+        sampleprep:    parseFloat(inv.sampleprep)    || 0,
+        cgstper:       parseFloat(inv.cgstper)       || 9,
+        sgstper:       parseFloat(inv.sgstper)       || 9,
+        igstper:       parseFloat(inv.igstper)       || 18,
+      });
+
+      
+      if (loadedInwards.length > 0 && loadedPo) {
+        const inwardParams = loadedInwards.map((i) => `inwardid[]=${encodeURIComponent(i)}`).join("&");
+        const base = `customerid=${cid}&potype=${pt}&ponumber=${encodeURIComponent(loadedPo)}&invoiceid=${id}`;
+
+        const itemsRes = await axios.get(`/accounts/get-itemfrom-trf?${base}&${inwardParams}`);
+        const itemsData = itemsRes.data?.data ?? itemsRes.data ?? {};
+
+        let rawItems = Array.isArray(itemsData.items)
+          ? (Array.isArray(itemsData.items[0]) ? itemsData.items.flat() : itemsData.items)
           : [];
 
-        // Deduplicate items by id to handle backend returning identical arrays per inward entry
-        rawItems = Array.from(new Map(rawItems.map(item => [item.id ?? item.item_id, item])).values());
+        rawItems = Array.from(new Map(rawItems.map((item) => [item.id ?? item.item_id, item])).values());
 
         const mapped = rawItems.map((item, idx) => ({
           ...item,
-          _key: `item-${idx}-${item.id}`,
-          id: item.id ?? item.item_id,
+          _key:          `item-${idx}-${item.id ?? item.item_id}`,
+          id:            item.id ?? item.item_id,
           invoiceitemid: item.invoiceitemid ?? item.invoice_item_id ?? null,
-          name: item.name ?? "",
-          brnno: item.brn ?? item.brnno ?? "",
-          hasMeter: (item.name ?? "").trim() === "Soil Analysis",
-          meter: parseFloat(item.meter) || 1,
-          rate: parseFloat(item.invoicerate ?? item.rate ?? item.total) || 0,
+          name:          item.name ?? "",
+          brnno:         item.brn ?? item.brnno ?? "",
+          hasMeter:      (item.name ?? "").trim() === "Soil Analysis",
+          meter:         parseFloat(item.meter) || 1,
+          rate:          parseFloat(item.invoicerate ?? item.rate ?? item.total) || 0,
         }));
+
         setItems(mapped);
         setHasMeterGlobal(mapped.some((i) => i.hasMeter));
+      }
 
-        hydratedRef.current = true;
-      })
-      .catch(() => toast.error("Failed to load invoice"))
-      .finally(() => setInitialLoading(false));
-  }, [id]);
+      hydratedRef.current = true;
+    } catch {
+      toast.error("Failed to load invoice");
+    } finally {
+      setInitialLoading(false);
+    }
+  };
+
+  fetchAll();
+}, [id]);
 
   // ── 2. Reload PO list when customer changes (not on first hydration) ───────
   const loadPoNumbers = useCallback(async (cid) => {
@@ -485,7 +496,7 @@ export default function EditTestingInvoice() {
     setLoadingItems(true);
     try {
       const inwardParams = inwards.map((i) => `inwardid[]=${encodeURIComponent(i)}`).join("&");
-      const base = `customerid=${customerid}&potype=${potype}&ponumber=${encodeURIComponent(selectedPo)}`;
+      const base = `customerid=${customerid}&potype=${potype}&ponumber=${encodeURIComponent(selectedPo)}&invoiceid=${id}`
       const [itemsRes, brnRes] = await Promise.all([
         axios.get(`/accounts/get-itemfrom-trf?${base}&${inwardParams}`),
         axios.get(`/accounts/get-testing-brnnumber?${inwardParams}`),

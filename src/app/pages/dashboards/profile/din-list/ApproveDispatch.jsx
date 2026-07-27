@@ -35,6 +35,18 @@ export default function ApproveDispatch() {
         details.approved_by = approval.approved_by_name;
         details.approved_on = approval.approved_on;
 
+        // Fetch full customer address if it is just an ID
+        if (details.customer_address && /^\d+$/.test(details.customer_address)) {
+          try {
+            const addrRes = await axios.get(`inventory/get-customer-address-details/${details.customer_address}`);
+            if (addrRes.data?.status && addrRes.data?.data?.addresses?.length > 0) {
+              details.customer_address = addrRes.data.data.addresses[0].full_address;
+            }
+          } catch (e) {
+            console.error("Failed to fetch full customer address", e);
+          }
+        }
+
         setDinDetails(details);
 
         if (reportRes.data.data.items) {

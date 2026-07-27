@@ -10,15 +10,15 @@ import ReactSelect from "react-select";
 import AsyncSelect from "react-select/async";
 
 // Helper for Searchable Select
-const SearchableSelect = ({ options, value, onChange, placeholder, disabled }) => {
+const SearchableSelect = ({ options, value, onChange, placeholder, disabled, hasError }) => {
   const customStyles = {
     control: (base) => ({
       ...base,
       minHeight: "42px",
       borderRadius: "0.5rem",
-      borderColor: "#D1D5DB",
+      borderColor: hasError ? "#EF4444" : "#D1D5DB",
       boxShadow: "none",
-      "&:hover": { borderColor: "#9CA3AF" },
+      "&:hover": { borderColor: hasError ? "#EF4444" : "#9CA3AF" },
     }),
     menuPortal: (base) => ({ ...base, zIndex: 9999 }),
   };
@@ -73,6 +73,7 @@ export default function EditDin() {
   });
 
   const [items, setItems] = useState([]);
+  const [formErrors, setFormErrors] = useState({});
 
   const fetchReturnData = useCallback(async (basisVal) => {
     if (!basisVal) {
@@ -346,7 +347,8 @@ export default function EditDin() {
         name: newItem.instrument_name,
         newidno: newItem.new_id_no,
         serialno: newItem.serial_no,
-        mloc: "",
+        mloc: newItem.locations && newItem.locations.length > 0 ? newItem.locations[0].id : "",
+        locations: newItem.locations || [],
         maxQty: newItem.quantity || 1, 
         qty: 1,
         unit: newItem.unit,
@@ -360,7 +362,7 @@ export default function EditDin() {
     try {
       const res = await axios.get("inventory/get-quantity", { params: { id: mlocId } });
       if (res.data.status && res.data.data) {
-         handleItemChange(index, "maxQty", res.data.data.validation.max);
+         handleItemChange(index, "maxQty", res.data.data.available_quantity);
       }
     } catch (err) {
       console.error(err);
@@ -369,14 +371,48 @@ export default function EditDin() {
 
   const onSubmit = async (e) => {
     e.preventDefault();
+    const errors = [];
+    const fieldErrors = {};
+
     if (!formData.purpose) {
-      toast.error("Please select a purpose");
-      return;
+      errors.push("Please select a purpose");
+      fieldErrors.purpose = true;
     }
     
     const pval = Number(formData.purpose);
+    const showVendor = [1, 5, 6, 7, 10].includes(pval);
+    const showCustomer = [2, 3, 4, 8, 9].includes(pval);
+    const showCustomCompany = pval === 11;
+
+    if (showVendor || showCustomer) {
+      if (!formData.customerid) {
+        errors.push(`Please select a ${showVendor ? "Vendor" : "Customer"}`);
+        fieldErrors.customerid = true;
+      }
+      if (!formData.custadd) {
+        errors.push(`Please select a ${showVendor ? "Vendor" : "Customer"} Address`);
+        fieldErrors.custadd = true;
+      }
+    }
+
+    if (showCustomCompany) {
+      if (!String(formData.customername || "").trim()) {
+        errors.push("Please enter company name");
+        fieldErrors.customername = true;
+      }
+      if (!String(formData.custadd || "").trim()) {
+        errors.push("Please enter company address");
+        fieldErrors.custadd = true;
+      }
+    }
     if ([1, 2, 3, 4, 5, 6, 7, 8, 9, 11].includes(pval) && items.length === 0) {
-      toast.error("No Item is Added");
+      errors.push("No Item is Added");
+    }
+
+    setFormErrors(fieldErrors);
+
+    if (errors.length > 0) {
+      errors.forEach(err => toast.error(err));
       return;
     }
 
@@ -499,6 +535,7 @@ export default function EditDin() {
                       options={purposes.map(p => ({ value: p.id, label: p.name }))}
                       value={formData.purpose}
                       onChange={(val) => handleSelectChange("purpose", val)}
+                      hasError={formErrors.purpose}
                     />
                   </div>
                 )}
@@ -526,11 +563,12 @@ export default function EditDin() {
                         options={customerVendors.map(s => ({ value: s.id, label: s.name || s.customername || s.vendorname || "Unknown" }))}
                         value={formData.customerid}
                         onChange={(val) => handleSelectChange("customerid", val)}
+                        hasError={formErrors.customerid}
                       />
                     </div>
                     <div className="flex flex-col gap-1">
                       <label className="text-sm font-semibold text-gray-700 dark:text-dark-200">Customer Address</label>
-                      <input type="text" name="custadd" value={formData.custadd} onChange={handleInputChange} className="form-input rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-900" />
+                      <input type="text" name="custadd" value={formData.custadd} onChange={handleInputChange} className={`form-input rounded-lg ${formErrors.custadd ? 'border-red-500 bg-red-50' : 'border-gray-300 dark:border-dark-600'} dark:bg-dark-900`} />
                     </div>
                     <div className="flex flex-col gap-1">
                       <label className="text-sm font-semibold text-gray-700 dark:text-dark-200">Name</label>
@@ -560,6 +598,7 @@ export default function EditDin() {
                         options={customerVendors.map(c => ({ value: c.id, label: c.name || c.customername || c.vendorname || "Unknown" }))}
                         value={formData.customerid}
                         onChange={(val) => handleSelectChange("customerid", val)}
+                        hasError={formErrors.customerid}
                       />
                     </div>
                     <div className="flex flex-col gap-1">
@@ -568,6 +607,7 @@ export default function EditDin() {
                         options={addressOptions}
                         value={formData.custadd}
                         onChange={(val) => handleSelectChange("custadd", val)}
+                        hasError={formErrors.custadd}
                       />
                     </div>
                     <div className="flex flex-col gap-1">
@@ -622,28 +662,7 @@ export default function EditDin() {
                     </div>
                   </div>
                 )}
-              </div>
-
-              {/* Right Column */}
-              <div className="space-y-4">
-                <div className="flex flex-col gap-1">
-                  <label className="text-sm font-semibold text-gray-700 dark:text-dark-200">Date</label>
-                  <input type="date" name="dindate" value={formData.dindate} onChange={handleInputChange} className="form-input rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-900" />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-sm font-semibold text-gray-700 dark:text-dark-200">Responsible Person</label>
-                  <SearchableSelect
-                    options={employees.map(e => ({ value: e.id, label: `${e.firstname} ${e.lastname}` }))}
-                    value={formData.issuedtoid}
-                    onChange={(val) => handleSelectChange("issuedtoid", val)}
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-sm font-semibold text-gray-700 dark:text-dark-200">Remark</label>
-                  <textarea name="dinremark" value={formData.dinremark} onChange={handleInputChange} className="form-input rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-900" rows="3" />
-                </div>
-
-                <div className="flex flex-col gap-1 mt-6">
+                <div className="flex flex-col gap-1 mt-2">
                   <label className="text-sm font-semibold text-gray-700 dark:text-dark-200">Search Material Details</label>
                   <div className="flex gap-2">
                     <div className="flex-1">
@@ -668,6 +687,26 @@ export default function EditDin() {
                       />
                     </div>
                   </div>
+                </div>
+              </div>
+
+              {/* Right Column */}
+              <div className="space-y-4">
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm font-semibold text-gray-700 dark:text-dark-200">Date</label>
+                  <input type="date" name="dindate" value={formData.dindate} onChange={handleInputChange} className="form-input rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-900" />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm font-semibold text-gray-700 dark:text-dark-200">Responsible Person</label>
+                  <SearchableSelect
+                    options={employees.map(e => ({ value: e.id, label: `${e.firstname} ${e.lastname}` }))}
+                    value={formData.issuedtoid}
+                    onChange={(val) => handleSelectChange("issuedtoid", val)}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm font-semibold text-gray-700 dark:text-dark-200">Remark</label>
+                  <textarea name="dinremark" value={formData.dinremark} onChange={handleInputChange} className="form-input rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-900" rows="3" />
                 </div>
               </div>
             </div>
@@ -705,23 +744,48 @@ export default function EditDin() {
                           <input type="text" readOnly value={item.serialno || ""} className="form-input w-24 rounded-lg bg-gray-100 dark:bg-dark-800 border-none" />
                         </Td>
                         <Td className="px-4 py-2">
-                          <input 
-                            type="text" 
-                            value={item.mloc || ""} 
-                            onChange={(e) => handleItemChange(index, "mloc", e.target.value)} 
-                            onBlur={() => fetchMlocQuantity(index, item.mloc)}
-                            className="form-input w-24 rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-900" 
-                          />
+                          {item.locations && item.locations.length > 0 ? (
+                            <select
+                              value={item.mloc || ""}
+                              onChange={(e) => {
+                                handleItemChange(index, "mloc", e.target.value);
+                                fetchMlocQuantity(index, e.target.value);
+                              }}
+                              className="form-input w-32 rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-900"
+                            >
+                              <option value="">Select</option>
+                              {item.locations.map(loc => (
+                                <option key={loc.id} value={loc.id}>{loc.lab_name} ({loc.id})</option>
+                              ))}
+                            </select>
+                          ) : (
+                            <input 
+                              type="text" 
+                              value={item.mloc || ""} 
+                              onChange={(e) => handleItemChange(index, "mloc", e.target.value)} 
+                              onBlur={() => fetchMlocQuantity(index, item.mloc)}
+                              className="form-input w-24 rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-900" 
+                            />
+                          )}
                         </Td>
                         <Td className="px-4 py-2">
-                          <input 
-                            type="number" 
-                            min="1" 
-                            max={item.maxQty}
-                            value={item.qty || ""} 
-                            onChange={(e) => handleItemChange(index, "qty", e.target.value)} 
-                            className="form-input w-20 rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-900" 
-                          />
+                          <div className="flex flex-col gap-2">
+                            <input
+                              type="text"
+                              readOnly
+                              value={item.maxQty || ""}
+                              className="form-input w-20 rounded-lg bg-gray-100 dark:bg-dark-800 border-none"
+                            />
+                            <input 
+                              type="number" 
+                              min="1" 
+                              max={item.maxQty || ""}
+                              step="any"
+                              value={item.qty || ""} 
+                              onChange={(e) => handleItemChange(index, "qty", e.target.value)} 
+                              className={`form-input w-20 rounded-lg ${!item.qty || item.qty > (item.maxQty || 1) || item.qty < 1 ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 dark:border-dark-600'} dark:bg-dark-900`}
+                            />
+                          </div>
                         </Td>
                         <Td className="px-4 py-2">
                           <input type="text" readOnly value={item.unit || ""} className="form-input w-16 rounded-lg bg-gray-100 dark:bg-dark-800 border-none" />

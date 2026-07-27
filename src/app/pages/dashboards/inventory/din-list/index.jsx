@@ -46,16 +46,25 @@ function ColumnFilter({ column }) {
   if (column.id === 'status') {
     return (
       <select
-        value={columnFilterValue?.toString() ?? ''}
-        onChange={e => column.setFilterValue(e.target.value)}
+        value={
+          columnFilterValue?.toString() === '' ? '11' :
+          columnFilterValue?.toString() === '0' ? '91' :
+          (columnFilterValue?.toString() ?? '11')
+        }
+        onChange={e => {
+          let val = e.target.value;
+          if (val === '91') val = '0';
+          if (val === '11') val = '';
+          column.setFilterValue(val);
+        }}
         className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-xs dark:border-dark-600 dark:bg-dark-800 px-2 py-1 normal-case font-normal"
         onClick={e => e.stopPropagation()}
       >
-        <option value="">All</option>
+        <option value="11">All</option>
         <option value="1">Dispatched</option>
         <option value="-2">Pending For Checklist</option>
         <option value="-1">Pending For Approval</option>
-        <option value="0">Pending For Dispatch</option>
+        <option value="91">Pending For Dispatch</option>
         <option value="99">Din Rejected</option>
       </select>
     );

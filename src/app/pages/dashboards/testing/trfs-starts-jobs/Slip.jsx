@@ -221,6 +221,11 @@ export default function Slip() {
                 </td>
                 <td>
                   {item.brand && <div className="font-medium">{item.brand}</div>}
+                  {item.model && (
+                    <div className="text-[9px] text-gray-500 mt-1">
+                      <span className="font-bold text-gray-700">Model:</span> {item.model}
+                    </div>
+                  )}
                   <div className="text-[9px] text-gray-500 mt-1">
                     <span className="font-bold text-gray-700">QR:</span> {item.qrcode}
                   </div>

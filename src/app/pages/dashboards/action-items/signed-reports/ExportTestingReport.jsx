@@ -1,4 +1,5 @@
 import { renderToStaticMarkup } from "react-dom/server";
+import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import { toast } from "sonner";
 import { IMAGE_HOST_API } from "configs/auth.config";
@@ -175,29 +176,29 @@ const SS = {
   infoRow: { display: 'flex', borderBottom: `1px solid ${BC}` },
   infoLeft: { width: '42%', padding: '6px', borderRight: `1px solid ${BC}`, boxSizing: 'border-box' },
   infoRight: { flex: 1, display: 'flex', flexDirection: 'column' },
-  infoLabel: { width: '52%', padding: '4px', fontWeight: 'bold', borderRight: `1px solid ${BC}`, fontSize: '13px', boxSizing: 'border-box' },
-  infoVal: { flex: 1, padding: '4px', fontSize: '13px', boxSizing: 'border-box' },
-  infoFull: { padding: '5px', borderTop: `1px solid ${BC}`, fontSize: '13px', boxSizing: 'border-box' },
+  infoLabel: { width: '52%', padding: '4px', fontWeight: 'bold', borderRight: `1px solid ${BC}`, fontSize: '14px', boxSizing: 'border-box' },
+  infoVal: { flex: 1, padding: '4px', fontSize: '14px', boxSizing: 'border-box' },
+  infoFull: { padding: '5px', borderTop: `1px solid ${BC}`, fontSize: '14px', boxSizing: 'border-box' },
 
-  rTable: { width: '100%', borderCollapse: 'collapse', marginBottom: '10px', tableLayout: 'fixed' },
+  rTable: { width: 'calc(100% - 2px)', borderCollapse: 'collapse', marginBottom: '10px', tableLayout: 'fixed', marginLeft: '1px' },
   thead: { backgroundColor: '#ffffff' },
-  th: { padding: '4px', fontWeight: 'bold', textAlign: 'center', fontSize: '13px', border: `1px solid ${BC}` },
-  td: { padding: '4px', textAlign: 'center', fontSize: '13px', border: `1px solid ${BC}` },
+  th: { padding: '4px', fontWeight: 'bold', textAlign: 'center', fontSize: '14px', border: `1px solid ${BC}` },
+  td: { padding: '4px', textAlign: 'center', fontSize: '14px', border: `1px solid ${BC}` },
 
-  secTitle: { fontWeight: 'bold', fontSize: '14px', marginBottom: '4px', marginTop: '5px' },
-  endOfReport: { textAlign: 'center', fontWeight: 'bold', margin: '12px 0', fontSize: '13px' },
-  remarkBox: { marginBottom: '8px', fontSize: '13px' },
+  secTitle: { fontWeight: 'bold', fontSize: '15px', marginBottom: '4px', marginTop: '5px' },
+  endOfReport: { textAlign: 'center', fontWeight: 'bold', margin: '12px 0', fontSize: '14px' },
+  remarkBox: { marginBottom: '8px', fontSize: '14px' },
 
-  sigRow: { display: 'flex', flexWrap: 'wrap', marginTop: '25px', marginBottom: '8px', justifyContent: 'space-between' },
-  sigRowSingle: { display: 'flex', flexWrap: 'wrap', marginTop: '25px', marginBottom: '8px', justifyContent: 'flex-start' },
-  sigBox: { minWidth: '150px', fontSize: '13px', flex: 1, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' },
-  sigBoxSingle: { minWidth: '150px', fontSize: '13px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' },
+  sigRow: { display: 'flex', flexWrap: 'wrap', marginTop: '25px', marginBottom: '0px', justifyContent: 'space-between' },
+  sigRowSingle: { display: 'flex', flexWrap: 'wrap', marginTop: '25px', marginBottom: '0px', justifyContent: 'flex-start' },
+  sigBox: { minWidth: '150px', fontSize: '13.5px', flex: 1, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' },
+  sigBoxSingle: { minWidth: '150px', fontSize: '13.5px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' },
   sigImg: { width: '150px', height: '58px', objectFit: 'contain', marginBottom: '2px' },
   sigDig: { width: '180px', height: '78px', objectFit: 'contain' },
-  sigElec: { fontSize: '11px', color: '#444', marginTop: '1px', textAlign: 'center' },
-  sigTit: { fontSize: '12px', color: '#111', fontWeight: 'bold', marginBottom: '5px' },
-  sigName: { fontWeight: 'bold', fontSize: '13px' },
-  sigAuth: { fontSize: '11px', color: '#666' },
+  sigElec: { fontSize: '11.5px', color: '#444', marginTop: '1px', textAlign: 'center' },
+  sigTit: { fontSize: '12.5px', color: '#111', fontWeight: 'bold', marginBottom: '5px' },
+  sigName: { fontWeight: 'bold', fontSize: '13.5px' },
+  sigAuth: { fontSize: '11.5px', color: '#666' },
 
   draft: {
     position: 'absolute',
@@ -214,11 +215,11 @@ const SS = {
 export function HtmlCustomerLeft({ data }) {
   return (
     <div style={SS.infoLeft}>
-      <div style={{ ...SS.bold, fontSize: '13px', marginBottom: '2px' }}>Name and Address of Customer</div>
-      <div style={{ fontSize: '13px' }}>{data.customerName}</div>
-      <div style={{ fontSize: '13px' }}>{data.customerAddress}</div>
+      <div style={{ ...SS.bold, fontSize: '14px', marginBottom: '2px' }}>Name and Address of Customer</div>
+      <div style={{ fontSize: '14px' }}>{data.customerName}</div>
+      <div style={{ fontSize: '14px' }}>{data.customerAddress}</div>
       {data.showContact && data.contactPerson
-        ? <div style={{ fontSize: '11px', marginTop: '2px' }}>Contact Person: {data.contactPerson}</div>
+        ? <div style={{ fontSize: '12px', marginTop: '2px' }}>Contact Person: {data.contactPerson}</div>
         : null}
     </div>
   );
@@ -284,11 +285,16 @@ export function HtmlResultsTable({ data }) {
       <tbody>
         {test_results.length === 0 ? (
           <tr>
-            <td colSpan={hasSpecs ? 6 : 5} style={{ padding: '6px', fontSize: '13px', textAlign: 'center', border: `1px solid ${BC}` }}>No test results found.</td>
+            <td colSpan={hasSpecs ? 6 : 5} style={{ padding: '6px', fontSize: '14px', textAlign: 'center', border: `1px solid ${BC}` }}>No test results found.</td>
           </tr>
         ) : (
           test_results.map((row, idx) => {
-            const displayResult = row.result?.display_value ?? row.result?.value ?? row.result ?? '—';
+            let displayResult = row.result?.display_value ?? row.result?.value ?? row.result ?? '—';
+            if (typeof displayResult === 'number' && Number.isInteger(displayResult)) {
+              displayResult = displayResult.toFixed(1);
+            } else if (typeof displayResult === 'string' && /^-?\d+$/.test(displayResult.trim())) {
+              displayResult = displayResult.trim() + '.0';
+            }
             const unitDisplay = row.unit?.description ?? row.unit?.name ?? row.unit ?? '—';
             const methodName = row.method?.name ?? row.method ?? '—';
             const resultStyles = { ...SS.td };
@@ -384,11 +390,11 @@ const S1 = {
     display: 'flex',
     justifyContent: 'flex-end',
     marginBottom: '6px',
-    fontSize: '12px',
+    fontSize: '13px',
   },
-  pageRow: { display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '12px' },
-  title: { textAlign: 'center', fontSize: '19px', fontWeight: 'bold', textDecoration: 'underline', marginBottom: '7px' },
-  ulrRow: { display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '13px' },
+  pageRow: { display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '13px' },
+  title: { textAlign: 'center', fontSize: '19.5px', fontWeight: 'bold', textDecoration: 'underline', marginBottom: '7px' },
+  ulrRow: { display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '14px' },
   isoSide: {
     position: 'absolute',
     right: '-30px', bottom: '110px',
@@ -423,18 +429,27 @@ export function HtmlDocWithLH({ report }) {
           <tr>
             <td style={{ border: 'none', padding: 0 }}>
               {/* ── LETTER HEAD ────────────────────────────────── */}
-              <div style={S1.lhHeader}>
-                <img src={`${window.location.origin}/images/krtc.jpg`} alt="" style={S1.logoLeft} />
-                <div style={{ display: 'flex', alignItems: 'center' }}>
-                  {data.nablLogo ? <img src={getPdfImageUrl(data.nablLogo)} alt="" style={S1.logoCenter} /> : <div style={S1.logoCenter} />}
-                </div>
-                <img src={`${window.location.origin}/images/logo.png`} alt="" style={S1.logoRight} />
-              </div>
+              <table style={{ width: '100%', borderCollapse: 'collapse', border: 'none', paddingBottom: '8px', marginBottom: '2px' }}>
+                <tbody>
+                  <tr>
+                    <td style={{ width: '33%', textAlign: 'left', verticalAlign: 'middle', border: 'none', padding: 0 }}>
+                      <img src={`${window.location.origin}/images/krtc.jpg`} alt="" style={S1.logoLeft} />
+                    </td>
+                    <td style={{ width: '33%', textAlign: 'center', verticalAlign: 'middle', border: 'none', padding: 0 }}>
+                      {data.nablLogo ? <img src={getPdfImageUrl(data.nablLogo)} alt="" style={S1.logoCenter} /> : <div style={S1.logoCenter} />}
+                    </td>
+                    <td style={{ width: '33%', textAlign: 'right', verticalAlign: 'middle', border: 'none', padding: 0 }}>
+                      <img src={`${window.location.origin}/images/logo.png`} alt="" style={S1.logoRight} />
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
 
               {/* ── LRN — placed BELOW the letterhead, in normal flow,
                      so it never overlaps the KAILTECH logo image ── */}
-              <div style={S1.lrnRow}>
+              <div style={{ textAlign: 'right', marginBottom: '6px', fontSize: '13px', paddingTop: '35px', display: 'flex', justifyContent: 'flex-end', gap: '15px' }}>
                 <span style={SS.bold}>LRN: {data.displayLRN}</span>
+                <span className="page-number" style={SS.bold}></span>
               </div>
             </td>
           </tr>
@@ -482,7 +497,7 @@ export function HtmlDocWithLH({ report }) {
         <tfoot style={{ display: 'table-footer-group' }}>
           <tr>
             <td style={{ border: 'none', padding: 0 }}>
-              <div style={{ height: '15px' }}></div>
+              <div style={{ height: '5px' }}></div>
               <div style={S1.footer}>
                 <div>Plot No. 141 C, Electronic Complex, Pardeshipura, Indore – 452010 (INDIA)  Ph. +91 – 4787555 (30 Lines), 4046055, 4048055</div>
                 <div>Email : contact@kailtech.net, electronics@kailtech.net    Web : www.kailtech.net</div>
@@ -510,17 +525,20 @@ export function HtmlDocWithLH({ report }) {
 HtmlDocWithLH.propTypes = { report: PropTypes.object.isRequired };
 
 export function printReport(report, title) {
+  const data = extractData(report);
+  const safeTitle = data.ulr || data.ktrcRef || title || 'Test_Report';
   const bodyHtml = renderToStaticMarkup(<HtmlDocWithLH report={report} />);
 
   const full = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>${title || 'Test Report'}</title>
+  <title>${safeTitle}</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     @page { size: A4; margin: 8mm 6mm; }
-    body  { margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #111; background: #fff; }
+    body  { margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #111; background: #fff; counter-reset: page; }
+    .page-number::after { counter-increment: page; content: "Page " counter(page) " of 1"; }
     @media print { 
       body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       head { display: none; }
@@ -530,31 +548,69 @@ export function printReport(report, title) {
 <body>${bodyHtml}</body>
 </html>`;
 
-  const win = window.open('', '_blank', 'width=900,height=700');
+  const win = window.open(`/${safeTitle.replace(/[^a-zA-Z0-9_-]/g, '_')}.html`, '_blank');
   if (!win) { toast.error('Pop-up blocked — please allow pop-ups and try again.'); return; }
+
+  // Write the HTML to the new window
   win.document.open();
   win.document.write(full);
   win.document.close();
-  win.onafterprint = () => { try { win.close(); } catch (e) { void e; } };
+
   win.onload = () => {
     win.focus();
-    win.print();
   };
-  setTimeout(() => {
-    try {
-      win.focus();
-      win.print();
-    } catch (e) { void e; }
-  }, 800);
+
 }
 
 export function PrintExportTestingReportButton({ report, className }) {
-  const btnClass = className ?? 'rounded bg-cyan-500 px-3 py-1.5 text-xs font-semibold text-white shadow transition hover:bg-cyan-600 inline-block';
+  const btnClass = className ?? 'rounded bg-cyan-500 px-3 py-1.5 text-xs font-semibold text-white shadow transition hover:bg-cyan-600 inline-block text-center cursor-pointer';
+  const [blobUrl, setBlobUrl] = useState('#');
+
+  useEffect(() => {
+    if (!report) return;
+    try {
+      const data = extractData(report);
+      const safeTitle = data.ulr || data.ktrcRef || 'Test_Report';
+      const bodyHtml = renderToStaticMarkup(<HtmlDocWithLH report={report} />);
+      const full = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>${safeTitle}</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    @page { size: A4; margin: 8mm 6mm; }
+    body  { margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #111; background: #fff; counter-reset: page; }
+    .page-number::after { counter-increment: page; content: "Page " counter(page) " of 1"; }
+    @media print { 
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      head { display: none; }
+    }
+  </style>
+</head>
+<body>
+${bodyHtml}
+</body>
+</html>`;
+      const blob = new Blob([full], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      setBlobUrl(url);
+      return () => URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error('Failed to generate report blob', e);
+    }
+  }, [report]);
 
   return (
-    <button onClick={() => printReport(report, 'Test Report')} className={btnClass}>
+    <a href={blobUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => {
+      // If it's a left click and blob hasn't generated yet, fallback to original behavior
+      if (blobUrl === '#' && e.button === 0) {
+        e.preventDefault();
+        printReport(report, 'Test Report');
+      }
+    }} className={btnClass}>
       Print Report With Letter Head
-    </button>
+    </a>
   );
 }
 PrintExportTestingReportButton.propTypes = { report: PropTypes.object.isRequired, className: PropTypes.string };

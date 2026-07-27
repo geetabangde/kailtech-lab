@@ -9,7 +9,7 @@ import { Button } from "components/ui";
 export default function ViewDinForm() {
   const [searchParams] = useSearchParams();
   const id = searchParams.get("hakuna");
-  
+
   const [loading, setLoading] = useState(true);
   const [dinDetails, setDinDetails] = useState(null);
   const [items, setItems] = useState([]);
@@ -19,23 +19,35 @@ export default function ViewDinForm() {
   const fetchInitialData = useCallback(async () => {
     try {
       setLoading(true);
-      const [reportRes, purpRes, companyRes] = await Promise.all([
+      const [reportRes, depRes, companyRes] = await Promise.all([
         axios.get(`inventory/get-din-report/${id}`),
-        axios.get("inventory/din-purpose-data").catch(() => ({ data: { status: false, data: [] } })),
+        axios.get("inventory/get-add-din-dependency").catch(() => ({ data: { status: false, data: null } })),
         axios.get("get-company-info").catch(() => ({ data: { status: false, data: null } }))
       ]);
 
       if (reportRes.data.status && reportRes.data.data) {
         const details = reportRes.data.data.dispatch_details;
+
+        if (details.customer_address && /^\d+$/.test(String(details.customer_address).trim())) {
+          try {
+            const addrRes = await axios.get(`inventory/get-customer-address-details/${details.customer_address}`);
+            if (addrRes.data?.status && addrRes.data?.data?.addresses?.length > 0) {
+              details.customer_address = addrRes.data.data.addresses[0].full_address;
+            }
+          } catch (err) {
+            console.error("Failed to fetch address", err);
+          }
+        }
+
         setDinDetails(details);
-        
+
         if (reportRes.data.data.items) {
           setItems(reportRes.data.data.items);
         }
 
         // Try to map the purpose string back to an ID for logic gates
-        if (purpRes.data.status) {
-          const matchedPurpose = purpRes.data.data.find(p => p.name === details.dispatch_purpose);
+        if (depRes.data.status && depRes.data.data?.purposes) {
+          const matchedPurpose = depRes.data.data.purposes.find(p => p.name === details.dispatch_purpose);
           if (matchedPurpose) {
             setPurposeId(parseInt(matchedPurpose.id));
           }
@@ -79,11 +91,11 @@ export default function ViewDinForm() {
   }
 
   const statusInt = parseInt(dinDetails.status);
-  
+
   // Logic gates matching PHP
   const isStandardTable = purposeId ? [1, 2, 3, 4, 5, 11].includes(purposeId) : true; // Fallback to standard if purpose not found
   const showIdNumber = purposeId !== 11;
-  
+
   let watermarkText = "";
   if (statusInt === 99) watermarkText = "REJECTED";
   else if ([-2, -1, 0].includes(statusInt)) watermarkText = "DRAFT";
@@ -165,7 +177,7 @@ export default function ViewDinForm() {
       </style>
 
       <div className="din-print-page p-4 sm:p-5 flex flex-col gap-6 relative min-h-screen bg-white">
-        
+
         {/* Print Header Controls (Hidden during print) */}
         <div className="no-print print:hidden flex justify-between items-center mb-4">
           <Button component={Link} to="/dashboards/inventory/din-list" color="info" size="sm">
@@ -178,7 +190,7 @@ export default function ViewDinForm() {
 
         {/* Printable Area */}
         <div className="print:p-0 p-8 border border-gray-200 shadow-sm relative mx-auto w-full max-w-5xl bg-white text-black" id="printable-challan">
-          
+
           {/* Watermark */}
           {watermarkText && (
             <div className="absolute inset-0 flex items-center justify-center z-[50] pointer-events-none overflow-hidden opacity-10">
@@ -202,7 +214,7 @@ export default function ViewDinForm() {
                   <img src={companyInfo.branding.logo} alt="Company Logo" className="w-40 object-contain" />
                 )}
               </div>
-              
+
               {/* Center Company Info */}
               <div className="flex-1 text-center px-4">
                 <h1 className="text-xl font-bold mb-1">
@@ -234,9 +246,9 @@ export default function ViewDinForm() {
               </div>
               <div className="flex">
                 <span className="font-bold w-40 shrink-0">Customer Address:</span>
-                <span>{dinDetails.customer_address}<br/>{dinDetails.gst_no}</span>
+                <span>{dinDetails.customer_address}<br />{dinDetails.gst_no}</span>
               </div>
-              
+
               <div className="flex">
                 <span className="font-bold w-40 shrink-0">Concern Person name:</span>
                 <span>{dinDetails.concern_person}</span>
@@ -272,12 +284,12 @@ export default function ViewDinForm() {
                 <span className="font-bold w-40 shrink-0">Dispatch Through:</span>
                 <span>
                   {dinDetails.dispatch_through === "By Courier" && dinDetails.courier_no
-                    ? `By Courier (${dinDetails.courier_no})` 
+                    ? `By Courier (${dinDetails.courier_no})`
                     : dinDetails.dispatch_through === "By Customer Person" && dinDetails.consign_name
-                    ? `By Customer Person (${dinDetails.consign_name} - ${dinDetails.consign_phone})`
-                    : dinDetails.dispatch_through === "By Employee" && dinDetails.employee_name
-                    ? `By Employee (${dinDetails.employee_name})`
-                    : dinDetails.dispatch_through || "N/A"
+                      ? `By Customer Person (${dinDetails.consign_name} - ${dinDetails.consign_phone})`
+                      : dinDetails.dispatch_through === "By Employee" && dinDetails.employee_name
+                        ? `By Employee (${dinDetails.employee_name})`
+                        : dinDetails.dispatch_through || "N/A"
                   }
                 </span>
               </div>
@@ -313,7 +325,15 @@ export default function ViewDinForm() {
                         <td className="border border-gray-300 p-2">{index + 1}</td>
                         {showIdNumber && <td className="border border-gray-300 p-2">{item.newidno || item.idno}</td>}
                         <td className="border border-gray-300 p-2">{item.serialno}</td>
-                        <td className="border border-gray-300 p-2">{item.instrument_name || item.name}</td>
+                        <td className="border border-gray-300 p-2">
+                          {item.instrument_name || item.name}
+                          {item.brn && (
+                            <>
+                              <br />
+                              <b>BRN:</b> {item.brn}
+                            </>
+                          )}
+                        </td>
                         <td className="border border-gray-300 p-2">{item.description}</td>
                         <td className="border border-gray-300 p-2">{item.remark}</td>
                         <td className="border border-gray-300 p-2">{item.qty} {item.unit_name}</td>
@@ -368,9 +388,9 @@ export default function ViewDinForm() {
                   <span className="font-bold">Remark:</span> {dinDetails.remark}
                 </div>
               )}
-              
+
               <div className="mt-12 print:mt-6 text-left print:break-inside-avoid">
-                <p className="font-bold mb-8 print:mb-2">Regards<br/>For {companyInfo?.company?.name || "KAILTECH TEST & RESEARCH CENTRE PVT. LTD."}</p>
+                <p className="font-bold mb-8 print:mb-2">Regards<br />For {companyInfo?.company?.name || "KAILTECH TEST & RESEARCH CENTRE PVT. LTD."}</p>
                 {(dinDetails.approved_by || dinDetails.approved_on) && (
                   <div className="mb-4 print:mb-2">
                     {/* If approved_on is a URL, render it as an image (Digital Signature) */}
@@ -378,8 +398,8 @@ export default function ViewDinForm() {
                       <img src={dinDetails.approved_on} alt="Digital Signature" className="h-20 print:h-16 object-contain print:block" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }} />
                     ) : (
                       <div className="text-xs italic text-gray-600 border border-gray-300 inline-block p-2 print:p-1 rounded print:border-gray-500" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
-                        Electronically signed by<br/>
-                        {dinDetails.approved_by}<br/>
+                        Electronically signed by<br />
+                        {dinDetails.approved_by}<br />
                         Date: {safeDate(dinDetails.approved_on)}
                       </div>
                     )}
@@ -391,7 +411,7 @@ export default function ViewDinForm() {
 
           </div>
         </div>
-        
+
       </div>
     </Page>
   );

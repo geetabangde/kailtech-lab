@@ -463,7 +463,7 @@ function ActionCell({ row, onRefresh }) {
       setSubmitting(true);
       await axios.post("/actionitem/start-test", {
         id: testeventdata_id,   // PHP: hakuna = $teid
-        enddate: formatted,     // PHP: start_date in dd/mm/yyyy
+        start_date: formatted,     // PHP: start_date in dd/mm/yyyy
       });
       toast.success("Test started successfully ✅");
       setStartDateModal(false);

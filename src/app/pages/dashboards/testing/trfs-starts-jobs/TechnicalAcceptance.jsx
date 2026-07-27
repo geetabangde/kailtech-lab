@@ -48,6 +48,7 @@ const INITIAL_FORM = {
   declarationremark: "",
   conformity: 1,
   conformityremark: "",
+  brand: "",
   accepted: 1,
   acceptedremark: "",
 };
@@ -105,6 +106,7 @@ export default function TechnicalAcceptance() {
         declarationremark: form.declarationremark,
         conformity: Number(form.conformity),
         conformityremark: form.conformityremark,
+        brand: form.brand,
         accepted: Number(form.accepted),
         acceptedremark: form.acceptedremark,
         trfitem: trfItemInt,
@@ -208,6 +210,22 @@ export default function TechnicalAcceptance() {
                   </td>
                 </tr>
               ))}
+
+              {/* Brand Name / Source */}
+              <tr className="bg-white dark:bg-gray-900">
+                <td className="px-5 py-3 font-medium text-gray-700 dark:text-gray-300">
+                  Brand Name / Source
+                </td>
+                <td className="px-5 py-3" colSpan={2}>
+                  <textarea
+                    rows={2}
+                    className={textareaCls}
+                    placeholder="Enter brand name or source..."
+                    value={form.brand}
+                    onChange={(e) => handleText("brand", e.target.value)}
+                  />
+                </td>
+              </tr>
 
               {/* Sample Accepted */}
               <tr className="bg-gray-50/50 dark:bg-gray-800/30">

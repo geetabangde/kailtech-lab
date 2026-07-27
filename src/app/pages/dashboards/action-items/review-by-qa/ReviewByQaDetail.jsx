@@ -47,8 +47,8 @@ function parseComplianceStyle(styleStr) {
   styleStr.split(";").forEach((part) => {
     const idx = part.indexOf(":");
     if (idx === -1) return;
-    const prop  = part.slice(0, idx).trim();
-    const val   = part.slice(idx + 1).trim().replace("!important", "").trim();
+    const prop = part.slice(0, idx).trim();
+    const val = part.slice(idx + 1).trim().replace("!important", "").trim();
     if (!prop || !val) return;
     result[prop.replace(/-([a-z])/g, (_, c) => c.toUpperCase())] = val;
   });
@@ -139,17 +139,17 @@ function usePermissions() {
 // Main Page
 // ─────────────────────────────────────────────────────────────────────────────
 export default function ReviewByQaDetail() {
-  const { tid }        = useParams();           // PHP: $_GET['hakuna']
+  const { tid } = useParams();           // PHP: $_GET['hakuna']
   const [searchParams] = useSearchParams();
-  const navigate       = useNavigate();
-  const permissions    = usePermissions();
+  const navigate = useNavigate();
+  const permissions = usePermissions();
 
   // PHP: $_GET['what']
   const hid = searchParams.get("hid") ?? searchParams.get("what") ?? "";
 
-  const [report,  setReport]  = useState(null);
+  const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error,   setError]   = useState(null);
+  const [error, setError] = useState(null);
 
   // ── Fetch report ─────────────────────────────────────────────────────────
   // GET /actionitem/view-test-report?tid={tid}&hid={hid}
@@ -162,7 +162,7 @@ export default function ReviewByQaDetail() {
       params.set("tid", tid);
       if (hid) params.set("hid", hid);
 
-      const res  = await axios.get(`/actionitem/view-test-report?${params.toString()}`);
+      const res = await axios.get(`/actionitem/view-test-report?${params.toString()}`);
       const data = res.data?.data ?? res.data ?? null;
       if (!data) throw new Error("No report data returned");
 
@@ -226,29 +226,29 @@ export default function ReviewByQaDetail() {
 
   // ── Destructure ───────────────────────────────────────────────────────────
   const {
-    trf_product:   trfProduct   = {},
-    nabl:          nablObj      = {},
+    trf_product: trfProduct = {},
+    nabl: nablObj = {},
     size,
     grade,
-    batchno                     = "",
-    report_status: rsObj        = {},
-    dates                       = {},
-    customer                    = {},
-    product                     = {},
-    trf                         = {},
-    received_items              = [],
-    test_results                = [],
-    remarks:       remarksObj   = {},
-    signatories                 = [],
-    allotted_items              = [],
-    counts                      = {},
-    permissions:   permsObj     = {},
-    meta                        = {},
+    batchno = "",
+    report_status: rsObj = {},
+    dates = {},
+    customer = {},
+    product = {},
+    trf = {},
+    received_items = [],
+    test_results = [],
+    remarks: remarksObj = {},
+    signatories = [],
+    allotted_items = [],
+    counts = {},
+    permissions: permsObj = {},
+    meta = {},
   } = report;
 
   const { brn, ulr, condition_name, sealed_name, reportdate, disposable } = trfProduct;
 
-  const nablStatus   = nablObj?.status ?? 0;
+  const nablStatus = nablObj?.status ?? 0;
   const reportStatus = typeof rsObj === "object" ? (rsObj?.code ?? 0) : (Number(rsObj) || 0);
   const { start_date, end_date } = dates;
 
@@ -256,20 +256,20 @@ export default function ReviewByQaDetail() {
   const effectiveHid = hid || meta?.hid || "";
 
   // PHP: remarks
-  const hodRemark     = remarksObj?.hod_remark    ?? "";
-  const witnessVal    = remarksObj?.witness        ?? "";
+  const hodRemark = remarksObj?.hod_remark ?? "";
+  const witnessVal = remarksObj?.witness ?? "";
   const witnessDetail = remarksObj?.witness_detail ?? "";
-  const bdlRemark     = remarksObj?.bdl_remark     ?? "";
-  const adlRemark     = remarksObj?.adl_remark     ?? "";
+  const bdlRemark = remarksObj?.bdl_remark ?? "";
+  const adlRemark = remarksObj?.adl_remark ?? "";
 
   const remarkLines = [];
-  if (hodRemark?.trim())                   remarkLines.push(hodRemark.trim());
+  if (hodRemark?.trim()) remarkLines.push(hodRemark.trim());
   if (witnessVal === "1" && witnessDetail) remarkLines.push(`The test was witnessed by ${witnessDetail}`);
-  if (bdlRemark)                           remarkLines.push(bdlRemark);
-  if (adlRemark)                           remarkLines.push(adlRemark);
+  if (bdlRemark) remarkLines.push(bdlRemark);
+  if (adlRemark) remarkLines.push(adlRemark);
 
   // PHP: in_array(181,$permissions), in_array(180,$permissions)
-  const canQa  = permsObj?.has_qa_permission  === true || permissions.includes(181);
+  const canQa = permsObj?.has_qa_permission === true || permissions.includes(181);
   const canHod = permsObj?.has_hod_permission === true || permissions.includes(180);
 
   // PHP: if(perm 180||181) && $reportstatus<9 → Actions column
@@ -299,25 +299,25 @@ export default function ReviewByQaDetail() {
       })
       .join(", ") || "—";
 
-  const customerName    = customer?.name           ?? "—";
-  const customerAddress = customer?.address        ?? "";
-  const contactPerson   = customer?.contact_person ?? "";
-  const showContact     = Number(trf?.specificpurpose ?? customer?.specific_purpose) === 2;
-  const customerRef     = customer?.letterrefno    ?? "";
-  const productName     = product?.name            ?? "—";
-  const productDesc     = product?.description     ?? size ?? "—";
-  const displayLRN      = trfProduct?.lrn ?? trfProduct?.brn ?? brn ?? "—";
-  const ktrcRef         = meta?.ktrc_ref  ?? "KTRC/QF/0708/01";
-  const batchnoClean    = batchno.replace(/<br\s*\/?>/gi, " ").trim();
+  const customerName = customer?.name ?? "—";
+  const customerAddress = customer?.address ?? "";
+  const contactPerson = customer?.contact_person ?? "";
+  const showContact = Number(trf?.specificpurpose ?? customer?.specific_purpose) === 2;
+  const customerRef = customer?.letterrefno ?? "";
+  const productName = product?.name ?? "—";
+  const productDesc = product?.description ?? size ?? "—";
+  const displayLRN = trfProduct?.lrn ?? trfProduct?.brn ?? brn ?? "—";
+  const ktrcRef = meta?.ktrc_ref ?? "KTRC/QF/0708/01";
+  const batchnoClean = batchno.replace(/<br\s*\/?>/gi, " ").trim();
 
   // Use pre-formatted dates from API when available
-  const receiptDateStr  = dates?.formatted_receipt_date ?? fmtDate(trf?.date ?? dates?.receipt_date);
-  const startDateStr    = dates?.formatted_start_date   ?? fmtDate(start_date);
-  const endDateStr      = dates?.formatted_end_date     ?? fmtDate(end_date);
-  const reportDateStr   = dates?.formatted_report_date  ?? fmtDate(reportdate ?? dates?.report_date);
+  const receiptDateStr = dates?.formatted_receipt_date ?? fmtDate(trf?.date ?? dates?.receipt_date);
+  const startDateStr = dates?.formatted_start_date ?? fmtDate(start_date);
+  const endDateStr = dates?.formatted_end_date ?? fmtDate(end_date);
+  const reportDateStr = dates?.formatted_report_date ?? fmtDate(reportdate ?? dates?.report_date);
 
-  const leftCount  = counts?.left_count  ?? counts?.pending_tests ?? 0;
-  const doneCount  = counts?.done_count  ?? 0;
+  const leftCount = counts?.left_count ?? counts?.pending_tests ?? 0;
+  const doneCount = counts?.done_count ?? 0;
   const paramCount = counts?.param_count ?? 0;
 
   return (
@@ -341,7 +341,7 @@ export default function ReviewByQaDetail() {
 
           {/* PHP: Print buttons */}
           <div className="no-print flex flex-wrap items-center gap-2">
-            <PrintWithLHButton           report={report} />
+            <PrintWithLHButton report={report} />
             <PrintExportTestingReportWOLHButton report={report} />
             <PrintWithoutLHTwoSignButton report={report} />
           </div>
@@ -387,13 +387,13 @@ export default function ReviewByQaDetail() {
                     </td>
                     <td className="p-2 text-gray-800 dark:text-gray-200">{displayLRN}</td>
                   </tr>
-                  <InfoRow label="Date of Receipt"             value={receiptDateStr} />
-                  <InfoRow label="Condition, When Received"    value={condition_name ?? "—"} />
-                  <InfoRow label="Packing, When Received"      value={sealed_name    ?? "—"} />
+                  <InfoRow label="Date of Receipt" value={receiptDateStr} />
+                  <InfoRow label="Condition, When Received" value={condition_name ?? "—"} />
+                  <InfoRow label="Packing, When Received" value={sealed_name ?? "—"} />
                   <InfoRow label="Quantity Received (Approx.)" value={qtyStr} />
-                  <InfoRow label="Date of Start Of Test"       value={startDateStr} />
-                  <InfoRow label="Date of Completion"          value={endDateStr} />
-                  <InfoRow label="Date of Reporting"           value={reportDateStr} />
+                  <InfoRow label="Date of Start Of Test" value={startDateStr} />
+                  <InfoRow label="Date of Completion" value={endDateStr} />
+                  <InfoRow label="Date of Reporting" value={reportDateStr} />
                 </tbody>
                 <tbody>
                   <tr className="border-b border-gray-200 dark:border-gray-700">
@@ -448,10 +448,10 @@ export default function ReviewByQaDetail() {
                       </tr>
                     ) : (
                       test_results.map((row, idx) => {
-                        const cellStyle     = parseComplianceStyle(row.compliance_style);
+                        const cellStyle = parseComplianceStyle(row.compliance_style);
                         const displayResult = renderVal(row.result);
-                        const unitDisplay   = row.unit?.description     ?? row.unit?.name    ?? renderVal(row.unit);
-                        const methodName    = row.method?.name          ?? renderVal(row.method);
+                        const unitDisplay = row.unit?.description ?? row.unit?.name ?? renderVal(row.unit);
+                        const methodName = row.method?.name ?? renderVal(row.method);
                         return (
                           <tr key={row.id ?? idx} className="border-b border-gray-100 last:border-0 dark:border-gray-700">
                             <td className="px-3 py-2 text-center text-gray-700 dark:text-gray-300">{row.sno ?? idx + 1}</td>
@@ -501,7 +501,7 @@ export default function ReviewByQaDetail() {
                     {signer.is_signed ? (
                       <div>
                         {signer.title && <p className="mb-1 text-xs font-medium text-gray-500 dark:text-gray-400">{signer.title}</p>}
-                        {signer.sign_image_url       && <img src={signer.sign_image_url}       alt="" className="mb-1 h-6 w-auto object-contain" />}
+                        {signer.sign_image_url && <img src={signer.sign_image_url} alt="" className="mb-1 h-6 w-auto object-contain" />}
                         {signer.digital_signature_url && <img src={signer.digital_signature_url} alt={`Signed by ${signer.display_name ?? ""}`} className="h-14 object-contain" />}
                         <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
                           {!signer.digital_signature_url && (

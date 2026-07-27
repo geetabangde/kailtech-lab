@@ -1,8 +1,9 @@
-// Import Dependencies
+import { useState, useEffect } from "react";
 import dayjs from "dayjs";
 import PropTypes from "prop-types";
 import { Badge } from "components/ui";
 import { dinStatusOptions } from "./data";
+import axios from "utils/axios";
 
 // ----------------------------------------------------------------------
 
@@ -40,7 +41,24 @@ export function DateCell({ getValue }) {
 
 export function CustomerCell({ row }) {
   const customerName = row.original.customername || "N/A";
-  const customerAddress = row.original.customeraddress || "";
+  const initialAddress = row.original.customeraddress || "";
+  const [customerAddress, setCustomerAddress] = useState(initialAddress);
+
+  useEffect(() => {
+    if (/^\d+$/.test(initialAddress)) {
+      const fetchAddress = async () => {
+        try {
+          const response = await axios.get(`inventory/get-customer-address-details/${initialAddress}`);
+          if (response.data?.status && response.data?.data?.addresses?.length > 0) {
+            setCustomerAddress(response.data.data.addresses[0].full_address);
+          }
+        } catch (error) {
+          console.error("Error fetching customer address details:", error);
+        }
+      };
+      fetchAddress();
+    }
+  }, [initialAddress]);
 
   return (
     <div className="flex flex-col min-w-[200px] max-w-[300px] whitespace-normal">

@@ -4,6 +4,7 @@ import { Page } from "components/shared/Page";
 import axios from "utils/axios";
 import { toast } from "sonner";
 import { useNavigate } from "react-router";
+import ReactSelect from "react-select";
 
 export default function EditBillingDetailTrf() {
   const navigate = useNavigate();
@@ -147,6 +148,30 @@ export default function EditBillingDetailTrf() {
     }
   };
 
+  const customerOptions = customers.map((c) => ({
+    value: c.id,
+    label: `${c.name}(${c.pnumber})`,
+  }));
+  const selectedCustomer = customerOptions.find((o) => String(o.value) === String(billingname)) || null;
+
+  const addressOptions = addresses.map((a) => ({
+    value: a.id,
+    label: `${a.name}(${a.address})`,
+  }));
+  const selectedAddress = addressOptions.find((o) => String(o.value) === String(billingaddress)) || null;
+
+  const selectStyles = {
+    control: (base, state) => ({
+      ...base,
+      minHeight: "42px",
+      borderColor: state.isFocused ? "#3b82f6" : "#d1d5db",
+      boxShadow: state.isFocused ? "0 0 0 1px #3b82f6" : "none",
+      "&:hover": { borderColor: "#3b82f6" },
+      borderRadius: "0.375rem",
+    }),
+    menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+  };
+
   return (
     <Page title="Edit Billing Detail">
       <div className="p-6">
@@ -199,19 +224,16 @@ export default function EditBillingDetailTrf() {
               <label className="mb-1 block text-sm font-medium text-gray-700">
                 Customer Name <span className="text-red-500">*</span>
               </label>
-              <select
-                value={billingname}
-                onChange={(e) => handleCustomerChange(e.target.value)}
-                required
-                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
-              >
-                <option value="">Select Customer</option>
-                {customers.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}({c.pnumber})
-                  </option>
-                ))}
-              </select>
+              <ReactSelect
+                options={customerOptions}
+                value={selectedCustomer}
+                onChange={(selected) => handleCustomerChange(selected ? selected.value : "")}
+                placeholder="Select Customer..."
+                isClearable
+                isSearchable
+                styles={selectStyles}
+                menuPortalTarget={document.body}
+              />
             </div>
 
             {/* ── Customer Address Dropdown ─────────────────────────────── */}
@@ -229,20 +251,17 @@ export default function EditBillingDetailTrf() {
                   Loading addresses...
                 </div>
               ) : (
-                <select
-                  value={billingaddress}
-                  onChange={(e) => setBillingaddress(e.target.value)}
-                  required
-                  disabled={!billingname}
-                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-400 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
-                >
-                  <option value="">Select Address</option>
-                  {addresses.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.name}({a.address})
-                    </option>
-                  ))}
-                </select>
+                <ReactSelect
+                  options={addressOptions}
+                  value={selectedAddress}
+                  onChange={(selected) => setBillingaddress(selected ? selected.value : "")}
+                  placeholder="Select Address..."
+                  isDisabled={!billingname}
+                  isClearable
+                  isSearchable
+                  styles={selectStyles}
+                  menuPortalTarget={document.body}
+                />
               )}
             </div>
 

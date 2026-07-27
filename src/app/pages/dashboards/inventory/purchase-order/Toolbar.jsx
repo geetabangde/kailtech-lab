@@ -60,13 +60,6 @@ export function Toolbar({ table }) {
 
           {/* Action Buttons */}
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              onClick={() => navigate("/dashboards/inventory")}
-              className="h-9 rounded-md px-4 text-sm font-medium"
-            >
-              &lt;&lt; Back
-            </Button>
 
             {/* PHP: if (in_array(290, $permissions)) { ?> <a href="add_purchase_order.php" class="btn btn-info" data-card-widget="">+ Generate New</a> */}
             {permissions.includes(290) && (

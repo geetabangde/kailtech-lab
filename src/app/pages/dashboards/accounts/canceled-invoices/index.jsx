@@ -45,7 +45,7 @@ export default function CanceledInvoices() {
     enableColumnFilters: true,
   });
   const [globalFilter, setGlobalFilter] = useState("");
-  const [sorting, setSorting] = useState([{ id: "date", desc: true }]);
+  const [sorting, setSorting] = useState([{ id: "invoiceno", desc: true }]);
   const [columnVisibility, setColumnVisibility] = useLocalStorage(
     "col-vis-canceled-invoice-list",
     {},
@@ -149,7 +149,7 @@ export default function CanceledInvoices() {
           className={clsx(
             "flex h-full w-full flex-col",
             tableSettings.enableFullScreen &&
-              "fixed inset-0 z-61 bg-white pt-3 dark:bg-dark-900",
+            "fixed inset-0 z-61 bg-white pt-3 dark:bg-dark-900",
           )}
         >
           <Toolbar table={table} />
@@ -186,9 +186,9 @@ export default function CanceledInvoices() {
                               "first:ltr:rounded-tl-lg last:ltr:rounded-tr-lg first:rtl:rounded-tr-lg last:rtl:rounded-tl-lg",
                               header.column.getCanPin() && [
                                 header.column.getIsPinned() === "left" &&
-                                  "sticky z-2 ltr:left-0 rtl:right-0",
+                                "sticky z-2 ltr:left-0 rtl:right-0",
                                 header.column.getIsPinned() === "right" &&
-                                  "sticky z-2 ltr:right-0 rtl:left-0",
+                                "sticky z-2 ltr:right-0 rtl:left-0",
                               ],
                             )}
                           >
@@ -201,9 +201,9 @@ export default function CanceledInvoices() {
                                   {header.isPlaceholder
                                     ? null
                                     : flexRender(
-                                        header.column.columnDef.header,
-                                        header.getContext(),
-                                      )}
+                                      header.column.columnDef.header,
+                                      header.getContext(),
+                                    )}
                                 </span>
                                 <TableSortIcon
                                   sorted={header.column.getIsSorted()}
@@ -218,7 +218,7 @@ export default function CanceledInvoices() {
 
                             {header.column.getCanFilter() ? (
                               header.column.columnDef.meta?.filterType ===
-                              "select" ? (
+                                "select" ? (
                                 <select
                                   className="mt-1 w-full rounded border border-gray-300 bg-white px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-dark-500 dark:bg-dark-900 dark:text-dark-100"
                                   value={header.column.getFilterValue() ?? ""}
@@ -228,8 +228,8 @@ export default function CanceledInvoices() {
                                     )
                                   }
                                 >
-                                   <option value="">All</option>
-                                   <option value="99">Canceled</option>
+                                  <option value="">All</option>
+                                  <option value="99">Canceled</option>
                                 </select>
                               ) : (
                                 <input
@@ -279,9 +279,9 @@ export default function CanceledInvoices() {
                                   : "dark:bg-dark-900",
                                 cell.column.getCanPin() && [
                                   cell.column.getIsPinned() === "left" &&
-                                    "sticky z-2 ltr:left-0 rtl:right-0",
+                                  "sticky z-2 ltr:left-0 rtl:right-0",
                                   cell.column.getIsPinned() === "right" &&
-                                    "sticky z-2 ltr:right-0 rtl:left-0",
+                                  "sticky z-2 ltr:right-0 rtl:left-0",
                                 ],
                               )}
                             >
@@ -313,7 +313,7 @@ export default function CanceledInvoices() {
                   className={clsx(
                     "px-4 pb-4 pt-4 sm:px-5",
                     tableSettings.enableFullScreen &&
-                      "bg-gray-50 dark:bg-dark-800",
+                    "bg-gray-50 dark:bg-dark-800",
                   )}
                 >
                   <PaginationSection table={table} />

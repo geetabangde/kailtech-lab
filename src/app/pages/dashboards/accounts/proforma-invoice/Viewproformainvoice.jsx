@@ -173,7 +173,11 @@ function InvoicePrintContent({
         width: 940,
       }}
     >
-      {/* ── PHP Header: logo left, NABL text + company name right ── */}
+      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <tbody>
+          <tr>
+            <td style={{ padding: 0 }}>
+              {/* ── PHP Header: logo left, NABL text + company name right ── */}
       <div
         style={{
           display: "flex",
@@ -774,6 +778,36 @@ function InvoicePrintContent({
           </tr>
         </tbody>
       </table>
+
+            </td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr>
+            <td style={{ padding: 0 }}>
+              {/* Spacer for print so content doesn't overlap the fixed footer */}
+              <div className="print-footer-spacer"></div>
+              {/* Footer with company details from API */}
+              <div
+                className="invoice-footer"
+                style={{
+                  textAlign: "center",
+                  fontSize: "11px",
+                  fontWeight: "bold",
+                  color: "#000",
+                }}
+              >
+                <p style={{ margin: "3px 0" }}>
+                  {addr.full_address} {company?.contact?.phone}
+                </p>
+                <p style={{ margin: "3px 0" }}>
+                  Email : {company?.contact?.email}, Web: {company?.contact?.website}, CIN-{co.cin_no}
+                </p>
+              </div>
+            </td>
+          </tr>
+        </tfoot>
+      </table>
     </div>
   );
 }
@@ -883,6 +917,18 @@ export default function ViewProformaInvoice() {
             @page { size: portrait; margin: 0.5cm; }
             .invoice-print-wrapper { width: 100% !important; max-width: 100% !important; padding: 0 !important; }
             .print-page-break { break-before: page; page-break-before: always; }
+            .invoice-footer {
+              position: fixed !important;
+              bottom: 0 !important;
+              left: 0 !important;
+              width: 100% !important;
+              background: white;
+            }
+            .print-footer-spacer { height: 60px; }
+          }
+          @media screen {
+            .print-footer-spacer { display: none; }
+            .invoice-footer { margin-top: 30px; }
           }
         `}</style>
         {/* Action Buttons */}

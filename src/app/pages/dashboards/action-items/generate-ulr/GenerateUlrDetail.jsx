@@ -217,7 +217,7 @@ function GenerateUlrForm({ tid, hid, trfId, formData, onSuccess }) {
         ...(show_date_field && reportDate ? { idater: toApiDate(reportDate) } : {}),
       };
       const response = await axios.post("/actionitem/generate-ulr", payload);
-      
+
       const resData = response.data?.data || response.data || {};
       const generatedUlr = resData.ulr || resData.ulr_number || resData.ulr_no || "";
       const backendMsg = response.data?.message;

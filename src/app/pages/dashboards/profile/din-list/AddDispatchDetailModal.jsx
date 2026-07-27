@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "components/ui";
 import axios from "utils/axios";
 import toast from "react-hot-toast";
 import dayjs from "dayjs";
+import Select from "react-select";
 
 export function AddDispatchDetailModal({ din, onClose, onSuccess }) {
   const [submitting, setSubmitting] = useState(false);
@@ -10,10 +11,33 @@ export function AddDispatchDetailModal({ din, onClose, onSuccess }) {
     dispatchthrough: "",
     consignname: "",
     consignphone: "",
+    empname: "",
+    courrierno: "",
     dispatchdate: dayjs().format("YYYY-MM-DD"),
     expectedreturn: "",
     dispatchdetial: ""
   });
+  const [dispatchOptions, setDispatchOptions] = useState([]);
+  const [employeeOptions, setEmployeeOptions] = useState([]);
+
+  useEffect(() => {
+    if (din?.id) {
+      axios.get(`profile/din-dispatch-through-options/${din.id}`).then(res => {
+         if (res.data?.status && res.data?.data) {
+             setDispatchOptions(res.data.data);
+         }
+      }).catch(err => {
+         console.error("Error fetching dispatch options", err);
+      });
+      
+      axios.get(`profile/din-employee-list/${din.id}`).then(res => {
+         if (res.data?.status && res.data?.data) {
+             const formatted = res.data.data.map(emp => ({ value: emp.id, label: emp.name }));
+             setEmployeeOptions(formatted);
+         }
+      }).catch(err => console.error("Error fetching employee options", err));
+    }
+  }, [din]);
 
   if (!din) return null;
 
@@ -31,8 +55,16 @@ export function AddDispatchDetailModal({ din, onClose, onSuccess }) {
       toast.error("Please select Dispatch Through");
       return;
     }
-    if (["2", "3"].includes(formData.dispatchthrough) && !formData.consignname) {
+    if (formData.dispatchthrough === "1" && !formData.empname) {
+      toast.error("Please enter Employee Name");
+      return;
+    }
+    if (formData.dispatchthrough === "2" && !formData.consignname) {
       toast.error("Please enter Consignee Name");
+      return;
+    }
+    if (formData.dispatchthrough === "3" && !formData.courrierno) {
+      toast.error("Please enter Courier Name/No");
       return;
     }
     if (!formData.dispatchdate) {
@@ -47,17 +79,23 @@ export function AddDispatchDetailModal({ din, onClose, onSuccess }) {
     setSubmitting(true);
     try {
       const payload = {
-        din_id: din.id,
+        id: din.id,
         dispatchthrough: formData.dispatchthrough,
-        consignname: formData.consignname,
-        consignphone: formData.consignphone,
         dispatchdate: formData.dispatchdate ? dayjs(formData.dispatchdate).format("DD/MM/YYYY") : "",
-        expectedreturn: formData.expectedreturn ? dayjs(formData.expectedreturn).format("DD/MM/YYYY") : "",
+        expectedreturn: isReturnable && formData.expectedreturn ? dayjs(formData.expectedreturn).format("DD/MM/YYYY") : "",
         dispatchdetial: formData.dispatchdetial
       };
+
+      if (formData.dispatchthrough === "1") {
+        payload.empname = formData.empname;
+      } else if (formData.dispatchthrough === "2") {
+        payload.consignname = formData.consignname;
+        payload.consignphone = formData.consignphone;
+      } else if (formData.dispatchthrough === "3") {
+        payload.courrierno = formData.courrierno;
+      }
       
-      // Submit to the equivalent API endpoint of insertdispatchdetail.php
-      const res = await axios.post("inventory/insert-dispatch-detail", payload);
+      const res = await axios.post("profile/din-update-dispatch", payload);
       
       if (res.data.status || res.data.success) {
         toast.success(res.data.message || "Dispatch details added successfully");
@@ -104,16 +142,39 @@ export function AddDispatchDetailModal({ din, onClose, onSuccess }) {
               className="form-input w-full rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-900"
             >
               <option value="">Select One</option>
-              <option value="1">By Hand</option>
-              <option value="2">Consignee</option>
-              <option value="3">Courier</option>
+              {dispatchOptions.map((opt) => (
+                <option key={opt.id} value={opt.id}>
+                  {opt.name}
+                </option>
+              ))}
             </select>
           </div>
 
-          {["2", "3"].includes(formData.dispatchthrough) && (
+          {formData.dispatchthrough === "1" && (
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-semibold text-gray-700 dark:text-dark-200">Employee Name</label>
+              <Select
+                options={employeeOptions}
+                value={employeeOptions.find(opt => opt.value === formData.empname) || null}
+                onChange={(selected) => setFormData(prev => ({ ...prev, empname: selected ? selected.value : "" }))}
+                placeholder="Search employee..."
+                isClearable
+                styles={{
+                  control: (base) => ({
+                    ...base,
+                    borderRadius: "0.5rem",
+                    borderColor: "#D1D5DB",
+                    minHeight: "2.5rem",
+                  }),
+                }}
+              />
+            </div>
+          )}
+
+          {formData.dispatchthrough === "2" && (
             <>
               <div className="flex flex-col gap-1">
-                <label className="text-sm font-semibold text-gray-700 dark:text-dark-200">Consignee/Courier Name</label>
+                <label className="text-sm font-semibold text-gray-700 dark:text-dark-200">Consignee Name</label>
                 <input type="text" name="consignname" value={formData.consignname} onChange={handleInputChange} className="form-input w-full rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-900" />
               </div>
               <div className="flex flex-col gap-1">
@@ -121,6 +182,13 @@ export function AddDispatchDetailModal({ din, onClose, onSuccess }) {
                 <input type="text" name="consignphone" value={formData.consignphone} onChange={handleInputChange} className="form-input w-full rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-900" />
               </div>
             </>
+          )}
+
+          {formData.dispatchthrough === "3" && (
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-semibold text-gray-700 dark:text-dark-200">Courier Name / No.</label>
+              <input type="text" name="courrierno" value={formData.courrierno} onChange={handleInputChange} className="form-input w-full rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-900" />
+            </div>
           )}
 
           <div className="flex flex-col gap-1">

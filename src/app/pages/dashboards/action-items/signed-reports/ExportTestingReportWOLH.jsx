@@ -1,4 +1,5 @@
 import { renderToStaticMarkup } from "react-dom/server";
+import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import { toast } from "sonner";
 import {
@@ -60,7 +61,7 @@ const S1 = {
     display: "flex",
     justifyContent: "space-between",
     marginBottom: "8px",
-    fontSize: '10.5px'
+    fontSize: '14px'
   },
   isoSide: {
     position: "absolute",
@@ -153,8 +154,11 @@ function HtmlDocWithoutLH({ report }) {
                     </>
                   )}
                 </div>
-                <div style={{ width: "190px", textAlign: "right" }}>
-                  <span style={{ fontSize: '10.5px', fontWeight: "bold" }}>LRN: {data.displayLRN}</span>
+                <div style={{ width: "190px", textAlign: "right", paddingTop: "85px" }}>
+                  <div style={{ fontSize: '10.5px', fontWeight: "bold", display: 'flex', justifyContent: 'flex-end', gap: '15px' }}>
+                    <span>LRN: {data.displayLRN}</span>
+                    <span className="page-number"></span>
+                  </div>
                 </div>
               </div>
             </td>
@@ -208,14 +212,16 @@ HtmlDocWithoutLH.propTypes = { report: PropTypes.object.isRequired };
 // ─────────────────────────────────────────────────────────────────────────────
 // EXPORTED BUTTON
 // ─────────────────────────────────────────────────────────────────────────────
-function printReportWOLH(report, title) {
+export function printReportWOLH(report, title) {
+  const data = extractData(report);
+  const safeTitle = data.ulr || data.ktrcRef || title || 'Test_Report';
   const bodyHtml = renderToStaticMarkup(<HtmlDocWithoutLH report={report} />);
 
   const full = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>${title || 'Test Report'}</title>
+  <title>${safeTitle}</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     @page { size: A4; margin: 8mm 6mm; }
@@ -229,31 +235,67 @@ function printReportWOLH(report, title) {
 <body>${bodyHtml}</body>
 </html>`;
 
-  const win = window.open('', '_blank', 'width=900,height=700');
+  const win = window.open(`/${safeTitle.replace(/[^a-zA-Z0-9_-]/g, '_')}.html`, '_blank');
   if (!win) { toast.error('Pop-up blocked — please allow pop-ups and try again.'); return; }
+
   win.document.open();
   win.document.write(full);
   win.document.close();
-  win.onafterprint = () => { try { win.close(); } catch (e) { void e; } };
+
   win.onload = () => {
     win.focus();
-    win.print();
   };
-  setTimeout(() => {
-    try {
-      win.focus();
-      win.print();
-    } catch (e) { void e; }
-  }, 800);
+
 }
 
 export function PrintExportTestingReportWOLHButton({ report, className }) {
-  const btnClass = className ?? "rounded bg-orange-500 px-3 py-1.5 text-xs font-semibold text-white shadow transition hover:bg-orange-600 inline-block";
+  const btnClass = className ?? "rounded bg-orange-500 px-3 py-1.5 text-xs font-semibold text-white shadow transition hover:bg-orange-600 inline-block text-center cursor-pointer";
+  const [blobUrl, setBlobUrl] = useState('#');
+
+  useEffect(() => {
+    if (!report) return;
+    try {
+      const data = extractData(report);
+      const safeTitle = data.ulr || data.ktrcRef || 'Test_Report';
+      const bodyHtml = renderToStaticMarkup(<HtmlDocWithoutLH report={report} />);
+      const full = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>${safeTitle}</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    @page { size: A4; margin: 8mm 6mm; }
+    body  { margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; font-size: 8.5px; color: #111; background: #fff; counter-reset: page; }
+    .page-number::after { counter-increment: page; content: "Page " counter(page) " of 1"; }
+    @media print { 
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      head { display: none; }
+    }
+  </style>
+</head>
+<body>
+${bodyHtml}
+</body>
+</html>`;
+      const blob = new Blob([full], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      setBlobUrl(url);
+      return () => URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error('Failed to generate report blob', e);
+    }
+  }, [report]);
 
   return (
-    <button onClick={() => printReportWOLH(report, 'Test Report')} className={btnClass}>
+    <a href={blobUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => {
+      if (blobUrl === '#' && e.button === 0) {
+        e.preventDefault();
+        printReportWOLH(report, 'Test Report');
+      }
+    }} className={btnClass}>
       Print Report Without Letter Head
-    </button>
+    </a>
   );
 }
 PrintExportTestingReportWOLHButton.propTypes = { report: PropTypes.object.isRequired, className: PropTypes.string };

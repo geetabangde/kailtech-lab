@@ -187,7 +187,7 @@ export default function FillReturnCheckList() {
                                                 <Td>{row.discipline_name || row.discipline || ""}</Td>
                                                 <Td>
                                                     <select
-                                                        className="form-select text-sm w-32 bg-gray-100"
+                                                        className="form-select text-sm w-32 bg-gray-100 rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-800"
                                                         value={row.equipformverif || ""}
                                                         disabled
                                                     >
@@ -203,7 +203,7 @@ export default function FillReturnCheckList() {
                                                     <input
                                                         type="text"
                                                         value={row.generalcheck || ""}
-                                                        className="form-input text-sm w-24 bg-gray-100"
+                                                        className="form-input text-sm w-24 bg-gray-100 rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-800"
                                                         readOnly
                                                     />
                                                 </Td>
@@ -212,7 +212,7 @@ export default function FillReturnCheckList() {
                                                     <input
                                                         type="text"
                                                         value={row.checkpoint || ""}
-                                                        className="form-input text-sm w-24 bg-gray-100"
+                                                        className="form-input text-sm w-24 bg-gray-100 rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-800"
                                                         readOnly
                                                     />
                                                 </Td>
@@ -220,7 +220,7 @@ export default function FillReturnCheckList() {
                                                     <input
                                                         type="text"
                                                         value={row.checkpointbeforemoving || ""}
-                                                        className="form-input text-sm w-24 bg-gray-100"
+                                                        className="form-input text-sm w-24 bg-gray-100 rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-800"
                                                         readOnly
                                                     />
                                                 </Td>
@@ -229,7 +229,7 @@ export default function FillReturnCheckList() {
                                                         type="text"
                                                         value={row.checkpointaftermoving || ""}
                                                         onChange={(e) => handleMatrixChange(idx, "checkpointaftermoving", e.target.value)}
-                                                        className="form-input text-sm w-24"
+                                                        className="form-input text-sm w-24 rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-900"
                                                         readOnly={row.checkpoint === "NA"}
                                                         required={row.checkpoint !== "NA"}
                                                     />
@@ -238,7 +238,7 @@ export default function FillReturnCheckList() {
                                                     <input
                                                         type="text"
                                                         value={row.error || ""}
-                                                        className="form-input text-sm w-24 bg-gray-100"
+                                                        className="form-input text-sm w-24 bg-gray-100 rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-800"
                                                         readOnly
                                                     />
                                                 </Td>
@@ -246,7 +246,7 @@ export default function FillReturnCheckList() {
                                                     <input
                                                         type="text"
                                                         value={row.acceptancelimit || ""}
-                                                        className="form-input text-sm w-24 bg-gray-100"
+                                                        className="form-input text-sm w-24 bg-gray-100 rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-800"
                                                         readOnly
                                                     />
                                                 </Td>
@@ -254,7 +254,7 @@ export default function FillReturnCheckList() {
                                                     <input
                                                         type="text"
                                                         value={row.result || ""}
-                                                        className="form-input text-sm w-24 bg-gray-100"
+                                                        className="form-input text-sm w-24 bg-gray-100 rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-800"
                                                         readOnly
                                                     />
                                                 </Td>
@@ -262,7 +262,7 @@ export default function FillReturnCheckList() {
                                                     <input
                                                         type="text"
                                                         value={row.remark || ""}
-                                                        className="form-input text-sm w-24 bg-gray-100"
+                                                        className="form-input text-sm w-24 bg-gray-100 rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-800"
                                                         readOnly
                                                     />
                                                 </Td>
@@ -271,7 +271,7 @@ export default function FillReturnCheckList() {
                                                         type="text"
                                                         value={row.rremark || ""}
                                                         onChange={(e) => handleMatrixChange(idx, "rremark", e.target.value)}
-                                                        className="form-input text-sm w-24"
+                                                        className="form-input text-sm w-24 rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-900"
                                                         required={row.checkpoint === "NA"}
                                                     />
                                                 </Td>
@@ -320,7 +320,7 @@ export default function FillReturnCheckList() {
                                                     <input
                                                         type="text"
                                                         value={row.condition || ""}
-                                                        className="form-input text-sm w-32 bg-gray-100"
+                                                        className="form-input text-sm w-32 bg-gray-100 rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-800"
                                                         readOnly
                                                     />
                                                 </Td>
@@ -328,7 +328,7 @@ export default function FillReturnCheckList() {
                                                     <input
                                                         type="text"
                                                         value={row.remark || row.remarks || ""}
-                                                        className="form-input text-sm w-32 bg-gray-100"
+                                                        className="form-input text-sm w-32 bg-gray-100 rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-800"
                                                         readOnly
                                                     />
                                                 </Td>
@@ -337,7 +337,7 @@ export default function FillReturnCheckList() {
                                                         type="text"
                                                         value={row.rcondition || ""}
                                                         onChange={(e) => handleGeneralChange(idx, "rcondition", e.target.value)}
-                                                        className="form-input text-sm w-32"
+                                                        className="form-input text-sm w-32 rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-900"
                                                     />
                                                 </Td>
                                                 <Td>
@@ -345,7 +345,7 @@ export default function FillReturnCheckList() {
                                                         type="text"
                                                         value={row.rremark1 || ""}
                                                         onChange={(e) => handleGeneralChange(idx, "rremark1", e.target.value)}
-                                                        className="form-input text-sm w-32"
+                                                        className="form-input text-sm w-32 rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-900"
                                                     />
                                                 </Td>
                                             </Tr>
