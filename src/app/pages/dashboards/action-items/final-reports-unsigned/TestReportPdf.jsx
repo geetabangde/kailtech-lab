@@ -293,11 +293,31 @@ function PdfResultsTable({ data, landscape = false }) {
       ) : (
         test_results.map((row, idx) => {
 
-          let displayResult = String(row.result?.display_value ?? row.result?.value ?? row.result ?? "—");
-          if (displayResult.trim().startsWith("<") && !displayResult.includes("BDL")) {
-            displayResult = "BDL " + displayResult.trim();
-          } else if (/^-?\d+$/.test(displayResult.trim())) {
-            displayResult = displayResult.trim() + ".0";
+          let displayResult = String(row.result?.display_value ?? row.result?.value ?? row.result ?? "—").trim();
+          let prefix = "";
+          let numberPart = displayResult;
+
+          const match = displayResult.match(/^(.*?)([-+]?\d+(?:\.\d+)?)$/);
+          if (match && !/\d/.test(match[1])) {
+              prefix = match[1];
+              numberPart = match[2];
+          }
+
+          if (/^-?\d+(\.\d+)?$/.test(numberPart)) {
+             let decimalPlaces = row.result?.decimal !== undefined && row.result?.decimal !== "" && row.result?.decimal !== null
+                                 ? parseInt(row.result.decimal, 10) : null;
+             
+             if (decimalPlaces !== null && !isNaN(decimalPlaces)) {
+                 numberPart = parseFloat(numberPart).toFixed(decimalPlaces);
+             } else if (!numberPart.includes(".")) {
+                 numberPart = numberPart + ".0";
+             }
+          }
+
+          displayResult = prefix + numberPart;
+
+          if (displayResult.startsWith("<") && !displayResult.toUpperCase().includes("BDL")) {
+              displayResult = "BDL " + displayResult;
           }
           const unitDisplay = row.unit?.description ?? row.unit?.name ?? row.unit ?? "—";
           const methodName = row.method?.name ?? row.method ?? "—";

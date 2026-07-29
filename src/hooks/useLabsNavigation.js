@@ -14,24 +14,37 @@ export const useLabsNavigation = () => {
         setLoading(true);
         const response = await axios.get("/master/list-lab");
         const labsData = response.data.data;
-        console.log("Fetched labs data:", labsData); 
+        const employeeId = Number(localStorage.getItem("userId") || 0);
 
-        const labNavItems = labsData.map((lab) => {
-          const slug = lab.name
-            .toLowerCase()
-            .replace(/\s+/g, '-')
-            .replace(/[()]/g, '')
-            .replace(/&/g, 'and')
-            .replace(/[^a-z0-9-]/g, '');
+        const labNavItems = labsData
+          .filter((lab) => {
+            // PHP logic: find_in_set($employeeid,users)
+            if (!lab.users) return false;
+            if (Array.isArray(lab.users)) {
+              return lab.users.includes(employeeId) || lab.users.map(String).includes(String(employeeId));
+            }
+            if (typeof lab.users === "string") {
+              return lab.users.split(",").map(s => s.trim()).includes(String(employeeId));
+            }
+            return false;
+          })
+          .map((lab) => {
+            // Slug MUST match useFetchLabs.js exactly
+            const slug = (lab.name || '')
+              .toLowerCase()
+              .trim()
+              .replace(/\s+/g, '-')
+              .replace(/[()]/g, '')
+              .replace(/[^\w-]/g, '');
 
-          return {
-            id: `dashboards.material-list.${slug}`,
-            type: NAV_TYPE_ITEM,
-            path: `/dashboards/material-list/${slug}?labId=${lab.id}`,
-            title: lab.name,
-            transKey: `nav.dashboards.${slug}`,
-          };
-        });
+            return {
+              id: `dashboards.material-list.${slug}`,
+              type: NAV_TYPE_ITEM,
+              path: `/dashboards/material-list/${slug}?labId=${lab.id}`,
+              title: lab.name,
+              transKey: `nav.dashboards.${slug}`,
+            };
+          });
 
         const updatedDashboards = JSON.parse(JSON.stringify(dashboards));
         const materialListIndex = updatedDashboards.childs.findIndex(

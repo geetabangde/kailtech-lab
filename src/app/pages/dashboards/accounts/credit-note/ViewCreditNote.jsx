@@ -84,52 +84,52 @@ export default function ViewCreditNote() {
   const [companyInfo, setCompanyInfo] = useState(null);
 
   const load = useCallback(async () => {
-      setLoading(true);
-      try {
-        const [res, companyRes] = await Promise.all([
-          axios.get(`/accounts/view-credit-note/${id}`),
-          axios.get(`/get-company-info`).catch(() => ({ data: null }))
-        ]);
+    setLoading(true);
+    try {
+      const [res, companyRes] = await Promise.all([
+        axios.get(`/accounts/view-credit-note/${id}`),
+        axios.get(`/get-company-info`).catch(() => ({ data: null }))
+      ]);
 
-        const raw = res.data?.data;
-        const compInfo = companyRes.data?.data;
-        setCompanyInfo(compInfo);
+      const raw = res.data?.data;
+      const compInfo = companyRes.data?.data;
+      setCompanyInfo(compInfo);
 
-        if (!raw) {
-          setData(null);
-          return;
-        }
-
-        // Map nested API response to flat object layout mapping existing state refs
-        const flatData = {
-          ...(raw.creditNote || {}),
-          _address: raw.address,
-          _inward: raw.inward,
-          statecode: raw.statecode,
-          items: raw.items || [],
-          qr_code_url: raw.qr_code || null,
-          digital_sign: raw.digital_sign || null,
-          signature_image: raw.signature_image || null,
-
-          // Map bank details if available
-          ...(compInfo?.bank ? {
-            bankaccountname: compInfo.bank.account_name,
-            bankname: compInfo.bank.bank_name,
-            bankbranch: compInfo.bank.branch,
-            bankaccountno: compInfo.bank.account_no,
-            bankactype: compInfo.bank.account_type,
-            bankifsccode: compInfo.bank.ifsc,
-            bankmicr: compInfo.bank.micr
-          } : {})
-        };
-
-        setData(flatData);
-      } catch (err) {
-        console.error("Failed to load credit note:", err);
+      if (!raw) {
         setData(null);
-      } finally {
-        setLoading(false);
+        return;
       }
+
+      // Map nested API response to flat object layout mapping existing state refs
+      const flatData = {
+        ...(raw.creditNote || {}),
+        _address: raw.address,
+        _inward: raw.inward,
+        statecode: raw.statecode,
+        items: raw.items || [],
+        qr_code_url: raw.qr_code || null,
+        digital_sign: raw.digital_sign || null,
+        signature_image: raw.signature_image || null,
+
+        // Map bank details if available
+        ...(compInfo?.bank ? {
+          bankaccountname: compInfo.bank.account_name,
+          bankname: compInfo.bank.bank_name,
+          bankbranch: compInfo.bank.branch,
+          bankaccountno: compInfo.bank.account_no,
+          bankactype: compInfo.bank.account_type,
+          bankifsccode: compInfo.bank.ifsc,
+          bankmicr: compInfo.bank.micr
+        } : {})
+      };
+
+      setData(flatData);
+    } catch (err) {
+      console.error("Failed to load credit note:", err);
+      setData(null);
+    } finally {
+      setLoading(false);
+    }
   }, [id]);
 
   useEffect(() => {
@@ -270,7 +270,7 @@ export default function ViewCreditNote() {
           SlNo: String(index + 1),
           PrdDesc: (item.description || "").replace(/<[^>]*>?/gm, ' ').substring(0, 300).trim(),
           IsServc: "Y",
-          HsnCd: "998394",
+          HsnCd: "998393",
           Qty: qty || 1,
           UnitPrice: Number(item.rate || 0),
           TotAmt: Number(itemAmount.toFixed(2)),
@@ -296,7 +296,7 @@ export default function ViewCreditNote() {
           Gstin: "23AADCK0799A1ZV",
           LglNm: "KAILTECH TEST AND RESEARCH CENTRE PVT LTD.",
           TrdNm: "KAILTECH TEST AND RESEARCH CENTRE PVT LTD.",
-          Addr1: "Plot No. 141-C, Electronic Complex Industrial Area, Indore",
+          Addr1: "Plot No. 141-C, Electronic Complex Industrial Area",
           Loc: "INDORE",
           Pin: 452010,
           Stcd: "23"
@@ -391,7 +391,7 @@ export default function ViewCreditNote() {
     24: "GUJARAT", 27: "MAHARASHTRA", 29: "KARNATAKA", 32: "KERALA", 33: "TAMIL NADU", 36: "TELANGANA",
     37: "ANDHRA PRADESH",
   };
-  
+
   const stateName = gstStateMap[stCode] || gstStateMap[Number(stCode)] || data.statename || stCode || "NA";
 
   return (
@@ -490,238 +490,238 @@ export default function ViewCreditNote() {
                     </div>
                   )}
 
-          {/* Customer + Invoice Info table */}
-          <table className="w-full border-collapse border border-gray-300 text-sm dark:border-dark-500 table-fixed mb-4">
-            <colgroup>
-              <col style={{ width: isEinvoice && (data.signed_qr_code || data.qr_code_url) ? "45%" : "60%" }} />
-              <col style={{ width: isEinvoice && (data.signed_qr_code || data.qr_code_url) ? "30%" : "40%" }} />
-              {isEinvoice && (data.signed_qr_code || data.qr_code_url) && <col style={{ width: "25%" }} />}
-            </colgroup>
-            <tbody>
-              <tr>
-                {/* Customer info */}
-                <td className="border border-gray-300 p-3 align-top dark:border-dark-500 overflow-hidden">
-                  <div className="font-bold">Customer:</div>
-                  <strong>M / s . {data.customername}</strong><br />
-                  <div className="mt-1">
-                    {data._address ? (
-                      <>
-                        {data._address.address}
-                        {data._address.city ? `, ${data._address.city}` : ""}
-                        {data._address.pincode ? `, ${data._address.pincode}` : ""}
-                      </>
-                    ) : (
-                      <>
-                        {data.address}
-                        {data.city ? `, ${data.city}` : ""}
-                        {data.pincode ? `, ${data.pincode}` : ""}
-                      </>
-                    )}
-                  </div>
-                  <div className="flex flex-wrap mt-1 gap-y-1" style={{ columnGap: "12px" }}>
-                    <div className="min-w-[45%]"><span className="font-bold">State name : </span>{stateName}</div>
-                    <div className="min-w-[40%]"><span className="font-bold">State code : </span>{stCode || "NA"}</div>
-                    <div className="min-w-[45%]"><span className="font-bold">GSTIN/UIN : </span>{data.gstno}</div>
-                    <div className="min-w-[40%]"><span className="font-bold">PAN : </span>{data.pan}</div>
-                  </div>
-                </td>
+                  {/* Customer + Invoice Info table */}
+                  <table className="w-full border-collapse border border-gray-300 text-sm dark:border-dark-500 table-fixed mb-4">
+                    <colgroup>
+                      <col style={{ width: isEinvoice && (data.signed_qr_code || data.qr_code_url) ? "45%" : "60%" }} />
+                      <col style={{ width: isEinvoice && (data.signed_qr_code || data.qr_code_url) ? "30%" : "40%" }} />
+                      {isEinvoice && (data.signed_qr_code || data.qr_code_url) && <col style={{ width: "25%" }} />}
+                    </colgroup>
+                    <tbody>
+                      <tr>
+                        {/* Customer info */}
+                        <td className="border border-gray-300 p-3 align-top dark:border-dark-500 overflow-hidden">
+                          <div className="font-bold">Customer:</div>
+                          <strong>M / s . {data.customername}</strong><br />
+                          <div className="mt-1">
+                            {data._address ? (
+                              <>
+                                {data._address.address}
+                                {data._address.city ? `, ${data._address.city}` : ""}
+                                {data._address.pincode ? `, ${data._address.pincode}` : ""}
+                              </>
+                            ) : (
+                              <>
+                                {data.address}
+                                {data.city ? `, ${data.city}` : ""}
+                                {data.pincode ? `, ${data.pincode}` : ""}
+                              </>
+                            )}
+                          </div>
+                          <div className="flex flex-wrap mt-1 gap-y-1" style={{ columnGap: "12px" }}>
+                            <div className="min-w-[45%]"><span className="font-bold">State name : </span>{stateName}</div>
+                            <div className="min-w-[40%]"><span className="font-bold">State code : </span>{stCode || "NA"}</div>
+                            <div className="min-w-[45%]"><span className="font-bold">GSTIN/UIN : </span>{data.gstno}</div>
+                            <div className="min-w-[40%]"><span className="font-bold">PAN : </span>{data.pan}</div>
+                          </div>
+                        </td>
 
-                {/* CN details */}
-                <td className="border border-gray-300 p-3 align-top dark:border-dark-500 overflow-hidden">
-                  <div><span className="font-bold">Credit Note No. : </span>{data.creditnoteno}</div>
-                  <div className="mt-1"><span className="font-bold">Date : </span>
-                    {data.creditnotedate
-                      ? new Date(data.creditnotedate).toLocaleDateString("en-GB")
-                      : data.cndate}
-                  </div>
-                  <div className="mt-1"><span className="font-bold">Invoice No./Date : </span>{data.invoiceno}</div>
-                </td>
+                        {/* CN details */}
+                        <td className="border border-gray-300 p-3 align-top dark:border-dark-500 overflow-hidden">
+                          <div><span className="font-bold">Credit Note No. : </span>{data.creditnoteno}</div>
+                          <div className="mt-1"><span className="font-bold">Date : </span>
+                            {data.creditnotedate
+                              ? new Date(data.creditnotedate).toLocaleDateString("en-GB")
+                              : data.cndate}
+                          </div>
+                          <div className="mt-1"><span className="font-bold">Invoice No./Date : </span>{data.invoiceno}</div>
+                        </td>
 
-                {/* QR code (status == 2) */}
-                {isEinvoice && (data.signed_qr_code || data.qr_code_url) && (
-                  <td className="border border-gray-300 p-1 align-middle text-center dark:border-dark-500">
-                    <img
-                      src={data.qr_code_url ?? `data:image/png;base64,${data.signed_qr_code}`}
-                      alt="E-Invoice QR Code"
-                      className="w-full max-w-[180px] mx-auto"
-                    />
-                  </td>
-                )}
-              </tr>
-            </tbody>
-          </table>
-
-          {/* Items table */}
-          <div className="mb-4 overflow-x-auto">
-            <table className="w-full border-collapse border border-gray-300 text-sm dark:border-dark-500">
-              <thead className="bg-gray-100 dark:bg-dark-700">
-                <tr>
-                  <th className="border border-gray-300 p-2 text-center dark:border-dark-500">S.No.</th>
-                  <th className="border border-gray-300 p-2 text-center dark:border-dark-500">Description</th>
-                  <th className="border border-gray-300 p-2 text-center dark:border-dark-500">No&apos;s</th>
-                  {data.potype === "Normal" && (
-                    <>
-                      <th className="border border-gray-300 p-2 text-center dark:border-dark-500">Rate</th>
-                      <th className="border border-gray-300 p-2 text-center dark:border-dark-500">Amount</th>
-                    </>
-                  )}
-                </tr>
-              </thead>
-              <tbody>
-                {Array.isArray(data.items) && data.items.map((item, i) => (
-                  <tr key={i} className="odd:bg-white even:bg-gray-50 dark:odd:bg-dark-800 dark:even:bg-dark-700">
-                    <td className="border border-gray-300 p-2 text-center dark:border-dark-500">{i + 1}</td>
-                    <td className="border border-gray-300 p-2 dark:border-dark-500" dangerouslySetInnerHTML={{ __html: item.description }}></td>
-                    <td className="border border-gray-300 p-2 text-center dark:border-dark-500">{item.qty || item.quantity || 1}</td>
-                    {data.potype === "Normal" && (
-                      <>
-                        <td className="border border-gray-300 p-2 text-center dark:border-dark-500">{item.rate}</td>
-                        <td className="border border-gray-300 p-2 text-right dark:border-dark-500">{fmt(item.base_amount ?? item.amount)}</td>
-                      </>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Bottom section: remarks + totals + bank + terms */}
-          <table className="w-full border-collapse border border-gray-300 text-sm dark:border-dark-500 mt-2">
-            <tbody>
-              <tr>
-                {/* Left: IRN / remarks / bank */}
-                <td className="w-3/5 border border-gray-300 p-3 align-bottom dark:border-dark-500 break-words">
-                  {isEinvoice && (
-                    <div className="mb-2">
-                      {data.irn && <p className="break-all"><span className="font-semibold">IRN No:</span> {data.irn}</p>}
-                      {data.ack_no && <p><span className="font-semibold">Acknowledgment No:</span> {data.ack_no}</p>}
-                      {data.ack_dt && <p><span className="font-semibold">Acknowledgement Date:</span> {data.ack_dt}</p>}
-                    </div>
-                  )}
-                  {data.brnnos && <p className="mb-1"><span className="font-semibold">BRN No:</span> {data.brnnos.split(',').join(', ')}</p>}
-                  {data.remark && <p className="mb-1"><span className="font-semibold">Remark:</span> {data.remark}</p>}
-                  {(data.brnnos || data.remark) && <br />}
-                  <div className="text-xs text-gray-700 dark:text-dark-300">
-                    <p>PAN : {companyInfo?.company?.pan_no || data.pan || "AADCK0799A"}</p>
-                    <p>GSTIN : {companyInfo?.company?.gst_no || data.gstno || "23AADCK0799A1ZV"}</p>
-                    <p>SAC Code : {companyInfo?.company?.sac_code || "998393"} Category : Scientific and Technical Consultancy Services</p>
-                    <p>Udhyam Registeration No. Type of MSME : {companyInfo?.company?.sme_no || "230262102537"}</p>
-                    <p>CIN NO.{companyInfo?.company?.cin_no || "U73100MP2006PTC019006"}</p>
-                  </div>
-                </td>
-
-                {/* Right: totals */}
-                <td className="border border-gray-300 p-3 align-top dark:border-dark-500">
-                  <TotalRow label="Subtotal" value={fmt(data.subtotal)} />
-                  {data.discnumber > 0 && (
-                    <TotalRow
-                      label={"Discount (" + data.discnumber + (data.disctype === "%" ? "%" : "") + ")"}
-                      value={fmt(data.discount)}
-                    />
-                  )}
-                  {data.witnesscharges > 0 && (
-                    <TotalRow
-                      label={"Witness Charges (" + data.witnessnumber + (data.witnesstype === "%" ? "%" : "") + ")"}
-                      value={fmt(data.witnesscharges)}
-                    />
-                  )}
-                  {data.samplehandling > 0 && (
-                    <TotalRow label="Sample Handling" value={fmt(data.samplehandling)} />
-                  )}
-                  {data.sampleprep > 0 && (
-                    <TotalRow label="Sample Preparation Charges" value={fmt(data.sampleprep)} />
-                  )}
-                  {data.freight > 0 && (
-                    <TotalRow label="Freight Charges" value={fmt(data.freight)} />
-                  )}
-                  {data.mobilisation > 0 && (
-                    <TotalRow label="Mobilization and Demobilization Charges" value={fmt(data.mobilisation)} />
-                  )}
-                  <TotalRow label="Total" value={fmt(data.subtotal2)} />
-                  {isSGST ? (
-                    <>
-                      <TotalRow label={"CGST " + data.cgstper + "%"} value={fmt(data.cgstamount)} />
-                      <TotalRow label={"SGST " + data.sgstper + "%"} value={fmt(data.sgstamount)} />
-                    </>
-                  ) : (
-                    <TotalRow label={"IGST " + data.igstper + "%"} value={fmt(data.igstamount)} />
-                  )}
-                  <TotalRow label="Total Charges With Tax" value={fmt(data.total)} />
-                  <TotalRow label="Round Off" value={fmt(data.roundoff)} />
-                </td>
-              </tr>
-
-              {/* In words */}
-              <tr>
-                <td className="border border-gray-300 p-3 dark:border-dark-500">
-                  <span className="font-semibold text-sm">(IN WORDS): Rs. </span>
-                  <span className="text-sm">{data.amount_in_words ?? numberToWords(Math.round(data.finaltotal || 0)) + " Only"}</span>
-                </td>
-                <td className="border border-gray-300 p-3 dark:border-dark-500">
-                  <TotalRow
-                    label="Total Credit Note"
-                    value={parseFloat(data.finaltotal || 0).toFixed(2)}
-                    bold
-                  />
-                </td>
-              </tr>
-
-              {/* Bank + Signatory */}
-              <tr>
-                <td className="border border-gray-300 p-3 align-top text-xs dark:border-dark-500">
-                  <div>For online payments - {data.bankaccountname ?? "KAILTECH TEST AND RESEARCH CENTRE PVT LTD."}</div>
-                  <div>Bank Name : {data.bankname ?? "Kotak Mahindra Bank"}, Branch Name : {data.bankbranch ?? "Indore"}</div>
-                  <div>Bank Account No. : {data.bankaccountno ?? "0795933000099960"}, A/c Type : {data.bankactype ?? "Current"}</div>
-                  <div>IFSC CODE: {data.bankifsccode ?? "KKBK0000795"}, MICR CODE: {data.bankmicr ?? "452485003"}</div>
-                  <div className="mt-2 text-gray-700 dark:text-dark-300">
-                    Certified that the particulars given above are true and correct.
-                  </div>
-                </td>
-                <td className="border border-gray-300 p-3 align-top text-xs dark:border-dark-500 h-1">
-                  <div className="flex min-h-[120px] h-full flex-col justify-between text-right">
-                    <div>For {data.companyname ?? "KAILTECH TEST AND RESEARCH CENTRE PVT. LTD."}</div>
-                    {(Number(data.status) === 1 || Number(data.status) === 2) && (data.digital_sign || data.signature_image) && (
-                      <div className="mt-2 flex flex-col items-end gap-1">
-                        {data.signature_image && (
-                          <img
-                            src={data.signature_image}
-                            alt="Signature"
-                            style={{ maxWidth: "150px", maxHeight: "60px" }}
-                            className="inline-block object-contain"
-                          />
+                        {/* QR code (status == 2) */}
+                        {isEinvoice && (data.signed_qr_code || data.qr_code_url) && (
+                          <td className="border border-gray-300 p-1 align-middle text-center dark:border-dark-500">
+                            <img
+                              src={data.qr_code_url ?? `data:image/png;base64,${data.signed_qr_code}`}
+                              alt="E-Invoice QR Code"
+                              className="w-full max-w-[180px] mx-auto"
+                            />
+                          </td>
                         )}
-                        {data.digital_sign && (
-                          <img
-                            src={data.digital_sign}
-                            alt="Digital Signature"
-                            style={{ maxWidth: "250px", maxHeight: "100px" }}
-                            className="inline-block object-contain"
-                          />
-                        )}
-                      </div>
-                    )}
-                    <div className="font-bold underline">Authorised Signatory</div>
-                  </div>
-                </td>
-              </tr>
+                      </tr>
+                    </tbody>
+                  </table>
 
-              {/* Terms & Conditions */}
-              <tr>
-                <td colSpan={2} className="border border-gray-300 p-3 text-xs dark:border-dark-500">
-                  <p className="font-semibold underline">Terms &amp; Conditions:</p>
-                  <ol className="ml-4 mt-1 list-decimal space-y-1 text-gray-700 dark:text-dark-300">
-                    <li>Cross Cheque/DD should be drawn in favour of {data.companyname ?? "the company"} Payable at {data.city ?? "Indore"}</li>
-                    <li>Please attached bill details indicating Invoice No. Quotation no &amp; TDS deductions if any along with your payment.</li>
-                    <li>As per existing GST rules. the GSTR-1 has to be filed in the immediate next month of billing. So if you have any issue in this tax invoice viz customer Name, Address, GST No., Amount etc, please inform positively in writing before 5th of next month, otherwise no such request will be entertained.</li>
-                    <li>Payment not made with in 15 days from the date of issued bill will attract interest @ 24% P.A.</li>
-                    <li>If the payment is to be paid in Cash pay to UPI <span className="font-bold">0795933A0099960.bqr@kotak</span> only and take official receipt. Else claim of payment, shall not be accepted</li>
-                    <li>Subject to exclusive jurisdiction of courts at {data.city ?? "Indore"} only.</li>
-                    <li>Errors &amp; omissions accepted.</li>
-                  </ol>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                  {/* Items table */}
+                  <div className="mb-4 overflow-x-auto">
+                    <table className="w-full border-collapse border border-gray-300 text-sm dark:border-dark-500">
+                      <thead className="bg-gray-100 dark:bg-dark-700">
+                        <tr>
+                          <th className="border border-gray-300 p-2 text-center dark:border-dark-500">S.No.</th>
+                          <th className="border border-gray-300 p-2 text-center dark:border-dark-500">Description</th>
+                          <th className="border border-gray-300 p-2 text-center dark:border-dark-500">No&apos;s</th>
+                          {data.potype === "Normal" && (
+                            <>
+                              <th className="border border-gray-300 p-2 text-center dark:border-dark-500">Rate</th>
+                              <th className="border border-gray-300 p-2 text-center dark:border-dark-500">Amount</th>
+                            </>
+                          )}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {Array.isArray(data.items) && data.items.map((item, i) => (
+                          <tr key={i} className="odd:bg-white even:bg-gray-50 dark:odd:bg-dark-800 dark:even:bg-dark-700">
+                            <td className="border border-gray-300 p-2 text-center dark:border-dark-500">{i + 1}</td>
+                            <td className="border border-gray-300 p-2 dark:border-dark-500" dangerouslySetInnerHTML={{ __html: item.description }}></td>
+                            <td className="border border-gray-300 p-2 text-center dark:border-dark-500">{item.qty || item.quantity || 1}</td>
+                            {data.potype === "Normal" && (
+                              <>
+                                <td className="border border-gray-300 p-2 text-center dark:border-dark-500">{item.rate}</td>
+                                <td className="border border-gray-300 p-2 text-right dark:border-dark-500">{fmt(item.base_amount ?? item.amount)}</td>
+                              </>
+                            )}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Bottom section: remarks + totals + bank + terms */}
+                  <table className="w-full border-collapse border border-gray-300 text-sm dark:border-dark-500 mt-2">
+                    <tbody>
+                      <tr>
+                        {/* Left: IRN / remarks / bank */}
+                        <td className="w-3/5 border border-gray-300 p-3 align-bottom dark:border-dark-500 break-words">
+                          {isEinvoice && (
+                            <div className="mb-2">
+                              {data.irn && <p className="break-all"><span className="font-semibold">IRN No:</span> {data.irn}</p>}
+                              {data.ack_no && <p><span className="font-semibold">Acknowledgment No:</span> {data.ack_no}</p>}
+                              {data.ack_dt && <p><span className="font-semibold">Acknowledgement Date:</span> {data.ack_dt}</p>}
+                            </div>
+                          )}
+                          {data.brnnos && <p className="mb-1"><span className="font-semibold">BRN No:</span> {data.brnnos.split(',').join(', ')}</p>}
+                          {data.remark && <p className="mb-1"><span className="font-semibold">Remark:</span> {data.remark}</p>}
+                          {(data.brnnos || data.remark) && <br />}
+                          <div className="text-xs text-gray-700 dark:text-dark-300">
+                            <p>PAN : {companyInfo?.company?.pan_no || data.pan || "AADCK0799A"}</p>
+                            <p>GSTIN : {companyInfo?.company?.gst_no || data.gstno || "23AADCK0799A1ZV"}</p>
+                            <p>SAC Code : {companyInfo?.company?.sac_code || "998393"} Category : Scientific and Technical Consultancy Services</p>
+                            <p>Udhyam Registeration No. Type of MSME : {companyInfo?.company?.sme_no || "230262102537"}</p>
+                            <p>CIN NO.{companyInfo?.company?.cin_no || "U73100MP2006PTC019006"}</p>
+                          </div>
+                        </td>
+
+                        {/* Right: totals */}
+                        <td className="border border-gray-300 p-3 align-top dark:border-dark-500">
+                          <TotalRow label="Subtotal" value={fmt(data.subtotal)} />
+                          {data.discnumber > 0 && (
+                            <TotalRow
+                              label={"Discount (" + data.discnumber + (data.disctype === "%" ? "%" : "") + ")"}
+                              value={fmt(data.discount)}
+                            />
+                          )}
+                          {data.witnesscharges > 0 && (
+                            <TotalRow
+                              label={"Witness Charges (" + data.witnessnumber + (data.witnesstype === "%" ? "%" : "") + ")"}
+                              value={fmt(data.witnesscharges)}
+                            />
+                          )}
+                          {data.samplehandling > 0 && (
+                            <TotalRow label="Sample Handling" value={fmt(data.samplehandling)} />
+                          )}
+                          {data.sampleprep > 0 && (
+                            <TotalRow label="Sample Preparation Charges" value={fmt(data.sampleprep)} />
+                          )}
+                          {data.freight > 0 && (
+                            <TotalRow label="Freight Charges" value={fmt(data.freight)} />
+                          )}
+                          {data.mobilisation > 0 && (
+                            <TotalRow label="Mobilization and Demobilization Charges" value={fmt(data.mobilisation)} />
+                          )}
+                          <TotalRow label="Total" value={fmt(data.subtotal2)} />
+                          {isSGST ? (
+                            <>
+                              <TotalRow label={"CGST " + data.cgstper + "%"} value={fmt(data.cgstamount)} />
+                              <TotalRow label={"SGST " + data.sgstper + "%"} value={fmt(data.sgstamount)} />
+                            </>
+                          ) : (
+                            <TotalRow label={"IGST " + data.igstper + "%"} value={fmt(data.igstamount)} />
+                          )}
+                          <TotalRow label="Total Charges With Tax" value={fmt(data.total)} />
+                          <TotalRow label="Round Off" value={fmt(data.roundoff)} />
+                        </td>
+                      </tr>
+
+                      {/* In words */}
+                      <tr>
+                        <td className="border border-gray-300 p-3 dark:border-dark-500">
+                          <span className="font-semibold text-sm">(IN WORDS): Rs. </span>
+                          <span className="text-sm">{data.amount_in_words ?? numberToWords(Math.round(data.finaltotal || 0)) + " Only"}</span>
+                        </td>
+                        <td className="border border-gray-300 p-3 dark:border-dark-500">
+                          <TotalRow
+                            label="Total Credit Note"
+                            value={parseFloat(data.finaltotal || 0).toFixed(2)}
+                            bold
+                          />
+                        </td>
+                      </tr>
+
+                      {/* Bank + Signatory */}
+                      <tr>
+                        <td className="border border-gray-300 p-3 align-top text-xs dark:border-dark-500">
+                          <div>For online payments - {data.bankaccountname ?? "KAILTECH TEST AND RESEARCH CENTRE PVT LTD."}</div>
+                          <div>Bank Name : {data.bankname ?? "Kotak Mahindra Bank"}, Branch Name : {data.bankbranch ?? "Indore"}</div>
+                          <div>Bank Account No. : {data.bankaccountno ?? "0795933000099960"}, A/c Type : {data.bankactype ?? "Current"}</div>
+                          <div>IFSC CODE: {data.bankifsccode ?? "KKBK0000795"}, MICR CODE: {data.bankmicr ?? "452485003"}</div>
+                          <div className="mt-2 text-gray-700 dark:text-dark-300">
+                            Certified that the particulars given above are true and correct.
+                          </div>
+                        </td>
+                        <td className="border border-gray-300 p-3 align-top text-xs dark:border-dark-500 h-1">
+                          <div className="flex min-h-[120px] h-full flex-col justify-between text-right">
+                            <div>For {data.companyname ?? "KAILTECH TEST AND RESEARCH CENTRE PVT. LTD."}</div>
+                            {(Number(data.status) === 1 || Number(data.status) === 2) && (data.digital_sign || data.signature_image) && (
+                              <div className="mt-2 flex flex-col items-end gap-1">
+                                {data.signature_image && (
+                                  <img
+                                    src={data.signature_image}
+                                    alt="Signature"
+                                    style={{ maxWidth: "150px", maxHeight: "60px" }}
+                                    className="inline-block object-contain"
+                                  />
+                                )}
+                                {data.digital_sign && (
+                                  <img
+                                    src={data.digital_sign}
+                                    alt="Digital Signature"
+                                    style={{ maxWidth: "250px", maxHeight: "100px" }}
+                                    className="inline-block object-contain"
+                                  />
+                                )}
+                              </div>
+                            )}
+                            <div className="font-bold underline">Authorised Signatory</div>
+                          </div>
+                        </td>
+                      </tr>
+
+                      {/* Terms & Conditions */}
+                      <tr>
+                        <td colSpan={2} className="border border-gray-300 p-3 text-xs dark:border-dark-500">
+                          <p className="font-semibold underline">Terms &amp; Conditions:</p>
+                          <ol className="ml-4 mt-1 list-decimal space-y-1 text-gray-700 dark:text-dark-300">
+                            <li>Cross Cheque/DD should be drawn in favour of {data.companyname ?? "the company"} Payable at {data.city ?? "Indore"}</li>
+                            <li>Please attached bill details indicating Invoice No. Quotation no &amp; TDS deductions if any along with your payment.</li>
+                            <li>As per existing GST rules. the GSTR-1 has to be filed in the immediate next month of billing. So if you have any issue in this tax invoice viz customer Name, Address, GST No., Amount etc, please inform positively in writing before 5th of next month, otherwise no such request will be entertained.</li>
+                            <li>Payment not made with in 15 days from the date of issued bill will attract interest @ 24% P.A.</li>
+                            <li>If the payment is to be paid in Cash pay to UPI <span className="font-bold">0795933A0099960.bqr@kotak</span> only and take official receipt. Else claim of payment, shall not be accepted</li>
+                            <li>Subject to exclusive jurisdiction of courts at {data.city ?? "Indore"} only.</li>
+                            <li>Errors &amp; omissions accepted.</li>
+                          </ol>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </td>
               </tr>
             </tbody>

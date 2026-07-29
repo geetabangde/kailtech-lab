@@ -562,8 +562,33 @@ export default function ApproveSignatureReport() {
                       test_results.map((row, idx) => {
                         // PHP: $sflag → green (#008d4c) / red (#ff0000) / neutral
                         const cellStyle = parseComplianceStyle(row.compliance_style);
-                        // PHP: $rresult → raw result without rounding
-                        const displayResult = row.result?.value ?? row.result?.original_value ?? "—";
+                        
+                        let displayResult = String(row.result?.display_value ?? row.result?.value ?? row.result ?? "—").trim();
+                        let prefix = "";
+                        let numberPart = displayResult;
+
+                        const match = displayResult.match(/^(.*?)([-+]?\d+(?:\.\d+)?)$/);
+                        if (match && !/\d/.test(match[1])) {
+                            prefix = match[1];
+                            numberPart = match[2];
+                        }
+
+                        if (/^-?\d+(\.\d+)?$/.test(numberPart)) {
+                           let decimalPlaces = row.result?.decimal !== undefined && row.result?.decimal !== "" && row.result?.decimal !== null
+                                               ? parseInt(row.result.decimal, 10) : null;
+                           
+                           if (decimalPlaces !== null && !isNaN(decimalPlaces)) {
+                               numberPart = parseFloat(numberPart).toFixed(decimalPlaces);
+                           } else if (!numberPart.includes(".")) {
+                               numberPart = numberPart + ".0";
+                           }
+                        }
+
+                        displayResult = prefix + numberPart;
+
+                        if (displayResult.startsWith("<") && !displayResult.toUpperCase().includes("BDL")) {
+                            displayResult = "BDL " + displayResult;
+                        }
                         // PHP: units.description where id=resultunit
                         const unitDisplay = row.unit?.description ?? row.unit?.name ?? "—";
                         // PHP: methods.name where id=tmethod

@@ -28,8 +28,8 @@ function printInvoice(templateProps, withLH, logoSrc, pageTitle) {
   <title>${pageTitle || templateProps.inv?.invoiceno || "Invoice"}</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
-    @page { size: A4; margin: 10mm; }
-    body  { margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #111; background: #fff; }
+    @page { size: A4; margin: 0; }
+    body  { margin: 10mm; padding: 0; font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #111; background: #fff; }
     @media print { 
       body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       table { page-break-inside: auto; }
@@ -298,9 +298,10 @@ function InvoicePrintTemplate({
   );
 
   return (
-    <div style={S.wrap}>
-      <HeaderSection />
-
+    <div style={{ ...S.wrap, padding: 0 }}>
+      {/* Page 1 */}
+      <div style={{ minHeight: "270mm", display: "flex", flexDirection: "column", padding: "16px 20px" }}>
+        <HeaderSection />
       <table style={S.table}>
         <tbody>
           <tr>
@@ -371,13 +372,13 @@ function InvoicePrintTemplate({
 
       <table style={S.table}>
         <colgroup>
+          <col style={{ width: "5%" }} />
+          <col style={{ width: isNormalPo ? "65%" : "75%" }} />
           <col style={{ width: "8%" }} />
-          <col style={{ width: isNormalPo ? "56%" : "80%" }} />
-          <col style={{ width: "10%" }} />
           {isNormalPo && (
             <>
+              <col style={{ width: "10%" }} />
               <col style={{ width: "12%" }} />
-              <col style={{ width: "14%" }} />
             </>
           )}
         </colgroup>
@@ -396,9 +397,11 @@ function InvoicePrintTemplate({
         </thead>
         <tbody>
           {items.map((item, idx) => {
-            let displayAmount = f2(item.amount);
+            const computedQtyForAmount = item.meter_option == 1 ? parseFloat(item.meter || 0) : parseFloat(item.qty || 0);
+            const fallbackAmount = (parseFloat(item.rate || 0) * computedQtyForAmount) || 0;
+            let displayAmount = f2(parseFloat(item.amount) || fallbackAmount);
             if (!isFoc && isNormalPo) {
-              const itemAmountOld = parseFloat(item.amount) || 0;
+              const itemAmountOld = parseFloat(item.amount) || fallbackAmount;
               const itemOtherCharge =
                 otherCharges > 0 && totalQty > 0
                   ? parseFloat(
@@ -579,8 +582,20 @@ function InvoicePrintTemplate({
           </tr>
         </tbody>
       </table>
+      
+        {/* Page 1 Footer */}
+        <div style={{ textAlign: "center", fontSize: 11, paddingTop: 8, borderTop: "1px solid #000", marginTop: "auto" }}>
+          <div style={{ fontWeight: "bold" }}>
+            Plot No.141 C, Electronic Complex, Pardeshipura, Indore-452010 (INDIA) Ph. +91-4787555 (30 Lines), 4046055,4048055
+          </div>
+          <div>
+            Email : contact@kailtech.net,calibration@kailtech.net, Web: www.kailtech.net, CIN-U73100MP2006PTC019006
+          </div>
+        </div>
+      </div>
 
-      <div style={{ pageBreakBefore: "always", paddingTop: 10 }}>
+      {/* Page 2 */}
+      <div style={{ pageBreakBefore: "always", paddingTop: 10, display: "flex", flexDirection: "column", minHeight: "270mm", padding: "16px 20px" }}>
         <HeaderSection />
         <table style={S.table}>
           <colgroup>
@@ -621,42 +636,34 @@ function InvoicePrintTemplate({
                 </div>
               </td>
               <td
-                style={{ ...S.td, borderLeft: "none", textAlign: "right" }}
+                style={{ ...S.td, borderLeft: "none", verticalAlign: "top" }}
                 colSpan={2}
               >
-                <div
-                  style={{
-                    height: 120,
-                    display: "flex",
-                    flexDirection: "column",
-                    justifyContent: "space-between",
-                  }}
-                >
-                  <div>
+                <div style={{ minHeight: 120, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+                  <div style={{ textAlign: "right", marginBottom: 10, whiteSpace: "nowrap", textTransform: "uppercase", fontSize: 12 }}>
                     For{" "}
                     {companyInfo?.company?.name ||
                       "Kailtech Test And Research Centre Pvt. Ltd."}
                   </div>
-                  {(status === 1 || status === 2) && (
-                    <div>
-                      {signUrl && (
-                        <img
-                          src={signUrl}
-                          alt="Sign"
-                          style={{ width: 100, height: 40, objectFit: "contain" }}
-                        />
+
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+                    {/* Left: Signature + Digital Signature Image */}
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", textAlign: "left", paddingLeft: 10 }}>
+                      {(status === 1 || status === 2) && signUrl && (
+                        <img src={signUrl} alt="Sign" style={{ width: 100, height: 40, objectFit: "contain", marginBottom: 4 }} />
                       )}
-                      {digitalSignUrl && (
-                        <img
-                          src={digitalSignUrl}
-                          alt="DigSign"
-                          style={{ maxHeight: 50, objectFit: "contain" }}
-                        />
+                      {(status === 1 || status === 2) && digitalSignUrl && (
+                        <img src={digitalSignUrl} alt="Digital Sign" style={{ width: 160, objectFit: "contain" }} />
                       )}
                     </div>
-                  )}
-                  <div>
-                    <u>Authorised Signatory</u>
+
+                    {/* Right: Seal + Authorised Signatory */}
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "right" }}>
+                      <img src="https://kailtech.in/images/seal.png" alt="Seal" style={{ height: 70, width: 70, objectFit: "contain", marginBottom: 10 }} />
+                      <div>
+                        <u>Authorised</u><br /><u>Signatory</u>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </td>
@@ -707,10 +714,21 @@ function InvoicePrintTemplate({
             textAlign: "center",
             fontSize: 10,
             color: "#999",
-            marginTop: 8,
+            marginTop: 4,
+            marginBottom: 8,
           }}
         >
           This is a system generated invoice
+        </div>
+
+        {/* Page 2 Footer */}
+        <div style={{ textAlign: "center", fontSize: 11, paddingTop: 8, borderTop: "1px solid #000", marginTop: "auto" }}>
+          <div style={{ fontWeight: "bold" }}>
+            Plot No.141 C, Electronic Complex, Pardeshipura, Indore-452010 (INDIA) Ph. +91-4787555 (30 Lines), 4046055,4048055
+          </div>
+          <div>
+            Email : contact@kailtech.net,calibration@kailtech.net, Web: www.kailtech.net, CIN-U73100MP2006PTC019006
+          </div>
         </div>
       </div>
     </div>
@@ -944,31 +962,8 @@ export default function ViewCalibrationInvoice() {
     (parseFloat(invoice.mobilisation) || 0);
   const amountNew = (parseFloat(invoice.subtotal) || 0) + otherCharges;
 
-  // ── Grouping Logic ──
-  const groupedItemsMap = items.reduce((acc, item) => {
-    const cleanedDesc = (item.description || "")
-      .split(/<br>\s*Brn No:|CCL Updation/i)[0]
-      .replace(/<br>\s*$/i, "")
-      .trim();
-    const key = `${cleanedDesc}_${item.rate}`;
-    if (!acc[key])
-      acc[key] = {
-        ...item,
-        description: cleanedDesc,
-        qty: 0,
-        meter: 0,
-        amount: 0,
-      };
-    const q = parseFloat(item.qty || 0),
-      m = parseFloat(item.meter || 0),
-      r = parseFloat(item.rate || 0),
-      a = parseFloat(item.amount || 0);
-    acc[key].qty += q;
-    acc[key].meter += m;
-    acc[key].amount += a !== 0 ? a : item.meter_option == 1 ? r * m : r * q;
-    return acc;
-  }, {});
-  const finalItems = Object.values(groupedItemsMap);
+  // ── No Grouping for Calibration (Keep all instruments separate) ──
+  const finalItems = items;
 
   const computedItems = finalItems.map((item) => {
     if (isFoc)
@@ -984,8 +979,10 @@ export default function ViewCalibrationInvoice() {
         itemTotVal: 0,
         gstRate: 0,
       };
-    const itemAmountOld = parseFloat(item.amount) || 0,
-      qty = parseFloat(item.qty) || 0;
+    const qty = parseFloat(item.qty) || 0;
+    const computedQtyForAmount = item.meter_option == 1 ? parseFloat(item.meter || 0) : qty;
+    const fallbackAmount = (parseFloat(item.rate || 0) * computedQtyForAmount) || 0;
+    const itemAmountOld = parseFloat(item.amount) || fallbackAmount;
     const itemOtherCharge =
       otherCharges > 0 && totalQuantity > 0
         ? parseFloat(((otherCharges / totalQuantity) * qty).toFixed(2))
@@ -1132,8 +1129,8 @@ export default function ViewCalibrationInvoice() {
           Gstin: "23AADCK0799A1ZV",
           LglNm: "KAILTECH TEST AND RESEARCH CENTRE PVT LTD.",
           TrdNm: "KAILTECH TEST AND RESEARCH CENTRE PVT LTD.",
-          Addr1: "Plot No. 141-C, Electronic Complex Industrial Area, Indore",
-          Loc: "BHOPAL",
+          Addr1: "Plot No. 141-C, Electronic Complex Industrial Area",
+          Loc: "INDORE",
           Pin: 452010,
           Stcd: "23"
         },
@@ -1160,8 +1157,10 @@ export default function ViewCalibrationInvoice() {
           let itemDiscount = 0, itemAssAmt = 0, itemCgst = 0, itemSgst = 0, itemIgst = 0, gstRate = 0, itemTotVal = 0, itemAmount = 0;
           
           if (!isFoc) {
-            const itemAmountOld = parseFloat(item.amount) || 0;
             const qty = parseFloat(item.qty) || 0;
+            const computedQtyForAmount = item.meter_option == 1 ? parseFloat(item.meter || 0) : qty;
+            const fallbackAmount = (parseFloat(item.rate || 0) * computedQtyForAmount) || 0;
+            const itemAmountOld = parseFloat(item.amount) || fallbackAmount;
             const itemOtherCharge = otherCharges > 0 && totalQuantity > 0
                 ? parseFloat(((otherCharges / totalQuantity) * qty).toFixed(2))
                 : 0;
@@ -1249,8 +1248,22 @@ export default function ViewCalibrationInvoice() {
         return;
       }
       
-      // Validation skipped since /alankitGST endpoint is removed from the new backend
-      await einvoice(null);
+      try {
+        // Call the new API to fetch actual GST details
+        const response = await axios.post("/einvoice/validate-gst", { gstin: gstin });
+        const parsedData = response.data?.data;
+        
+        if (parsedData && Number(parsedData.AddrPncd) === pincode) {
+          // Validation passed - Pass parsedData to einvoice so it matches PHP exactly
+          await einvoice(parsedData);
+        } else {
+          toast.error(`Pincode and state do not match. The provided pincode is ${pincode} but the actual pincode is ${parsedData?.AddrPncd || "Not Found"}. Unable to generate E-Invoice.`);
+          setBusy(false);
+        }
+      } catch (err) {
+        toast.error(err?.response?.data?.message || err.message || "Failed to validate GSTIN from Govt Portal.");
+        setBusy(false);
+      }
     } else {
       await einvoice(null);
     }
@@ -1468,9 +1481,10 @@ export default function ViewCalibrationInvoice() {
                 <th className="dark:border-dark-500 border border-gray-400 px-2 py-1.5 text-center">
                   Description
                 </th>
+
                 <th
                   className="dark:border-dark-500 border border-gray-400 px-2 py-1.5 text-center"
-                  style={{ width: "10%" }}
+                  style={{ width: "8%" }}
                 >
                   {items.some((it) => it.meter_option == 1)
                     ? "Meter's"
@@ -1504,6 +1518,7 @@ export default function ViewCalibrationInvoice() {
                     className="dark:border-dark-500 border border-gray-400 px-2 py-1.5"
                     dangerouslySetInnerHTML={{ __html: item.description }}
                   />
+
                   <td className="dark:border-dark-500 border border-gray-400 px-2 py-1.5 text-center">
                     {item.meter_option == 1
                       ? Math.round(item.meter * 100) / 100
@@ -1515,7 +1530,7 @@ export default function ViewCalibrationInvoice() {
                         {item.rate}
                       </td>
                       <td className="dark:border-dark-500 border border-gray-400 px-2 py-1.5 text-right">
-                        {f2(item.amount)}
+                        {f2(item.itemAmount)}
                       </td>
                     </>
                   )}
@@ -1696,31 +1711,40 @@ export default function ViewCalibrationInvoice() {
                   </div>
                 </td>
                 <td className="dark:border-dark-500 h-1 border border-gray-400 p-3 align-top text-xs">
-                  <div className="flex h-full min-h-[120px] flex-col justify-between text-right">
-                    <div>
+                  <div className="flex h-full min-h-[120px] flex-col justify-between">
+                    <div className="mb-2 whitespace-nowrap text-right text-xs uppercase">
                       For{" "}
                       {companyInfo?.company?.name ||
                         "Kailtech Test And Research Centre Pvt. Ltd."}
                     </div>
-                    {(Number(invoice.status) === 1 ||
-                      Number(invoice.status) === 2) &&
-                      invoice._signature_image && (
-                        <div className="mt-2 text-right">
+
+                    <div className="flex items-end justify-between">
+                      {/* Left: Signature + Digital Signature Image */}
+                      <div className="flex flex-col items-start pl-2 text-left">
+                        {(Number(invoice.status) === 1 || Number(invoice.status) === 2) && invoice._signature_image && (
                           <img
                             src={invoice._signature_image}
                             alt="Signature"
-                            className="inline-block h-10 w-24 object-contain"
+                            className="mb-1 h-10 w-24 object-contain"
                           />
-                          {invoice._digital_signature && (
-                            <img
-                              src={invoice._digital_signature}
-                              alt="Digital Signature"
-                              className="mt-1 inline-block h-10 object-contain"
-                            />
-                          )}
+                        )}
+                        {(Number(invoice.status) === 1 || Number(invoice.status) === 2) && invoice._digital_signature && (
+                          <img
+                            src={invoice._digital_signature}
+                            alt="Digital Signature"
+                            className="h-12 w-40 object-contain"
+                          />
+                        )}
+                      </div>
+
+                      {/* Right: Seal + Authorised Signatory */}
+                      <div className="flex flex-col items-center text-right">
+                        <img src="https://kailtech.in/images/seal.png" alt="Seal" className="mb-2 h-[70px] w-[70px] object-contain" />
+                        <div>
+                          <u>Authorised</u><br /><u>Signatory</u>
                         </div>
-                      )}
-                    <div className="underline">Authorised Signatory</div>
+                      </div>
+                    </div>
                   </div>
                 </td>
               </tr>

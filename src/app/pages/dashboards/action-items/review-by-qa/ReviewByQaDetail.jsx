@@ -449,7 +449,22 @@ export default function ReviewByQaDetail() {
                     ) : (
                       test_results.map((row, idx) => {
                         const cellStyle = parseComplianceStyle(row.compliance_style);
-                        const displayResult = renderVal(row.result);
+                        // PHP: BDL/ADL display_value
+                        let displayResult = renderVal(row.result);
+                        if (row.result && row.result.decimal !== undefined && row.result.decimal !== null) {
+                          const rawVal = String(row.result.value ?? "").trim();
+                          if (rawVal !== "") {
+                            const match = rawVal.match(/^([^\d.-]*)([-+]?\d*\.?\d+)(.*)$/);
+                            if (match) {
+                              const prefix = match[1];
+                              const numVal = Number(match[2]);
+                              const suffix = match[3];
+                              if (!isNaN(numVal)) {
+                                displayResult = prefix + numVal.toFixed(Number(row.result.decimal)) + suffix;
+                              }
+                            }
+                          }
+                        }
                         const unitDisplay = row.unit?.description ?? row.unit?.name ?? renderVal(row.unit);
                         const methodName = row.method?.name ?? renderVal(row.method);
                         return (

@@ -143,7 +143,7 @@ function extractDataTwoSign(report) {
 const S1 = {
   page: {
     fontFamily: "Arial, Helvetica, sans-serif",
-    fontSize: '13.5px',
+    fontSize: '12.5px',
     color: "#111",
     lineHeight: "1.3",
     position: 'relative',
@@ -170,11 +170,11 @@ const S1 = {
     display: "flex",
     justifyContent: "space-between",
     marginBottom: "4px",
-    fontSize: '13.5px'
+    fontSize: '12.5px'
   },
   title: {
     textAlign: "center",
-    fontSize: '19.5px',
+    fontSize: '18.5px',
     fontWeight: "bold",
     textDecoration: "underline",
     marginBottom: "7px"
@@ -183,12 +183,12 @@ const S1 = {
     display: "flex",
     justifyContent: "space-between",
     marginBottom: "8px",
-    fontSize: '14.5px'
+    fontSize: '13.5px'
   },
   isoSide: {
     position: "absolute",
     right: "-46px", bottom: "110px",
-    fontSize: '11.5px', color: "#555",
+    fontSize: '10.5px', color: "#555",
     transform: "rotate(90deg)",
     width: "165px",
     transformOrigin: "bottom right",
@@ -208,8 +208,8 @@ const S1 = {
 const SS = {
   bold: { fontWeight: "bold" },
   infoWrap: { border: `1px solid #999`, marginBottom: '8px' },
-  secTitle: { fontWeight: 'bold', fontSize: '14.5px', marginBottom: '4px', marginTop: '5px' },
-  endOfReport: { textAlign: 'center', fontWeight: 'bold', margin: '12px 0', fontSize: '13.5px' },
+  secTitle: { fontWeight: 'bold', fontSize: '13.5px', marginBottom: '4px', marginTop: '5px' },
+  endOfReport: { textAlign: 'center', fontWeight: 'bold', margin: '12px 0', fontSize: '12.5px' },
 };
 
 function HtmlDocWithoutLHTwoSign({ report }) {
@@ -238,7 +238,7 @@ function HtmlDocWithoutLHTwoSign({ report }) {
                   )}
                 </div>
                 <div style={{ width: "120px", textAlign: "right", paddingTop: "85px" }}>
-                  <div style={{ fontSize: '13.5px', fontWeight: "bold", display: 'flex', justifyContent: 'flex-end', gap: '15px' }}>
+                  <div style={{ fontSize: '12.5px', fontWeight: "bold", display: 'flex', justifyContent: 'flex-end', gap: '15px' }}>
                     <span>LRN: {data.displayLRN}</span>
                     <span className="page-number"></span>
                   </div>
@@ -312,7 +312,7 @@ export function printReportWOLHTwoSign(report, title) {
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     @page { size: A4; margin: 8mm 4mm; }
-    body  { margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; font-size: 11.5px; color: #111; background: #fff; }
+    body  { margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; font-size: 10.5px; color: #111; background: #fff; }
     @media print { 
       body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       head { display: none; }
@@ -355,7 +355,7 @@ export function PrintExportTestingReportWOLHTwoSignButton({ report, className })
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     @page { size: A4; margin: 8mm 4mm; }
-    body  { margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; font-size: 11.5px; color: #111; background: #fff; counter-reset: page; }
+    body  { margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; font-size: 10.5px; color: #111; background: #fff; counter-reset: page; }
     .page-number::after { counter-increment: page; content: "Page " counter(page) " of 1"; }
     @media print { 
       body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }

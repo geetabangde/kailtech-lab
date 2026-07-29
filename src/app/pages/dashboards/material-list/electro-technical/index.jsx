@@ -86,12 +86,6 @@ export default function OrdersDatatableV2() {
   const permissions =
     localStorage.getItem("userPermissions")?.split(",").map(Number) || [];
 
-  useEffect(() => {
-    if (!permissions.includes(65)) {
-      navigate("/dashboards");
-    }
-  }, [navigate, permissions]);
-
   console.log('Lab ID from query params:', labId);
   console.log('Lab Slug from URL params:', labSlug); // ✅ Debug log
 

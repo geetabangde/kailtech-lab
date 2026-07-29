@@ -11,19 +11,19 @@ export const useFetchLabs = () => {
   useEffect(() => {
     const fetchLabs = async () => {
       if (!isAuthenticated) return; // Wait until authenticated
-      
+
       try {
         setLoading(true);
-        
+
         const response = await axios.get('/master/list-lab');
-        
+
         // Extract data from response
         const labsData = response.data?.data || [];
-        
+
         if (!Array.isArray(labsData)) {
           throw new Error('Invalid data format from API');
         }
-        
+
         // Map to required format
         const mappedLabs = labsData.map(lab => {
           const slug = (lab.name || '')
@@ -32,7 +32,7 @@ export const useFetchLabs = () => {
             .replace(/\s+/g, '-')
             .replace(/[()]/g, '')
             .replace(/[^\w-]/g, '');
-          
+
           return {
             id: lab.id,
             name: lab.name || 'Unknown Lab',
@@ -40,7 +40,7 @@ export const useFetchLabs = () => {
             users: lab.users ? lab.users.split(',').map(Number) : [],
           };
         });
-        
+
         setLabs(mappedLabs);
         setError(null);
       } catch (err) {

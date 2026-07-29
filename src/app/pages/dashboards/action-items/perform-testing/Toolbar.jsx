@@ -125,18 +125,18 @@ function SearchInput({ table }) {
     setValue(globalFilter);
   }, [globalFilter]);
 
-  const handleSearch = () => {
-    table.setGlobalFilter(value);
-  };
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      table.setGlobalFilter(value);
+    }, 300);
+    return () => clearTimeout(timeout);
+  }, [value, table]);
 
   return (
     <div className="flex items-center space-x-2">
       <Input
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") handleSearch();
-        }}
         prefix={<MagnifyingGlassIcon className="size-4" />}
         classNames={{
           input: "h-8 text-xs ring-primary-500/50 focus:ring-3 min-w-[250px]",
@@ -144,14 +144,6 @@ function SearchInput({ table }) {
         }}
         placeholder="Search Product Name, Description..."
       />
-      <Button
-        variant="filled"
-        color="primary"
-        className="h-8 px-3 text-xs"
-        onClick={handleSearch}
-      >
-        Search
-      </Button>
     </div>
   );
 }

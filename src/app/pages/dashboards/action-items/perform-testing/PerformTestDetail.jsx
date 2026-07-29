@@ -709,8 +709,10 @@ function ActionCell({ row, onRefresh }) {
               {/* PHP: onfocus="setcalenderfuturedate(this.id)" → future date picker */}
               <input
                 type="date"
+                min={new Date().toISOString().split('T')[0]}
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
+                onClick={(e) => e.target.showPicker && e.target.showPicker()}
                 className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
               />
             </div>

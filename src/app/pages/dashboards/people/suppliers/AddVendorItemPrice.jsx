@@ -4,7 +4,8 @@ import { Page } from "components/shared/Page";
 import { Card, Button, Table, THead, TBody, Th, Tr, Td } from "components/ui";
 import axios from "utils/axios";
 import { toast } from "sonner";
-import { Plus, Trash2, ArrowLeft } from "lucide-react";
+import { Trash2, ArrowLeft } from "lucide-react";
+import AsyncSelect from "react-select/async";
 
 // Input style tokens
 const inputCls = "w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 focus:border-blue-500 focus:outline-none dark:bg-dark-900 dark:border-dark-500 dark:text-dark-100";
@@ -15,10 +16,11 @@ export default function AddVendorItemPrice() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [vendor, setVendor] = useState(null);
-  
+
   const [items, setItems] = useState([]);
   const [currencies, setCurrencies] = useState([]);
-  
+  const [selectedSearchItem, setSelectedSearchItem] = useState(null);
+
   useEffect(() => {
     const fetchVendor = async () => {
       try {
@@ -36,7 +38,7 @@ export default function AddVendorItemPrice() {
         setLoading(false);
       }
     };
-    
+
     const fetchCurrencies = async () => {
       try {
         const res = await axios.get("/master/currency-list");
@@ -47,57 +49,90 @@ export default function AddVendorItemPrice() {
         console.error("Failed to fetch currencies:", err);
       }
     };
-    
+
     if (id) {
       fetchVendor();
       fetchCurrencies();
     }
   }, [id]);
-  
-  const addItemRow = () => {
+
+  const loadOptions = async (inputValue) => {
+    if (!inputValue || inputValue.length < 3) return [];
+    try {
+      const response = await axios.get(`/inventory/search-item-for-indent?search=${inputValue}`);
+      if (response.data && response.data.status) {
+        return response.data.data.map(m => ({
+          value: m.id,
+          label: m.name || m.item_name,
+          itemData: m
+        }));
+      }
+      return [];
+    } catch (err) {
+      console.error("Search error:", err);
+      return [];
+    }
+  };
+
+  const handleSearchChange = (selectedOption) => {
+    if (!selectedOption || !selectedOption.itemData) return;
+
+    // Check for duplicate
+    if (items.some(i => String(i.subcategory_id) === String(selectedOption.value))) {
+      toast.error("Item Already Added");
+      setSelectedSearchItem(null);
+      return;
+    }
+
+    const selectedItem = selectedOption.itemData;
+
     setItems([...items, {
-      material: "",
-      specification: "",
+      subcategory_id: selectedOption.value,
+      material: selectedItem.name || selectedItem.item_name || "",
+      specification: selectedItem.specification || "",
       price: 0,
       currency: currencies.length > 0 ? currencies[0].id : "",
       discount: 0,
       remark: ""
     }]);
+
+    setSelectedSearchItem(null);
   };
-  
+
   const removeItem = (index) => {
     setItems(items.filter((_, i) => i !== index));
   };
-  
+
   const handleItemChange = (index, field, value) => {
     const newItems = [...items];
     newItems[index][field] = value;
     setItems(newItems);
   };
-  
+
   const calculateTotal = (price, discount) => {
     const p = parseFloat(price) || 0;
     const d = parseFloat(discount) || 0;
     return (p - (p * d / 100)).toFixed(2);
   };
-  
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (items.length === 0) {
       toast.error("No Item is Added");
       return;
     }
-    
+
     // Check if material name is filled for all items
     const invalidItems = items.filter(i => !i.material.trim());
     if (invalidItems.length > 0) {
       toast.error("Please enter material names for all items");
       return;
     }
-    
+
     try {
       const payload = {
         vendor_id: id,
+        subcategory_id: items.map(i => i.subcategory_id),
         material: items.map(i => i.material),
         specification: items.map(i => i.specification),
         discount: items.map(i => i.discount.toString()),
@@ -106,10 +141,10 @@ export default function AddVendorItemPrice() {
         remark: items.map(i => i.remark),
         currency: items.map(i => i.currency)
       };
-      
+
       // Submit correctly formatted payload
       const res = await axios.post("/people/add-vendor-item-price", payload);
-      
+
       if (res.data?.status === "true" || res.data?.status === true) {
         toast.success(res.data.message || "Vendor items saved successfully");
         navigate(`/dashboards/people/suppliers/edit/${id}`);
@@ -121,7 +156,7 @@ export default function AddVendorItemPrice() {
       toast.error(err.response?.data?.message || "Error saving vendor items");
     }
   };
-  
+
   if (loading) {
     return (
       <Page title="Add Vendor Item Price">
@@ -131,7 +166,7 @@ export default function AddVendorItemPrice() {
       </Page>
     );
   }
-  
+
   return (
     <Page title="Add Vendor Item Price">
       <div className="p-6">
@@ -147,7 +182,7 @@ export default function AddVendorItemPrice() {
             <ArrowLeft className="h-4 w-4" /> Back to Edit Supplier
           </Button>
         </div>
-        
+
         <form onSubmit={handleSubmit}>
           <Card className="mb-6 p-6">
             <h5 className="mb-4 text-lg font-semibold border-b pb-2">Vendor Information</h5>
@@ -184,15 +219,27 @@ export default function AddVendorItemPrice() {
               </div>
             </div>
           </Card>
-          
+
           <Card className="p-6">
-            <div className="flex items-center justify-between mb-4 border-b pb-2">
+            <div className="flex flex-col mb-6 border-b pb-4 gap-4">
               <h5 className="text-lg font-semibold">Product Details</h5>
-              <Button type="button" onClick={addItemRow} color="primary" className="flex items-center gap-2">
-                <Plus className="h-4 w-4" /> Add Item
-              </Button>
+              <div className="flex items-center gap-4 bg-gray-50 dark:bg-dark-800 p-4 rounded-lg border border-gray-200 dark:border-dark-600">
+                <label className="font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">Search Any Item:</label>
+                <div className="flex-1 max-w-xl">
+                  <AsyncSelect
+                    cacheOptions
+                    defaultOptions={false}
+                    loadOptions={loadOptions}
+                    value={selectedSearchItem}
+                    onChange={handleSearchChange}
+                    placeholder="Search by item name (min 3 chars)..."
+                    className="react-select-container"
+                    classNamePrefix="react-select"
+                  />
+                </div>
+              </div>
             </div>
-            
+
             <div className="overflow-x-auto">
               <Table className="w-full text-left">
                 <THead>
@@ -212,7 +259,7 @@ export default function AddVendorItemPrice() {
                   {items.length === 0 ? (
                     <Tr>
                       <Td colSpan="9" className="p-8 text-center text-gray-500">
-                        No items added. Click &quot;Add Item&quot; to start.
+                        No items added. Search and select an item above to start.
                       </Td>
                     </Tr>
                   ) : (
@@ -222,11 +269,11 @@ export default function AddVendorItemPrice() {
                         <Td className="p-2">
                           <input
                             type="text"
+                            readOnly
+                            disabled
                             value={item.material}
-                            onChange={(e) => handleItemChange(index, "material", e.target.value)}
-                            className={inputCls}
+                            className={inputCls + " bg-gray-50 cursor-not-allowed"}
                             placeholder="Material name"
-                            required
                           />
                         </Td>
                         <Td className="p-2">
@@ -308,7 +355,7 @@ export default function AddVendorItemPrice() {
                 </TBody>
               </Table>
             </div>
-            
+
             <div className="mt-6 flex justify-end">
               <Button type="submit" color="success" className="px-8 py-2 text-lg font-semibold bg-green-500 hover:bg-green-600">
                 Submit Item Prices

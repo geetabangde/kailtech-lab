@@ -125,6 +125,14 @@ function HodApproveSection({ hid, allottedItems, disposable, onSuccess }) {
     setItemInputs((prev) => prev.map((r, i) => (i === idx ? { ...r, [field]: val } : r)));
 
   const handleSubmit = useCallback(async () => {
+    for (let i = 0; i < activeItems.length; i++) {
+      const remnantVal = itemInputs[i]?.remnant;
+      if (remnantVal === "" || remnantVal === null || remnantVal === undefined) {
+        toast.error(`Please enter Remnant Quantity for row ${i + 1}.`);
+        return;
+      }
+    }
+
     setLoading(true);
     try {
       const payload = {
@@ -586,7 +594,21 @@ export default function ReviewByHodDetail() {
                         // PHP: $sflag inline style
                         const cellStyle = parseComplianceStyle(row.compliance_style);
                         // PHP: BDL/ADL display_value
-                        const displayResult = renderVal(row.result);
+                        let displayResult = renderVal(row.result);
+                        if (row.result && row.result.decimal !== undefined && row.result.decimal !== null) {
+                          const rawVal = String(row.result.value ?? "").trim();
+                          if (rawVal !== "") {
+                            const match = rawVal.match(/^([^\d.-]*)([-+]?\d*\.?\d+)(.*)$/);
+                            if (match) {
+                              const prefix = match[1];
+                              const numVal = Number(match[2]);
+                              const suffix = match[3];
+                              if (!isNaN(numVal)) {
+                                displayResult = prefix + numVal.toFixed(Number(row.result.decimal)) + suffix;
+                              }
+                            }
+                          }
+                        }
                         // PHP: units.description
                         const unitDisplay = row.unit?.description ?? row.unit?.name ?? renderVal(row.unit);
                         // PHP: methods.name

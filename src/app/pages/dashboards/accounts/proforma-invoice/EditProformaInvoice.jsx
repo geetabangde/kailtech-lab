@@ -397,20 +397,15 @@ export default function EditProformaInvoice() {
           currentId = extractedId;
           setInvoiceId(currentId);
           toast.success("Invoice created ✅");
-          // ✅ FIX: navigate to edit screen to add items
-          navigate(`/dashboards/accounts/proforma-invoice/edit/${currentId}`);
+          setStep(2); // Proceed to items
         } else {
           toast.error(res.data.message ?? "Failed to create invoice");
           return;
         }
       } else {
-        await axios.post(
-          `/accounts/update-proforma-invoice/${currentId}`,
-          payload,
-        );
-        toast.success("Invoice updated ✅");
-        // ✅ FIX: navigate to list after edit
-        navigate("/dashboards/accounts/proforma-invoice");
+        // In Edit mode, the backend expects Header + Charges + Items in ONE single payload.
+        // So we skip saving the header here and just proceed to Step 2.
+        setStep(2);
       }
     } catch (err) {
       console.error(err);
@@ -550,7 +545,21 @@ export default function EditProformaInvoice() {
     setSavingItems(true);
     try {
       const payload = {
-        invoiceid: Number(invoiceId),
+        // --- Header fields ---
+        id: Number(invoiceId),
+        customerid: Number(form.customerid),
+        addressid: Number(form.addressid),
+        customername: form.customername,
+        cperson: Number(form.cperson),
+        gstno: form.gstno,
+        statecode: form.statecode || "00",
+        pan: form.pan,
+        refno: form.refno,
+        refdate: toPhpDate(form.refdate),
+        remark: form.remark,
+        typeofinvoice: form.typeofinvoice,
+        
+        // --- Charges / Subtotals ---
         subtotal: totals.subtotal,
         discnumber: parseFloat(charges.discnumber) || 0,
         disctype: charges.disctype,
@@ -570,6 +579,9 @@ export default function EditProformaInvoice() {
         igstper: !totals.isSgst ? parseFloat(charges.igstper) || 0 : 0,
         igstamount: totals.igstamount,
         totalamount: totals.total,
+        total: totals.total,
+
+        // --- Items ---
         name: items.map((i) => i.name),
         instid: items.map((i) => i.instid ?? 0),
         accreditation: items.map((i) => i.accreditation ?? ""),
@@ -578,10 +590,10 @@ export default function EditProformaInvoice() {
         rate: items.map((i) => i.rate),
         amount: items.map((i) => i.amount),
         location: items.map((i) => i.location || "NA"),
-        quoteitemid: items.map((i) => i.quoteitemid ?? 0),
+        quoteitemid: items.map((i) => i.id || i.quoteitemid || 0),
       };
 
-      const res = await axios.post("/accounts/add-proforma-item", payload);
+      const res = await axios.post(`/accounts/update-proforma-invoice/${invoiceId}`, payload);
       if (
         res.data.success === true ||
         res.data.status === true ||

@@ -216,11 +216,17 @@ export default function AssignChemistDetail() {
           }))
         );
 
-        // Min Date logic from PHP: use TRF date as min allowed
-        const trfD = d?.trf_date ?? d?.date ?? "";
-        if (trfD && trfD !== "0000-00-00 00:00:00") {
-          setMinDate(trfD.split(" ")[0]); // Extract YYYY-MM-DD
+        // Min Date logic from PHP: 
+        // If user has permission 410, they can select back to TRF Date.
+        // Otherwise, min date is today.
+        let minD = dayjs().format("YYYY-MM-DD");
+        if (permissions.includes(410)) {
+          const trfD = d?.trf_date ?? d?.date ?? "";
+          if (trfD && trfD !== "0000-00-00 00:00:00") {
+            minD = trfD.split(" ")[0]; // Extract YYYY-MM-DD
+          }
         }
+        setMinDate(minD);
 
       } catch (err) {
         console.error("Error fetching assign chemist details:", err);
@@ -230,7 +236,7 @@ export default function AssignChemistDetail() {
       }
     };
     if (id) fetchData();
-  }, [canAccessPage, id]);
+  }, [canAccessPage, id, permissions]);
 
   // ── Fetch persons by department ──────────────────────────────────────────
   useEffect(() => {
@@ -316,7 +322,7 @@ export default function AssignChemistDetail() {
       setSubmitting(true);
       await axios.post("/actionitem/add-assign-chemists", body);
       toast.success("Chemist Assigned Successfully ✅");
-      navigate(-1);
+      navigate("/dashboards/action-items/assign-chemist");
     } catch (err) {
       const msg = err?.response?.data?.message ?? "Failed to assign chemist.";
       toast.error(msg + " ❌");
@@ -414,11 +420,12 @@ export default function AssignChemistDetail() {
                 min={minDate}
                 value={allo} 
                 onChange={(e) => handleAlloChange(e.target.value)} 
+                onClick={(e) => e.target.showPicker && e.target.showPicker()}
               />
             </div>
             <div>
               <label className={labelCls}>Due Date</label>
-              <input type="date" className={inputCls} value={dued} onChange={(e) => handleDuedChange(e.target.value)} />
+              <input type="date" className={inputCls} min={allo || minDate} value={dued} onChange={(e) => handleDuedChange(e.target.value)} onClick={(e) => e.target.showPicker && e.target.showPicker()} />
             </div>
           </div>
 
@@ -438,18 +445,18 @@ export default function AssignChemistDetail() {
                 <>
                   <div>
                     <label className={labelCls}>Tentative Report Date (Interim)</label>
-                    <input type="date" className={inputCls} value={interimYes} onChange={(e) => setInterimYes(e.target.value)} />
+                    <input type="date" className={inputCls} min={dayjs().format("YYYY-MM-DD")} value={interimYes} onChange={(e) => setInterimYes(e.target.value)} onClick={(e) => e.target.showPicker && e.target.showPicker()} />
                   </div>
                   <div>
                     <label className={labelCls}>Tentative Report Date (Longterm)</label>
-                    <input type="date" className={inputCls} value={longterm} onChange={(e) => setLongterm(e.target.value)} />
+                    <input type="date" className={inputCls} min={dayjs().format("YYYY-MM-DD")} value={longterm} onChange={(e) => setLongterm(e.target.value)} onClick={(e) => e.target.showPicker && e.target.showPicker()} />
                   </div>
                 </>
               )}
               {longTermTest === "no" && (
                 <div>
                   <label className={labelCls}>Tentative Report Date</label>
-                  <input type="date" className={inputCls} value={interimNo} onChange={(e) => setInterimNo(e.target.value)} />
+                  <input type="date" className={inputCls} min={dayjs().format("YYYY-MM-DD")} value={interimNo} onChange={(e) => setInterimNo(e.target.value)} onClick={(e) => e.target.showPicker && e.target.showPicker()} />
                 </div>
               )}
             </div>
@@ -506,14 +513,17 @@ export default function AssignChemistDetail() {
                           min={minDate}
                           value={row.allotmentdate}
                           onChange={(e) => updateRow(index, "allotmentdate", e.target.value)}
+                          onClick={(e) => e.target.showPicker && e.target.showPicker()}
                         />
                       </td>
                       <td className="px-4 py-2">
                         <input
                           type="date"
                           className={inputCls + " min-w-[140px]"}
+                          min={row.allotmentdate || minDate}
                           value={row.duedate}
                           onChange={(e) => updateRow(index, "duedate", e.target.value)}
+                          onClick={(e) => e.target.showPicker && e.target.showPicker()}
                         />
                       </td>
                     </tr>

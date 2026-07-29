@@ -146,7 +146,7 @@ export default function FinalReportDetail() {
 
             {/* ── TEST REPORT title + ULR + KTRC ref ──────────────────── */}
             <h2 className="mb-1 text-center text-xl font-bold underline">TEST REPORT</h2>
-            <div className="flex items-end justify-between text-base">
+            <div className="flex items-end justify-between text-sm">
               {nablStatus === 1 && trfProduct.ulr
                 ? <span><strong>ULR:</strong> {trfProduct.ulr}</span>
                 : <span />
@@ -156,7 +156,7 @@ export default function FinalReportDetail() {
 
             {/* ── Info Table ───────────────────────────────────────────── */}
             <div className="mb-5 overflow-x-auto rounded-b-lg border border-gray-300 dark:border-dark-500">
-              <table className="w-full border-collapse text-base">
+              <table className="w-full border-collapse text-sm">
                 <tbody>
                   <tr>
                     {/* Left: Customer + Sample info (rowspan) */}
@@ -180,19 +180,19 @@ export default function FinalReportDetail() {
 
                   {/* Sample rows full width */}
                   <tr>
-                    <td colSpan={3} className="border-t border-gray-300 p-2 text-base dark:border-dark-500">
+                    <td colSpan={3} className="border-t border-gray-300 p-2 text-sm dark:border-dark-500">
                       <strong>Sample Identification: </strong>{product.description ?? trfProduct.size ?? "—"}
                     </td>
                   </tr>
                   {customer.letterrefno && customer.letterrefno !== "-" && (
                     <tr>
-                      <td colSpan={3} className="border-t border-gray-300 p-2 text-base dark:border-dark-500">
+                      <td colSpan={3} className="border-t border-gray-300 p-2 text-sm dark:border-dark-500">
                         <strong>Customer Reference :- </strong>{customer.letterrefno}
                       </td>
                     </tr>
                   )}
                   <tr>
-                    <td colSpan={3} className="border-t border-gray-300 p-2 text-base dark:border-dark-500">
+                    <td colSpan={3} className="border-t border-gray-300 p-2 text-sm dark:border-dark-500">
                       <strong>Sample Particulars: </strong>
                       {product.name ?? "—"} &nbsp; Grade: {report.grade ?? "—"}
                       {brandValue ? <>, {brandValue}</> : null}
@@ -203,9 +203,9 @@ export default function FinalReportDetail() {
             </div>
 
             {/* ── TEST RESULTS ─────────────────────────────────────────── */}
-            <h4 className="mb-2 text-base font-bold">TEST RESULTS</h4>
+            <h4 className="mb-2 text-sm font-bold">TEST RESULTS</h4>
             <div className="mb-5 overflow-x-auto rounded-lg border border-gray-300 dark:border-dark-500">
-              <table className="w-full border-collapse text-base">
+              <table className="w-full border-collapse text-sm">
                 <thead>
                   <tr className="bg-gray-100 dark:bg-dark-700">
                     <th className="border-b border-r border-gray-300 px-3 py-2 text-center text-sm dark:border-dark-500">S.NO</th>
@@ -224,17 +224,37 @@ export default function FinalReportDetail() {
                 <tbody>
                   {testResults.length === 0 ? (
                     <tr>
-                      <td colSpan={hasSpecs ? 6 : 5} className="py-8 text-center text-base text-gray-400">
+                      <td colSpan={hasSpecs ? 6 : 5} className="py-8 text-center text-sm text-gray-400">
                         No test results found.
                       </td>
                     </tr>
                   ) : (
                     testResults.map((row, idx) => {
-                      let displayResult = String(row.result?.display_value ?? row.result?.value ?? row.result ?? "—");
-                      if (displayResult.trim().startsWith("<") && !displayResult.includes("BDL")) {
-                        displayResult = "BDL " + displayResult.trim();
-                      } else if (/^-?\d+$/.test(displayResult.trim())) {
-                        displayResult = displayResult.trim() + ".0";
+                      let displayResult = String(row.result?.display_value ?? row.result?.value ?? row.result ?? "—").trim();
+                      let prefix = "";
+                      let numberPart = displayResult;
+
+                      const match = displayResult.match(/^(.*?)([-+]?\d+(?:\.\d+)?)$/);
+                      if (match && !/\d/.test(match[1])) {
+                          prefix = match[1];
+                          numberPart = match[2];
+                      }
+
+                      if (/^-?\d+(\.\d+)?$/.test(numberPart)) {
+                         let decimalPlaces = row.result?.decimal !== undefined && row.result?.decimal !== "" && row.result?.decimal !== null
+                                             ? parseInt(row.result.decimal, 10) : null;
+                         
+                         if (decimalPlaces !== null && !isNaN(decimalPlaces)) {
+                             numberPart = parseFloat(numberPart).toFixed(decimalPlaces);
+                         } else if (!numberPart.includes(".")) {
+                             numberPart = numberPart + ".0";
+                         }
+                      }
+
+                      displayResult = prefix + numberPart;
+
+                      if (displayResult.startsWith("<") && !displayResult.toUpperCase().includes("BDL")) {
+                          displayResult = "BDL " + displayResult;
                       }
                       const unitDisplay = row.unit?.description ?? row.unit?.name ?? row.unit ?? "—";
                       const methodName = row.method?.name ?? row.method ?? "—";
@@ -287,7 +307,7 @@ export default function FinalReportDetail() {
                 {signatories.map((s, i) => (
                   <div key={i} className="min-w-[200px]">
                     {s.title && (
-                      <p className="mb-2 text-base font-semibold text-gray-600 dark:text-dark-300">{s.title}</p>
+                      <p className="mb-2 text-sm font-semibold text-gray-600 dark:text-dark-300">{s.title}</p>
                     )}
                     {s.is_signed ? (
                       <>
@@ -300,7 +320,7 @@ export default function FinalReportDetail() {
                       </>
                     ) : (
                       <>
-                        <p className="font-semibold text-base">{s.display_name ?? s.name ?? "—"}</p>
+                        <p className="font-semibold text-sm">{s.display_name ?? s.name ?? "—"}</p>
                         <p className="text-sm text-gray-500">{s.authorizefor ?? ""}</p>
                       </>
                     )}
@@ -364,7 +384,7 @@ function RemarkSection({ remarks, report }) {
 
   if (!lines.length) return null;
   return (
-    <div className="mb-4 rounded-lg bg-gray-50 px-4 py-3 text-base dark:bg-dark-800">
+    <div className="mb-4 rounded-lg bg-gray-50 px-4 py-3 text-sm dark:bg-dark-800">
       <strong>Remark: </strong>
       {lines.map((line, idx) => (
         <span key={idx}>

@@ -3935,7 +3935,7 @@ const protectedRoutes = {
                   lazy: async () => ({
                     Component: (
                       await import(
-                        "app/pages/dashboards/accounts/calibration-invoice-list/Addcalibrationinvoice"
+                        "app/pages/dashboards/accounts/calibration-invoice-list/EditCalibrationInvoice"
                       )
                     ).default,
                   }),

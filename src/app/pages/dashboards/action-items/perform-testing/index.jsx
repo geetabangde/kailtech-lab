@@ -182,6 +182,7 @@ export default function PerformTest() {
   // ── State Management (All hooks must be called before any conditional returns) ──
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [firstLoad, setFirstLoad] = useState(true);
   const [departments, setDepartments] = useState([]);
 
   // ── Filters ────────────────────────────────────────────────────────────────
@@ -251,6 +252,7 @@ export default function PerformTest() {
       setProducts([]);
     } finally {
       setLoading(false);
+      setFirstLoad(false);
     }
   }, [startDate, endDate, department, globalFilter]);
 
@@ -323,7 +325,7 @@ export default function PerformTest() {
     );
   }
 
-  if (loading) {
+  if (firstLoad) {
     return (
       <Page title="Perform Test">
         <div className="flex h-[60vh] items-center justify-center gap-3 text-gray-500">
@@ -454,7 +456,15 @@ export default function PerformTest() {
                 tableSettings.enableFullScreen && "overflow-hidden"
               )}
             >
-              <div className="table-wrapper min-w-full grow overflow-x-auto">
+              <div className="table-wrapper min-w-full grow overflow-x-auto relative">
+                {loading && !firstLoad && (
+                  <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/50 dark:bg-dark-900/50">
+                    <svg className="h-6 w-6 animate-spin text-primary-600" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 000 8v4a8 8 0 01-8-8z" />
+                    </svg>
+                  </div>
+                )}
                 <Table
                   hoverable
                   dense={tableSettings.enableRowDense}

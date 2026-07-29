@@ -151,7 +151,7 @@ function InvoicePrintTemplate({ inv, addr, items, qrUrl, signUrl, digitalSignUrl
   const safeQrUrl = qrUrl || null;
 
   // Per-item calculations (same PHP logic)
-  
+
   const HeaderSection = () => (
     <>
       {/* Letterhead */}
@@ -371,69 +371,69 @@ function InvoicePrintTemplate({ inv, addr, items, qrUrl, signUrl, digitalSignUrl
       {/* Page 2: Bank + Signatory */}
       <div style={{ pageBreakBefore: "always", paddingTop: 10, display: "flex", flexDirection: "column", minHeight: "270mm" }}>
         <div style={{ flex: 1 }}>
-        <HeaderSection />
-        <table style={S.table}>
-          <colgroup>
-            <col style={{ width: "50%" }} />
-            <col style={{ width: "50%" }} />
-          </colgroup>
-          <tbody>
-            <tr>
-              <td style={{ verticalAlign: "top" }}>
-                <div>For online payments - {inv.bankaccountname || companyInfo?.bank?.account_name || "Kailtech Test And Research Centre Pvt. Ltd."}</div>
-                <div>Bank Name : {inv.bankname || companyInfo?.bank?.bank_name || ""}, Branch Name : {inv.bankbranch || companyInfo?.bank?.branch || ""}</div>
-                <div>Bank Account No. : {inv.bankaccountno || companyInfo?.bank?.account_no || ""}, A/c Type : {inv.bankactype || companyInfo?.bank?.account_type || ""}</div>
-                <div>IFSC CODE: {inv.bankifsccode || companyInfo?.bank?.ifsc || ""}, MICR CODE: {inv.bankmicr || companyInfo?.bank?.micr || ""}</div>
-                <div style={{ marginTop: 6, fontSize: 11 }}>
-                  Certified that the particulars given above are true and correct. The commercial values in this document are as per contract/ Agreement/ Purchase order terms with the customer.<br />
-                  <strong>Declaration u/s 206AB of Income Tax Act:</strong> We have filed our Income Tax Return for previous two years with in specified due dates.
-                </div>
-              </td>
-              <td style={{ ...S.td, verticalAlign: "top" }} colSpan={1}>
-                <div style={{ minHeight: 120, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
-                  <div style={{ textAlign: "right", marginBottom: 10, whiteSpace: "nowrap", textTransform: "uppercase", fontSize: 12 }}>For {companyInfo?.company?.name || "Kailtech Test And Research Centre Pvt. Ltd."}</div>
+          <HeaderSection />
+          <table style={S.table}>
+            <colgroup>
+              <col style={{ width: "50%" }} />
+              <col style={{ width: "50%" }} />
+            </colgroup>
+            <tbody>
+              <tr>
+                <td style={{ verticalAlign: "top" }}>
+                  <div>For online payments - {inv.bankaccountname || companyInfo?.bank?.account_name || "Kailtech Test And Research Centre Pvt. Ltd."}</div>
+                  <div>Bank Name : {inv.bankname || companyInfo?.bank?.bank_name || ""}, Branch Name : {inv.bankbranch || companyInfo?.bank?.branch || ""}</div>
+                  <div>Bank Account No. : {inv.bankaccountno || companyInfo?.bank?.account_no || ""}, A/c Type : {inv.bankactype || companyInfo?.bank?.account_type || ""}</div>
+                  <div>IFSC CODE: {inv.bankifsccode || companyInfo?.bank?.ifsc || ""}, MICR CODE: {inv.bankmicr || companyInfo?.bank?.micr || ""}</div>
+                  <div style={{ marginTop: 6, fontSize: 11 }}>
+                    Certified that the particulars given above are true and correct. The commercial values in this document are as per contract/ Agreement/ Purchase order terms with the customer.<br />
+                    <strong>Declaration u/s 206AB of Income Tax Act:</strong> We have filed our Income Tax Return for previous two years with in specified due dates.
+                  </div>
+                </td>
+                <td style={{ ...S.td, verticalAlign: "top" }} colSpan={1}>
+                  <div style={{ minHeight: 120, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+                    <div style={{ textAlign: "right", marginBottom: 10, whiteSpace: "nowrap", textTransform: "uppercase", fontSize: 12 }}>For {companyInfo?.company?.name || "Kailtech Test And Research Centre Pvt. Ltd."}</div>
 
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
-                    {/* Left: Signature + Digital Signature Image */}
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", textAlign: "left", paddingLeft: 10 }}>
-                      {(status === 1 || status === 2) && signUrl && (
-                        <img src={signUrl} alt="Sign" style={{ width: 100, height: 40, objectFit: "contain", marginBottom: 4 }} />
-                      )}
-                      {(status === 1 || status === 2) && digitalSignUrl && (
-                        <img src={digitalSignUrl} alt="Digital Sign" style={{ width: 160, objectFit: "contain" }} />
-                      )}
-                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+                      {/* Left: Signature + Digital Signature Image */}
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", textAlign: "left", paddingLeft: 10 }}>
+                        {(status === 1 || status === 2) && signUrl && (
+                          <img src={signUrl} alt="Sign" style={{ width: 100, height: 40, objectFit: "contain", marginBottom: 4 }} />
+                        )}
+                        {(status === 1 || status === 2) && digitalSignUrl && (
+                          <img src={digitalSignUrl} alt="Digital Sign" style={{ width: 160, objectFit: "contain" }} />
+                        )}
+                      </div>
 
-                    {/* Right: Seal + Authorised Signatory */}
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "right" }}>
-                      <img src="https://kailtech.in/images/seal.png" alt="Seal" style={{ height: 70, width: 70, objectFit: "contain", marginBottom: 10 }} />
-                      <div>
-                        <u>Authorised</u><br /><u>Signatory</u>
+                      {/* Right: Seal + Authorised Signatory */}
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "right" }}>
+                        <img src="https://kailtech.in/images/seal.png" alt="Seal" style={{ height: 70, width: 70, objectFit: "contain", marginBottom: 10 }} />
+                        <div>
+                          <u>Authorised</u><br /><u>Signatory</u>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              </td>
-            </tr>
-            <tr>
-              <td colSpan={2} style={{ fontSize: 10 }}>
-                <strong><u>Terms &amp; Conditions:</u></strong>
-                <ol style={{ paddingLeft: 18, marginTop: 4, lineHeight: 1.6 }}>
-                  <li>Cross Cheque/DD should be drawn in favour of {companyInfo?.company?.name || "Kailtech Test And Research Centre Pvt. Ltd."} Payable at Indore</li>
-                  <li>Please attached bill details indicating Invoice No. Quotation no &amp; TDS deductions if any along with your payment.</li>
-                  <li>As per existing GST rules. the GSTR-1 has to be filed in the immediate next month of billing. So if you have any issue in this tax invoice viz customer Name, Address, GST No., Amount etc, please inform positively in writing before 5th of next month, otherwise no such request will be entertained.</li>
-                  <li>Payment not made with in 15 days from the date of issued bill will attract interest @ 24% P.A.</li>
-                  <li>If the payment is to be paid in Cash pay to UPI <strong>0795933A0099960.bqr@kotak</strong> only and take official receipt. Else claim of payment, shall not be accepted</li>
-                  <li>Subject to exclusive jurisdiction of courts at Indore only.</li>
-                  <li>Errors &amp; omissions accepted.</li>
-                </ol>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-        <div style={{ textAlign: "left", fontSize: 10, marginTop: 4 }}>
-          This is a system generated invoice //
-        </div>
+                </td>
+              </tr>
+              <tr>
+                <td colSpan={2} style={{ fontSize: 10 }}>
+                  <strong><u>Terms &amp; Conditions:</u></strong>
+                  <ol style={{ paddingLeft: 18, marginTop: 4, lineHeight: 1.6 }}>
+                    <li>Cross Cheque/DD should be drawn in favour of {companyInfo?.company?.name || "Kailtech Test And Research Centre Pvt. Ltd."} Payable at Indore</li>
+                    <li>Please attached bill details indicating Invoice No. Quotation no &amp; TDS deductions if any along with your payment.</li>
+                    <li>As per existing GST rules. the GSTR-1 has to be filed in the immediate next month of billing. So if you have any issue in this tax invoice viz customer Name, Address, GST No., Amount etc, please inform positively in writing before 5th of next month, otherwise no such request will be entertained.</li>
+                    <li>Payment not made with in 15 days from the date of issued bill will attract interest @ 24% P.A.</li>
+                    <li>If the payment is to be paid in Cash pay to UPI <strong>0795933A0099960.bqr@kotak</strong> only and take official receipt. Else claim of payment, shall not be accepted</li>
+                    <li>Subject to exclusive jurisdiction of courts at Indore only.</li>
+                    <li>Errors &amp; omissions accepted.</li>
+                  </ol>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div style={{ textAlign: "left", fontSize: 10, marginTop: 4 }}>
+            This is a system generated invoice //
+          </div>
         </div>{/* end flex:1 */}
         {/* Page 2 Footer: Company Address — pushed to bottom */}
         <div style={{ textAlign: "center", fontSize: 11, paddingTop: 8, borderTop: "1px solid #000", marginTop: "auto" }}>
@@ -745,8 +745,8 @@ export default function ViewInvoiceCalibration() {
           Gstin: "23AADCK0799A1ZV",
           LglNm: "KAILTECH TEST AND RESEARCH CENTRE PVT LTD.",
           TrdNm: "KAILTECH TEST AND RESEARCH CENTRE PVT LTD.",
-          Addr1: "Plot No. 141-C, Electronic Complex Industrial Area, Indore",
-          Loc: "BHOPAL",
+          Addr1: "Plot No. 141-C, Electronic Complex Industrial Area",
+          Loc: "INDORE",
           Pin: 452010,
           Stcd: "23"
         },
@@ -822,12 +822,12 @@ export default function ViewInvoiceCalibration() {
         setBusy(false);
         return;
       }
-      
+
       try {
         // Call the new Laravel API to fetch actual GST details
         const response = await axios.post("/einvoice/validate-gst", { gstin: gstin });
         const parsedData = response.data?.data;
-        
+
         if (parsedData && Number(parsedData.AddrPncd) === pincode) {
           // Validation passed - Pass TxpType to doEInvoice so it matches PHP exactly
           await doEInvoice(parsedData.TxpType);
@@ -1070,7 +1070,7 @@ export default function ViewInvoiceCalibration() {
                   {(invoice.brnnos?.trim() || invoice.remark?.trim()) && <br />}
                   <div>PAN : {companyInfo?.company?.pan_no || "AADCK0799A"}</div>
                   <div>GSTIN : {companyInfo?.company?.gst_no || "23AADCK0799A1ZV"}</div>
-                  <div>SAC Code : {companyInfo?.company?.sac_code || "998394"} Category : Scientific and Technical Consultancy Services</div>
+                  <div>SAC Code : {companyInfo?.company?.sac_code || "998393"} Category : Scientific and Technical Consultancy Services</div>
                   <div>Udhyam Registeration No. Type of MSME : 230262102537</div>
                   <div>CIN NO. {companyInfo?.company?.cin_no || "U73100MP2006PTC019006"}</div>
                 </td>
@@ -1174,15 +1174,34 @@ export default function ViewInvoiceCalibration() {
                 <td className="border border-gray-400 p-3 align-top text-xs dark:border-dark-500 h-1">
                   <div className="flex min-h-[120px] h-full flex-col justify-between text-right">
                     <div>For {invoice.companyname ?? "KAILTECH TEST AND RESEARCH CENTRE PVT LTD."}</div>
-                    {(Number(invoice.status) === 1 || Number(invoice.status) === 2) && invoice._signature_image && (
-                      <div className="mt-2 text-right">
-                        <img src={invoice._signature_image} alt="Signature" className="inline-block h-10 w-24 object-contain" />
-                        {invoice._digital_signature && (
-                          <img src={invoice._digital_signature} alt="Digital Signature" className="mt-1 inline-block h-10 object-contain" />
+                    
+                    <div className="flex items-end justify-between">
+                      {/* Left: Signature + Digital Signature Image */}
+                      <div className="flex flex-col items-start pl-2 text-left">
+                        {(Number(invoice.status) === 1 || Number(invoice.status) === 2) && invoice._signature_image && (
+                          <img
+                            src={invoice._signature_image}
+                            alt="Signature"
+                            className="mb-1 h-10 w-24 object-contain"
+                          />
+                        )}
+                        {(Number(invoice.status) === 1 || Number(invoice.status) === 2) && invoice._digital_signature && (
+                          <img
+                            src={invoice._digital_signature}
+                            alt="Digital Signature"
+                            className="h-12 w-40 object-contain"
+                          />
                         )}
                       </div>
-                    )}
-                    <div className="underline">Authorised Signatory</div>
+
+                      {/* Right: Seal + Authorised Signatory */}
+                      <div className="flex flex-col items-center text-right">
+                        <img src="https://kailtech.in/images/seal.png" alt="Seal" className="mb-2 h-[70px] w-[70px] object-contain" />
+                        <div>
+                          <u>Authorised</u><br /><u>Signatory</u>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </td>
               </tr>

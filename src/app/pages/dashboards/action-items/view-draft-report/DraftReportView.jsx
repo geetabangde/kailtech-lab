@@ -538,6 +538,14 @@ export default function DraftReportView() {
 
                         // Result text with NABL prefix
                         let displayResult = row.result ?? "—";
+                        
+                        if (row.decimal !== undefined && row.decimal !== null && row.result !== null && row.result !== undefined) {
+                          const numVal = Number(row.result);
+                          if (!isNaN(numVal)) {
+                            displayResult = numVal.toFixed(Number(row.decimal));
+                          }
+                        }
+
                         if (row.nabl_bdl) displayResult = `BDL< ${row.minnabl}`;
                         else if (row.nabl_adl) displayResult = `ADL> ${row.maxnabl}`;
                         const showBtn = shouldShowRetestBtn(row);

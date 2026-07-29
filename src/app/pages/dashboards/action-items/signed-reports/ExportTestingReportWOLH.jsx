@@ -18,7 +18,7 @@ import {
 const S1 = {
   page: {
     fontFamily: "Arial, Helvetica, sans-serif",
-    fontSize: '10.5px',
+    fontSize: '9.5px',
     color: "#111",
     lineHeight: "1.3",
     position: 'relative',
@@ -48,11 +48,11 @@ const S1 = {
     display: "flex",
     justifyContent: "space-between",
     marginBottom: "4px",
-    fontSize: '10.5px'
+    fontSize: '9.5px'
   },
   title: {
     textAlign: "center",
-    fontSize: '17px',
+    fontSize: '16px',
     fontWeight: "bold",
     textDecoration: "underline",
     marginBottom: "7px"
@@ -61,12 +61,12 @@ const S1 = {
     display: "flex",
     justifyContent: "space-between",
     marginBottom: "8px",
-    fontSize: '14px'
+    fontSize: '13px'
   },
   isoSide: {
     position: "absolute",
     right: "-30px", bottom: "110px",
-    fontSize: '10.5px', color: "#555",
+    fontSize: '9.5px', color: "#555",
     transform: "rotate(90deg)",
     width: "165px",
     transformOrigin: "bottom right",
@@ -84,21 +84,21 @@ const S1 = {
   // Signature overrides — same look as letter head version
   sigRow: { display: 'flex', flexWrap: 'wrap', marginTop: '25px', marginBottom: '8px', justifyContent: 'space-between' },
   sigRowSingle: { display: 'flex', flexWrap: 'wrap', marginTop: '25px', marginBottom: '8px', justifyContent: 'flex-start' },
-  sigBox: { minWidth: '150px', fontSize: '10.5px', flex: 1, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' },
-  sigBoxSingle: { minWidth: '150px', fontSize: '10.5px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' },
+  sigBox: { minWidth: '150px', fontSize: '9.5px', flex: 1, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' },
+  sigBoxSingle: { minWidth: '150px', fontSize: '9.5px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' },
   sigImg: { width: '150px', height: '58px', objectFit: 'contain', marginBottom: '2px' },
   sigDig: { width: '180px', height: '78px', objectFit: 'contain' },
-  sigElec: { fontSize: '10px', color: '#444', marginTop: '1px', textAlign: 'center' },
-  sigTit: { fontSize: '11px', color: '#111', fontWeight: 'bold', marginBottom: '5px' },
-  sigName: { fontWeight: 'bold', fontSize: '10.5px' },
-  sigAuth: { fontSize: '10px', color: '#666' },
+  sigElec: { fontSize: '9px', color: '#444', marginTop: '1px', textAlign: 'center' },
+  sigTit: { fontSize: '10px', color: '#111', fontWeight: 'bold', marginBottom: '5px' },
+  sigName: { fontWeight: 'bold', fontSize: '9.5px' },
+  sigAuth: { fontSize: '9px', color: '#666' },
 };
 
 const SS = {
   bold: { fontWeight: "bold" },
   infoWrap: { border: `1px solid #999`, marginBottom: '8px' },
-  secTitle: { fontWeight: 'bold', fontSize: '12px', marginBottom: '4px', marginTop: '5px' },
-  endOfReport: { textAlign: 'center', fontWeight: 'bold', margin: '12px 0', fontSize: '10.5px' },
+  secTitle: { fontWeight: 'bold', fontSize: '11px', marginBottom: '4px', marginTop: '5px' },
+  endOfReport: { textAlign: 'center', fontWeight: 'bold', margin: '12px 0', fontSize: '9.5px' },
 };
 
 // Local signatories renderer — uses larger NABL-style logo sizing & 8.5px text
@@ -155,7 +155,7 @@ function HtmlDocWithoutLH({ report }) {
                   )}
                 </div>
                 <div style={{ width: "190px", textAlign: "right", paddingTop: "85px" }}>
-                  <div style={{ fontSize: '10.5px', fontWeight: "bold", display: 'flex', justifyContent: 'flex-end', gap: '15px' }}>
+                  <div style={{ fontSize: '9.5px', fontWeight: "bold", display: 'flex', justifyContent: 'flex-end', gap: '15px' }}>
                     <span>LRN: {data.displayLRN}</span>
                     <span className="page-number"></span>
                   </div>
@@ -225,7 +225,7 @@ export function printReportWOLH(report, title) {
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     @page { size: A4; margin: 8mm 6mm; }
-    body  { margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; font-size: 8.5px; color: #111; background: #fff; }
+    body  { margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; font-size: 8px; color: #111; background: #fff; }
     @media print { 
       body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
       head { display: none; }
@@ -266,7 +266,7 @@ export function PrintExportTestingReportWOLHButton({ report, className }) {
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     @page { size: A4; margin: 8mm 6mm; }
-    body  { margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; font-size: 8.5px; color: #111; background: #fff; counter-reset: page; }
+    body  { margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; font-size: 8px; color: #111; background: #fff; counter-reset: page; }
     .page-number::after { counter-increment: page; content: "Page " counter(page) " of 1"; }
     @media print { 
       body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }

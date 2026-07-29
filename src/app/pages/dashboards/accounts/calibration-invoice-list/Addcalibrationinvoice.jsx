@@ -851,14 +851,12 @@ export default function AddCalibrationInvoice() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="dark:bg-dark-700 bg-gray-100">
-                      {[
-                        "Sr no",
-                        "Description",
-                        "Identification no",
-                        "Serial no",
-                        ...(potype === "Normal" ? ["Rate"] : []),
-                        "",
-                      ].map((h) => (
+                        {[
+                          "Sr no",
+                          "Description",
+                          ...(potype === "Normal" ? ["Rate"] : []),
+                          "",
+                        ].map((h) => (
                         <th
                           key={h}
                           className="dark:text-dark-400 px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase"
@@ -901,12 +899,7 @@ export default function AddCalibrationInvoice() {
                               </span>
                             )}
                         </td>
-                        <td className="dark:text-dark-300 px-3 py-2 text-xs text-gray-600">
-                          {item.idno ?? "—"}
-                        </td>
-                        <td className="dark:text-dark-300 px-3 py-2 text-xs text-gray-600">
-                          {item.serialno ?? "—"}
-                        </td>
+
                         {/* PHP: if potype==Normal → rate input */}
                         {potype === "Normal" && (
                           <td className="px-3 py-2">

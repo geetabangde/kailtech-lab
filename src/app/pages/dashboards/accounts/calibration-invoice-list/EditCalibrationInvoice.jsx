@@ -1030,8 +1030,6 @@ export default function EditCalibrationInvoice() {
                         {[
                           "Sr no",
                           "Description",
-                          "Identification no",
-                          "Serial no",
                           ...(potype === "Normal" ? ["Rate"] : []),
                           "",
                         ].map((h) => (
@@ -1075,12 +1073,7 @@ export default function EditCalibrationInvoice() {
                               </span>
                             )}
                           </td>
-                          <td className="dark:text-dark-300 px-3 py-2 text-xs text-gray-600">
-                            {item.idno ?? "—"}
-                          </td>
-                          <td className="dark:text-dark-300 px-3 py-2 text-xs text-gray-600">
-                            {item.serialno ?? "—"}
-                          </td>
+
                           {/* PHP: rate pre-filled from invoicerate */}
                           {potype === "Normal" && (
                             <td className="px-3 py-2">
