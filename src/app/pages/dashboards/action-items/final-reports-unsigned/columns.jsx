@@ -18,10 +18,11 @@ export const columns = [
     header: "ID",
     enableSorting: true,
     cell: (info) => (
-      <span className="text-sm text-gray-700 dark:text-dark-200">
+      <span className="text-xs text-gray-700 dark:text-dark-200">
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // Product — API: pname
@@ -30,10 +31,11 @@ export const columns = [
     header: "Product",
     enableSorting: true,
     cell: (info) => (
-      <span className="block max-w-[280px] whitespace-normal text-sm leading-tight text-gray-700 dark:text-dark-200">
+      <span className="block max-w-[280px] whitespace-normal text-xs leading-tight text-gray-700 dark:text-dark-200">
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // Customer — API: customername
@@ -42,10 +44,11 @@ export const columns = [
     header: "Customer",
     enableSorting: true,
     cell: (info) => (
-      <span className="block max-w-[220px] whitespace-normal text-sm leading-tight text-gray-700 dark:text-dark-200">
+      <span className="block max-w-[220px] whitespace-normal text-xs leading-tight text-gray-700 dark:text-dark-200">
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // LRN
@@ -54,10 +57,11 @@ export const columns = [
     header: "LRN",
     enableSorting: true,
     cell: (info) => (
-      <span className="text-sm text-gray-700 dark:text-dark-200">
+      <span className="text-xs text-gray-700 dark:text-dark-200">
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // BRN
@@ -66,10 +70,11 @@ export const columns = [
     header: "BRN",
     enableSorting: true,
     cell: (info) => (
-      <span className="text-sm text-gray-700 dark:text-dark-200">
+      <span className="text-xs text-gray-700 dark:text-dark-200">
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // ULR
@@ -78,10 +83,11 @@ export const columns = [
     header: "ULR",
     enableSorting: true,
     cell: (info) => (
-      <span className="text-sm text-gray-700 dark:text-dark-200">
+      <span className="text-xs text-gray-700 dark:text-dark-200">
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // Grade/Size — API: gradeSize
@@ -90,10 +96,11 @@ export const columns = [
     header: "Grade/Size",
     enableSorting: true,
     cell: (info) => (
-      <span className="block max-w-[200px] whitespace-normal text-sm text-gray-700 dark:text-dark-200">
+      <span className="block max-w-[200px] whitespace-normal text-xs text-gray-700 dark:text-dark-200">
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // Action
@@ -102,5 +109,6 @@ export const columns = [
     header: "Action",
     enableSorting: false,
     cell: RowActions,
+    enableColumnFilter: false,
   }),
 ];

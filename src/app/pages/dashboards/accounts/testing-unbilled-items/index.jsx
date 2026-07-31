@@ -162,6 +162,99 @@ export default function UnbilledTestingItems() {
 
   const handleSearch = () => fetchItems(filters);
 
+  // ── Print / Download PDF ─────────────────────────────────────────────
+  const handlePrint = () => {
+    if (!items || items.length === 0) {
+      toast.error("No data to print. Please search first.");
+      return;
+    }
+
+    const rows = table.getFilteredRowModel().rows;
+
+    const tableRows = rows
+      .map((row, idx) => {
+        const d = row.original;
+        const isPending = !d.invoice || d.invoice === "" || d.invoice === "0" || d.invoice === 0;
+        return `
+          <tr style="background:${idx % 2 === 0 ? '#fff' : '#f9fafb'}">
+            <td>${idx + 1}</td>
+            <td><b>${d.brn || '—'}</b></td>
+            <td>${d.lrn || '—'}</td>
+            <td>${d.trf || '—'}</td>
+            <td>${d.productname || '—'}</td>
+            <td>${d.packagename || '—'}</td>
+            <td>${d.customername || '—'}</td>
+            <td>
+              <span style="padding:2px 8px;border-radius:999px;font-size:11px;font-weight:600;
+                background:${isPending ? '#fee2e2' : '#dcfce7'};
+                color:${isPending ? '#b91c1c' : '#15803d'}">
+                ${isPending ? 'Pending' : 'Billed'}
+              </span>
+            </td>
+          </tr>`;
+      })
+      .join("");
+
+    const win = window.open("", "_blank");
+    win.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Unbilled Testing Items Report</title>
+        <style>
+          * { margin:0; padding:0; box-sizing:border-box; }
+          body { font-family: Arial, sans-serif; font-size: 12px; color: #111; padding: 20px; }
+          h2 { font-size: 16px; margin-bottom: 4px; }
+          p.meta { font-size: 11px; color: #555; margin-bottom: 12px; }
+          .pills { display:flex; gap:8px; margin-bottom:14px; }
+          .pill { padding:3px 10px; border-radius:999px; font-size:11px; font-weight:600; }
+          .pill-gray { background:#f3f4f6; color:#374151; }
+          .pill-red  { background:#fee2e2; color:#b91c1c; }
+          .pill-green{ background:#dcfce7; color:#15803d; }
+          table { width:100%; border-collapse:collapse; font-size:11px; }
+          thead tr { background:#1e293b; color:#fff; }
+          th { padding:7px 8px; text-align:left; font-weight:600; text-transform:uppercase; letter-spacing:.4px; }
+          td { padding:6px 8px; border-bottom:1px solid #e5e7eb; vertical-align:top; }
+          @media print {
+            body { padding:10px; }
+            @page { size: A4 landscape; margin:10mm; }
+          }
+        </style>
+      </head>
+      <body>
+        <h2>Unbilled Testing Items Report</h2>
+        <p class="meta">
+          Date Range: ${filters.startdate || '—'} to ${filters.enddate || '—'}
+          &nbsp;&nbsp;|&nbsp;&nbsp;
+          Generated: ${new Date().toLocaleString('en-IN')}
+        </p>
+        <div class="pills">
+          <span class="pill pill-gray">Total: ${rows.length}</span>
+          <span class="pill pill-red">Pending: ${rows.filter(r => { const v = r.original.invoice; return !v || v === '' || v === '0' || v === 0; }).length}</span>
+          <span class="pill pill-green">Billed: ${rows.filter(r => { const v = r.original.invoice; return v && v !== '' && v !== '0' && v !== 0; }).length}</span>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>BRN</th>
+              <th>LRN</th>
+              <th>TRF No</th>
+              <th>Product</th>
+              <th>Package</th>
+              <th>Customer</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>${tableRows}</tbody>
+        </table>
+        <script>window.onload = function(){ window.print(); };<` + `/script>
+      </body>
+      </html>
+    `);
+    win.document.close();
+  };
+
   // ── Table settings ────────────────────────────────────────────────────
   const [tableSettings, setTableSettings] = useState({
     enableFullScreen: false,
@@ -251,6 +344,7 @@ export default function UnbilledTestingItems() {
             customers={customers}
             bdList={bdList}
             onSearch={handleSearch}
+            onPrint={handlePrint}
           />
 
           <div

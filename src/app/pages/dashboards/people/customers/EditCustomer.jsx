@@ -49,6 +49,8 @@ export default function EditCustomer() {
   const [contacts, setContacts] = useState([]);
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [showContactModal, setShowContactModal] = useState(false);
+  const [showEditAddressModal, setShowEditAddressModal] = useState(false);
+  const [editingAddress, setEditingAddress] = useState(null);
   const [activeTab, setActiveTab] = useState("address");
 
   // Required fields (thumb_image is optional)
@@ -245,6 +247,12 @@ export default function EditCustomer() {
         state: false
       }));
     }
+  };
+
+  // Edit address
+  const handleEditAddress = (addr) => {
+    setEditingAddress(addr);
+    setShowEditAddressModal(true);
   };
 
   // Delete address
@@ -786,12 +794,20 @@ export default function EditCustomer() {
                       <p className="text-sm text-gray-600 dark:text-gray-400">
                         {addr.mobile}
                       </p>
-                      <button
-                        onClick={() => handleDeleteAddress(addr.id)}
-                        className="mt-3 text-sm text-red-600 hover:text-red-800"
-                      >
-                        Remove
-                      </button>
+                      <div className="mt-3 flex gap-3">
+                        <button
+                          onClick={() => handleEditAddress(addr)}
+                          className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteAddress(addr.id)}
+                          className="text-sm text-red-600 hover:text-red-800"
+                        >
+                          Remove
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -838,6 +854,24 @@ export default function EditCustomer() {
             onSuccess={(newAddress) => {
               setAddresses(prev => [...prev, newAddress]);
               setShowAddressModal(false);
+            }}
+          />
+        )}
+
+        {/* Edit Address Modal */}
+        {showEditAddressModal && editingAddress && (
+          <EditAddressModal
+            initialData={editingAddress}
+            onClose={() => {
+              setShowEditAddressModal(false);
+              setEditingAddress(null);
+            }}
+            onSuccess={(updatedAddress) => {
+              setAddresses(prev =>
+                prev.map(a => (a.id === updatedAddress.id ? updatedAddress : a))
+              );
+              setShowEditAddressModal(false);
+              setEditingAddress(null);
             }}
           />
         )}
@@ -950,6 +984,95 @@ function AddAddressModal({ customerId, onClose, onSuccess }) {
             </Button>
           </div>
         </form>
+      </div>
+    </div>
+  );
+}
+
+// Edit Address Modal Component
+function EditAddressModal({ initialData, onClose, onSuccess }) {
+  const [formData, setFormData] = useState({
+    name: initialData?.name || "",
+    mobile: initialData?.mobile || "",
+    address: initialData?.address || "",
+    city: initialData?.city || "",
+    pincode: initialData?.pincode || ""
+  });
+  const [loading, setLoading] = useState(false);
+  const addressId = initialData?.id;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const res = await axios.post(`/people/update-customer-address/${addressId}`, formData);
+      if (res.data.status === true || res.data.status === "true") {
+        toast.success(res.data.message || "Address updated successfully");
+        onSuccess({ ...formData, id: addressId });
+      } else {
+        toast.error(res.data.message || "Failed to update address");
+      }
+    } catch (err) {
+      toast.error("Error updating address");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="w-full max-w-md rounded-xl border border-gray-200 bg-white p-6 shadow-xl dark:border-gray-700 dark:bg-gray-900">
+        <h3 className="mb-4 text-lg font-semibold text-gray-800 dark:text-gray-100">
+          Edit Address
+        </h3>
+        <form onSubmit={handleSubmit} className="space-y-4">
+            <Input
+              label="Address Nickname"
+              value={formData.name}
+              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+              required
+            />
+            <Input
+              label="Mobile"
+              value={formData.mobile}
+              onChange={(e) => setFormData(prev => ({ ...prev, mobile: e.target.value }))}
+              required
+            />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-white mb-1">
+                Address
+              </label>
+              <textarea
+                value={formData.address}
+                onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+                rows={3}
+                required
+              />
+            </div>
+            <Input
+              label="City"
+              value={formData.city}
+              onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
+              required
+            />
+            <Input
+              label="Pincode"
+              value={formData.pincode}
+              onChange={(e) => setFormData(prev => ({ ...prev, pincode: e.target.value }))}
+              maxLength={6}
+              required
+            />
+            <div className="flex justify-end gap-2 mt-6">
+              <Button type="button" onClick={onClose} variant="outline">
+                Close
+              </Button>
+              <Button type="submit" color="primary" disabled={loading}>
+                {loading ? "Saving..." : "Update Address"}
+              </Button>
+            </div>
+          </form>
       </div>
     </div>
   );

@@ -63,6 +63,7 @@ export function Toolbar({
   customers,
   bdList,
   onSearch,
+  onPrint,
 }) {
   const { isXs } = useBreakpointsContext();
   const isFullScreenEnabled = table.getState().tableSettings?.enableFullScreen;
@@ -211,6 +212,12 @@ export function Toolbar({
               <MagnifyingGlassIcon className="h-4 w-4" />
               Search
             </button>
+            <button
+              onClick={onPrint}
+              className="inline-flex items-center gap-1.5 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+            >
+              🖨️ Print PDF
+            </button>
           </div>
         </div>
       ) : (
@@ -289,13 +296,21 @@ export function Toolbar({
               <SearchInput table={table} />
               <TableConfig table={table} />
             </div>
-            <button
-              onClick={onSearch}
-              className="inline-flex items-center gap-1.5 rounded-md bg-blue-600 px-5 py-2 text-sm font-medium text-white hover:bg-blue-700 active:bg-blue-800"
-            >
-              <MagnifyingGlassIcon className="h-4 w-4" />
-              Search
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={onSearch}
+                className="inline-flex items-center gap-1.5 rounded-md bg-blue-600 px-5 py-2 text-sm font-medium text-white hover:bg-blue-700 active:bg-blue-800"
+              >
+                <MagnifyingGlassIcon className="h-4 w-4" />
+                Search
+              </button>
+              <button
+                onClick={onPrint}
+                className="inline-flex items-center gap-1.5 rounded-md bg-red-600 px-5 py-2 text-sm font-medium text-white hover:bg-red-700 active:bg-red-800"
+              >
+                🖨️ Print PDF
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -325,4 +340,5 @@ Toolbar.propTypes = {
   customers: PropTypes.array.isRequired,
   bdList: PropTypes.array.isRequired,
   onSearch: PropTypes.func.isRequired,
+  onPrint: PropTypes.func.isRequired,
 };

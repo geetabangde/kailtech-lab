@@ -26,8 +26,6 @@ const COMPANY_STATE_CODE = "23"; // PHP: $companystatecode
 // ─────────────────────────────────────────────────────────────────────────────
 const inputCls =
   "dark:bg-dark-900 dark:border-dark-500 dark:text-dark-100 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-400 dark:disabled:bg-dark-800";
-const selectCls =
-  "dark:bg-dark-900 dark:border-dark-500 dark:text-dark-100 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500";
 const roInputCls =
   "dark:bg-dark-800 dark:border-dark-600 dark:text-dark-200 w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700";
 
@@ -296,6 +294,113 @@ function PackageSearch({ products, value, onChange, disabled }) {
                   <span className="text-xs font-medium text-green-600">
                     ₹{p.rate}
                   </span>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Searchable Address Dropdown
+// addresses[] from API: { id, name, address }
+// ─────────────────────────────────────────────────────────────────────────────
+function AddressSearch({ addresses, value, onChange, disabled }) {
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef(null);
+
+  const getLabel = (a) => (a.name ? `${a.name} — ${a.address}` : a.address);
+
+  const selectedLabel = useMemo(() => {
+    const a = addresses.find((a) => String(a.id) === String(value));
+    return a ? getLabel(a) : "";
+  }, [addresses, value]);
+
+  const filtered = useMemo(() => {
+    if (!query) return addresses;
+    const q = query.toLowerCase();
+    return addresses.filter(
+      (a) =>
+        a.address?.toLowerCase().includes(q) ||
+        a.name?.toLowerCase().includes(q),
+    );
+  }, [addresses, query]);
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) {
+        setOpen(false);
+        setQuery("");
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  return (
+    <div ref={wrapRef} className="relative">
+      <div className="relative">
+        <input
+          type="text"
+          disabled={disabled}
+          value={open ? query : selectedLabel}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setOpen(true);
+            if (!e.target.value) onChange("");
+          }}
+          onFocus={() => !disabled && setOpen(true)}
+          placeholder={
+            disabled ? "Select customer first..." : "Search customer address..."
+          }
+          className={inputCls}
+          autoComplete="off"
+        />
+        {value && !open && (
+          <button
+            type="button"
+            className="absolute top-1/2 right-2 -translate-y-1/2 text-gray-400 hover:text-gray-700"
+            onClick={() => {
+              onChange("");
+              setQuery("");
+            }}
+          >
+            ✕
+          </button>
+        )}
+      </div>
+      {open && !disabled && (
+        <div className="dark:bg-dark-800 dark:border-dark-600 absolute z-50 mt-1 max-h-72 w-full overflow-y-auto rounded-md border border-gray-200 bg-white shadow-xl">
+          {filtered.length === 0 ? (
+            <div className="px-3 py-2 text-sm text-gray-400">
+              No addresses found
+            </div>
+          ) : (
+            filtered.map((a) => (
+              <div
+                key={a.id}
+                onMouseDown={() => {
+                  onChange(String(a.id));
+                  setQuery("");
+                  setOpen(false);
+                }}
+                className={`cursor-pointer px-3 py-2 text-sm dark:hover:bg-dark-700 hover:bg-blue-50 ${
+                  String(a.id) === String(value)
+                    ? "bg-blue-50 font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+                    : "text-gray-700 dark:text-dark-200"
+                }`}
+              >
+                {a.name && (
+                  <div className="text-xs font-semibold text-blue-600 dark:text-blue-400">
+                    {a.name}
+                  </div>
+                )}
+                <div className={a.name ? "mt-0.5 text-xs text-gray-500 dark:text-dark-400" : ""}>
+                  {a.address}
                 </div>
               </div>
             ))
@@ -720,27 +825,12 @@ export default function AddDirectCalibrationInvoice() {
               Customer Address
             </label>
             <div className="col-span-10">
-              {addresses.length > 0 ? (
-                <select
-                  value={addressid}
-                  onChange={(e) => setAddressid(e.target.value)}
-                  className={selectCls}
-                >
-                  <option value="">Select Customer Address</option>
-                  {addresses.map((a) => (
-                    <option key={a.id} value={String(a.id)}>
-                      {a.name ? `${a.name} — ${a.address}` : a.address}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <input
-                  readOnly
-                  value=""
-                  placeholder="Select Customer Address"
-                  className={roInputCls}
-                />
-              )}
+              <AddressSearch
+                addresses={addresses}
+                value={addressid}
+                onChange={setAddressid}
+                disabled={addresses.length === 0}
+              />
             </div>
           </div>
 

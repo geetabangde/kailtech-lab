@@ -47,18 +47,19 @@ export const columns = [
     ),
   }),
 
-  columnHelper.accessor("type", {
+  columnHelper.accessor((row) => TYPE_MAP[row.type] ?? "—", {
+    id: "type",
     header: "Type",
     cell: (info) => {
-      const val = info.getValue();
+      const originalVal = info.row.original.type;
       return (
         <span
-          className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${val === 1
+          className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${originalVal === 1
               ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
               : "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
             }`}
         >
-          {TYPE_MAP[val] ?? "—"}
+          {info.getValue()}
         </span>
       );
     },

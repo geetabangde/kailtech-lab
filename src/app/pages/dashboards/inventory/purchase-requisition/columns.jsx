@@ -78,6 +78,21 @@ export const columns = [
     },
   }),
 
+  // Approved/Rejected Date
+  columnHelper.accessor("updated_on", {
+    id: "updated_on",
+    header: "Approved/Rejected Date",
+    cell: (info) => {
+      const val = info.getValue();
+      const status = info.row.original.status;
+      // Agar status 1 (Pending) hai, toh date na dikhaye, kyuki wo approve/reject nahi hua hai
+      if (status == 1 || !val) {
+        return "-";
+      }
+      return dayjs(val).format("DD/MM/YYYY");
+    },
+  }),
+
   // PHP: Status
   columnHelper.accessor("status", {
     id: "status",
@@ -94,4 +109,3 @@ export const columns = [
     cell: RowActions,
   }),
 ];
-

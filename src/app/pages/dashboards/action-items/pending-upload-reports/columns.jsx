@@ -3,32 +3,21 @@ import { createColumnHelper } from "@tanstack/react-table";
 
 // Local Imports
 import { RowActions } from "./RowActions";
-import {
-  SelectCell,
-  SelectHeader,
-} from "components/shared/table/SelectCheckbox";
-
 // ----------------------------------------------------------------------
 
 const columnHelper = createColumnHelper();
 
 export const columns = [
-  // ── Select ──────────────────────────────────────────────────────────────
-  columnHelper.display({
-    id: "select",
-    header: SelectHeader,
-    cell: SelectCell,
-  }),
-
   // ── ID ──────────────────────────────────────────────────────────────────
   columnHelper.accessor("id", {
     id: "id",
     header: () => <div className="text-center">ID</div>,
     cell: (info) => (
-      <span className="text-sm text-gray-800 dark:text-dark-100">
+      <span className="text-xs text-gray-800 dark:text-dark-100">
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // ── Product ─────────────────────────────────────────────────────────────
@@ -36,10 +25,11 @@ export const columns = [
     id: "product",
     header: () => <div className="text-center">Product</div>,
     cell: (info) => (
-      <span className="block max-w-[280px] whitespace-normal text-sm leading-tight text-gray-800 dark:text-dark-100">
+      <span className="block max-w-[280px] whitespace-normal text-xs leading-tight text-gray-800 dark:text-dark-100">
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // ── Main Customer (permission 358) ───────────────────────────────────────
@@ -47,10 +37,11 @@ export const columns = [
     id: "main_customer",
     header: () => <div className="text-center">Main Customer</div>,
     cell: (info) => (
-      <span className="block max-w-[220px] whitespace-normal leading-tight text-sm text-gray-800 dark:text-dark-100">
+      <span className="block max-w-[220px] whitespace-normal leading-tight text-xs text-gray-800 dark:text-dark-100">
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // ── Report Customer ──────────────────────────────────────────────────────
@@ -66,11 +57,12 @@ export const columns = [
         text = value ?? "—";
       }
       return (
-        <span className="block max-w-[220px] whitespace-normal leading-tight text-sm text-gray-800 dark:text-dark-100">
+        <span className="block max-w-[220px] whitespace-normal leading-tight text-xs text-gray-800 dark:text-dark-100">
           {text}
         </span>
       );
     },
+    filterFn: "includesString",
   }),
 
   // ── LRN ─────────────────────────────────────────────────────────────────
@@ -78,10 +70,11 @@ export const columns = [
     id: "lrn",
     header: () => <div className="text-center">LRN</div>,
     cell: (info) => (
-      <span className="text-sm text-gray-800 dark:text-dark-100">
+      <span className="text-xs text-gray-800 dark:text-dark-100">
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // ── BRN ─────────────────────────────────────────────────────────────────
@@ -89,10 +82,11 @@ export const columns = [
     id: "brn",
     header: () => <div className="text-center">BRN</div>,
     cell: (info) => (
-      <span className="text-sm text-gray-800 dark:text-dark-100">
+      <span className="text-xs text-gray-800 dark:text-dark-100">
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // ── ULR ─────────────────────────────────────────────────────────────────
@@ -100,10 +94,11 @@ export const columns = [
     id: "ulr",
     header: () => <div className="text-center">ULR</div>,
     cell: (info) => (
-      <span className="text-sm text-gray-800 dark:text-dark-100">
+      <span className="text-xs text-gray-800 dark:text-dark-100">
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // ── Report Date ──────────────────────────────────────────────────────────
@@ -122,11 +117,12 @@ export const columns = [
         }
       }
       return (
-        <span className="whitespace-nowrap text-sm text-gray-800 dark:text-dark-100">
+        <span className="whitespace-nowrap text-xs text-gray-800 dark:text-dark-100">
           {formatted}
         </span>
       );
     },
+    filterFn: "includesString",
   }),
 
   // ── Grade / Size ─────────────────────────────────────────────────────────
@@ -134,10 +130,11 @@ export const columns = [
     id: "grade_size",
     header: () => <div className="text-center">Grade/Size</div>,
     cell: (info) => (
-      <span className="block max-w-[150px] whitespace-normal leading-tight text-sm text-gray-800 dark:text-dark-100">
+      <span className="block max-w-[150px] whitespace-normal leading-tight text-xs text-gray-800 dark:text-dark-100">
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // ── Action ───────────────────────────────────────────────────────────────
@@ -145,5 +142,6 @@ export const columns = [
     id: "actions",
     header: "Action",
     cell: RowActions,
+    enableColumnFilter: false,
   }),
 ];

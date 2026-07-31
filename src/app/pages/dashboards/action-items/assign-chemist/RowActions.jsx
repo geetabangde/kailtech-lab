@@ -8,9 +8,9 @@ export function RowActions({ row }) {
   return (
     <Link
       to={assignUrl}
-      className="inline-block rounded bg-primary-600 px-4 py-1.5 text-xs font-semibold text-white shadow transition hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-400"
+      className="inline-block rounded bg-primary-600 px-2 py-1 text-[10.5px] font-semibold text-white shadow transition hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-400"
     >
-      Assign Chemist
+      <> Assign <br /> Chemist </>
     </Link>
   );
 }

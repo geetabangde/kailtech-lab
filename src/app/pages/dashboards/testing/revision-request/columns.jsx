@@ -23,6 +23,7 @@ export const columns = [
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // Name (Product Name)
@@ -34,6 +35,7 @@ export const columns = [
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // LRN
@@ -45,6 +47,7 @@ export const columns = [
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // BRN
@@ -56,6 +59,7 @@ export const columns = [
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // Customer Name
@@ -67,6 +71,7 @@ export const columns = [
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // TRF No
@@ -78,6 +83,7 @@ export const columns = [
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // Changes In
@@ -89,6 +95,7 @@ export const columns = [
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // Status
@@ -104,6 +111,7 @@ export const columns = [
         </div>
       );
     },
+    enableColumnFilter: false,
   }),
 
   // Actions
@@ -111,6 +119,7 @@ export const columns = [
     id: "actions",
     header: "ACTIONS",
     cell: RowActions,
+    enableColumnFilter: false,
   }),
 
   // Rev No
@@ -125,6 +134,7 @@ export const columns = [
         </span>
       );
     },
+    filterFn: "includesString",
   }),
 
   // Reason
@@ -136,6 +146,7 @@ export const columns = [
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // Remark
@@ -147,6 +158,7 @@ export const columns = [
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // Requested On
@@ -167,6 +179,7 @@ export const columns = [
         return <span className="text-xs text-gray-500 dark:text-gray-400">{val}</span>;
       }
     },
+    filterFn: "includesString",
   }),
 
   // Requested By
@@ -178,6 +191,7 @@ export const columns = [
         {info.getValue() || "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // Approved On
@@ -198,6 +212,7 @@ export const columns = [
         return <span className="text-xs text-gray-500 dark:text-gray-400">{val}</span>;
       }
     },
+    filterFn: "includesString",
   }),
 
   // Approved By
@@ -209,5 +224,6 @@ export const columns = [
         {info.getValue() || "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 ];

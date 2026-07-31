@@ -1,6 +1,6 @@
 // Import Dependencies
 import { useState, useEffect, useCallback } from "react";
-import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import axios from "utils/axios";
 import { toast } from "sonner";
 import clsx from "clsx";
@@ -407,7 +407,7 @@ function ViewRawDataModal({ teid, onClose }) {
 //   status other                                                             → "Test Completed" + View Raw Data
 //   has_documents (any status)                                               → View Documents button
 // =============================================================================
-function ActionCell({ row, onRefresh }) {
+function ActionCell({ row, onRefresh, lrn }) {
   const raw = row.original;
 
   // ── Safe field extraction with fallbacks ─────────────────────────────────
@@ -450,6 +450,15 @@ function ActionCell({ row, onRefresh }) {
   const [viewRawDataModal, setViewRawDataModal] = useState(false);
   const [startDate, setStartDate] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  let minDate = "";
+  if (lrn && typeof lrn === "string" && lrn.length >= 11) {
+    const yy = lrn.substring(0, 2);
+    const mm = lrn.substring(2, 4);
+    const dd = lrn.slice(-2);
+    minDate = `20${yy}-${mm}-${dd}`;
+  }
+  const maxDate = new Date().toISOString().split('T')[0];
 
   // ── POST /actionitem/start-test ───────────────────────────────────────────
   // PHP starttest.php: $data['startdate'] = changedateformatespecito($_POST['start_date'], "d/m/Y", "Y-m-d H:i:s")
@@ -528,6 +537,14 @@ function ActionCell({ row, onRefresh }) {
         if (!isStarted) {
           // PHP: $starttime == ""
           if (is_chemist) {
+            
+            // Helper to generate the correct URL that preserves existing parameters
+            const getStartUrl = (type) => {
+              const params = new URLSearchParams(searchParams);
+              params.set(type === "direct" ? "start" : "startModal", testeventdata_id);
+              return `?${params.toString()}`;
+            };
+
             if (!has_documents) {
               // PHP: mysqli_num_rows($itemDocument) == 0
               // → <a href="starttest.php?hakuna=..."> Start</a>  (direct link = GET)
@@ -535,7 +552,7 @@ function ActionCell({ row, onRefresh }) {
               elements.push(
                 <Link
                   key="start-direct"
-                  to={`?start=${testeventdata_id}`}
+                  to={getStartUrl("direct")}
                   onClick={(e) => {
                     e.preventDefault();
                     if (!submitting) handleDirectStart();
@@ -562,7 +579,7 @@ function ActionCell({ row, onRefresh }) {
               elements.push(
                 <Link
                   key="start-modal"
-                  to={`?startModal=${testeventdata_id}`}
+                  to={getStartUrl("modal")}
                   onClick={(e) => {
                     e.preventDefault();
                     setStartDateModal(true);
@@ -709,7 +726,8 @@ function ActionCell({ row, onRefresh }) {
               {/* PHP: onfocus="setcalenderfuturedate(this.id)" → future date picker */}
               <input
                 type="date"
-                min={new Date().toISOString().split('T')[0]}
+                min={minDate || undefined}
+                max={maxDate}
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
                 onClick={(e) => e.target.showPicker && e.target.showPicker()}
@@ -785,7 +803,7 @@ function ActionCell({ row, onRefresh }) {
 // PHP: <thead> headers mapped exactly
 // All accessor keys match API response field names from /actionitem/get-perform-testing-byid
 // =============================================================================
-function buildColumns(onRefresh) {
+function buildColumns(onRefresh, lrn) {
   return [
     // PHP: S. No.
     columnHelper.accessor((_row, i) => i + 1, {
@@ -803,7 +821,7 @@ function buildColumns(onRefresh) {
       id: "product",
       header: "Product",
       cell: (info) => (
-        <span className="block max-w-[280px] whitespace-normal break-words text-sm font-medium text-gray-800 dark:text-dark-100">
+        <span className="block max-w-[150px] whitespace-normal break-words text-sm font-medium text-gray-800 dark:text-dark-100">
           {info.getValue() ?? "—"}
         </span>
       ),
@@ -814,7 +832,7 @@ function buildColumns(onRefresh) {
       id: "package",
       header: "Package",
       cell: (info) => (
-        <span className="block max-w-[200px] whitespace-normal break-words text-sm text-gray-700 dark:text-gray-300">
+        <span className="block max-w-[150px] whitespace-normal break-words text-sm text-gray-700 dark:text-gray-300">
           {info.getValue() ?? "—"}
         </span>
       ),
@@ -824,7 +842,11 @@ function buildColumns(onRefresh) {
     columnHelper.accessor("parameter", {
       id: "parameter",
       header: "Parameter",
-      cell: (info) => info.getValue() ?? "—",
+      cell: (info) => (
+        <span className="block max-w-[150px] whitespace-normal break-words text-sm text-gray-800 dark:text-dark-100">
+          {info.getValue() ?? "—"}
+        </span>
+      ),
     }),
 
     // PHP: Description → parameters.description
@@ -832,7 +854,7 @@ function buildColumns(onRefresh) {
       id: "description",
       header: "Description",
       cell: (info) => (
-        <span className="block max-w-[200px] whitespace-normal break-words">
+        <span className="block max-w-[150px] whitespace-normal break-words text-sm text-gray-800 dark:text-dark-100">
           {info.getValue() ?? "—"}
         </span>
       ),
@@ -893,7 +915,7 @@ function buildColumns(onRefresh) {
     columnHelper.display({
       id: "action",
       header: "Action",
-      cell: (info) => <ActionCell row={info.row} onRefresh={onRefresh} />,
+      cell: (info) => <ActionCell row={info.row} onRefresh={onRefresh} lrn={lrn} />,
     }),
   ];
 }
@@ -914,7 +936,9 @@ function buildColumns(onRefresh) {
 export default function PerformTestDetail() {
   const { id } = useParams();       // trfproduct id from route /perform-testing/:id
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
+  const lrn = searchParams.get("lrn") || location.state?.lrn;
   const hodValue = searchParams.get("hod") === "true"; // PHP: if(isset($_GET['hod']) && $_GET['hod']=="true")
 
   const [rows, setRows] = useState([]);
@@ -948,7 +972,7 @@ export default function PerformTestDetail() {
 
   // Pass fetchData as onRefresh so ActionCell can trigger row reload
   // (e.g., after Start, Upload Document → has_documents changes)
-  const columns = buildColumns(fetchData);
+  const columns = buildColumns(fetchData, lrn || (rows && rows[0]?.lrn));
 
   const table = useReactTable({
     data: rows,
@@ -994,7 +1018,14 @@ export default function PerformTestDetail() {
         </div>
 
         {/* ── Search ──────────────────────────────────────────────────────── */}
-        <div className="mb-3 flex items-center justify-end">
+        <div className="mb-3 flex items-center justify-between">
+          <div className="flex items-center">
+            {(lrn || (rows && rows[0]?.lrn)) && (
+              <span className="text-sm font-semibold text-gray-800 dark:text-gray-200 bg-gray-100 dark:bg-gray-800 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700">
+                LRN: {lrn || rows[0]?.lrn}
+              </span>
+            )}
+          </div>
           <div className="relative">
             <input
               type="text"
@@ -1023,7 +1054,7 @@ export default function PerformTestDetail() {
                     {hg.headers.map((header) => (
                       <Th
                         key={header.id}
-                        className="bg-gray-200 text-xs font-semibold uppercase tracking-wide text-gray-700 dark:bg-dark-800 dark:text-dark-200"
+                        className="bg-gray-200 px-2 py-2 text-xs font-semibold uppercase tracking-wide text-gray-700 dark:bg-dark-800 dark:text-dark-200"
                       >
                         {header.isPlaceholder
                           ? null
@@ -1049,7 +1080,7 @@ export default function PerformTestDetail() {
                       {row.getVisibleCells().map((cell) => (
                         <Td
                           key={cell.id}
-                          className="bg-white px-4 py-3 align-top dark:bg-dark-900"
+                          className="bg-white px-2 py-2 align-top dark:bg-dark-900"
                         >
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}
                         </Td>

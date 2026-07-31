@@ -17,10 +17,11 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, Fragment } from "react";
 import axios from "utils/axios";
 import clsx from "clsx";
 import Select from "react-select";
+import { Input } from "components/ui";
 import { Page } from "components/shared/Page";
 import { PaginationSection } from "components/shared/table/PaginationSection";
 import { TableSortIcon } from "components/shared/table/TableSortIcon";
@@ -36,8 +37,8 @@ function usePermissions() {
 const customSelectStyles = {
   control: (base, state) => ({
     ...base,
-    minHeight: "42px",
-    minWidth: "200px",
+    minHeight: "32px",
+    minWidth: "150px",
     borderColor: state.isFocused ? "#3b82f6" : "#d1d5db",
     boxShadow: state.isFocused ? "0 0 0 2px rgba(59, 130, 246, 0.5)" : "none",
     "&:hover": {
@@ -71,6 +72,7 @@ export default function UlrRequests() {
   const [data,    setData]    = useState([]);
   const [loading, setLoading] = useState(true);
   const [globalFilter, setGlobalFilter] = useState("");
+  const [columnFilters, setColumnFilters] = useState([]);
   const [sorting,      setSorting]      = useState([{ id: "id", desc: true }]);
 
   // ── Load dropdowns ─────────────────────────────────────────────────────────
@@ -129,7 +131,9 @@ export default function UlrRequests() {
   const table = useReactTable({
     data,
     columns,
-    state:            { globalFilter, sorting },
+    state:            { globalFilter, sorting, columnFilters },
+    enableColumnFilters:  true,
+    onColumnFiltersChange: setColumnFilters,
     onGlobalFilterChange: setGlobalFilter,
     onSortingChange:      setSorting,
     getCoreRowModel:      getCoreRowModel(),
@@ -152,7 +156,7 @@ export default function UlrRequests() {
 
   return (
     <Page title="ULR Requests">
-      <div className="transition-content px-[var(--margin-x)] pb-8">
+      <div className="transition-content pb-8">
 
         {/* ── Header ─────────────────────────────────────────────────────── */}
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -164,7 +168,7 @@ export default function UlrRequests() {
         {/* ── Filters ────────────────────────────────────────────────────── */}
         {/* PHP: <form> with ctype + specificpurpose filters */}
         {(permissions.includes(389) || permissions.includes(390)) && (
-          <div className="mb-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-dark-800">
+          <div className="mb-4 rounded-xl border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-700 dark:bg-dark-800">
             <div className="flex flex-wrap items-end gap-4">
 
               {/* PHP: if (in_array(389, $permissions)) Customer Type */}
@@ -208,7 +212,7 @@ export default function UlrRequests() {
               {/* PHP: <input type="submit" value="submit"/> */}
               <button
                 onClick={fetchData}
-                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+                className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-blue-700"
               >
                 Submit
               </button>
@@ -217,7 +221,7 @@ export default function UlrRequests() {
               {(ctype || specificpurpose) && (
                 <button
                   onClick={() => { setCtype(""); setSpecificpurpose(""); }}
-                  className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-600 transition hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400"
+                  className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs text-gray-600 transition hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400"
                 >
                   Clear
                 </button>
@@ -257,28 +261,53 @@ export default function UlrRequests() {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-xs">
+            <table className="w-full table-auto text-left rtl:text-right text-[11px] [&_td]:whitespace-normal [&_td]:break-words">
               <thead className="bg-gray-100 dark:bg-dark-700">
                 {table.getHeaderGroups().map((hg) => (
-                  <tr key={hg.id}>
-                    {hg.headers.map((h) => (
-                      <th
-                        key={h.id}
-                        onClick={h.column.getToggleSortingHandler()}
-                        className={clsx(
-                          "border-b border-gray-200 dark:border-gray-700 px-3 py-2.5 text-left font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap",
-                          h.column.getCanSort() && "cursor-pointer select-none"
-                        )}
-                      >
-                        <div className="flex items-center gap-1">
-                          {flexRender(h.column.columnDef.header, h.getContext())}
-                          {h.column.getCanSort() && (
-                            <TableSortIcon sortDir={h.column.getIsSorted()} />
+                  <Fragment key={hg.id}>
+                    <tr>
+                      {hg.headers.map((h) => (
+                        <th
+                          key={h.id}
+                          onClick={h.column.getToggleSortingHandler()}
+                          className={clsx(
+                            "border-b border-gray-200 dark:border-gray-700 px-1 py-1 text-left font-semibold text-gray-700 dark:text-gray-300 whitespace-nowrap",
+                            h.column.getCanSort() && "cursor-pointer select-none"
                           )}
-                        </div>
-                      </th>
-                    ))}
-                  </tr>
+                        >
+                          <div className="flex items-center gap-1">
+                            {flexRender(h.column.columnDef.header, h.getContext())}
+                            {h.column.getCanSort() && (
+                              <TableSortIcon sortDir={h.column.getIsSorted()} />
+                            )}
+                          </div>
+                        </th>
+                      ))}
+                    </tr>
+                    <tr className="bg-gray-50 dark:bg-dark-800">
+                      {hg.headers.map((h) => (
+                        <th
+                          key={h.id + "-filter"}
+                          className="border-b border-gray-200 dark:border-gray-700 px-1 py-1"
+                        >
+                          {h.column.getCanFilter() ? (
+                            <div onClick={(e) => e.stopPropagation()}>
+                              <Input
+                                size="sm"
+                                placeholder={`Search...`}
+                                value={h.column.getFilterValue() ?? ""}
+                                onChange={(e) => h.column.setFilterValue(e.target.value)}
+                                classNames={{
+                                  input:
+                                    "ring-primary-500/30 dark:bg-dark-900 dark:border-dark-700 h-7 border-gray-300 px-2 py-1 text-[10px] focus:ring-1",
+                                }}
+                              />
+                            </div>
+                          ) : null}
+                        </th>
+                      ))}
+                    </tr>
+                  </Fragment>
                 ))}
               </thead>
               <tbody>
@@ -307,10 +336,7 @@ export default function UlrRequests() {
                       className="border-b border-gray-100 last:border-0 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-dark-700"
                     >
                       {row.getVisibleCells().map((cell) => (
-                        <td
-                          key={cell.id}
-                          className="px-3 py-2.5 text-gray-700 dark:text-gray-300 align-top"
-                        >
+                        <td key={cell.id} className="px-2 py-1 text-gray-800 dark:text-gray-200">
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}
                         </td>
                       ))}

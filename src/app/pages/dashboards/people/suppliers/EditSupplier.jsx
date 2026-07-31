@@ -5,6 +5,13 @@ import { Page } from "components/shared/Page";
 import axios from "utils/axios";
 import { toast } from "sonner";
 import { Table, THead, TBody, Th, Tr, Td } from "components/ui";
+import {
+  Dialog,
+  DialogPanel,
+  Transition,
+  TransitionChild,
+} from "@headlessui/react";
+import { Fragment } from "react";
 
 export default function EditSupplier() {
   const navigate = useNavigate();
@@ -31,6 +38,53 @@ export default function EditSupplier() {
   
   const [materials, setMaterials] = useState([]);
   const [currencies, setCurrencies] = useState({});
+
+  const [editModal, setEditModal] = useState(false);
+  const [editingMaterial, setEditingMaterial] = useState(null);
+
+  const calculateEditMaterial = (field, value, currentState) => {
+    const nextState = { ...currentState, [field]: value };
+    const price = parseFloat(nextState.subprice) || 0;
+    const discount = parseFloat(nextState.discount) || 0;
+    
+    // Logic from PHP: list_price = price * quantity (quantity is 1 here)
+    const listPrice = price * 1;
+    const discountAmount = (listPrice * discount) / 100;
+    const taxable = listPrice - discountAmount;
+    
+    nextState.price = taxable;
+    return nextState;
+  };
+
+  const handleEditChange = (e) => {
+    const { name, value } = e.target;
+    setEditingMaterial((prev) => calculateEditMaterial(name, value, prev));
+  };
+
+  const handleUpdateMaterial = async (e) => {
+    e.preventDefault();
+    try {
+      await axios.post(`/inventory/update-supplier-material/${editingMaterial.id}`, editingMaterial);
+      toast.success("Material updated successfully");
+      setMaterials(materials.map(m => m.id === editingMaterial.id ? editingMaterial : m));
+      setEditModal(false);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to update material");
+    }
+  };
+
+  const handleDeleteMaterial = async (matId) => {
+    if(!window.confirm("Are you sure you want to delete this material?")) return;
+    try {
+       await axios.delete(`/inventory/delete-supplier-material/${matId}`);
+       toast.success("Material deleted successfully");
+       setMaterials(materials.filter(m => m.id !== matId));
+    } catch(e) {
+       console.error(e);
+       toast.error("Failed to delete material");
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -213,7 +267,7 @@ export default function EditSupplier() {
                   materials.map((mat, index) => (
                     <Tr key={index} className="border-b">
                       <Td className="p-3">{mat.type || mat.category || "-"}</Td>
-                      <Td className="p-3">{mat.material || mat.name || "-"}</Td>
+                      <Td className="p-3">{mat.name || mat.material_name || "-"}</Td>
                       <Td className="p-3">{mat.specification || "-"}</Td>
                       <Td className="p-3">{mat.subprice || "-"}</Td>
                       <Td className="p-3">{mat.discount || "-"}</Td>
@@ -222,8 +276,11 @@ export default function EditSupplier() {
                       <Td className="p-3">{mat.remark || "-"}</Td>
                       <Td className="p-3">
                          <div className="flex gap-2">
-                           <Button size="sm" color="error" variant="soft">Delete</Button>
-                           <Button size="sm" color="info" variant="soft">Edit</Button>
+                           <Button size="sm" color="error" variant="soft" onClick={() => handleDeleteMaterial(mat.id)}>Delete</Button>
+                           <Button size="sm" color="info" variant="soft" onClick={() => {
+                             setEditingMaterial(mat);
+                             setEditModal(true);
+                           }}>Edit</Button>
                          </div>
                       </Td>
                     </Tr>
@@ -240,6 +297,92 @@ export default function EditSupplier() {
           </div>
         </div>
       </div>
+
+      {/* Edit Material Modal */}
+      <Transition appear show={editModal} as={Fragment}>
+        <Dialog as="div" className="relative z-50" onClose={() => setEditModal(false)}>
+          <TransitionChild
+            as={Fragment}
+            enter="ease-out duration-300"
+            enterFrom="opacity-0"
+            enterTo="opacity-100"
+            leave="ease-in duration-200"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
+          >
+            <div className="fixed inset-0 bg-black bg-opacity-25" />
+          </TransitionChild>
+
+          <div className="fixed inset-0 overflow-y-auto">
+            <div className="flex min-h-full items-center justify-center p-4 text-center">
+              <TransitionChild
+                as={Fragment}
+                enter="ease-out duration-300"
+                enterFrom="opacity-0 scale-95"
+                enterTo="opacity-100 scale-100"
+                leave="ease-in duration-200"
+                leaveFrom="opacity-100 scale-100"
+                leaveTo="opacity-0 scale-95"
+              >
+                <DialogPanel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all dark:bg-dark-900">
+                  <h3 className="text-lg font-medium leading-6 text-gray-900 dark:text-gray-100 border-b pb-2 mb-4 border-primary-500 border-b-2 inline-block">
+                    Vendor Price Detail
+                  </h3>
+                  
+                  {editingMaterial && (
+                    <form onSubmit={handleUpdateMaterial} className="space-y-4 mt-2">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Item Name</label>
+                        <input type="text" readOnly className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm bg-gray-50 dark:bg-dark-800 dark:border-dark-700" value={editingMaterial.name || editingMaterial.material_name || "-"} />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Specification</label>
+                        <input name="specification" type="text" className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm dark:bg-dark-900 dark:border-dark-700" value={editingMaterial.specification || ""} onChange={handleEditChange} placeholder="Enter Specification" />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Price</label>
+                        <input name="subprice" type="number" required className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm dark:bg-dark-900 dark:border-dark-700" value={editingMaterial.subprice || ""} onChange={handleEditChange} />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Currency</label>
+                        <select name="currency" required className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm dark:bg-dark-900 dark:border-dark-700" value={editingMaterial.currency || ""} onChange={handleEditChange}>
+                          <option value=""></option>
+                          {Object.entries(currencies).map(([key, label]) => (
+                            <option key={key} value={key}>{label}</option>
+                          ))}
+                        </select>
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Discount %</label>
+                        <input name="discount" type="number" required className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm dark:bg-dark-900 dark:border-dark-700" value={editingMaterial.discount || ""} onChange={handleEditChange} />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Total</label>
+                        <input name="price" type="number" readOnly className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm bg-gray-50 dark:bg-dark-800 dark:border-dark-700" value={editingMaterial.price || ""} />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Remark</label>
+                        <textarea name="remark" className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm dark:bg-dark-900 dark:border-dark-700 resize-none" rows="2" value={editingMaterial.remark || ""} onChange={handleEditChange} placeholder="Remark"></textarea>
+                      </div>
+                      
+                      <div className="mt-4 flex justify-end gap-2">
+                        <Button type="button" variant="outline" onClick={() => setEditModal(false)}>Cancel</Button>
+                        <Button type="submit" color="primary">Submit</Button>
+                      </div>
+                    </form>
+                  )}
+                </DialogPanel>
+              </TransitionChild>
+            </div>
+          </div>
+        </Dialog>
+      </Transition>
     </Page>
   );
 }

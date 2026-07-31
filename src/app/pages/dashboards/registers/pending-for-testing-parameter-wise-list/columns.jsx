@@ -31,14 +31,14 @@ export const columns = [
     header: "P. No.",
     cell: (info) => info.getValue() ?? "-",
   }),
-  columnHelper.accessor("lrn", {
-    id: "lrn",
-    header: "LRN",
-    cell: (info) => info.getValue() ?? "-",
-  }),
   columnHelper.accessor("product", {
     id: "product",
     header: "Product",
+    cell: (info) => info.getValue() ?? "-",
+  }),
+  columnHelper.accessor("lrn", {
+    id: "lrn",
+    header: "LRN",
     cell: (info) => info.getValue() ?? "-",
   }),
   columnHelper.accessor("parameter", {
@@ -56,11 +56,6 @@ export const columns = [
     header: "Department",
     cell: (info) => info.getValue() ?? "-",
   }),
-  columnHelper.accessor("time", {
-    id: "time",
-    header: "Time",
-    cell: (info) => info.getValue() ?? "-",
-  }),
   columnHelper.accessor("chemist", {
     id: "chemist",
     header: "Chemist",
@@ -69,7 +64,34 @@ export const columns = [
       return val ? <span className="font-medium text-blue-600 dark:text-blue-400">{val}</span> : "-";
     },
   }),
-
+  columnHelper.accessor("allotmentdate", {
+    id: "allotmentdate",
+    header: "Assigned Date",
+    cell: (info) => info.getValue() ?? "-",
+  }),
+  columnHelper.accessor("duedate", {
+    id: "duedate",
+    header: "Due Date",
+    cell: (info) => info.getValue() ?? "-",
+  }),
+  columnHelper.accessor("startdate", {
+    id: "startdate",
+    header: "Start Date",
+    cell: (info) => info.getValue() ?? "-",
+  }),
+  columnHelper.accessor("enddate", {
+    id: "enddate",
+    header: "End Date",
+    cell: (info) => info.getValue() ?? "-",
+  }),
+  columnHelper.accessor("time", {
+    id: "time",
+    header: "TAT",
+    cell: (info) => {
+      const val = info.getValue();
+      return val ? `${val} Days` : "-";
+    },
+  }),
   columnHelper.display({
     id: "action",
     header: "Action",

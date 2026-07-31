@@ -15,6 +15,7 @@ export const columns = [
     id: "id",
     header: "ID",
     cell: (info) => info.getValue() ?? "—",
+    filterFn: "includesString",
   }),
 
   // Customer
@@ -22,10 +23,11 @@ export const columns = [
     id: "customer",
     header: "Customer",
     cell: (info) => (
-      <span className="block text-sm leading-tight">
+      <span className="block text-xs leading-tight">
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // Product
@@ -33,10 +35,11 @@ export const columns = [
     id: "product",
     header: "Product",
     cell: (info) => (
-      <span className="block text-sm leading-tight">
+      <span className="block text-xs leading-tight">
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // Package
@@ -44,10 +47,11 @@ export const columns = [
     id: "package",
     header: "Package",
     cell: (info) => (
-      <span className="block text-sm leading-tight">
+      <span className="block text-xs leading-tight">
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // LRN
@@ -55,6 +59,7 @@ export const columns = [
     id: "lrn",
     header: "LRN",
     cell: (info) => info.getValue() ?? "—",
+    filterFn: "includesString",
   }),
 
   // BRN
@@ -62,6 +67,7 @@ export const columns = [
     id: "brn",
     header: "BRN",
     cell: (info) => info.getValue() ?? "—",
+    filterFn: "includesString",
   }),
 
   // Grade / Size
@@ -73,10 +79,11 @@ export const columns = [
       id: "grade_size",
       header: "Grade/Size",
       cell: (info) => (
-        <span className="block text-sm leading-tight">
+        <span className="block text-xs leading-tight">
           {info.getValue() ?? "—"}
         </span>
       ),
+      filterFn: "includesString",
     }
   ),
 
@@ -85,24 +92,27 @@ export const columns = [
     id: "brand",
     header: "Brand/Source",
     cell: (info) => info.getValue() || "-",
+    filterFn: "includesString",
   }),
 
   // Customer Type
   columnHelper.accessor("customer_type", {
     id: "customer_type",
-    header: "Customer Type",
+    header: () => <span className="text-xs">Customer <br />Type</span>,
     cell: (info) => (
-      <span className="block text-sm leading-tight">
+      <span className="block text-xs leading-tight">
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // Specific Purpose
   columnHelper.accessor("specific_purpose", {
     id: "specific_purpose",
-    header: () => <span>Specific <br /> Purpose</span>,
+    header: () => <span className="text-xs">Specific <br /> Purpose</span>,
     cell: (info) => info.getValue() ?? "—",
+    filterFn: "includesString",
   }),
 
   // Action — Allot Sample button
@@ -110,5 +120,6 @@ export const columns = [
     id: "actions",
     header: "Action",
     cell: RowActions,
+    enableColumnFilter: false,
   }),
 ];

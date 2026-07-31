@@ -63,13 +63,13 @@ export function RowActions({ row, table }) {
   const hasViewReport = Boolean(view_report);
 
   return (
-    <div className="flex flex-col gap-1.5 min-w-[150px]">
+    <div className="flex flex-col gap-1 min-w-[100px]">
       {/* ── Final Report / Upload Report ────────────────────────────── */}
       {(actualPackType === 0 || actualPackType === "0") ? (
         (!report || report === 0 || report === "0") ? (
           <Link
             to={uploadReportUrl}
-            className="rounded-md bg-primary-600 px-3 py-1.5 text-center text-xs font-semibold text-white shadow-sm transition hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-400"
+            className="rounded-md bg-primary-600 px-2 py-1 text-center text-[10.5px] whitespace-nowrap font-semibold text-white shadow-sm transition hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-400"
           >
             Upload Report
           </Link>
@@ -78,7 +78,7 @@ export function RowActions({ row, table }) {
             href={report_link || view_report || "#"}
             target="_blank"
             rel="noreferrer"
-            className="rounded-md bg-green-600 px-3 py-1.5 text-center text-xs font-semibold text-white shadow-sm transition hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-400"
+            className="rounded-md bg-green-600 px-2 py-1 text-center text-[10.5px] whitespace-nowrap font-semibold text-white shadow-sm transition hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-400"
           >
             Final Report
           </a>
@@ -86,7 +86,7 @@ export function RowActions({ row, table }) {
       ) : (
         <Link
           to={finalReportUrl}
-          className="rounded-md bg-green-600 px-3 py-1.5 text-center text-xs font-semibold text-white shadow-sm transition hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-400"
+          className="rounded-md bg-green-600 px-2 py-1 text-center text-[10.5px] whitespace-nowrap font-semibold text-white shadow-sm transition hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-400"
         >
           Final Report
         </Link>
@@ -96,7 +96,7 @@ export function RowActions({ row, table }) {
       {permissions.includes(267) && (
         <Link
           to={`/dashboards/action-items/signed-reports/amend/${id}`}
-          className="rounded-md bg-primary-600 px-3 py-1.5 text-center text-xs font-semibold text-white shadow-sm transition hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-400"
+          className="rounded-md bg-primary-600 px-2 py-1 text-center text-[10.5px] whitespace-nowrap font-semibold text-white shadow-sm transition hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-400"
         >
           Upload Amended Report
         </Link>
@@ -107,7 +107,7 @@ export function RowActions({ row, table }) {
         onClick={handleRegenerate}
         disabled={regenerating}
         type="button"
-        className="rounded-md bg-amber-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-amber-400 disabled:cursor-not-allowed disabled:opacity-60 text-center"
+        className="rounded-md bg-amber-500 px-2 py-1 text-[10.5px] whitespace-nowrap font-semibold text-white shadow-sm transition hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-amber-400 disabled:cursor-not-allowed disabled:opacity-60 text-center"
       >
         {regenerating ? "Regenerating…" : "Regenerate Cache Copy"}
       </button>
@@ -119,7 +119,7 @@ export function RowActions({ row, table }) {
             href={view_report}
             target="_blank"
             rel="noreferrer"
-            className="rounded-md bg-cyan-500 px-3 py-1.5 text-center text-xs font-semibold text-white shadow-sm transition hover:bg-cyan-600 focus:outline-none focus:ring-2 focus:ring-cyan-400"
+            className="rounded-md bg-cyan-500 px-2 py-1 text-center text-[10.5px] whitespace-nowrap font-semibold text-white shadow-sm transition hover:bg-cyan-600 focus:outline-none focus:ring-2 focus:ring-cyan-400"
           >
             View Report
           </a>
@@ -128,7 +128,7 @@ export function RowActions({ row, table }) {
               href={view_report_with}
               target="_blank"
               rel="noreferrer"
-              className="rounded-md bg-cyan-500 px-3 py-1.5 text-center text-xs font-semibold text-white shadow-sm transition hover:bg-cyan-600 focus:outline-none focus:ring-2 focus:ring-cyan-400"
+              className="rounded-md bg-cyan-500 px-2 py-1 text-center text-[10.5px] whitespace-nowrap font-semibold text-white shadow-sm transition hover:bg-cyan-600 focus:outline-none focus:ring-2 focus:ring-cyan-400"
             >
               View Report With Letterhead
             </a>
@@ -140,7 +140,7 @@ export function RowActions({ row, table }) {
       {permissions.includes(411) && (
         <Link
           to={`/dashboards/action-items/signed-reports/request-revision?tid=${id}&trf=${trf ?? ""}`}
-          className="rounded-md bg-amber-500 px-3 py-1.5 text-center text-xs font-semibold text-white shadow-sm transition hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-amber-400"
+          className="rounded-md bg-amber-500 px-2 py-1 text-center text-[10.5px] whitespace-nowrap font-semibold text-white shadow-sm transition hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-amber-400"
         >
           Request Revision
         </Link>

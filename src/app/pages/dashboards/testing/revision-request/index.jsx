@@ -10,12 +10,12 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import clsx from "clsx";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Fragment } from "react";
 import axios from "utils/axios";
 import { toast } from "sonner";
 
 // Local Imports
-import { Table, Card, THead, TBody, Th, Tr, Td } from "components/ui";
+import { Table, Card, THead, TBody, Th, Tr, Td, Input } from "components/ui";
 import { TableSortIcon } from "components/shared/table/TableSortIcon";
 import { Page } from "components/shared/Page";
 import { useLockScrollbar, useDidUpdate, useLocalStorage } from "hooks";
@@ -74,6 +74,7 @@ export default function RevisionRequestsPage() {
 
   const [globalFilter, setGlobalFilter] = useState("");
   const [sorting, setSorting] = useState([{ id: "id", desc: true }]);
+  const [columnFilters, setColumnFilters] = useState([]);
 
   const [columnVisibility, setColumnVisibility] = useLocalStorage(
     "column-visibility-revision-requests",
@@ -93,6 +94,7 @@ export default function RevisionRequestsPage() {
     state: {
       globalFilter,
       sorting,
+      columnFilters,
       columnVisibility,
       columnPinning,
       tableSettings,
@@ -117,6 +119,8 @@ export default function RevisionRequestsPage() {
     },
     filterFns: { fuzzy: fuzzyFilter },
     enableSorting: true,
+    enableColumnFilters: true,
+    onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
     onGlobalFilterChange: setGlobalFilter,
     getFilteredRowModel: getFilteredRowModel(),
@@ -197,18 +201,48 @@ export default function RevisionRequestsPage() {
                 <Table hoverable dense={tableSettings.enableRowDense} sticky={tableSettings.enableFullScreen} className="w-full text-left rtl:text-right">
                   <THead>
                     {table.getHeaderGroups().map((headerGroup) => (
-                      <Tr key={headerGroup.id}>
-                        {headerGroup.headers.map((header) => (
-                          <Th key={header.id} className="bg-gray-200 font-semibold uppercase text-gray-800 dark:bg-dark-800 dark:text-dark-100 first:ltr:rounded-tl-lg last:ltr:rounded-tr-lg">
-                            {header.column.getCanSort() ? (
-                              <div className="flex cursor-pointer select-none items-center space-x-3" onClick={header.column.getToggleSortingHandler()}>
-                                <span className="flex-1">{flexRender(header.column.columnDef.header, header.getContext())}</span>
-                                <TableSortIcon sorted={header.column.getIsSorted()} />
-                              </div>
-                            ) : flexRender(header.column.columnDef.header, header.getContext())}
-                          </Th>
-                        ))}
-                      </Tr>
+                      <Fragment key={headerGroup.id}>
+                        <Tr>
+                          {headerGroup.headers.map((header) => (
+                            <Th key={header.id} className="bg-gray-200 font-semibold uppercase text-gray-800 dark:bg-dark-800 dark:text-dark-100 first:ltr:rounded-tl-lg last:ltr:rounded-tr-lg">
+                              {header.column.getCanSort() ? (
+                                <div className="flex cursor-pointer select-none items-center space-x-3" onClick={header.column.getToggleSortingHandler()}>
+                                  <span className="flex-1">{flexRender(header.column.columnDef.header, header.getContext())}</span>
+                                  <TableSortIcon sorted={header.column.getIsSorted()} />
+                                </div>
+                              ) : flexRender(header.column.columnDef.header, header.getContext())}
+                            </Th>
+                          ))}
+                        </Tr>
+                        <Tr className="dark:bg-dark-800/50 bg-gray-50">
+                          {headerGroup.headers.map((header) => (
+                            <Th
+                              key={header.id + "-filter"}
+                              className={clsx(
+                                "dark:border-dark-600 border-t border-gray-300 px-2 py-1.5",
+                              )}
+                            >
+                              {header.column.getCanFilter() ? (
+                                <div onClick={(e) => e.stopPropagation()}>
+                                  <Input
+                                    size="sm"
+                                    placeholder={`Search...`}
+                                    value={header.column.getFilterValue() ?? ""}
+                                    onChange={(e) =>
+                                      header.column.setFilterValue(
+                                        e.target.value
+                                      )
+                                    }
+                                    classNames={{
+                                      input: "h-7 text-xs",
+                                    }}
+                                  />
+                                </div>
+                              ) : null}
+                            </Th>
+                          ))}
+                        </Tr>
+                      </Fragment>
                     ))}
                   </THead>
                   <TBody>

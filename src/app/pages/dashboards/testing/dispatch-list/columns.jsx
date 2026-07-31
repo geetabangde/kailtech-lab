@@ -27,6 +27,7 @@ export const columns = [
       </span>
     ),
     meta: { align: "center" },
+    enableColumnFilter: false,
   }),
 
   // ── Dispatch Date ─────────────────────────────────────────────────────────
@@ -38,6 +39,7 @@ export const columns = [
         {formatDate(info.getValue())}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // ── TRF ID ────────────────────────────────────────────────────────────────
@@ -49,6 +51,7 @@ export const columns = [
         {info.getValue() || "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // ── Customer (Name + Address) ─────────────────────────────────────────────
@@ -74,6 +77,7 @@ export const columns = [
           </div>
         );
       },
+      filterFn: "includesString",
     }
   ),
 
@@ -110,6 +114,7 @@ export const columns = [
         </div>
       );
     },
+    filterFn: "includesString",
   }),
 
   // ── Actions ───────────────────────────────────────────────────────────────
@@ -118,5 +123,6 @@ export const columns = [
     header: () => <div className="text-center w-full">ACTIONS</div>,
     cell: RowActions,
     meta: { align: "center" },
+    enableColumnFilter: false,
   }),
 ];

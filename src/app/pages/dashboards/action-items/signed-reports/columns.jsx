@@ -18,10 +18,11 @@ export const columns = [
     header: "ID",
     enableSorting: true,
     cell: (info) => (
-      <span className="text-sm text-gray-700 dark:text-dark-200">
+      <span className="text-xs text-gray-700 dark:text-dark-200">
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // Product
@@ -33,46 +34,49 @@ export const columns = [
     maxSize: 250,
     cell: (info) => (
       <span
-        className="text-sm text-gray-700 dark:text-dark-200 block"
+        className="text-xs text-gray-700 dark:text-dark-200 block"
         style={{ maxWidth: "250px", whiteSpace: "normal", wordBreak: "break-word" }}
       >
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // Main Customer — PHP: customername
   columnHelper.accessor("customername", {
     id: "customername",
-    header: "Main Customer",
+    header: () => <div className="text-center leading-tight">Main <br /> Customer</div>,
     enableSorting: true,
     cell: (info) => (
       <span
-        className="text-sm text-gray-700 dark:text-dark-200 block"
+        className="text-xs text-gray-700 dark:text-dark-200 block"
         style={{ maxWidth: "200px", whiteSpace: "normal", wordBreak: "break-word" }}
       >
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // Report Customer — API: reportNames
   columnHelper.accessor("reportNames", {
     id: "reportNames",
-    header: "Report Customer",
+    header: () => <div className="text-center leading-tight">Report <br /> Customer</div>,
     enableSorting: true,
     cell: (info) => {
       const val = info.getValue();
       const stringVal = Array.isArray(val) ? val.join(", ") : (val ?? "—");
       return (
         <span
-          className="text-sm text-gray-700 dark:text-dark-200 block"
+          className="text-xs text-gray-700 dark:text-dark-200 block"
           style={{ maxWidth: "200px", whiteSpace: "normal", wordBreak: "break-word" }}
         >
           {stringVal}
         </span>
       );
     },
+    filterFn: "includesString",
   }),
 
   // LRN
@@ -81,10 +85,11 @@ export const columns = [
     header: "LRN",
     enableSorting: true,
     cell: (info) => (
-      <span className="text-sm text-gray-700 dark:text-dark-200">
+      <span className="text-xs text-gray-700 dark:text-dark-200">
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // BRN
@@ -93,10 +98,11 @@ export const columns = [
     header: "BRN",
     enableSorting: true,
     cell: (info) => (
-      <span className="text-sm text-gray-700 dark:text-dark-200">
+      <span className="text-xs text-gray-700 dark:text-dark-200">
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // ULR
@@ -105,10 +111,11 @@ export const columns = [
     header: "ULR",
     enableSorting: true,
     cell: (info) => (
-      <span className="text-sm text-gray-700 dark:text-dark-200">
+      <span className="text-xs text-gray-700 dark:text-dark-200">
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // Grade/Size — Combined API: grade + size
@@ -122,10 +129,11 @@ export const columns = [
     header: "Grade/Size",
     enableSorting: true,
     cell: (info) => (
-      <span className="text-sm text-gray-700 dark:text-dark-200">
+      <span className="text-xs text-gray-700 dark:text-dark-200">
         {info.getValue()}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // Action
@@ -134,5 +142,6 @@ export const columns = [
     header: "Action",
     enableSorting: false,
     cell: RowActions,
+    enableColumnFilter: false,
   }),
 ];

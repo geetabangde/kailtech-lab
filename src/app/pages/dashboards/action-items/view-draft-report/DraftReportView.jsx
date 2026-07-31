@@ -288,9 +288,9 @@ export default function DraftReportView() {
 
   const canRequestRetest = hasPermission(180) || hasPermission(181);
 
-  // PHP: if(in_array(180,$perm)||in_array(181,$perm)) if($reportstatus<9) → show Actions <th>
+  // PHP: if(in_array(180,$perm)||in_array(181,$perm)) if($reportstatus<9 && !empty($leftmydepartment)) → show Actions <th>
   const showActionsColumn =
-    canRequestRetest && report_status < 9;
+    canRequestRetest && report_status < 9 && left_my_department_count > 0;
 
   // PHP: every row gets the button when permissions + reportstatus < 9
   // Falling back to true if no strict ownership flags are present in the row

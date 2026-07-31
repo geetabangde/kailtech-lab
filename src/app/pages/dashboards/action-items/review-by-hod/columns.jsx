@@ -14,6 +14,7 @@ export const columns = [
     id: "select",
     header: SelectHeader,
     cell: SelectCell,
+    enableColumnFilter: false,
   }),
 
   // PHP: $n[] = $i  (serial number)
@@ -25,6 +26,7 @@ export const columns = [
         {info.row.index + 1}
       </span>
     ),
+    enableColumnFilter: false,
   }),
 
   // PHP: $n[] = $row['pname']
@@ -32,10 +34,11 @@ export const columns = [
     id: "product",
     header: "Product",
     cell: (info) => (
-      <span className="block max-w-[280px] whitespace-normal text-xs leading-tight text-gray-800 dark:text-gray-200">
+      <span className="block max-w-[150px] whitespace-normal text-xs leading-tight text-gray-800 dark:text-gray-200">
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // PHP: $n[] = $row['packagename']
@@ -43,10 +46,11 @@ export const columns = [
     id: "package",
     header: "Package",
     cell: (info) => (
-      <span className="block max-w-[200px] whitespace-normal text-xs leading-tight text-gray-700 dark:text-gray-300">
+      <span className="block max-w-[150px] whitespace-normal text-xs leading-tight text-gray-700 dark:text-gray-300">
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // PHP: $n[] = $row['lrn']
@@ -58,6 +62,7 @@ export const columns = [
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // PHP: $n[] = $row['brn']
@@ -69,6 +74,7 @@ export const columns = [
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // PHP: $n[] = $row['ulr']
@@ -80,6 +86,7 @@ export const columns = [
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // PHP: $n[] = $row['total']
@@ -91,6 +98,7 @@ export const columns = [
         {info.getValue() != null ? `₹${info.getValue()}` : "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // PHP: $n[] = $obj->selectfieldwhere("labs", "name", "id='" . $row['department'] . "'")
@@ -102,28 +110,31 @@ export const columns = [
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // PHP: if(in_array(389, $permissions)) $n[] = customertypes name
   columnHelper.accessor("ctype_name", {
     id: "customer_type",
-    header: "Customer Type",
+    header: () => <div className="text-center leading-tight">Customer <br /> Type</div>,
     cell: (info) => (
-      <span className="block max-w-[150px] whitespace-normal text-xs leading-tight text-gray-700 dark:text-gray-300">
+      <span className="block max-w-[120px] whitespace-normal text-xs leading-tight text-gray-700 dark:text-gray-300">
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // PHP: if(in_array(390, $permissions)) $n[] = specificpurposes name
   columnHelper.accessor("specificpurpose_name", {
     id: "specific_purpose",
-    header: "Specific Purpose",
+    header: () => <div className="text-center leading-tight">Specific <br /> Purpose</div>,
     cell: (info) => (
-      <span className="block max-w-[150px] whitespace-normal text-xs leading-tight text-gray-700 dark:text-gray-300">
+      <span className="block max-w-[120px] whitespace-normal text-xs leading-tight text-gray-700 dark:text-gray-300">
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // PHP: Action buttons based on hodstatus (3-9)
@@ -131,5 +142,6 @@ export const columns = [
     id: "actions",
     header: "Action",
     cell: RowActions,
+    enableColumnFilter: false,
   }),
 ];

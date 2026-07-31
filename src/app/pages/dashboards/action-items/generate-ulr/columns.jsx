@@ -31,6 +31,7 @@ export function buildColumns(permissions = []) {
       header: "ID",
       cell: (i) => i.getValue(),
       size: 60,
+      filterFn: "includesString",
     }),
 
     // PHP: $obj->selectfieldwhere("products", "name", "id=$product")
@@ -40,6 +41,7 @@ export function buildColumns(permissions = []) {
       header: "Product",
       cell: (i) => <span className="text-xs">{i.getValue() ?? "—"}</span>,
       size: 220,
+      filterFn: "includesString",
     }),
 
     // PHP: if (in_array(358, $permissions)) → $trfrow['customername']
@@ -48,6 +50,7 @@ export function buildColumns(permissions = []) {
           header: "Main Customer",
           cell: (i) => i.getValue() ?? "—",
           size: 160,
+          filterFn: "includesString",
         })]
       : []),
 
@@ -64,24 +67,28 @@ export function buildColumns(permissions = []) {
         return <span className="text-xs whitespace-pre-line">{val}</span>;
       },
       size: 180,
+      filterFn: "includesString",
     }),
 
     ch.accessor("lrn", {
       header: "LRN",
       cell: (i) => i.getValue() ?? "—",
       size: 150,
+      filterFn: "includesString",
     }),
 
     ch.accessor("brn", {
       header: "BRN",
       cell: (i) => i.getValue() ?? "—",
       size: 160,
+      filterFn: "includesString",
     }),
 
     ch.accessor("ulr", {
       header: "ULR",
       cell: (i) => i.getValue() ?? "—",
       size: 160,
+      filterFn: "includesString",
     }),
 
     // PHP: if (in_array(389, $permissions)) → customertypes.name
@@ -90,6 +97,7 @@ export function buildColumns(permissions = []) {
           header: "Customer Type",
           cell: (i) => i.getValue() ?? "—",
           size: 160,
+          filterFn: "includesString",
         })]
       : []),
 
@@ -99,6 +107,7 @@ export function buildColumns(permissions = []) {
           header: "Specific Purpose",
           cell: (i) => i.getValue() ?? "—",
           size: 130,
+          filterFn: "includesString",
         })]
       : []),
 
@@ -115,6 +124,7 @@ export function buildColumns(permissions = []) {
         return (grade || size) ? `${grade}/${size}` : "NA/NA";
       },
       size: 160,
+      filterFn: "includesString",
     }),
 
     ch.display({
@@ -123,6 +133,7 @@ export function buildColumns(permissions = []) {
       // RowActions reads: row.original.trfstatus, row.original.nabl, row.original.hid
       cell:   (i) => <RowActions row={i.row} />,
       size:   180,
+      enableColumnFilter: false,
     }),
   ];
 

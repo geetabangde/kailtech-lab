@@ -16,10 +16,11 @@ export const columns = [
     header: "Sr No",
     enableSorting: false,
     cell: (info) => (
-      <span className="text-sm text-gray-700 dark:text-dark-200">
+      <span className="text-xs text-gray-700 dark:text-dark-200">
         {info.row.index + 1}
       </span>
     ),
+    enableColumnFilter: false,
   }),
 
   // Product — API: product_name
@@ -27,10 +28,11 @@ export const columns = [
     id: "product",
     header: "Product",
     cell: (info) => (
-      <span className="block max-w-[220px] whitespace-normal text-sm text-gray-700 dark:text-dark-200">
+      <span className="block max-w-[220px] whitespace-normal text-xs text-gray-700 dark:text-dark-200">
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // Main Customer — API: customername (PHP: perm 358)
@@ -38,10 +40,11 @@ export const columns = [
     id: "main_customer",
     header: "Main Customer",
     cell: (info) => (
-      <span className="block max-w-[220px] whitespace-normal text-sm text-gray-700 dark:text-dark-200">
+      <span className="block max-w-[220px] whitespace-normal text-xs text-gray-700 dark:text-dark-200">
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // Report Customer — API: reportname
@@ -55,11 +58,12 @@ export const columns = [
       if (!val) return "—";
       // If API returns resolved names (comma-separated), split on comma → newline
       return (
-        <span className="block whitespace-pre-line text-center text-sm text-gray-700 dark:text-dark-200">
+        <span className="block whitespace-pre-line text-center text-xs text-gray-700 dark:text-dark-200">
           {val.replace(/,/g, "\n")}
         </span>
       );
     },
+    filterFn: "includesString",
   }),
 
   // LRN — API: lrn
@@ -67,10 +71,11 @@ export const columns = [
     id: "lrn",
     header: "LRN",
     cell: (info) => (
-      <span className="text-sm text-gray-700 dark:text-dark-200">
+      <span className="text-xs text-gray-700 dark:text-dark-200">
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // BRN — API: brn
@@ -78,10 +83,11 @@ export const columns = [
     id: "brn",
     header: "BRN",
     cell: (info) => (
-      <span className="text-sm text-gray-700 dark:text-dark-200">
+      <span className="text-xs text-gray-700 dark:text-dark-200">
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // ULR — API: ulr
@@ -89,10 +95,11 @@ export const columns = [
     id: "ulr",
     header: "ULR",
     cell: (info) => (
-      <span className="text-sm text-gray-700 dark:text-dark-200">
+      <span className="text-xs text-gray-700 dark:text-dark-200">
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // Grade/Size — API: grade_name + size_name  (PHP: grades.name + "/" + sizes.name)
@@ -107,10 +114,11 @@ export const columns = [
       id: "grade_size",
       header: "Grade/Size",
       cell: (info) => (
-        <span className="block max-w-[200px] whitespace-normal text-sm leading-tight text-gray-700 dark:text-dark-200">
+        <span className="block max-w-[200px] whitespace-normal text-xs leading-tight text-gray-700 dark:text-dark-200">
           {info.getValue()}
         </span>
       ),
+      filterFn: "includesString",
     }
   ),
 
@@ -123,17 +131,19 @@ export const columns = [
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // Customer Type — API: customer_type  (PHP: customertypes.name, perm 389)
   columnHelper.accessor("customer_type", {
     id: "customer_type",
-    header: "Customer Type",
+    header: () => <div className="text-center leading-tight">Customer <br /> Type</div>,
     cell: (info) => (
-      <span className="block max-w-[150px] whitespace-normal text-sm leading-tight text-gray-700 dark:text-dark-200">
+      <span className="block max-w-[150px] whitespace-normal text-xs leading-tight text-gray-700 dark:text-dark-200">
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // Specific Purpose — API: specific_purpose  (PHP: specificpurposes.name, perm 390)
@@ -141,10 +151,11 @@ export const columns = [
     id: "specific_purpose",
     header: () => <div className="text-center leading-tight">Specific <br /> Purpose</div>,
     cell: (info) => (
-      <span className="text-sm text-gray-700 dark:text-dark-200">
+      <span className="text-xs text-gray-700 dark:text-dark-200">
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // Action — driven by hod_status (PHP logic reproduced in RowActions)
@@ -152,5 +163,6 @@ export const columns = [
     id: "actions",
     header: "Action",
     cell: RowActions,
+    enableColumnFilter: false,
   }),
 ];

@@ -72,6 +72,14 @@ export function RowActions({ row, table }) {
           <span>Edit</span>
         </Link>
 
+        {/* View Address Button */}
+        <Link
+          to={`/dashboards/people/customers/addresses/${row.original.id}`}
+          className="inline-flex items-center justify-center rounded-md bg-green-50 px-4 py-1.5 text-xs font-bold text-green-700 transition hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400 min-w-[90px]"
+        >
+          <span>View Address</span>
+        </Link>
+
         {/* Delete Button */}
         <button
           onClick={openModal}
@@ -79,6 +87,7 @@ export function RowActions({ row, table }) {
         >
           <span>Delete</span>
         </button>
+
       </div>
 
       <ConfirmModal

@@ -22,9 +22,9 @@ function ProductNamesCell({ value }) {
     }
 
     const uniqueIds = [...new Set(ids)];
-    
+
     Promise.all(
-      uniqueIds.map(id => 
+      uniqueIds.map(id =>
         axios.get(`/testing/get-products-byid/${id}`)
           .then(res => ({ id, name: res.data?.data?.name || id }))
           .catch(() => ({ id, name: id }))
@@ -32,7 +32,7 @@ function ProductNamesCell({ value }) {
     ).then(results => {
       const nameMap = {};
       results.forEach(r => { nameMap[r.id] = r.name; });
-      setNames(ids.map(id => nameMap[id]));
+      setNames(uniqueIds.map(id => nameMap[id]));
       setLoading(false);
     });
   }, [value]);
@@ -64,9 +64,9 @@ function GradeNamesCell({ value }) {
     }
 
     const uniqueIds = [...new Set(ids)];
-    
+
     Promise.all(
-      uniqueIds.map(id => 
+      uniqueIds.map(id =>
         axios.get(`/testing/get-grade-byid/${id}`)
           .then(res => ({ id, name: res.data?.data?.name || id }))
           .catch(() => ({ id, name: id }))
@@ -74,7 +74,7 @@ function GradeNamesCell({ value }) {
     ).then(results => {
       const nameMap = {};
       results.forEach(r => { nameMap[r.id] = r.name; });
-      setNames(ids.map(id => nameMap[id]));
+      setNames(uniqueIds.map(id => nameMap[id]));
       setLoading(false);
     });
   }, [value]);
@@ -106,9 +106,9 @@ function SizeNamesCell({ value }) {
     }
 
     const uniqueIds = [...new Set(ids)];
-    
+
     Promise.all(
-      uniqueIds.map(id => 
+      uniqueIds.map(id =>
         axios.get(`/testing/get-size-byid/${id}`)
           .then(res => ({ id, name: res.data?.data?.name || id }))
           .catch(() => ({ id, name: id }))
@@ -116,7 +116,7 @@ function SizeNamesCell({ value }) {
     ).then(results => {
       const nameMap = {};
       results.forEach(r => { nameMap[r.id] = r.name; });
-      setNames(ids.map(id => nameMap[id]));
+      setNames(uniqueIds.map(id => nameMap[id]));
       setLoading(false);
     });
   }, [value]);
@@ -148,9 +148,9 @@ function ReportNamesCell({ value }) {
     }
 
     const uniqueIds = [...new Set(ids)];
-    
+
     Promise.all(
-      uniqueIds.map(id => 
+      uniqueIds.map(id =>
         axios.get(`/people/get-single-customer/${id}`)
           .then(res => ({ id, name: res.data?.data?.name || id }))
           .catch(() => ({ id, name: id }))
@@ -158,7 +158,7 @@ function ReportNamesCell({ value }) {
     ).then(results => {
       const nameMap = {};
       results.forEach(r => { nameMap[r.id] = r.name; });
-      setNames(ids.map(id => nameMap[id]));
+      setNames(uniqueIds.map(id => nameMap[id]));
       setLoading(false);
     });
   }, [value]);
@@ -187,9 +187,8 @@ export const columns = [
             e.stopPropagation();
             row.toggleExpanded();
           }}
-          className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full font-bold text-white shadow-sm transition-colors ${
-            row.getIsExpanded() ? "bg-red-500 hover:bg-red-600" : "bg-green-500 hover:bg-green-600"
-          }`}
+          className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full font-bold text-white shadow-sm transition-colors ${row.getIsExpanded() ? "bg-red-500 hover:bg-red-600" : "bg-green-500 hover:bg-green-600"
+            }`}
         >
           {row.getIsExpanded() ? "−" : "+"}
         </button>
@@ -221,7 +220,7 @@ export const columns = [
     header: "Customer",
     cell: (info) => {
       const permissions = JSON.parse(localStorage.getItem("userPermissions") || "[]");
-      if (!permissions.includes(358)) return "Not Permitted";
+      if (!permissions.includes(358)) return "";
       return (
         <div className="block max-w-[200px] whitespace-normal text-sm text-gray-700 dark:text-dark-200">
           {info.getValue() || "—"}
@@ -244,10 +243,14 @@ export const columns = [
     header: "BRN Nos",
     cell: (info) => {
       const permissions = JSON.parse(localStorage.getItem("userPermissions") || "[]");
-      if (!permissions.includes(376)) return "Not Permitted";
+      if (!permissions.includes(376)) return "";
+      const value = info.getValue() || "";
+      const uniqueVals = value
+        ? [...new Set(value.split(",").map(v => v.trim()).filter(Boolean))].join(", ")
+        : "—";
       return (
         <div className="block max-w-[150px] whitespace-normal text-sm text-gray-700 dark:text-dark-200">
-          {info.getValue() || "—"}
+          {uniqueVals}
         </div>
       );
     },
@@ -259,10 +262,14 @@ export const columns = [
     header: "LRN Nos",
     cell: (info) => {
       const permissions = JSON.parse(localStorage.getItem("userPermissions") || "[]");
-      if (!permissions.includes(375)) return "Not Permitted";
+      if (!permissions.includes(375)) return "";
+      const value = info.getValue() || "";
+      const uniqueVals = value
+        ? [...new Set(value.split(",").map(v => v.trim()).filter(Boolean))].join(", ")
+        : "—";
       return (
         <div className="block max-w-[150px] whitespace-normal text-sm text-gray-700 dark:text-dark-200">
-          {info.getValue() || "—"}
+          {uniqueVals}
         </div>
       );
     },
@@ -392,9 +399,6 @@ export const columns = [
 
 
 
-
-
-
   // ✅ Grades
   columnHelper.accessor("grades_display", {
     id: "grades",
@@ -415,7 +419,7 @@ export const columns = [
     header: "PO Number",
     cell: (info) => {
       const permissions = JSON.parse(localStorage.getItem("userPermissions") || "[]");
-      if (!permissions.includes(371)) return "Not Permitted";
+      if (!permissions.includes(371)) return "";
       return info.getValue() || "-";
     },
   }),
@@ -467,5 +471,5 @@ export const columns = [
     ),
   }),
 
-  
+
 ];

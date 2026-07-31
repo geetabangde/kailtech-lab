@@ -11,14 +11,14 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import clsx from "clsx";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Fragment } from "react";
 import { Link } from "react-router-dom";
 import axios from "utils/axios";
 import { createColumnHelper } from "@tanstack/react-table";
 
 // Local Imports
 import ReactSelect from "react-select";
-import { Table, Card, THead, TBody, Th, Tr, Td } from "components/ui";
+import { Table, Card, THead, TBody, Th, Tr, Td, Input } from "components/ui";
 import { TableSortIcon } from "components/shared/table/TableSortIcon";
 import { Page } from "components/shared/Page";
 import { useLockScrollbar, useDidUpdate, useLocalStorage } from "hooks";
@@ -50,10 +50,10 @@ function usePermissions() {
 function PerformTestRowActions({ row }) {
   return (
     <Link
-      to={`/dashboards/action-items/perform-testing/${row.original.id}`}
-      className="inline-block rounded bg-primary-600 px-4 py-1.5 text-xs font-semibold text-white shadow transition hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-400"
+      to={`/dashboards/action-items/perform-testing/${row.original.id}?lrn=${row.original.lrn}`}
+      className="inline-block rounded bg-primary-600 px-2 py-1 text-[10.5px] font-semibold text-white shadow transition hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-400"
     >
-      Perform Test
+      <>Perform <br /> Test</>
     </Link>
   );
 }
@@ -67,7 +67,7 @@ const performTestColumns = [
     id: "id",
     header: "ID",
     cell: (info) => (
-      <span className="text-sm text-gray-800 dark:text-dark-100">
+      <span className="text-[11px] text-gray-800 dark:text-dark-100">
         {info.getValue()}
       </span>
     ),
@@ -76,7 +76,7 @@ const performTestColumns = [
     id: "product",
     header: "Product",
     cell: (info) => (
-      <span className="block max-w-[240px] whitespace-normal leading-tight text-sm text-gray-800 dark:text-dark-100">
+      <span className="block max-w-[150px] whitespace-normal leading-tight text-[11px] text-gray-800 dark:text-dark-100">
         {info.getValue() ?? "—"}
       </span>
     ),
@@ -91,7 +91,7 @@ const performTestColumns = [
     id: "brand",
     header: "Brand/Source",
     cell: (info) => (
-      <span className="block max-w-[240px] whitespace-normal leading-tight text-sm text-gray-800 dark:text-dark-100">
+      <span className="block max-w-[150px] whitespace-normal leading-tight text-[11px] text-gray-800 dark:text-dark-100">
         {info.getValue() || "-"}
       </span>
     ),
@@ -101,7 +101,7 @@ const performTestColumns = [
     id: "grade_size",
     header: "Grade/Size",
     cell: (info) => (
-      <span className="block max-w-[240px] whitespace-normal leading-tight text-sm text-gray-800 dark:text-dark-100">
+      <span className="block max-w-[150px] whitespace-normal leading-tight text-[11px] text-gray-800 dark:text-dark-100">
         {info.getValue()}
       </span>
     ),
@@ -191,6 +191,7 @@ export default function PerformTest() {
   const [endDate, setEndDate] = useState("");
   const [department, setDepartment] = useState("");
   const [globalFilter, setGlobalFilter] = useState("");
+  const [columnFilters, setColumnFilters] = useState([]);
 
   // ── Table setup ──────────────────────────
   const [tableSettings] = useState({
@@ -266,6 +267,7 @@ export default function PerformTest() {
     columns: performTestColumns,
     state: {
       globalFilter,
+      columnFilters,
       sorting,
       columnVisibility,
       columnPinning,
@@ -288,6 +290,7 @@ export default function PerformTest() {
     },
     enableSorting: tableSettings.enableSorting,
     enableColumnFilters: true,
+    onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
     onGlobalFilterChange: setGlobalFilter,
     getFilteredRowModel: getFilteredRowModel(),
@@ -370,11 +373,11 @@ export default function PerformTest() {
               "transition-content flex grow flex-col pt-3",
               tableSettings.enableFullScreen
                 ? "overflow-hidden"
-                : "px-[var(--margin-x)]"
+                : ""
             )}
           >
             {/* ── Filters ───────────────────────────────────────────────────── */}
-            <div className="mb-4 flex flex-wrap items-end gap-3 rounded-xl border border-gray-200 bg-white px-5 py-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
+            <div className="mb-4 flex flex-wrap items-end gap-3 rounded-xl border border-gray-200 bg-white px-5 py-3 shadow-sm dark:border-gray-700 dark:bg-gray-900">
               {/* Start Date */}
               <div className="flex flex-col gap-1">
                 <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
@@ -382,7 +385,7 @@ export default function PerformTest() {
                 </label>
                 <input
                   type="date"
-                  className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300"
+                  className="rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
                 />
@@ -395,7 +398,7 @@ export default function PerformTest() {
                 </label>
                 <input
                   type="date"
-                  className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300"
+                  className="rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
                 />
@@ -430,8 +433,9 @@ export default function PerformTest() {
                   styles={{
                     control: (base) => ({
                       ...base,
+                      minHeight: "32px",
                       borderRadius: "8px",
-                      fontSize: "0.875rem",
+                      fontSize: "0.75rem",
                     }),
                   }}
                 />
@@ -445,7 +449,7 @@ export default function PerformTest() {
                   setDepartment("");
                   setGlobalFilter("");
                 }}
-                className="inline-flex h-[38px] items-center rounded-lg border border-gray-300 px-4 text-sm font-medium text-gray-600 transition hover:bg-gray-50 hover:text-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+                className="inline-flex h-[32px] items-center rounded-lg border border-gray-300 px-3 text-xs font-medium text-gray-600 transition hover:bg-gray-50 hover:text-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200"
               >
                 Reset
               </button>
@@ -469,50 +473,85 @@ export default function PerformTest() {
                   hoverable
                   dense={tableSettings.enableRowDense}
                   sticky={tableSettings.enableFullScreen}
-                  className="w-full text-left rtl:text-right"
+                  className="w-full table-auto text-left rtl:text-right text-[11px] [&_td]:whitespace-normal [&_td]:break-words [&_th]:px-1 [&_td]:px-1"
                 >
                   <THead>
                     {table.getHeaderGroups().map((headerGroup) => (
-                      <Tr key={headerGroup.id}>
-                        {headerGroup.headers.map((header) => (
-                          <Th
-                            key={header.id}
-                            className={clsx(
-                              "bg-gray-200 font-semibold uppercase text-gray-800 dark:bg-dark-800 dark:text-dark-100 first:ltr:rounded-tl-lg last:ltr:rounded-tr-lg first:rtl:rounded-tr-lg last:rtl:rounded-tl-lg",
-                              header.column.getCanPin() && [
-                                header.column.getIsPinned() === "left" &&
-                                "sticky z-2 ltr:left-0 rtl:right-0",
-                                header.column.getIsPinned() === "right" &&
-                                "sticky z-2 ltr:right-0 rtl:left-0",
-                              ]
-                            )}
-                          >
-                            {header.column.getCanSort() ? (
-                              <div
-                                className="flex cursor-pointer select-none items-center space-x-3"
-                                onClick={header.column.getToggleSortingHandler()}
-                              >
-                                <span className="flex-1">
-                                  {header.isPlaceholder
-                                    ? null
-                                    : flexRender(
-                                      header.column.columnDef.header,
-                                      header.getContext()
-                                    )}
-                                </span>
-                                <TableSortIcon
-                                  sorted={header.column.getIsSorted()}
-                                />
-                              </div>
-                            ) : header.isPlaceholder ? null : (
-                              flexRender(
-                                header.column.columnDef.header,
-                                header.getContext()
-                              )
-                            )}
-                          </Th>
-                        ))}
-                      </Tr>
+                      <Fragment key={headerGroup.id}>
+                        <Tr>
+                          {headerGroup.headers.map((header) => (
+                            <Th
+                              key={header.id}
+                              className={clsx(
+                                "px-2 py-2 text-xs bg-gray-200 font-semibold uppercase text-gray-800 dark:bg-dark-800 dark:text-dark-100 first:ltr:rounded-tl-lg last:ltr:rounded-tr-lg first:rtl:rounded-tr-lg last:rtl:rounded-tl-lg",
+                                header.column.getCanPin() && [
+                                  header.column.getIsPinned() === "left" &&
+                                  "sticky z-2 ltr:left-0 rtl:right-0",
+                                  header.column.getIsPinned() === "right" &&
+                                  "sticky z-2 ltr:right-0 rtl:left-0",
+                                ]
+                              )}
+                            >
+                              {header.column.getCanSort() ? (
+                                <div
+                                  className="flex cursor-pointer select-none items-center space-x-3"
+                                  onClick={header.column.getToggleSortingHandler()}
+                                >
+                                  <span className="flex-1">
+                                    {header.isPlaceholder
+                                      ? null
+                                      : flexRender(
+                                        header.column.columnDef.header,
+                                        header.getContext()
+                                      )}
+                                  </span>
+                                  <TableSortIcon
+                                    sorted={header.column.getIsSorted()}
+                                  />
+                                </div>
+                              ) : header.isPlaceholder ? null : (
+                                flexRender(
+                                  header.column.columnDef.header,
+                                  header.getContext()
+                                )
+                              )}
+                            </Th>
+                          ))}
+                        </Tr>
+                        <Tr className="dark:bg-dark-800/50 bg-gray-50">
+                          {headerGroup.headers.map((header) => (
+                            <Th
+                              key={header.id + "-filter"}
+                              className={clsx(
+                                "dark:border-dark-600 border-t border-gray-300 px-2 py-1.5",
+                                header.column.getCanPin() && [
+                                  header.column.getIsPinned() === "left" &&
+                                  "sticky z-2 ltr:left-0 rtl:right-0",
+                                  header.column.getIsPinned() === "right" &&
+                                  "sticky z-2 ltr:right-0 rtl:left-0",
+                                ],
+                              )}
+                            >
+                              {header.column.getCanFilter() ? (
+                                <div onClick={(e) => e.stopPropagation()}>
+                                  <Input
+                                    size="sm"
+                                    placeholder={`Search...`}
+                                    value={header.column.getFilterValue() ?? ""}
+                                    onChange={(e) =>
+                                      header.column.setFilterValue(e.target.value)
+                                    }
+                                    classNames={{
+                                      input:
+                                        "ring-primary-500/30 dark:bg-dark-900 dark:border-dark-700 h-7 border-gray-300 px-2 py-1 text-[10px] focus:ring-1",
+                                    }}
+                                  />
+                                </div>
+                              ) : null}
+                            </Th>
+                          ))}
+                        </Tr>
+                      </Fragment>
                     ))}
                   </THead>
                   <TBody>
@@ -540,7 +579,7 @@ export default function PerformTest() {
                             <Td
                               key={cell.id}
                               className={clsx(
-                                "relative bg-white align-top px-4 py-3",
+                                "relative bg-white align-top px-2 py-2",
                                 cardSkin === "shadow"
                                   ? "dark:bg-dark-700"
                                   : "dark:bg-dark-900",

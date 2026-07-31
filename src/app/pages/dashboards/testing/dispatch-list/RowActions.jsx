@@ -7,7 +7,6 @@ import {
   Transition,
   TransitionChild,
 } from "@headlessui/react";
-import { EyeIcon } from "@heroicons/react/24/outline";
 import PropTypes from "prop-types";
 
 // Local Imports
@@ -127,7 +126,7 @@ export function RowActions({ row, table }) {
           to={`/dashboards/testing/dispatch-list/dispatchformtesting/${rowId}`}
           className="inline-flex h-8 items-center gap-1 rounded-lg bg-blue-50 px-3 text-xs font-semibold text-blue-700 transition hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400"
         >
-          <EyeIcon className="size-3.5" />
+
           View Dispatch Form
         </Link>
 

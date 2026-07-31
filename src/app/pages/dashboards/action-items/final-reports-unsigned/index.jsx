@@ -10,11 +10,11 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import clsx from "clsx";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Fragment } from "react";
 import axios from "utils/axios";
 
 // Local Imports
-import { Table, Card, THead, TBody, Th, Tr, Td } from "components/ui";
+import { Table, Card, THead, TBody, Th, Tr, Td, Input } from "components/ui";
 import { TableSortIcon } from "components/shared/table/TableSortIcon";
 import { Page } from "components/shared/Page";
 import { useLockScrollbar, useDidUpdate, useLocalStorage } from "hooks";
@@ -75,6 +75,7 @@ export default function FinalReportUnsigned() {
 
   const [globalFilter,     setGlobalFilter]     = useState("");
   const [sorting,          setSorting]          = useState([{ id: "id", desc: true }]);
+  const [columnFilters,    setColumnFilters]    = useState([]);
   const [columnVisibility, setColumnVisibility] = useLocalStorage(
     "column-visibility-final-report-unsigned-1", {}
   );
@@ -90,6 +91,7 @@ export default function FinalReportUnsigned() {
     state: {
       globalFilter,
       sorting,
+      columnFilters,
       columnVisibility,
       columnPinning,
       tableSettings,
@@ -117,7 +119,8 @@ export default function FinalReportUnsigned() {
     },
     filterFns:                { fuzzy: fuzzyFilter },
     enableSorting:            true,
-    enableColumnFilters:      tableSettings.enableColumnFilters,
+    enableColumnFilters:      true,
+    onColumnFiltersChange:    setColumnFilters,
     getCoreRowModel:          getCoreRowModel(),
     onGlobalFilterChange:     setGlobalFilter,
     getFilteredRowModel:      getFilteredRowModel(),
@@ -182,7 +185,7 @@ export default function FinalReportUnsigned() {
               "transition-content flex grow flex-col pt-3",
               tableSettings.enableFullScreen
                 ? "overflow-hidden"
-                : "px-[var(--margin-x)]",
+                : "",
             )}
           >
             <Card
@@ -196,49 +199,84 @@ export default function FinalReportUnsigned() {
                   hoverable
                   dense={tableSettings.enableRowDense}
                   sticky={tableSettings.enableFullScreen}
-                  className="w-full text-left rtl:text-right"
+                  className="w-full table-auto text-left rtl:text-right text-[11px] [&_td]:whitespace-normal [&_td]:break-words [&_th]:px-1 [&_td]:px-1"
                 >
                   <THead>
                     {table.getHeaderGroups().map((headerGroup) => (
-                      <Tr key={headerGroup.id}>
-                        {headerGroup.headers.map((header) => (
-                          <Th
-                            key={header.id}
-                            className={clsx(
-                              "bg-gray-200 font-semibold uppercase text-gray-800 dark:bg-dark-800 dark:text-dark-100",
-                              "first:ltr:rounded-tl-lg last:ltr:rounded-tr-lg first:rtl:rounded-tr-lg last:rtl:rounded-tl-lg",
-                              header.column.getCanPin() && [
-                                header.column.getIsPinned() === "left" &&
+                      <Fragment key={headerGroup.id}>
+                        <Tr>
+                          {headerGroup.headers.map((header) => (
+                            <Th
+                              key={header.id}
+                              className={clsx(
+                                "bg-gray-200 font-semibold uppercase text-gray-800 dark:bg-dark-800 dark:text-dark-100",
+                                "first:ltr:rounded-tl-lg last:ltr:rounded-tr-lg first:rtl:rounded-tr-lg last:rtl:rounded-tl-lg",
+                                header.column.getCanPin() && [
+                                  header.column.getIsPinned() === "left" &&
+                                    "sticky z-2 ltr:left-0 rtl:right-0",
+                                  header.column.getIsPinned() === "right" &&
+                                    "sticky z-2 ltr:right-0 rtl:left-0",
+                                ],
+                              )}
+                            >
+                              {header.column.getCanSort() ? (
+                                <div
+                                  className="flex cursor-pointer select-none items-center space-x-3"
+                                  onClick={header.column.getToggleSortingHandler()}
+                                >
+                                  <span className="flex-1">
+                                    {header.isPlaceholder
+                                      ? null
+                                      : flexRender(
+                                          header.column.columnDef.header,
+                                          header.getContext(),
+                                        )}
+                                  </span>
+                                  <TableSortIcon sorted={header.column.getIsSorted()} />
+                                </div>
+                              ) : header.isPlaceholder ? null : (
+                                flexRender(
+                                  header.column.columnDef.header,
+                                  header.getContext(),
+                                )
+                              )}
+                            </Th>
+                          ))}
+                        </Tr>
+                        <Tr className="dark:bg-dark-800/50 bg-gray-50">
+                          {headerGroup.headers.map((header) => (
+                            <Th
+                              key={header.id + "-filter"}
+                              className={clsx(
+                                "dark:border-dark-600 border-t border-gray-300 px-2 py-1.5",
+                                header.column.getCanPin() && [
+                                  header.column.getIsPinned() === "left" &&
                                   "sticky z-2 ltr:left-0 rtl:right-0",
-                                header.column.getIsPinned() === "right" &&
+                                  header.column.getIsPinned() === "right" &&
                                   "sticky z-2 ltr:right-0 rtl:left-0",
-                              ],
-                            )}
-                          >
-                            {header.column.getCanSort() ? (
-                              <div
-                                className="flex cursor-pointer select-none items-center space-x-3"
-                                onClick={header.column.getToggleSortingHandler()}
-                              >
-                                <span className="flex-1">
-                                  {header.isPlaceholder
-                                    ? null
-                                    : flexRender(
-                                        header.column.columnDef.header,
-                                        header.getContext(),
-                                      )}
-                                </span>
-                                <TableSortIcon sorted={header.column.getIsSorted()} />
-                              </div>
-                            ) : header.isPlaceholder ? null : (
-                              flexRender(
-                                header.column.columnDef.header,
-                                header.getContext(),
-                              )
-                            )}
-                          </Th>
-                        ))}
-                      </Tr>
+                                ],
+                              )}
+                            >
+                              {header.column.getCanFilter() ? (
+                                <div onClick={(e) => e.stopPropagation()}>
+                                  <Input
+                                    size="sm"
+                                    placeholder={`Search...`}
+                                    value={header.column.getFilterValue() ?? ""}
+                                    onChange={(e) =>
+                                      header.column.setFilterValue(e.target.value)
+                                    }
+                                    classNames={{
+                                      input:
+                                        "ring-primary-500/30 dark:bg-dark-900 dark:border-dark-700 h-7 border-gray-300 px-2 py-1 text-[10px] focus:ring-1",
+                                    }}
+                                  />
+                                </div>
+                              ) : null}
+                            </Th>
+                          ))}
+                        </Tr>
+                      </Fragment>
                     ))}
                   </THead>
 

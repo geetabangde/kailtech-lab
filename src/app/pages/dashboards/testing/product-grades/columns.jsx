@@ -20,6 +20,7 @@ export const columns = [
       </span>
     ),
     meta: { align: "center" },
+    enableColumnFilter: false,
   }),
 
   // ✅ Product Name (from API)
@@ -31,6 +32,7 @@ export const columns = [
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // ✅ Description (from API)
@@ -42,6 +44,7 @@ export const columns = [
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // ✅ Actions
@@ -50,5 +53,6 @@ export const columns = [
     header: () => <div className="text-center w-full">ACTIONS</div>,
     cell: RowActions,
     meta: { align: "center" },
+    enableColumnFilter: false,
   }),
 ];

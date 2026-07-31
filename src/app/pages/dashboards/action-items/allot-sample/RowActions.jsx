@@ -8,9 +8,9 @@ export function RowActions({ row }) {
   return (
     <Link
       to={allotUrl}
-      className="inline-block rounded bg-red-600 px-3 py-1.5 text-xs font-semibold text-white shadow transition hover:bg-red-700"
+      className="inline-block rounded bg-red-600 px-2 py-1 text-[10.5px] font-semibold text-white shadow transition hover:bg-red-700 text-center leading-tight"
     >
-      Allot Sample
+      <>Allot <br /> Sample</>
     </Link>
   );
 }

@@ -22,7 +22,7 @@ export function RowActions({ row }) {
   return (
     <Link
       to={`/dashboards/action-items/pending-upload-reports/${id}`}
-      className="inline-block rounded-md bg-primary-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-1 active:scale-95 text-center"
+      className="inline-block rounded-md bg-primary-600 px-2 py-1 text-[10.5px] whitespace-nowrap font-semibold text-white shadow-sm transition hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-1 active:scale-95 text-center"
     >
       Upload Report
     </Link>

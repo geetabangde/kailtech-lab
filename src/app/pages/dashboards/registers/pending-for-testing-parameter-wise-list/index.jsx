@@ -49,11 +49,11 @@ export default function PendingForTestingLrnWiseList() {
   const [loading, setLoading] = useState(false);
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
-  const initialSearch = queryParams.get("search") || "";
+  const initialSearch = queryParams.get("search") || queryParams.get("lrn") || "";
 
   const [filters, setFilters] = useState({
-    startdate: "2025-01-01",
-    enddate: "2025-01-01",
+    startdate: "",
+    enddate: "",
     chemist: "",
     search: initialSearch,
   });

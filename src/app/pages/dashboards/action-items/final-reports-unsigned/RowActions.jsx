@@ -73,7 +73,7 @@ export function RowActions({ row, table }) {
         return (
           <Link
             to={uploadReportUrl}
-            className="inline-block rounded-md bg-primary-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-400 text-center"
+            className="inline-block rounded-md bg-primary-600 px-2 py-1 text-[10.5px] whitespace-nowrap font-semibold text-white shadow-sm transition hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-400 text-center"
           >
             Upload Report
           </Link>
@@ -82,7 +82,7 @@ export function RowActions({ row, table }) {
       return (
         <Link
           to={finalReportUrl}
-          className="inline-block rounded-md bg-green-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-400 text-center"
+          className="inline-block rounded-md bg-green-600 px-2 py-1 text-[10.5px] whitespace-nowrap font-semibold text-white shadow-sm transition hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-400 text-center"
         >
           Final Report
         </Link>
@@ -90,16 +90,16 @@ export function RowActions({ row, table }) {
     }
 
     return (
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-1">
         <Link
           to={finalReportUrl}
-          className="inline-block rounded-md bg-green-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-400 text-center"
+          className="inline-block rounded-md bg-green-600 px-2 py-1 text-[10.5px] whitespace-nowrap font-semibold text-white shadow-sm transition hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-400 text-center"
         >
           Final Report
         </Link>
         <button
           onClick={openSignatoryModal}
-          className="rounded-md bg-primary-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-400"
+          className="rounded-md bg-primary-600 px-2 py-1 text-[10.5px] whitespace-nowrap font-semibold text-white shadow-sm transition hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-400"
         >
           Change Signatories
         </button>

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import axios from "utils/axios";
 import Select from "react-select";
 import { Page } from "components/shared/Page";
+import { Input } from "components/ui";
 
 // ── Permissions ───────────────────────────────────────────────────────────────
 function usePermissions() {
@@ -26,6 +27,11 @@ export default function PendingTechnicalAcceptance() {
   const [ctype, setCtype] = useState("");
   const [specificpurpose, setSpecificpurpose] = useState("");
   const [search, setSearch] = useState("");
+  const [columnFilters, setColumnFilters] = useState({});
+
+  const handleColumnFilterChange = (col, val) => {
+    setColumnFilters((prev) => ({ ...prev, [col]: val }));
+  };
 
   // ── Fetch dropdown options ────────────────────────────────────────────────
   useEffect(() => {
@@ -77,12 +83,32 @@ export default function PendingTechnicalAcceptance() {
 
   // ── Client-side search ────────────────────────────────────────────────────
   const filtered = data.filter((row) => {
-    if (!search.trim()) return true;
-    const q = search.toLowerCase();
-    return [
-      row.product, row.package, String(row.trf), row.lrn,
-      row.grade_size, row.customer_type, row.specific_purpose,
-    ].some((v) => v?.toLowerCase().includes(q));
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      if (![
+        row.product, row.product_name, row.package, row.package_name, String(row.trf), row.lrn,
+        row.grade_size, row.customer_type, row.specific_purpose,
+      ].some((v) => v?.toLowerCase().includes(q))) {
+        return false;
+      }
+    }
+
+    for (const [col, val] of Object.entries(columnFilters)) {
+      if (!val) continue;
+      const q = val.toLowerCase();
+      let cellValue = "";
+      if (col === "Product") cellValue = row.product ?? row.product_name ?? "";
+      if (col === "Package") cellValue = row.package ?? row.package_name ?? "";
+      if (col === "TRF No") cellValue = String(row.trf ?? "");
+      if (col === "LRN") cellValue = row.lrn ?? "";
+      if (col === "Grade/Size") cellValue = row.grade_size ?? (row.grade && row.size ? `${row.grade}/${row.size}` : "NA/NA");
+      if (col === "Customer Type") cellValue = row.customer_type ?? customerTypes.find((c) => c.id === row.ctype)?.name ?? "";
+      if (col === "Specific Purpose") cellValue = row.specific_purpose ?? specificPurposes.find((s) => s.id === row.specificpurpose)?.name ?? "";
+
+      if (!cellValue.toLowerCase().includes(q)) return false;
+    }
+
+    return true;
   });
 
   // ── No access ─────────────────────────────────────────────────────────────
@@ -116,8 +142,8 @@ export default function PendingTechnicalAcceptance() {
   const customSelectStyles = {
     control: (base, state) => ({
       ...base,
-      minHeight: "42px",
-      minWidth: "220px",
+      minHeight: "32px",
+      minWidth: "150px",
       borderColor: state.isFocused ? "#3b82f6" : "#d1d5db",
       boxShadow: state.isFocused ? "0 0 0 2px rgba(59, 130, 246, 0.5)" : "none",
       "&:hover": {
@@ -140,14 +166,14 @@ export default function PendingTechnicalAcceptance() {
 
         {/* ── Title ── */}
         <div className="mb-5">
-          <h2 className="text-lg font-bold text-gray-800 dark:text-white">
+          <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
             Pending Technical Acceptance
           </h2>
         </div>
 
         {/* ── Filters — PHP: ctype (389), specificpurpose (390) ── */}
         {(permissions.includes(389) || permissions.includes(390)) && (
-          <div className="mb-4 flex flex-wrap items-end gap-4 rounded-xl border border-gray-200 bg-white px-5 py-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
+          <div className="mb-4 flex flex-wrap items-end gap-4 rounded-xl border border-gray-200 bg-white px-5 py-3 shadow-sm dark:border-gray-700 dark:bg-gray-900">
             {permissions.includes(389) && (
               <div className="flex flex-col gap-1">
                 <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
@@ -186,7 +212,7 @@ export default function PendingTechnicalAcceptance() {
 
             <button
               onClick={() => { setCtype(""); setSpecificpurpose(""); }}
-              className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-600 transition hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800"
+              className="rounded-lg border border-gray-300 px-3 py-1.5 text-xs text-gray-600 transition hover:bg-gray-50 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-800"
             >
               Clear Filters
             </button>
@@ -217,7 +243,7 @@ export default function PendingTechnicalAcceptance() {
 
           {/* Table */}
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-[11px] [&_td]:whitespace-normal [&_td]:break-words">
               <thead>
                 <tr className="border-b border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800/50">
                   {[
@@ -229,9 +255,38 @@ export default function PendingTechnicalAcceptance() {
                   ].map((h) => (
                     <th
                       key={h}
-                      className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400"
+                      className="px-1 py-1 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400"
                     >
                       {h}
+                    </th>
+                  ))}
+                </tr>
+                <tr className="dark:bg-dark-800/50 bg-gray-50">
+                  {[
+                    "S.No.", "Product", "Package", "TRF No", "LRN",
+                    "Grade/Size",
+                    ...(permissions.includes(389) ? ["Customer Type"] : []),
+                    ...(permissions.includes(390) ? ["Specific Purpose"] : []),
+                    "Action",
+                  ].map((h) => (
+                    <th
+                      key={h + "-filter"}
+                      className="border-t border-gray-300 dark:border-dark-600 px-2 py-1.5"
+                    >
+                      {["Product", "Package", "TRF No", "LRN", "Grade/Size", "Customer Type", "Specific Purpose"].includes(h) ? (
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <Input
+                            size="sm"
+                            placeholder={`Search...`}
+                            value={columnFilters[h] || ""}
+                            onChange={(e) => handleColumnFilterChange(h, e.target.value)}
+                            classNames={{
+                              input:
+                                "ring-primary-500/30 dark:bg-dark-900 dark:border-dark-700 h-7 border-gray-300 px-2 py-1 text-[10px] focus:ring-1",
+                            }}
+                          />
+                        </div>
+                      ) : null}
                     </th>
                   ))}
                 </tr>
@@ -252,28 +307,28 @@ export default function PendingTechnicalAcceptance() {
                       key={row.id}
                       className="border-b border-gray-100 hover:bg-gray-50/50 dark:border-gray-800 dark:hover:bg-gray-800/30"
                     >
-                      <td className="px-4 py-3 text-gray-500 dark:text-gray-400">
+                      <td className="px-1 py-1 text-gray-500 dark:text-gray-400">
                         {idx + 1}
                       </td>
-                      <td className="px-4 py-3 font-medium text-gray-800 dark:text-gray-200">
+                      <td className="px-1 py-1 font-medium text-gray-800 dark:text-gray-200">
                         {row.product ?? row.product_name ?? "—"}
                       </td>
-                      <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
+                      <td className="px-1 py-1 text-gray-600 dark:text-gray-400">
                         {row.package ?? row.package_name ?? "—"}
                       </td>
-                      <td className="px-4 py-3 font-mono text-xs font-semibold text-blue-600 dark:text-blue-400">
+                      <td className="px-1 py-1 font-mono text-xs font-semibold text-blue-600 dark:text-blue-400">
                         {row.trf ?? "—"}
                       </td>
-                      <td className="px-4 py-3 font-mono text-xs text-gray-600 dark:text-gray-400">
+                      <td className="px-1 py-1 font-mono text-xs text-gray-600 dark:text-gray-400">
                         {row.lrn || "—"}
                       </td>
-                      <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
+                      <td className="px-1 py-1 text-gray-600 dark:text-gray-400">
                         {row.grade_size ?? (row.grade && row.size ? `${row.grade}/${row.size}` : "NA/NA")}
                       </td>
 
                       {/* Customer Type — permission 389 */}
                       {permissions.includes(389) && (
-                        <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
+                        <td className="px-1 py-1 text-gray-600 dark:text-gray-400">
                           {row.customer_type ??
                             customerTypes.find((c) => c.id === row.ctype)?.name ??
                             "—"}
@@ -282,7 +337,7 @@ export default function PendingTechnicalAcceptance() {
 
                       {/* Specific Purpose — permission 390 */}
                       {permissions.includes(390) && (
-                        <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
+                        <td className="px-1 py-1 text-gray-600 dark:text-gray-400">
                           {row.specific_purpose ??
                             specificPurposes.find((s) => s.id === row.specificpurpose)?.name ??
                             "—"}
@@ -290,13 +345,13 @@ export default function PendingTechnicalAcceptance() {
                       )}
 
                       {/* Action — PHP: in_array(126, $permissions) */}
-                      <td className="px-4 py-3">
+                      <td className="px-1 py-1">
                         {row.status === 2 && permissions.includes(126) ? (
                           <Link
                             to={`/dashboards/testing/trfs-starts-jobs/technical-acceptance/${row.id}`}
-                            className="inline-block rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-blue-700"
+                            className="inline-block rounded bg-blue-600 px-2 py-1 text-[10.5px] font-semibold text-white shadow transition hover:bg-blue-700 text-center leading-tight"
                           >
-                            Technical Acceptance
+                            <>Technical <br /> Acceptance</>
                           </Link>
                         ) : (
                           <span className="text-xs text-gray-400">No Action Required</span>

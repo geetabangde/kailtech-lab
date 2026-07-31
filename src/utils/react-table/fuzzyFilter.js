@@ -1,14 +1,20 @@
-import { rankItem } from "@tanstack/match-sorter-utils";
-
+// Custom multi-word search filter
 export const fuzzyFilter = (row, columnId, value, addMeta) => {
-    // Rank the item
-    const itemRank = rankItem(row.getValue(columnId), value);
+    // Combine all cell values into a single lowercase string for cross-column searching
+    const rowText = row.getAllCells().map(cell => {
+        const v = cell.getValue();
+        return v == null ? "" : String(v).toLowerCase();
+    }).join(" ");
 
-    // Store the itemRank info
+    // Split the search query into individual lowercase words
+    const queryWords = String(value).toLowerCase().split(/\s+/).filter(Boolean);
+
+    // The row matches if EVERY word in the search query is found anywhere in the row
+    const passed = queryWords.every(word => rowText.includes(word));
+
     addMeta({
-        itemRank,
+        itemRank: { passed }
     });
 
-    // Return if the item should be filtered in/out
-    return itemRank.passed;
+    return passed;
 };

@@ -34,6 +34,7 @@ export const columns = [
       </span>
     ),
     meta: { align: "center" },
+    enableColumnFilter: false,
   }),
 
   // ── Inward No (trfid from API) ────────────────────────────────────────────
@@ -45,6 +46,7 @@ export const columns = [
         {info.getValue() || "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // ── Date of Receive ───────────────────────────────────────────────────────
@@ -56,6 +58,7 @@ export const columns = [
         {formatDate(info.getValue())}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // ── ID No ─────────────────────────────────────────────────────────────────
@@ -67,6 +70,7 @@ export const columns = [
         {info.getValue() || "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // ── Serial No ─────────────────────────────────────────────────────────────
@@ -78,6 +82,7 @@ export const columns = [
         {info.getValue() || "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // ── Customer Name ─────────────────────────────────────────────────────────
@@ -89,6 +94,7 @@ export const columns = [
         {info.getValue() || "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // ── Certificate No (brnno) ────────────────────────────────────────────────
@@ -100,6 +106,7 @@ export const columns = [
         {info.getValue() || "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // ── LRN No ────────────────────────────────────────────────────────────────
@@ -111,6 +118,7 @@ export const columns = [
         {info.getValue() || "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // ── Reason ────────────────────────────────────────────────────────────────
@@ -133,6 +141,7 @@ export const columns = [
         {info.getValue() || "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // ── Requested On (added_on) ───────────────────────────────────────────────
@@ -144,6 +153,7 @@ export const columns = [
         {formatDate(info.getValue())}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // ── Requested By (firstname + lastname) ───────────────────────────────────
@@ -157,6 +167,7 @@ export const columns = [
           {info.getValue() || "—"}
         </span>
       ),
+      filterFn: "includesString",
     }
   ),
 
@@ -169,6 +180,7 @@ export const columns = [
         {formatDate(info.getValue())}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // ── Approved By (appfname + applname) ─────────────────────────────────────
@@ -182,6 +194,7 @@ export const columns = [
           {info.getValue() || "—"}
         </span>
       ),
+      filterFn: "includesString",
     }
   ),
 
@@ -203,6 +216,7 @@ export const columns = [
         </span>
       );
     },
+    enableColumnFilter: false,
   }),
 
   // ── Actions ───────────────────────────────────────────────────────────────
@@ -211,5 +225,6 @@ export const columns = [
     header: () => <div className="text-center w-full">ACTIONS</div>,
     cell: RowActions,
     meta: { align: "center" },
+    enableColumnFilter: false,
   }),
 ];

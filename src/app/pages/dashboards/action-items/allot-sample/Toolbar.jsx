@@ -1,5 +1,5 @@
 // Import Dependencies
-import {MagnifyingGlassIcon} from "@heroicons/react/24/outline";
+import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 import clsx from "clsx";
 import { Link } from "react-router-dom";
 import {
@@ -31,9 +31,9 @@ export function Toolbar({ table }) {
           isFullScreenEnabled ? "px-4 sm:px-5" : "px-[var(--margin-x)] pt-4",
         )}
       >
-        
+
         <div className="flex w-full items-center justify-between gap-4">
-          <h2 className="text-xl font-semibold tracking-wide text-gray-800 dark:text-dark-50">
+          <h2 className="text-base font-semibold tracking-wide text-gray-800 dark:text-dark-50">
             TRF Entry List
           </h2>
           {permissions.includes(124) && (
@@ -71,7 +71,7 @@ export function Toolbar({ table }) {
                     className={clsx(
                       "flex h-9 w-full items-center px-3 tracking-wide outline-none transition-colors",
                       focus &&
-                        "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
+                      "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
                     )}
                   >
                     <span>Export as PDF</span>
@@ -84,7 +84,7 @@ export function Toolbar({ table }) {
                     className={clsx(
                       "flex h-9 w-full items-center px-3 tracking-wide outline-none transition-colors",
                       focus &&
-                        "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
+                      "bg-gray-100 text-gray-800 dark:bg-dark-600 dark:text-dark-100",
                     )}
                   >
                     <span>Export as CSV</span>

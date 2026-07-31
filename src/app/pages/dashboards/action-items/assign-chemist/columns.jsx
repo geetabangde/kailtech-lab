@@ -36,7 +36,7 @@ function SpecificPurposeCell({ id }) {
 
   if (loading) return <span className="animate-pulse text-gray-400">...</span>;
   return (
-    <span className="block max-w-[240px] mx-auto text-center whitespace-normal text-sm leading-tight">
+    <span className="block max-w-[240px] mx-auto text-center whitespace-normal text-xs leading-tight">
       {name}
     </span>
   );
@@ -71,7 +71,7 @@ function CustomerTypeCell({ id }) {
 
   if (loading) return <span className="animate-pulse text-gray-400">...</span>;
   return (
-    <span className="block max-w-[240px] whitespace-normal text-sm leading-tight">
+    <span className="block max-w-[240px] whitespace-normal text-xs leading-tight">
       {name}
     </span>
   );
@@ -87,6 +87,7 @@ export const columns = [
     id: "s_no",
     header: "S. No.",
     cell: (info) => info.row.index + 1,
+    enableColumnFilter: false,
   }),
 
   // Product
@@ -94,10 +95,11 @@ export const columns = [
     id: "product",
     header: "Product",
     cell: (info) => (
-      <span className="block max-w-[200px] whitespace-normal text-sm leading-tight">
+      <span className="block max-w-[200px] whitespace-normal text-xs leading-tight">
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // Package
@@ -105,10 +107,11 @@ export const columns = [
     id: "package",
     header: "Package",
     cell: (info) => (
-      <span className="block max-w-[240px] whitespace-normal text-sm leading-tight">
+      <span className="block max-w-[240px] whitespace-normal text-xs leading-tight">
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // LRN
@@ -116,10 +119,11 @@ export const columns = [
     id: "lrn",
     header: "LRN",
     cell: (info) => (
-      <span className="font-mono text-sm font-semibold text-blue-600 dark:text-blue-400">
+      <span className="font-mono text-xs font-semibold text-blue-600 dark:text-blue-400">
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // Grade/Size
@@ -131,10 +135,11 @@ export const columns = [
     id: "grade_size",
     header: "Grade/Size",
     cell: (info) => (
-      <span className="block max-w-[240px] whitespace-normal text-sm font-medium text-gray-700 dark:text-gray-300">
+      <span className="block max-w-[240px] whitespace-normal text-xs font-medium text-gray-700 dark:text-gray-300">
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // Customer Type — API: ctype
@@ -142,6 +147,7 @@ export const columns = [
     id: "customer_type",
     header: "Customer Type",
     cell: (info) => <CustomerTypeCell id={info.getValue()} />,
+    filterFn: "includesString",
   }),
 
   // Specific Purpose — API: specificpurpose
@@ -149,6 +155,7 @@ export const columns = [
     id: "specific_purpose",
     header: () => <div className="text-center leading-tight">Specific <br /> Purpose</div>,
     cell: (info) => <SpecificPurposeCell id={info.getValue()} />,
+    filterFn: "includesString",
   }),
 
   // Action
@@ -156,5 +163,6 @@ export const columns = [
     id: "actions",
     header: "Action",
     cell: RowActions,
+    enableColumnFilter: false,
   }),
 ];

@@ -16,6 +16,7 @@ export const performTestColumns = [
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // Product
@@ -27,6 +28,7 @@ export const performTestColumns = [
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // LRN
@@ -38,6 +40,7 @@ export const performTestColumns = [
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // Brand/Source
@@ -45,6 +48,7 @@ export const performTestColumns = [
     id: "brand",
     header: "Brand/Source",
     cell: (info) => info.getValue() ?? "—",
+    filterFn: "includesString",
   }),
 
   // Grade/Size
@@ -52,6 +56,7 @@ export const performTestColumns = [
     id: "grade_size",
     header: "Grade/Size",
     cell: (info) => info.getValue() ?? "—",
+    filterFn: "includesString",
   }),
 
   // Long Term Test
@@ -70,6 +75,7 @@ export const performTestColumns = [
         </span>
       );
     },
+    filterFn: "includesString",
   }),
 
   // Tentative Report Date (INTERIM)
@@ -77,6 +83,7 @@ export const performTestColumns = [
     id: "interim_report_date",
     header: "Tentative Report Date (INTERIM)",
     cell: (info) => info.getValue() ?? "—",
+    filterFn: "includesString",
   }),
 
   // Tentative Report Date (LONGTERM)
@@ -84,6 +91,7 @@ export const performTestColumns = [
     id: "longterm_report_date",
     header: "Tentative Report Date (LONGTERM)",
     cell: (info) => info.getValue() ?? "—",
+    filterFn: "includesString",
   }),
 
   // Tentative Report Date
@@ -91,6 +99,7 @@ export const performTestColumns = [
     id: "tentative_report_date",
     header: "Tentative Report Date",
     cell: (info) => info.getValue() ?? "—",
+    filterFn: "includesString",
   }),
 
   // Action — Perform Test button → navigate to detail
@@ -98,5 +107,6 @@ export const performTestColumns = [
     id: "actions",
     header: "Action",
     cell: PerformTestRowActions,
+    enableColumnFilter: false,
   }),
 ];

@@ -61,7 +61,7 @@ const S1 = {
     display: "flex",
     justifyContent: "space-between",
     marginBottom: "8px",
-    fontSize: '13px'
+    fontSize: '11.5px'
   },
   isoSide: {
     position: "absolute",

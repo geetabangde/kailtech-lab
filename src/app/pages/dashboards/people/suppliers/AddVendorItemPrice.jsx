@@ -133,7 +133,7 @@ export default function AddVendorItemPrice() {
       const payload = {
         vendor_id: id,
         subcategory_id: items.map(i => i.subcategory_id),
-        material: items.map(i => i.material),
+        material: items.map(i => i.subcategory_id), // Send the ID instead of the string name
         specification: items.map(i => i.specification),
         discount: items.map(i => i.discount.toString()),
         subprice: items.map(i => i.price.toString()),

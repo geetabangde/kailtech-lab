@@ -176,29 +176,29 @@ const SS = {
   infoRow: { display: 'flex', borderBottom: `1px solid ${BC}` },
   infoLeft: { width: '42%', padding: '6px', borderRight: `1px solid ${BC}`, boxSizing: 'border-box' },
   infoRight: { flex: 1, display: 'flex', flexDirection: 'column' },
-  infoLabel: { width: '52%', padding: '4px', fontWeight: 'bold', borderRight: `1px solid ${BC}`, fontSize: '13px', boxSizing: 'border-box' },
-  infoVal: { flex: 1, padding: '4px', fontSize: '13px', boxSizing: 'border-box' },
-  infoFull: { padding: '5px', borderTop: `1px solid ${BC}`, fontSize: '13px', boxSizing: 'border-box' },
+  infoLabel: { width: '52%', padding: '4px', fontWeight: 'bold', borderRight: `1px solid ${BC}`, fontSize: '11.5px', boxSizing: 'border-box' },
+  infoVal: { flex: 1, padding: '4px', fontSize: '11.5px', boxSizing: 'border-box' },
+  infoFull: { padding: '5px', borderTop: `1px solid ${BC}`, fontSize: '11.5px', boxSizing: 'border-box' },
 
   rTable: { width: 'calc(100% - 2px)', borderCollapse: 'collapse', marginBottom: '10px', tableLayout: 'fixed', marginLeft: '1px' },
   thead: { backgroundColor: '#ffffff' },
-  th: { padding: '4px', fontWeight: 'bold', textAlign: 'center', fontSize: '13px', border: `1px solid ${BC}` },
-  td: { padding: '4px', textAlign: 'center', fontSize: '13px', border: `1px solid ${BC}` },
+  th: { padding: '4px', fontWeight: 'bold', textAlign: 'center', fontSize: '11.5px', border: `1px solid ${BC}` },
+  td: { padding: '4px', textAlign: 'center', fontSize: '11.5px', border: `1px solid ${BC}` },
 
-  secTitle: { fontWeight: 'bold', fontSize: '14px', marginBottom: '4px', marginTop: '5px' },
-  endOfReport: { textAlign: 'center', fontWeight: 'bold', margin: '12px 0', fontSize: '13px' },
-  remarkBox: { marginBottom: '8px', fontSize: '13px' },
+  secTitle: { fontWeight: 'bold', fontSize: '12.5px', marginBottom: '4px', marginTop: '5px' },
+  endOfReport: { textAlign: 'center', fontWeight: 'bold', margin: '12px 0', fontSize: '11.5px' },
+  remarkBox: { marginBottom: '8px', fontSize: '11.5px' },
 
   sigRow: { display: 'flex', flexWrap: 'wrap', marginTop: '25px', marginBottom: '0px', justifyContent: 'space-between' },
   sigRowSingle: { display: 'flex', flexWrap: 'wrap', marginTop: '25px', marginBottom: '0px', justifyContent: 'flex-start' },
-  sigBox: { minWidth: '150px', fontSize: '12.5px', flex: 1, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' },
-  sigBoxSingle: { minWidth: '150px', fontSize: '12.5px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' },
+  sigBox: { minWidth: '150px', fontSize: '11px', flex: 1, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' },
+  sigBoxSingle: { minWidth: '150px', fontSize: '11px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' },
   sigImg: { width: '150px', height: '58px', objectFit: 'contain', marginBottom: '2px' },
   sigDig: { width: '180px', height: '78px', objectFit: 'contain' },
-  sigElec: { fontSize: '10.5px', color: '#444', marginTop: '1px', textAlign: 'center' },
-  sigTit: { fontSize: '11.5px', color: '#111', fontWeight: 'bold', marginBottom: '5px' },
-  sigName: { fontWeight: 'bold', fontSize: '12.5px' },
-  sigAuth: { fontSize: '10.5px', color: '#666' },
+  sigElec: { fontSize: '9.5px', color: '#444', marginTop: '1px', textAlign: 'center' },
+  sigTit: { fontSize: '10.5px', color: '#111', fontWeight: 'bold', marginBottom: '5px' },
+  sigName: { fontWeight: 'bold', fontSize: '11px' },
+  sigAuth: { fontSize: '9.5px', color: '#666' },
 
   draft: {
     position: 'absolute',
@@ -215,11 +215,11 @@ const SS = {
 export function HtmlCustomerLeft({ data }) {
   return (
     <div style={SS.infoLeft}>
-      <div style={{ ...SS.bold, fontSize: '13px', marginBottom: '2px' }}>Name and Address of Customer</div>
-      <div style={{ fontSize: '13px' }}>{data.customerName}</div>
-      <div style={{ fontSize: '13px' }}>{data.customerAddress}</div>
+      <div style={{ ...SS.bold, fontSize: '11.5px', marginBottom: '2px' }}>Name and Address of Customer</div>
+      <div style={{ fontSize: '11.5px' }}>{data.customerName}</div>
+      <div style={{ fontSize: '11.5px' }}>{data.customerAddress}</div>
       {data.showContact && data.contactPerson
-        ? <div style={{ fontSize: '12px', marginTop: '2px' }}>Contact Person: {data.contactPerson}</div>
+        ? <div style={{ fontSize: '10.5px', marginTop: '2px' }}>Contact Person: {data.contactPerson}</div>
         : null}
     </div>
   );
@@ -285,7 +285,7 @@ export function HtmlResultsTable({ data }) {
       <tbody>
         {test_results.length === 0 ? (
           <tr>
-            <td colSpan={hasSpecs ? 6 : 5} style={{ padding: '6px', fontSize: '13px', textAlign: 'center', border: `1px solid ${BC}` }}>No test results found.</td>
+            <td colSpan={hasSpecs ? 6 : 5} style={{ padding: '6px', fontSize: '11.5px', textAlign: 'center', border: `1px solid ${BC}` }}>No test results found.</td>
           </tr>
         ) : (
           test_results.map((row, idx) => {
@@ -410,11 +410,11 @@ const S1 = {
     display: 'flex',
     justifyContent: 'flex-end',
     marginBottom: '6px',
-    fontSize: '13px',
+    fontSize: '11.5px',
   },
   pageRow: { display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '12px' },
   title: { textAlign: 'center', fontSize: '18.5px', fontWeight: 'bold', textDecoration: 'underline', marginBottom: '7px' },
-  ulrRow: { display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '13px' },
+  ulrRow: { display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '11.5px' },
   isoSide: {
     position: 'absolute',
     right: '-30px', bottom: '110px',

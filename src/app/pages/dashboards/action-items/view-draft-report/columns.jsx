@@ -8,7 +8,8 @@ const columnHelper = createColumnHelper();
 
 export const columns = [
   columnHelper.display({
-    id: "select"
+    id: "select",
+    enableColumnFilter: false,
   }),
 
   // ID
@@ -20,6 +21,7 @@ export const columns = [
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // Product
@@ -31,6 +33,7 @@ export const columns = [
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // LRN
@@ -42,6 +45,7 @@ export const columns = [
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // Action — View Draft Report button
@@ -49,5 +53,6 @@ export const columns = [
     id: "actions",
     header: "Action",
     cell: RowActions,
+    enableColumnFilter: false,
   }),
 ];

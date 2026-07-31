@@ -18,6 +18,7 @@ export const columns = [
       </span>
     ),
     meta: { align: "center" },
+    enableColumnFilter: false,
   }),
 
   columnHelper.accessor("name", {
@@ -28,6 +29,7 @@ export const columns = [
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   columnHelper.accessor("description", {
@@ -38,6 +40,7 @@ export const columns = [
         {info.getValue() ?? "—"}
       </span>
     ),
+    filterFn: "includesString",
   }),
 
   // ✅ Actions
@@ -46,5 +49,6 @@ export const columns = [
     header: () => <div className="text-center w-full">ACTIONS</div>,
     cell: RowActions,
     meta: { align: "center" },
+    enableColumnFilter: false,
   }),
 ];

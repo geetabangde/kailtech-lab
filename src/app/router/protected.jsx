@@ -4439,6 +4439,16 @@ const protectedRoutes = {
                         ).default,
                       }),
                     },
+                    {
+                      path: "addresses/:id",
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/people/customers/CustomerAddresses"
+                          )
+                        ).default,
+                      }),
+                    },
                   ],
                 },
 

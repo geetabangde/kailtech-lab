@@ -27,7 +27,7 @@ export function RowActions({ row, table }) {
     <button
       onClick={handleAccept}
       disabled={loading}
-      className={`rounded bg-green-600 px-3 py-1.5 text-xs font-semibold text-white shadow transition hover:bg-green-700 ${
+      className={`rounded bg-green-600 px-2 py-1 text-[10.5px] font-semibold text-white shadow transition hover:bg-green-700 ${
         loading ? "cursor-not-allowed opacity-60" : ""
       }`}
     >

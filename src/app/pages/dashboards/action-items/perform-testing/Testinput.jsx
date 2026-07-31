@@ -156,16 +156,16 @@ function SetEndDateModal({ teid, startDate, onClose, onFinalised }) {
   const minDate = (() => {
     if (!startDate) return undefined;
     try {
-      const datePart = startDate.split(" ")[0]; // e.g. "2022-07-13" or "13-07-2022"
-      const parts = datePart.split("-");
-      
+      const datePart = startDate.split(" ")[0]; // e.g. "2022-07-13", "13-07-2022", "13/07/2022"
+      const parts = datePart.split(/[-/]/);
+
       // If the first part is a 4-digit year, it's already YYYY-MM-DD
-      if (parts[0].length === 4) {
-        return datePart;
+      if (parts[0]?.length === 4) {
+        return `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
       }
       // Otherwise, assume it's DD-MM-YYYY and convert it
       if (parts.length === 3) {
-        return `${parts[2]}-${parts[1]}-${parts[0]}`;
+        return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
       }
       return undefined;
     } catch {
@@ -818,7 +818,7 @@ export default function TestInput() {
       {endDateModal && (
         <SetEndDateModal
           teid={teid}
-          startDate={evt.start_date || evt.startdate} // Handle both possible API keys
+          startDate={evt.start_date || evt.startdate || evt.startTime || evt.start_time || testData?.startdate || testData?.start_date || testData?.startTime || testData?.start_time} // Handle all possible API keys
           onClose={() => setEndDateModal(false)}
           onFinalised={() =>
             navigate(`/dashboards/action-items/perform-testing/${trfproduct}`)
