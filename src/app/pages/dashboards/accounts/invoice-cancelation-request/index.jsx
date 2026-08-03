@@ -41,6 +41,7 @@ export default function InvoiceCancelationRequest() {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [remark, setRemark] = useState("");
+  const [cancelReasonCode, setCancelReasonCode] = useState("1");
   const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
@@ -66,6 +67,7 @@ export default function InvoiceCancelationRequest() {
   const handleApproveReject = (request) => {
     setSelectedRequest(request);
     setRemark("");
+    setCancelReasonCode("1");
     setModalOpen(true);
   };
 
@@ -77,9 +79,10 @@ export default function InvoiceCancelationRequest() {
 
     try {
       setActionLoading(true);
-      await axios.post("/accounts/approve-cancelinv-request", {
+      await axios.post("/einvoice/approve-cancelinv-request", {
         requestid: selectedRequest.id,
         remark: remark,
+        cancel_reason_code: cancelReasonCode,
       });
       toast.success("Cancellation request approved successfully");
       setModalOpen(false);
@@ -350,6 +353,22 @@ export default function InvoiceCancelationRequest() {
               <div className="rounded-lg border border-gray-300 bg-gray-50 p-3 text-sm dark:border-dark-500 dark:bg-dark-700">
                 {selectedRequest.reason || "No reason provided"}
               </div>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                GST Cancel Reason Code <span className="text-red-500">*</span>
+              </label>
+              <select
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-dark-500 dark:bg-dark-700 dark:text-white"
+                value={cancelReasonCode}
+                onChange={(e) => setCancelReasonCode(e.target.value)}
+              >
+                <option value="1">1 - Duplicate</option>
+                <option value="2">2 - Data Entry Mistake</option>
+                <option value="3">3 - Order Cancelled</option>
+                <option value="4">4 - Others</option>
+              </select>
             </div>
 
             <div className="mb-6">

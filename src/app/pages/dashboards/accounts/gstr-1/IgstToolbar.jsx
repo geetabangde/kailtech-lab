@@ -4,8 +4,9 @@ import clsx from "clsx";
 import { useNavigate } from "react-router";
 import axios from "utils/axios";
 import Select from "react-select";
+import { DatePicker } from "components/shared/form/Datepicker";
 
-export function IgstToolbar({ table, filters, onChange, onSearch }) {
+export function IgstToolbar({ filters, onChange, onSearch, onExport }) {
   const navigate = useNavigate();
   const [customers, setCustomers] = useState([]);
 
@@ -48,49 +49,25 @@ export function IgstToolbar({ table, filters, onChange, onSearch }) {
     }),
   };
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = new Date();
 
-  const handleExport = () => {
-    if (!table) return;
-    const headers = table
-      .getHeaderGroups()[0]
-      .headers.map((h) => h.column.columnDef.header)
-      .filter(Boolean);
-    const rows = table.getFilteredRowModel().rows;
+  let startMaxDate = today;
+  if (filters.enddate) {
+    const [d, m, y] = filters.enddate.split('/');
+    if (d && m && y) {
+      startMaxDate = new Date(`${y}-${m}-${d}`);
+    }
+  }
 
-    const escapeCell = (value) =>
-      String(value ?? "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;");
+  let endMinDate = null;
+  if (filters.startdate) {
+    const [d, m, y] = filters.startdate.split('/');
+    if (d && m && y) {
+      endMinDate = new Date(`${y}-${m}-${d}`);
+    }
+  }
 
-    const bodyRows = rows
-      .map((row) => {
-        const cells = row.getVisibleCells().map((cell) => {
-          const val =
-            typeof cell.getValue === "function" ? cell.getValue() : cell.value;
-          return `<td>${escapeCell(val)}</td>`;
-        });
-        return `<tr>${cells.join("")}</tr>`;
-      })
-      .join("");
 
-    const html = `<table><thead><tr>${headers
-      .map((h) => `<th>${escapeCell(h)}</th>`)
-      .join("")}</tr></thead><tbody>${bodyRows}</tbody></table>`;
-
-    const blob = new Blob([html], {
-      type: "application/vnd.ms-excel;charset=utf-8;",
-    });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "gstr1-igst.xls";
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
-  };
 
   return (
     <div className="px-[var(--margin-x)] pt-4">
@@ -116,13 +93,17 @@ export function IgstToolbar({ table, filters, onChange, onSearch }) {
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[200px_200px_1fr_auto_auto]">
         {/* Start Date */}
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium text-gray-500 uppercase">Start Date</label>
-          <input
-            type="date"
-            max={today}
+        <div className="flex flex-col gap-1 justify-end">
+          <DatePicker
+            options={{
+              dateFormat: "d/m/Y",
+              allowInput: false,
+              maxDate: startMaxDate,
+            }}
+            hasCalenderIcon={false}
+            placeholder="Start Date"
             value={filters.startdate}
-            onChange={(e) => onChange("startdate", e.target.value)}
+            onChange={(dates, dateStr) => onChange("startdate", dateStr)}
             className={clsx(
               "h-10 w-full rounded border border-gray-300 px-3 text-sm outline-none bg-white",
               "focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500",
@@ -132,13 +113,18 @@ export function IgstToolbar({ table, filters, onChange, onSearch }) {
         </div>
 
         {/* End Date */}
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium text-gray-500 uppercase">End Date</label>
-          <input
-            type="date"
-            max={today}
+        <div className="flex flex-col gap-1 justify-end">
+          <DatePicker
+            options={{
+              dateFormat: "d/m/Y",
+              allowInput: false,
+              maxDate: today,
+              minDate: endMinDate,
+            }}
+            hasCalenderIcon={false}
+            placeholder="End Date"
             value={filters.enddate}
-            onChange={(e) => onChange("enddate", e.target.value)}
+            onChange={(dates, dateStr) => onChange("enddate", dateStr)}
             className={clsx(
               "h-10 w-full rounded border border-gray-300 px-3 text-sm outline-none bg-white",
               "focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500",
@@ -173,7 +159,7 @@ export function IgstToolbar({ table, filters, onChange, onSearch }) {
         </div>
         <div className="flex flex-col gap-1 justify-end">
           <button
-            onClick={handleExport}
+            onClick={onExport}
             className="h-10 rounded border border-blue-600 bg-white px-6 text-sm font-medium text-blue-600 hover:bg-blue-50 transition-colors dark:bg-dark-900 dark:hover:bg-dark-800"
           >
             Export

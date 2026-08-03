@@ -352,6 +352,20 @@ export default function TestInput() {
   //   quantity[0], quantity[1]...
   //   {measurement_id}[]  e.g. "446[]", "7[]", "15[]"  (per cycle)
   const handleSubmit = async () => {
+    // Validate consumables
+    for (const con of consumList) {
+      const conId = con.id ?? con.mid;
+      const selected = consumables[conId];
+      if (!selected?.materiallocationid) {
+        toast.error(`Please check stock/batch for consumable: ${con.name}`);
+        return;
+      }
+      if (!selected?.quantity) {
+        toast.error(`Please enter quantity for consumable: ${con.name}`);
+        return;
+      }
+    }
+
     try {
       setSubmitting(true);
       const fd = new FormData();

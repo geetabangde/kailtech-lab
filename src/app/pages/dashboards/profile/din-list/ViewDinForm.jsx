@@ -20,20 +20,36 @@ export default function ViewDinForm() {
     try {
       setLoading(true);
       const [reportRes, companyRes] = await Promise.all([
-        axios.get(`profile/din-list-challan/${id}`),
+        axios.get(`inventory/get-din-report/${id}`),
         axios.get("get-company-info").catch(() => ({ data: { status: false, data: null } }))
       ]);
 
       if (reportRes.data.status && reportRes.data.data) {
-        const details = reportRes.data.data.din_details;
-        const approval = reportRes.data.data.approval_info || {};
+        const details = reportRes.data.data.dispatch_details || reportRes.data.data.din_details;
+        
+        if (!details) {
+          toast.error("Failed to load DIN details.");
+          setLoading(false);
+          return;
+        }
 
-        // Map approval info back into details to keep signature logic intact
-        details.approved_by = approval.approved_by_name;
-        details.approved_on = approval.approved_on;
+        // Map new API fields to match expected keys
+        details.gstno = details.gst_no || details.gstno;
+        details.concern_designation = details.concern_person_designation || details.concern_designation;
+        details.concern_email = details.concern_person_email || details.concern_email;
+        details.concern_mobile = details.concern_person_phone || details.concern_mobile;
+        details.purpose_name = details.dispatch_purpose || details.purpose_name;
+        details.dispatch_contact_details = details.courier_no || details.dispatch_contact_details;
+
+        const approval = reportRes.data.data.approval_info;
+        if (approval) {
+          // Map approval info back into details to keep signature logic intact
+          details.approved_by = approval.approved_by_name;
+          details.approved_on = approval.approved_on;
+        }
 
         // Fetch full customer address if it is just an ID
-        if (details.customer_address && /^\d+$/.test(details.customer_address)) {
+        if (details.customer_address && /^\\d+$/.test(details.customer_address)) {
           try {
             const addrRes = await axios.get(`inventory/get-customer-address-details/${details.customer_address}`);
             if (addrRes.data?.status && addrRes.data?.data?.addresses?.length > 0) {
@@ -47,7 +63,11 @@ export default function ViewDinForm() {
         setDinDetails(details);
 
         if (reportRes.data.data.items) {
-          setItems(reportRes.data.data.items);
+          const mappedItems = reportRes.data.data.items.map(item => ({
+            ...item,
+            item_name: item.instrument_name || item.name || item.item_name
+          }));
+          setItems(mappedItems);
         }
 
       } else {
@@ -338,7 +358,7 @@ export default function ViewDinForm() {
 
               <div className="mt-12 text-left">
                 <p className="font-bold mb-8">Regards<br />For {companyInfo?.company?.name || "KAILTECH TEST & RESEARCH CENTRE PVT. LTD."}</p>
-                {statusInt === 1 && dinDetails.approved_by && (
+                {statusInt === 1 && (dinDetails.approved_by || dinDetails.approved_on) && (
                   <div className="mb-4">
                     {/* If approved_on is a URL, render it as an image (Digital Signature) */}
                     {dinDetails.approved_on && dinDetails.approved_on.startsWith("http") ? (

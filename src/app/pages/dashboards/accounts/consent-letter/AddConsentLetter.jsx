@@ -304,13 +304,13 @@ export default function AddConsentLetter() {
         <div className="rounded border border-gray-200 bg-white dark:border-dark-600 dark:bg-dark-800">
           <div className="divide-y divide-gray-100 dark:divide-dark-600">
 
-            {/* Consent Letter Date — readonly, auto-filled like PHP date("d/m/Y") */}
-            <FormRow label="Consent Letter Date" error={errors.consentletterdate}>
+            {/* Consent Letter Date */}
+            <FormRow label="Consent Letter Date" required error={errors.consentletterdate}>
               <input
                 type="date"
                 name="consentletterdate"
                 value={formData.consentletterdate}
-                readOnly
+                onChange={handleChange}
                 className={inputClass(errors.consentletterdate)}
               />
             </FormRow>

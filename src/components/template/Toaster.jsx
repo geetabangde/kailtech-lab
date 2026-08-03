@@ -21,6 +21,7 @@ export default function Toaster() {
       visibleToasts={
         notification?.visibleToasts || defaultTheme?.notification?.visibleToasts
       }
+      duration={3000}
       richColors
     />
   );

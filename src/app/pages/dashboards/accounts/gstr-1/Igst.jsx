@@ -3,7 +3,6 @@ import {
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
@@ -15,10 +14,10 @@ import axios from "utils/axios";
 // Local Imports
 import { Table, Card, THead, TBody, Th, Tr, Td } from "components/ui";
 import { Page } from "components/shared/Page";
-import { PaginationSection } from "components/shared/table/PaginationSection";
 import { useThemeContext } from "app/contexts/theme/context";
 import { IgstToolbar } from "./IgstToolbar";
 import { igstColumns } from "./igst-columns";
+import * as XLSX from "xlsx";
 
 // ----------------------------------------------------------------------
 
@@ -57,18 +56,18 @@ export default function GSTR1IGST() {
 
     try {
       setLoading(true);
-      // Format dates to DD/MM/YYYY as requested/implied by user example
-      const params = { ...filters };
-      if (params.startdate) {
-        const [y, m, d] = params.startdate.split("-");
-        params.startdate = `${d}/${m}/${y}`;
+
+      const apiParams = { ...filters };
+      if (apiParams.startdate) {
+        const [d, m, y] = apiParams.startdate.split("/");
+        apiParams.startdate = `${y}-${m}-${d}`;
       }
-      if (params.enddate) {
-        const [y, m, d] = params.enddate.split("-");
-        params.enddate = `${d}/${m}/${y}`;
+      if (apiParams.enddate) {
+        const [d, m, y] = apiParams.enddate.split("/");
+        apiParams.enddate = `${y}-${m}-${d}`;
       }
 
-      const res = await axios.get("/accounts/get-igst_report", { params });
+      const res = await axios.get("/accounts/get-igst_report", { params: apiParams });
       setData(Array.isArray(res.data) ? res.data : res.data?.data || []);
     } catch (err) {
       console.error("Error fetching IGST data:", err);
@@ -77,13 +76,46 @@ export default function GSTR1IGST() {
     }
   };
 
+  // Excel Export — exact PHP export columns
+  const exportToExcel = () => {
+    if (!data.length) {
+      alert("Pehle Search karein, tab Export karein.");
+      return;
+    }
+
+    const exportData = data.map((row, idx) => {
+      let invDate = row.invoicedate;
+      if (invDate) {
+        const dObj = new Date(invDate);
+        if (!isNaN(dObj)) invDate = dObj.toLocaleDateString("en-GB"); // DD/MM/YYYY
+      }
+      return {
+        "Sr No.": idx + 1,
+        "GSTIN NO": row.gstno || "",
+        "RECEIVER NAME": row.custname || "",
+        "INVOICE NO": row.invoiceno || "",
+        "INVOICE DATE": invDate || "",
+        "TOTAL INVOICE VALUE": Number(row.finaltotal || 0),
+        "TAXABLE VALUE": Number(row.subtotal2 || 0),
+        "IGST TAX": Number(row.igstamount || 0),
+        "ROUND OFF": Number(row.roundoff || 0),
+      };
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Gstr 1 List");
+    const colWidths = Object.keys(exportData[0]).map((key) => ({ wch: Math.max(key.length, 16) }));
+    worksheet["!cols"] = colWidths;
+    XLSX.writeFile(workbook, `masterequipmentlist.xls`);
+  };
+
   const table = useReactTable({
     data,
     columns: igstColumns,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
   });
 
   // Totals for numeric columns
@@ -107,6 +139,7 @@ export default function GSTR1IGST() {
             filters={filters}
             onChange={handleFilterChange}
             onSearch={handleSearch}
+            onExport={exportToExcel}
           />
           <div className="transition-content flex grow flex-col px-[var(--margin-x)] pt-3">
             <Card className="relative flex grow flex-col">
@@ -244,11 +277,6 @@ export default function GSTR1IGST() {
                       </TBody>
                     </Table>
                   </div>
-                  {data.length > 0 && (
-                    <div className="px-4 pb-4 pt-4 sm:px-5">
-                      <PaginationSection table={table} />
-                    </div>
-                  )}
                 </>
               )}
             </Card>

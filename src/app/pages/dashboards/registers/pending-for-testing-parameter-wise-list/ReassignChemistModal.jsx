@@ -10,10 +10,12 @@ import axios from "utils/axios";
 import { Button } from "components/ui";
 
 import Select from "react-select";
+import { toast } from "sonner";
 
 export function ReassignChemistModal({ show, onClose, row }) {
   const focusRef = useRef();
   const [chemists, setChemists] = useState([]);
+  const [details, setDetails] = useState(null);
   const [selectedChemist, setSelectedChemist] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -32,18 +34,24 @@ export function ReassignChemistModal({ show, onClose, row }) {
 
   useEffect(() => {
     if (show) {
-      // In PHP: selectextrawhere("admin", "status=1 and FIND_IN_SET(id ,(select users from labs where id=$depart))")
-      const fetchChemists = async () => {
+      const fetchDetails = async () => {
         try {
-          const res = await axios.get("/people/get-admin-users", { params: { status: 1 } });
-          setChemists(res.data?.data || []);
+          const recordId = row?.original?.id;
+          if (!recordId) return;
+
+          const url = `register/get-chemist-details/${recordId}`;
+          const res = await axios.get(url);
+          const data = res.data?.data || {};
+          setDetails(data);
+          setChemists(data.chemists || []);
         } catch (err) {
-          console.error("Error fetching chemists:", err);
+          console.error("Error fetching chemist details:", err);
         }
       };
-      fetchChemists();
+      fetchDetails();
     } else {
       setSelectedChemist("");
+      setDetails(null);
     }
   }, [show]);
 
@@ -52,11 +60,16 @@ export function ReassignChemistModal({ show, onClose, row }) {
     if (!selectedChemist) return;
     try {
       setLoading(true);
-      // TODO: Connect this to the actual API endpoint when available
-      console.log("Updated chemist for id:", row?.original?.id, "to:", selectedChemist);
+      await axios.post("register/update-chemist", {
+        id: row?.original?.id,
+        chemist: selectedChemist,
+      });
+      toast.success("Chemist updated successfully ✅");
       onClose();
+      window.location.reload();
     } catch (err) {
       console.error(err);
+      toast.error(err.response?.data?.message || "Failed to update chemist ❌");
     } finally {
       setLoading(false);
     }
@@ -87,28 +100,28 @@ export function ReassignChemistModal({ show, onClose, row }) {
         <h3 className="text-xl font-medium leading-6 text-gray-900 dark:text-white mb-4">
           Reassign Chemist
         </h3>
-        
+
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Name Of Parameter
             </label>
-            <input 
-              type="text" 
-              readOnly 
-              value={row?.original?.parameter || ""} 
+            <input
+              type="text"
+              readOnly
+              value={details?.parameter_name || row?.original?.parameter || ""}
               className="w-full rounded-md border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-900 focus:outline-none dark:border-dark-500 dark:bg-dark-800 dark:text-white"
             />
           </div>
-          
+
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Assigned Chemist
             </label>
-            <input 
-              type="text" 
-              readOnly 
-              value={row?.original?.chemist || ""} 
+            <input
+              type="text"
+              readOnly
+              value={details?.assigned_chemist_name || row?.original?.chemist || ""}
               className="w-full rounded-md border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-900 focus:outline-none dark:border-dark-500 dark:bg-dark-800 dark:text-white"
             />
           </div>
@@ -121,19 +134,19 @@ export function ReassignChemistModal({ show, onClose, row }) {
               required
               options={chemists.map((c) => ({
                 value: String(c.id),
-                label: `${c.firstname || ""} ${c.lastname || ""}`.trim() || String(c.id),
+                label: c.name || String(c.id),
               }))}
               value={
                 selectedChemist
                   ? {
-                      value: String(selectedChemist),
-                      label: (() => {
-                        const found = chemists.find((c) => String(c.id) === String(selectedChemist));
-                        return found
-                          ? `${found.firstname || ""} ${found.lastname || ""}`.trim()
-                          : String(selectedChemist);
-                      })(),
-                    }
+                    value: String(selectedChemist),
+                    label: (() => {
+                      const found = chemists.find((c) => String(c.id) === String(selectedChemist));
+                      return found
+                        ? found.name
+                        : String(selectedChemist);
+                    })(),
+                  }
                   : null
               }
               onChange={(option) => setSelectedChemist(option ? option.value : "")}

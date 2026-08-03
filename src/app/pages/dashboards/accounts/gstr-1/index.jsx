@@ -3,7 +3,6 @@ import {
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
@@ -15,10 +14,10 @@ import axios from "utils/axios";
 // Local Imports
 import { Table, Card, THead, TBody, Th, Tr, Td } from "components/ui";
 import { Page } from "components/shared/Page";
-import { PaginationSection } from "components/shared/table/PaginationSection";
 import { useThemeContext } from "app/contexts/theme/context";
 import { Toolbar } from "./Toolbar";
 import { columns } from "./columns";
+import * as XLSX from "xlsx";
 
 // ─── Shared UI components ──────────────────────────────────────────────────
 function PageSpinner() {
@@ -69,7 +68,18 @@ export default function GSTR1() {
 
     try {
       setLoading(true);
-      const res = await axios.get("/accounts/get-gstr1-report", { params: filters });
+
+      const apiParams = { ...filters };
+      if (apiParams.startdate) {
+        const [d, m, y] = apiParams.startdate.split('/');
+        apiParams.startdate = `${y}-${m}-${d}`;
+      }
+      if (apiParams.enddate) {
+        const [d, m, y] = apiParams.enddate.split('/');
+        apiParams.enddate = `${y}-${m}-${d}`;
+      }
+
+      const res = await axios.get("/accounts/get-gstr1-report", { params: apiParams });
       setData(Array.isArray(res.data) ? res.data : res.data?.data || []);
     } catch (err) {
       console.error("Error fetching GSTR-1 data:", err);
@@ -78,26 +88,61 @@ export default function GSTR1() {
     }
   };
 
+  // Excel Export — exact PHP export columns
+  const exportToExcel = () => {
+    if (!data.length) {
+      alert("Pehle Search karein, tab Export karein.");
+      return;
+    }
+
+    const exportData = data.map((row, idx) => {
+      let invDate = row.invoicedate;
+      if (invDate) {
+        const dObj = new Date(invDate);
+        if (!isNaN(dObj)) invDate = dObj.toLocaleDateString("en-GB"); // DD/MM/YYYY
+      }
+      return {
+        "Sr No.": idx + 1,
+        "GSTIN NO": row.gstno || "",
+        "RECEIVER NAME": row.custname || "",
+        "INVOICE NO": row.invoiceno || "",
+        "INVOICE DATE": invDate || "",
+        "TOTAL INVOICE VALUE": Number(row.finaltotal || 0),
+        "TAXABLE VALUE": Number(row.subtotal2 || 0),
+        "CENTRAL TAX": Number(row.cgstamount || 0),
+        "STATE TAX": Number(row.sgstamount || 0),
+        "ROUND OFF": Number(row.roundoff || 0),
+      };
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Gstr 1 List");
+    const colWidths = Object.keys(exportData[0]).map((key) => ({ wch: Math.max(key.length, 16) }));
+    worksheet["!cols"] = colWidths;
+    XLSX.writeFile(workbook, `GSTR1_Report_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  };
+
   const table = useReactTable({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
+    // No pagination — show all rows like PHP
   });
 
   // Totals for numeric columns
   const totals = data.reduce(
     (acc, row) => {
-      acc.finaltotal += Number(row.finaltotal || 0);
-      acc.taxable_value += Number(row.taxable_value || 0);
-      acc.cgstamount += Number(row.cgstamount || 0);
-      acc.sgstamount += Number(row.sgstamount || 0);
-      acc.roundoff += Number(row.roundoff || 0);
+      acc.finaltotal  += Number(row.finaltotal  || 0);
+      acc.subtotal2   += Number(row.subtotal2   || 0);
+      acc.cgstamount  += Number(row.cgstamount  || 0);
+      acc.sgstamount  += Number(row.sgstamount  || 0);
+      acc.roundoff    += Number(row.roundoff    || 0);
       return acc;
     },
-    { finaltotal: 0, taxable_value: 0, cgstamount: 0, sgstamount: 0, roundoff: 0 },
+    { finaltotal: 0, subtotal2: 0, cgstamount: 0, sgstamount: 0, roundoff: 0 },
   );
 
   return (
@@ -109,6 +154,7 @@ export default function GSTR1() {
             filters={filters}
             onChange={handleFilterChange}
             onSearch={handleSearch}
+            onExport={exportToExcel}
           />
           <div className="transition-content flex grow flex-col px-[var(--margin-x)] pt-3">
             <Card className="relative flex grow flex-col">
@@ -200,10 +246,10 @@ export default function GSTR1() {
                                          {totals.finaltotal.toFixed(2)}
                                        </Td>
                                      );
-                                   if (col.id === "taxable_value")
+                                   if (col.id === "subtotal2")
                                      return (
                                        <Td key={col.id}>
-                                         {totals.taxable_value.toFixed(2)}
+                                         {totals.subtotal2.toFixed(2)}
                                        </Td>
                                      );
                                    if (col.id === "cgstamount")
@@ -232,11 +278,6 @@ export default function GSTR1() {
                       </TBody>
                     </Table>
                   </div>
-                  {data.length > 0 && (
-                    <div className="px-4 pb-4 pt-4 sm:px-5">
-                      <PaginationSection table={table} />
-                    </div>
-                  )}
                 </>
               )}
             </Card>

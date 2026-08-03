@@ -5,10 +5,11 @@ import { useNavigate } from "react-router";
 import Select from "react-select";
 import { DatePicker } from "components/shared/form/Datepicker";
 
-export function Toolbar({ filters, onChange, onSearch, customers = [], bdList = [] }) {
+export function Toolbar({ filters, onChange, onSearch, onExport, customers = [], bdList = [] }) {
   const navigate = useNavigate();
   const [startDate, setStartDate] = useState(filters.startdate || "");
   const [endDate, setEndDate] = useState(filters.enddate || "");
+  const [month, setMonth] = useState(filters.month || "");
   const [customer, setCustomer] = useState(filters.customerid || "");
   const [bd, setBd] = useState(filters.bd || "");
   const [typeOfInvoice, setTypeOfInvoice] = useState(filters.typeofinvoice || "");
@@ -16,6 +17,7 @@ export function Toolbar({ filters, onChange, onSearch, customers = [], bdList = 
   const handleInput = (name, value) => {
     if (name === "startdate") setStartDate(value);
     if (name === "enddate") setEndDate(value);
+    if (name === "month") setMonth(value);
     if (name === "customerid") setCustomer(value);
     if (name === "bd") setBd(value);
     if (name === "typeofinvoice") setTypeOfInvoice(value);
@@ -28,18 +30,30 @@ export function Toolbar({ filters, onChange, onSearch, customers = [], bdList = 
         <h2 className="text-xl font-semibold tracking-wide text-gray-800 dark:text-dark-50">
           Invoice List
         </h2>
-        <button
-          onClick={() => navigate(-1)}
-          className="inline-flex w-fit items-center rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
-        >
-          &laquo; Back
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onExport}
+            className="inline-flex items-center gap-1.5 rounded-md bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700 active:bg-green-800 transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM8.5 16l2-3-2-3H10l1.25 2L12.5 10H14l-2 3 2 3h-1.5l-1.25-2L10 16H8.5z"/>
+            </svg>
+            Download Excel
+          </button>
+          <button
+            onClick={() => navigate(-1)}
+            className="inline-flex w-fit items-center rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
+          >
+            &laquo; Back
+          </button>
+        </div>
       </div>
 
       {/* Filter row — matches PHP form layout */}
       <form
         onSubmit={onSearch}
-        className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_1fr_1fr_auto]"
+        className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_1fr_1fr_1fr_1fr_auto]"
       >
         {/* Start Date */}
         <DatePicker
@@ -69,6 +83,18 @@ export function Toolbar({ filters, onChange, onSearch, customers = [], bdList = 
           value={endDate}
           onChange={(dates, dateStr) => handleInput("enddate", dateStr)}
           placeholder="End Date"
+          className={clsx(
+            "h-10 w-full rounded border border-gray-300 px-3 text-sm outline-none dark:border-dark-500 dark:bg-dark-800 dark:text-dark-100",
+            "focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30",
+          )}
+        />
+
+        {/* Month Filter — select a month to view all invoices of that month */}
+        <input
+          type="month"
+          value={month}
+          onChange={(e) => handleInput("month", e.target.value)}
+          placeholder="Month"
           className={clsx(
             "h-10 w-full rounded border border-gray-300 px-3 text-sm outline-none dark:border-dark-500 dark:bg-dark-800 dark:text-dark-100",
             "focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30",

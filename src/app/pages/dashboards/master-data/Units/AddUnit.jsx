@@ -59,7 +59,6 @@ export default function AddUnit() {
       const form = new FormData();
       form.append("name", formData.name);
       form.append("description", formData.description);
-      form.append("description_text", formData.description); // Fix: this field is required by the DB
 
       await axios.post("/master/add-unit", form); // ✅ Your provided endpoint
 

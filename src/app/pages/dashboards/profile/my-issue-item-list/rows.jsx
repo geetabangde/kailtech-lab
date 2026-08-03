@@ -109,7 +109,37 @@ export function ReturnCell({ row }) {
 
   if (status === 0 && isReturnable) {
     // Note: The API does not yet return DIN status or checklist presence for status 0.
-    // Render the return checklist button here as a default if it's returnable and status is 0.
+    // We add defensive checks here in case the API provides these fields in the future.
+    const hasChecklist = record.numchecklist1 > 0 || record.numchecklist2 > 0 || record.has_checklist;
+    const isDinApproved = record.dinstatus === 1 || record.din_status === 1 || record.din_approved;
+
+    if (Object.prototype.hasOwnProperty.call(record, "dinstatus") || Object.prototype.hasOwnProperty.call(record, "din_status") || Object.prototype.hasOwnProperty.call(record, "has_checklist")) {
+      if (hasChecklist) {
+        if (isDinApproved) {
+          return (
+            <div className="flex flex-col gap-1 items-start">
+              <Link to={`/dashboards/profile/my-issue-item-list/fill-return-checklist?hakuna=${record.id}`}>
+                <Button color="info" className="mt-1 h-6 px-2 text-[10px] whitespace-nowrap">
+                  Fill Checklist To Return
+                </Button>
+              </Link>
+              <span className="text-gray-500 font-medium text-xs">Not Returned</span>
+            </div>
+          );
+        } else {
+          return (
+            <div className="flex flex-col gap-1 items-start">
+              <span className="text-red-500 font-medium">Din Yet Not Approved</span>
+              <span className="text-gray-500 font-medium text-xs">Not Returned</span>
+            </div>
+          );
+        }
+      } else {
+        return <span className="text-gray-500 font-medium">Not Returned</span>;
+      }
+    }
+
+    // Render the return checklist button here as a default fallback
     return (
       <div className="flex flex-col gap-1 items-start">
         <Link to={`/dashboards/profile/my-issue-item-list/fill-return-checklist?hakuna=${record.id}`}>
@@ -117,6 +147,7 @@ export function ReturnCell({ row }) {
             Fill Checklist To Return
           </Button>
         </Link>
+        <span className="text-gray-500 font-medium text-xs">Not Returned</span>
       </div>
     );
   } else if (status === 1) {

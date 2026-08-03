@@ -46,7 +46,7 @@ export const defaultTheme = {
     // Notification settings  
     notification: {  
         isExpanded: false,  
-        position: "bottom-center",  
+        position: "top-center",  
         visibleToasts: 4,  
     },  
 };  

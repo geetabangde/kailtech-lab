@@ -38,7 +38,7 @@ export default function ReturnInsta({ issueItems, register }) {
                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-800 dark:text-dark-100">{item.idno}</td>
                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-800 dark:text-dark-100">{item.name}</td>
                                     <td className="px-4 py-3 whitespace-nowrap text-sm">
-                                        <select 
+                                        <select
                                             className="w-full rounded border border-gray-300 dark:border-dark-500 bg-white dark:bg-dark-700 p-2 text-sm"
                                             {...register(`issuedto[]`)}
                                         >
@@ -48,7 +48,7 @@ export default function ReturnInsta({ issueItems, register }) {
                                         </select>
                                     </td>
                                     <td className="px-4 py-3 whitespace-nowrap text-sm">
-                                        <select 
+                                        <select
                                             className="w-full rounded border border-gray-300 dark:border-dark-500 bg-white dark:bg-dark-700 p-2 text-sm"
                                             {...register(`returnlocation[]`)}
                                         >
@@ -64,8 +64,8 @@ export default function ReturnInsta({ issueItems, register }) {
                                     </td>
                                     <td className="px-4 py-3 whitespace-nowrap text-sm">
                                         <div className="locqty">
-                                            <input 
-                                                type="text" 
+                                            <input
+                                                type="text"
                                                 className="w-full rounded border border-gray-300 dark:border-dark-500 bg-white dark:bg-dark-700 p-2 text-sm"
                                                 {...register(`qty[]`)}
                                                 defaultValue={item.qty || ""}
@@ -74,13 +74,13 @@ export default function ReturnInsta({ issueItems, register }) {
                                         </div>
                                     </td>
                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-800 dark:text-dark-100">{item.remark}</td>
-                                    
+
                                     {/* Hidden fields just like PHP logic */}
                                     <td className="hidden">
                                         <input type="hidden" {...register(`instissuetype[]`)} value={item.instissuetype} />
                                         <input type="hidden" {...register(`itemid[]`)} value={item.instrumentid} />
                                         <input type="hidden" {...register(`issueid[]`)} value={item.id} />
-                                        
+
                                         {/* Added a hidden checkbox so the "Please select at least one instrument" validation passes if this row exists */}
                                         <input type="checkbox" defaultChecked className="hidden" />
                                     </td>

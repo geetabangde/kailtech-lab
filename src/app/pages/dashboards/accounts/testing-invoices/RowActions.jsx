@@ -149,7 +149,15 @@ function CancelRequestModal({ show, onClose, onOk, invoiceno, loading }) {
 // ── Main ──────────────────────────────────────────────────────────────────
 export function RowActions({ row, table }) {
   const rowData = row.original;
-  const permissions = JSON.parse(localStorage.getItem("userPermissions") || "[]");
+  const rawPermissions = JSON.parse(localStorage.getItem("userPermissions") || "[]");
+  let permissions = [];
+  if (Array.isArray(rawPermissions)) {
+    permissions = rawPermissions.map(Number);
+  } else if (typeof rawPermissions === "string") {
+    permissions = rawPermissions.split(",").map(p => Number(p.trim()));
+  } else if (typeof rawPermissions === "number") {
+    permissions = [rawPermissions];
+  }
 
   const [approveOpen, setApproveOpen] = useState(false);
   const [approveLoading, setApproveLoading] = useState(false);
@@ -167,7 +175,10 @@ export function RowActions({ row, table }) {
     if (rowData.invoicedate) {
       const d = new Date(rowData.invoicedate);
       const next5 = new Date(d.getFullYear(), d.getMonth() + 1, 5);
-      if (new Date() <= next5) return true;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      next5.setHours(0, 0, 0, 0);
+      if (today <= next5) return true;
     }
     return false;
   })();

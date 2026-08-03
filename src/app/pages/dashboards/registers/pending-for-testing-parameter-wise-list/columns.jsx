@@ -34,7 +34,11 @@ export const columns = [
   columnHelper.accessor("product", {
     id: "product",
     header: "Product",
-    cell: (info) => info.getValue() ?? "-",
+    cell: (info) => (
+      <div className="min-w-[200px] max-w-xs whitespace-normal break-words">
+        {info.getValue() ?? "-"}
+      </div>
+    ),
   }),
   columnHelper.accessor("lrn", {
     id: "lrn",

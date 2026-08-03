@@ -5,7 +5,6 @@ import {
   getFacetedMinMaxValues,
   getFacetedUniqueValues,
   getFilteredRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
@@ -13,6 +12,7 @@ import clsx from "clsx";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import axios from "utils/axios";
+import * as XLSX from "xlsx";
 
 // Local Imports
 import { Table, Card, THead, TBody, Th, Tr, Td } from "components/ui";
@@ -23,7 +23,6 @@ import { fuzzyFilter } from "utils/react-table/fuzzyFilter";
 import { useSkipper } from "utils/react-table/useSkipper";
 import { Toolbar } from "./Toolbar";
 import { columns } from "./columns";
-import { PaginationSection } from "components/shared/table/PaginationSection";
 import { useThemeContext } from "app/contexts/theme/context";
 import { getUserAgentBrowser } from "utils/dom/getUserAgentBrowser";
 
@@ -93,6 +92,7 @@ export default function InvoiceReport() {
   const [filters, setFilters] = useState({
     startdate: "",
     enddate: "",
+    month: "",   // NEW: month filter (YYYY-MM format)
     customerid: "",
     bd: "",
     typeofinvoice: "",
@@ -121,6 +121,7 @@ export default function InvoiceReport() {
   const hasAnyFilter = (f) =>
     (f.customerid && f.customerid !== "") ||
     (f.startdate && f.startdate !== "" && f.enddate && f.enddate !== "") ||
+    (f.month && f.month !== "") ||
     (f.bd && f.bd !== "") ||
     (f.typeofinvoice && f.typeofinvoice !== "");
 
@@ -142,6 +143,7 @@ export default function InvoiceReport() {
         params: {
           startdate: f.startdate || undefined,
           enddate: f.enddate || undefined,
+          month: f.month || undefined,
           customerid: f.customerid || undefined,
           bd: f.bd || undefined,
           typeofinvoice: f.typeofinvoice || undefined,
@@ -167,6 +169,76 @@ export default function InvoiceReport() {
   const handleSearch = (e) => {
     e?.preventDefault?.();
     fetchInvoices(filters);
+  };
+
+  // ── Excel Export (mirrors PHP table columns exactly) ──────────────────────
+  const exportToExcel = () => {
+    if (!orders.length) return;
+
+    const t = totals ?? {};
+    const fmt = (v) => Number(v || 0).toFixed(2);
+
+    // Data rows — same columns as PHP table
+    const rows = orders.map((row, idx) => ({
+      "Sr. No":             idx + 1,
+      "Customer Name":     row.custname     ?? "-",
+      "PO Number":         row.ponumber     ?? "-",
+      "Invoice No":        row.invoiceno    ?? "-",
+      "Item Total":        row.subtotal     ?? 0,
+      "Discount":          row.discount     ?? 0,
+      "Witness":           row.witnesscharges ?? 0,
+      "Sample Handling":   row.samplehandling ?? 0,
+      "Sample Preparation": row.sampleprep  ?? 0,
+      "Freight Charges":   row.freight      ?? 0,
+      "Mobilization":      row.mobilisation ?? 0,
+      "Total Taxable":     row.subtotal2    ?? 0,
+      "SGST":              row.sgstamount   ?? 0,
+      "CGST":              row.cgstamount   ?? 0,
+      "IGST":              row.igstamount   ?? 0,
+      "Invoice Amount":    row.finaltotal   ?? 0,
+      "Remaining Amount":  row.remaining    ?? 0,
+      "Invoice Type":      row.typeofinvoice ?? "-",
+      "Status":            String(row.status) === "99" ? "Canceled"
+                         : String(row.status) === "0"  ? "Pending"
+                         : "Active",
+    }));
+
+    // Totals row — exactly jaise PHP me <tr> se Total Amount row tha
+    rows.push({
+      "Sr. No":             "Total Amount",
+      "Customer Name":     "",
+      "PO Number":         "",
+      "Invoice No":        "",
+      "Item Total":        fmt(t.subtotal),
+      "Discount":          fmt(t.discount),
+      "Witness":           fmt(t.witnesscharges),
+      "Sample Handling":   fmt(t.samplehandling),
+      "Sample Preparation": fmt(t.sampleprep),
+      "Freight Charges":   fmt(t.freight),
+      "Mobilization":      fmt(t.mobilisation),
+      "Total Taxable":     fmt(t.subtotal2),
+      "SGST":              fmt(t.sgstamount),
+      "CGST":              fmt(t.cgstamount),
+      "IGST":              fmt(t.igstamount),
+      "Invoice Amount":    fmt(t.finaltotal),
+      "Remaining Amount":  fmt(t.remaining),
+      "Invoice Type":      "",
+      "Status":            "",
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    const workbook  = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Invoice Report");
+
+    // Auto column width
+    const colWidths = Object.keys(rows[0]).map((key) => ({
+      wch: Math.max(key.length, 14),
+    }));
+    worksheet["!cols"] = colWidths;
+
+    // File name: InvoiceReport_2026-07-31.xlsx
+    const fileName = `InvoiceReport_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
   };
 
   // ── Table config ──────────────────────────────────────────────────────────
@@ -231,7 +303,7 @@ export default function InvoiceReport() {
     globalFilterFn: fuzzyFilter,
     onSortingChange: setSorting,
     getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
+    // NO getPaginationRowModel — pagination removed as per PHP original
     onColumnVisibilityChange: setColumnVisibility,
     onColumnPinningChange: setColumnPinning,
     autoResetPageIndex,
@@ -240,26 +312,24 @@ export default function InvoiceReport() {
   useDidUpdate(() => table.resetRowSelection(), [orders]);
   useLockScrollbar(tableSettings.enableFullScreen);
 
-  // ── Totals row: use API-provided totals (field names differ from row fields)
-  // API: witness→witnesscharges, handling→samplehandling, preparation→sampleprep,
-  //      mobilization→mobilisation, taxable→subtotal2
+  // ── Totals row: use API-provided totals (exact field names from backend)
   const allRows = table.getFilteredRowModel().rows;
   const t = totals ?? {};
   const fmt = (v) => Number(v || 0).toFixed(2);
   const apiTotals = {
-    subtotal:      fmt(t.subtotal),
-    discount:      fmt(t.discount),
-    witnesscharges: fmt(t.witness),
-    samplehandling: fmt(t.handling),
-    sampleprep:    fmt(t.preparation),
-    freight:       fmt(t.freight),
-    mobilisation:  fmt(t.mobilization),
-    subtotal2:     fmt(t.taxable),
-    sgstamount:    fmt(t.sgst),
-    cgstamount:    fmt(t.cgst),
-    igstamount:    fmt(t.igst),
-    finaltotal:    fmt(t.finaltotal),
-    remaining:     fmt(t.remaining),
+    subtotal:       fmt(t.subtotal),
+    discount:       fmt(t.discount),
+    witnesscharges: fmt(t.witnesscharges),
+    samplehandling: fmt(t.samplehandling),
+    sampleprep:     fmt(t.sampleprep),
+    freight:        fmt(t.freight),
+    mobilisation:   fmt(t.mobilisation),
+    subtotal2:      fmt(t.subtotal2),
+    sgstamount:     fmt(t.sgstamount),
+    cgstamount:     fmt(t.cgstamount),
+    igstamount:     fmt(t.igstamount),
+    finaltotal:     fmt(t.finaltotal),
+    remaining:      fmt(t.remaining),
   };
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -277,6 +347,7 @@ export default function InvoiceReport() {
             filters={filters}
             onChange={handleFilterChange}
             onSearch={handleSearch}
+            onExport={exportToExcel}
             customers={customers}
             bdList={bdList}
           />
@@ -452,16 +523,6 @@ export default function InvoiceReport() {
                   </Table>
                 </div>
 
-                {table.getCoreRowModel().rows.length > 0 && (
-                  <div
-                    className={clsx(
-                      "px-4 pb-4 pt-4 sm:px-5",
-                      tableSettings.enableFullScreen && "bg-gray-50 dark:bg-dark-800",
-                    )}
-                  >
-                    <PaginationSection table={table} />
-                  </div>
-                )}
               </Card>
             )}
           </div>

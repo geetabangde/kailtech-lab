@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import axios from "utils/axios";
 import { Page } from "components/shared/Page";
 import { Card, Button, Table, THead, TBody, Th, Tr, Td } from "components/ui";
+import Select from "react-select";
 
 export default function FillReturnCheckList() {
     const [searchParams] = useSearchParams();
@@ -117,7 +118,7 @@ export default function FillReturnCheckList() {
             };
 
             // NOTE: Update this API path to match insertReturnChecklist.php equivalent
-            const res = await axios.post("/profile/insert-return-checklist", payload);
+            const res = await axios.post("/profile/add-issue-check-list", payload);
 
             if (res.data?.status) {
                 toast.success(res.data.message || "Return Checklist Submitted Successfully");
@@ -141,6 +142,11 @@ export default function FillReturnCheckList() {
         );
     }
 
+    const instrumentOptions = instruments.map((inst) => ({
+        value: inst.id,
+        label: inst.name,
+    }));
+
     return (
         <Page title={`Fill Return Checklist`}>
             <div className="p-5">
@@ -159,7 +165,7 @@ export default function FillReturnCheckList() {
                     <form onSubmit={handleSubmit} className="p-4">
                         {/* Table 1: Checklist Matrix */}
                         <div className="overflow-x-auto mb-6">
-                            <Table className="w-full text-left">
+                            <Table className="w-full text-left [&_th]:px-2 [&_td]:px-2 [&_th]:text-xs">
                                 <THead>
                                     <Tr>
                                         <Th>Sr no</Th>
@@ -183,27 +189,26 @@ export default function FillReturnCheckList() {
                                         matrixList.map((row, idx) => (
                                             <Tr key={idx}>
                                                 <Td>{idx + 1}</Td>
-                                                <Td>{`${row.name || row.instrument_name || row.equipment_name || ""} (${row.idno || row.instrument_no || row.equipment_idno || ""})`}</Td>
+                                                <Td className="whitespace-normal min-w-[150px] max-w-[200px] text-xs leading-tight">
+                                                    {`${row.name || row.instrument_name || row.equipment_name || ""} (${row.idno || row.instrument_no || row.equipment_idno || ""})`}
+                                                </Td>
                                                 <Td>{row.discipline_name || row.discipline || ""}</Td>
                                                 <Td>
-                                                    <select
-                                                        className="form-select text-sm w-32 bg-gray-100 rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-800"
-                                                        value={row.equipformverif || ""}
-                                                        disabled
-                                                    >
-                                                        <option value=""></option>
-                                                        {instruments.map((inst) => (
-                                                            <option key={inst.id} value={inst.id}>
-                                                                {inst.name}
-                                                            </option>
-                                                        ))}
-                                                    </select>
+                                                    <Select
+                                                        className="text-xs min-w-[140px]"
+                                                        classNamePrefix="react-select"
+                                                        options={instrumentOptions}
+                                                        value={instrumentOptions.find((opt) => opt.value == row.equipformverif) || null}
+                                                        isDisabled
+                                                        menuPortalTarget={document.body}
+                                                        styles={{ menuPortal: base => ({ ...base, zIndex: 9999 }) }}
+                                                    />
                                                 </Td>
                                                 <Td>
                                                     <input
                                                         type="text"
                                                         value={row.generalcheck || ""}
-                                                        className="form-input text-sm w-24 bg-gray-100 rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-800"
+                                                        className="form-input text-xs px-2 py-1.5 w-16 bg-gray-100 rounded border-gray-300 dark:border-dark-600 dark:bg-dark-800"
                                                         readOnly
                                                     />
                                                 </Td>
@@ -212,7 +217,7 @@ export default function FillReturnCheckList() {
                                                     <input
                                                         type="text"
                                                         value={row.checkpoint || ""}
-                                                        className="form-input text-sm w-24 bg-gray-100 rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-800"
+                                                        className="form-input text-xs px-2 py-1.5 w-16 bg-gray-100 rounded border-gray-300 dark:border-dark-600 dark:bg-dark-800"
                                                         readOnly
                                                     />
                                                 </Td>
@@ -220,7 +225,7 @@ export default function FillReturnCheckList() {
                                                     <input
                                                         type="text"
                                                         value={row.checkpointbeforemoving || ""}
-                                                        className="form-input text-sm w-24 bg-gray-100 rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-800"
+                                                        className="form-input text-xs px-2 py-1.5 w-16 bg-gray-100 rounded border-gray-300 dark:border-dark-600 dark:bg-dark-800"
                                                         readOnly
                                                     />
                                                 </Td>
@@ -229,7 +234,7 @@ export default function FillReturnCheckList() {
                                                         type="text"
                                                         value={row.checkpointaftermoving || ""}
                                                         onChange={(e) => handleMatrixChange(idx, "checkpointaftermoving", e.target.value)}
-                                                        className="form-input text-sm w-24 rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-900"
+                                                        className="form-input text-xs px-2 py-1.5 w-16 rounded border-gray-300 dark:border-dark-600 dark:bg-dark-900"
                                                         readOnly={row.checkpoint === "NA"}
                                                         required={row.checkpoint !== "NA"}
                                                     />
@@ -238,7 +243,7 @@ export default function FillReturnCheckList() {
                                                     <input
                                                         type="text"
                                                         value={row.error || ""}
-                                                        className="form-input text-sm w-24 bg-gray-100 rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-800"
+                                                        className="form-input text-xs px-2 py-1.5 w-16 bg-gray-100 rounded border-gray-300 dark:border-dark-600 dark:bg-dark-800"
                                                         readOnly
                                                     />
                                                 </Td>
@@ -246,7 +251,7 @@ export default function FillReturnCheckList() {
                                                     <input
                                                         type="text"
                                                         value={row.acceptancelimit || ""}
-                                                        className="form-input text-sm w-24 bg-gray-100 rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-800"
+                                                        className="form-input text-xs px-2 py-1.5 w-16 bg-gray-100 rounded border-gray-300 dark:border-dark-600 dark:bg-dark-800"
                                                         readOnly
                                                     />
                                                 </Td>
@@ -254,7 +259,7 @@ export default function FillReturnCheckList() {
                                                     <input
                                                         type="text"
                                                         value={row.result || ""}
-                                                        className="form-input text-sm w-24 bg-gray-100 rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-800"
+                                                        className="form-input text-xs px-2 py-1.5 w-16 bg-gray-100 rounded border-gray-300 dark:border-dark-600 dark:bg-dark-800"
                                                         readOnly
                                                     />
                                                 </Td>
@@ -262,7 +267,7 @@ export default function FillReturnCheckList() {
                                                     <input
                                                         type="text"
                                                         value={row.remark || ""}
-                                                        className="form-input text-sm w-24 bg-gray-100 rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-800"
+                                                        className="form-input text-xs px-2 py-1.5 w-16 bg-gray-100 rounded border-gray-300 dark:border-dark-600 dark:bg-dark-800"
                                                         readOnly
                                                     />
                                                 </Td>
@@ -271,7 +276,7 @@ export default function FillReturnCheckList() {
                                                         type="text"
                                                         value={row.rremark || ""}
                                                         onChange={(e) => handleMatrixChange(idx, "rremark", e.target.value)}
-                                                        className="form-input text-sm w-24 rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-900"
+                                                        className="form-input text-xs px-2 py-1.5 w-16 rounded border-gray-300 dark:border-dark-600 dark:bg-dark-900"
                                                         required={row.checkpoint === "NA"}
                                                     />
                                                 </Td>
@@ -288,7 +293,7 @@ export default function FillReturnCheckList() {
 
                         {/* Table 2: General Checklist Matrix */}
                         <div className="overflow-x-auto mb-6">
-                            <Table className="w-full text-left">
+                            <Table className="w-full text-left [&_th]:px-2 [&_td]:px-2 [&_th]:text-xs">
                                 <THead>
                                     <Tr>
                                         <Th>Sr no</Th>
@@ -306,13 +311,15 @@ export default function FillReturnCheckList() {
                                         generalList.map((row, idx) => (
                                             <Tr key={idx}>
                                                 <Td>{idx + 1}</Td>
-                                                <Td>{`${row.name || row.instrument_name || row.equipment_name || ""} (${row.idno || row.instrument_no || row.equipment_idno || ""})`}</Td>
+                                                <Td className="whitespace-normal min-w-[150px] max-w-[200px] text-xs leading-tight">
+                                                    {`${row.name || row.instrument_name || row.equipment_name || ""} (${row.idno || row.instrument_no || row.equipment_idno || ""})`}
+                                                </Td>
                                                 <Td>{row.accessoriesname || row.accessories_name || ""}</Td>
                                                 <Td>
                                                     <input
                                                         type="text"
                                                         value={row.quantity || row.qty || ""}
-                                                        className="form-input text-sm w-24 bg-gray-100"
+                                                        className="form-input text-xs px-2 py-1.5 w-20 bg-gray-100"
                                                         readOnly
                                                     />
                                                 </Td>
@@ -320,7 +327,7 @@ export default function FillReturnCheckList() {
                                                     <input
                                                         type="text"
                                                         value={row.condition || ""}
-                                                        className="form-input text-sm w-32 bg-gray-100 rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-800"
+                                                        className="form-input text-xs px-2 py-1.5 w-24 bg-gray-100 rounded border-gray-300 dark:border-dark-600 dark:bg-dark-800"
                                                         readOnly
                                                     />
                                                 </Td>
@@ -328,7 +335,7 @@ export default function FillReturnCheckList() {
                                                     <input
                                                         type="text"
                                                         value={row.remark || row.remarks || ""}
-                                                        className="form-input text-sm w-32 bg-gray-100 rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-800"
+                                                        className="form-input text-xs px-2 py-1.5 w-24 bg-gray-100 rounded border-gray-300 dark:border-dark-600 dark:bg-dark-800"
                                                         readOnly
                                                     />
                                                 </Td>
@@ -337,7 +344,7 @@ export default function FillReturnCheckList() {
                                                         type="text"
                                                         value={row.rcondition || ""}
                                                         onChange={(e) => handleGeneralChange(idx, "rcondition", e.target.value)}
-                                                        className="form-input text-sm w-32 rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-900"
+                                                        className="form-input text-xs px-2 py-1.5 w-24 rounded border-gray-300 dark:border-dark-600 dark:bg-dark-900"
                                                     />
                                                 </Td>
                                                 <Td>
@@ -345,7 +352,7 @@ export default function FillReturnCheckList() {
                                                         type="text"
                                                         value={row.rremark1 || ""}
                                                         onChange={(e) => handleGeneralChange(idx, "rremark1", e.target.value)}
-                                                        className="form-input text-sm w-32 rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-900"
+                                                        className="form-input text-xs px-2 py-1.5 w-24 rounded border-gray-300 dark:border-dark-600 dark:bg-dark-900"
                                                     />
                                                 </Td>
                                             </Tr>

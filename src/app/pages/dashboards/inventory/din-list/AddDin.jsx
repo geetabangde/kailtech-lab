@@ -118,12 +118,13 @@ export default function AddDin() {
         if (endpoint.includes("get-supplier-details")) {
           // Supplier returns flat object
           const s = res.data.data;
-          setCustomerAddresses([{ id: s.id || 1, full_address: s.full_address || s.address }]);
+          const vendorAddressString = s.full_address || s.address || "";
+          setCustomerAddresses([{ id: vendorAddressString, full_address: vendorAddressString }]);
           setCustomerContacts([{ id: s.id || 1, name: s.contact_person || "Unknown" }]);
           setFormData(prev => ({
             ...prev,
             customername: s.company || "",
-            custadd: s.full_address || s.address || "",
+            custadd: vendorAddressString,
             custcontactname: s.contact_person || "",
             custphone: s.mobile || s.contact_phone || "",
             custemail: s.email || s.contact_email || "",
@@ -679,26 +680,24 @@ export default function AddDin() {
         basis: formData.basis || "",
         purpose: formData.purpose || "",
         customervendor: purpose11Type || "",
-        inward_entry: formData.inward_entry || [],
-        trf_id: formData.trf_id || "",
+        inwardid: formData.inward_entry || [],
+        trfid: formData.trf_id || [],
         customerid: formData.customerid || "",
         customername: formData.customername || "",
         custadd: formData.custadd || "",
-        custcontact: formData.custcontact || "",
         custcontactname: formData.custcontactname || "",
         custphone: formData.custphone || "",
         custemail: formData.custemail || "",
-        gstno: formData.gstno || "",
         custdesignation: formData.custdesignation || "",
 
-        dindate: formData.dindate ? dayjs(formData.dindate).format("YYYY-MM-DD") : "",
+        dindate: formData.dindate ? dayjs(formData.dindate).format("DD/MM/YYYY") : "",
         issuedtoid: formData.issuedtoid || "",
         dispatchthrough: formData.dispatchthrough || "",
         ...(String(formData.dispatchthrough) === "1" && { empname: formData.empname || "" }),
         ...(String(formData.dispatchthrough) === "2" && { consignname: formData.consignname || "-", consignphone: formData.consignphone || "-" }),
         ...(String(formData.dispatchthrough) === "3" && { courrierno: formData.courrierno || "" }),
-        dispatchdate: formData.dispatchdate ? dayjs(formData.dispatchdate).format("YYYY-MM-DD") : "",
-        expectedreturn: formData.expectedreturn ? dayjs(formData.expectedreturn).format("YYYY-MM-DD") : "",
+        dispatchdate: formData.dispatchdate ? dayjs(formData.dispatchdate).format("DD/MM/YYYY") : "",
+        expectedreturn: formData.expectedreturn ? dayjs(formData.expectedreturn).format("DD/MM/YYYY") : "",
         dispatchdetial: formData.dispatchdetial || "",
         dinremark: formData.dinremark || "",
 
@@ -709,8 +708,7 @@ export default function AddDin() {
         mloc: items.map(i => i.mloc || ""),
         qty: items.map(i => i.qty || 1),
         description: items.map(i => i.description || ""),
-        remark: items.map(i => i.remark || ""),
-        mmissueid: items.map(i => i.mmissueid || "")
+        remark: items.map(i => i.remark || "")
       };
 
       if ([6, 8, 10].includes(pval)) {

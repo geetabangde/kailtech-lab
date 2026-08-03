@@ -54,7 +54,7 @@ export default function OrdersDatatableV1() {
     enableRowDense: false,
   });
   const [globalFilter, setGlobalFilter] = useState("");
-  const [sorting, setSorting] = useState([{ id: "id", desc: true }]);
+  const [sorting, setSorting] = useState([]);
   const [columnVisibility, setColumnVisibility] = useLocalStorage(
     "column-visibility-ManageLabs-index",
     {},

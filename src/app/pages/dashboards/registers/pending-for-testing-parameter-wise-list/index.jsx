@@ -61,7 +61,6 @@ export default function PendingForTestingLrnWiseList() {
   // Chemist dropdown — PHP: selectextrawhere("admin", "status=1")
   const [chemists, setChemists] = useState([]);
 
-  // Fetch LRN-wise list — mirrors lrnlistData.php with status=1
   const fetchRegisterData = async () => {
     try {
       setLoading(true);
@@ -84,10 +83,10 @@ export default function PendingForTestingLrnWiseList() {
     }
   };
 
-  // Fetch chemists from admin list (status=1) — mirrors PHP selectextrawhere("admin","status=1")
+  // Fetch chemists from admin list (status=1)
   const fetchChemists = async () => {
     try {
-      const res = await axios.get("/people/get-admin-users", { params: { status: 1 } });
+      const res = await axios.get("/register/get-lab-user");
       setChemists(res.data?.data || []);
     } catch (err) {
       console.error("Error fetching chemists:", err);
@@ -95,8 +94,8 @@ export default function PendingForTestingLrnWiseList() {
   };
 
   useEffect(() => {
-    fetchChemists();
     fetchRegisterData();
+    fetchChemists();
   }, []);
 
   const handleFilterChange = (name, value) => {

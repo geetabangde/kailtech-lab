@@ -6,7 +6,8 @@ import axios from "utils/axios";
 import Select from "react-select";
 import { DatePicker } from "components/shared/form/Datepicker";
 
-export function Toolbar({ table, filters, onChange, onSearch }) {
+
+export function Toolbar({ filters, onChange, onSearch, onExport }) {
   const navigate = useNavigate();
   const [customers, setCustomers] = useState([]);
 
@@ -49,49 +50,24 @@ export function Toolbar({ table, filters, onChange, onSearch }) {
     }),
   };
 
-  const today = new Date().toISOString().split("T")[0];
+  const today = new Date();
 
-  const handleExport = () => {
-    if (!table) return;
-    const headers = table
-      .getHeaderGroups()[0]
-      .headers.map((h) => h.column.columnDef.header)
-      .filter(Boolean);
-    const rows = table.getFilteredRowModel().rows;
+  let startMaxDate = today;
+  if (filters.enddate) {
+    const [d, m, y] = filters.enddate.split('/');
+    if (d && m && y) {
+      startMaxDate = new Date(`${y}-${m}-${d}`);
+    }
+  }
 
-    const escapeCell = (value) =>
-      String(value ?? "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;");
+  let endMinDate = null;
+  if (filters.startdate) {
+    const [d, m, y] = filters.startdate.split('/');
+    if (d && m && y) {
+      endMinDate = new Date(`${y}-${m}-${d}`);
+    }
+  }
 
-    const bodyRows = rows
-      .map((row) => {
-        const cells = row.getVisibleCells().map((cell) => {
-          const val =
-            typeof cell.getValue === "function" ? cell.getValue() : cell.value;
-          return `<td>${escapeCell(val)}</td>`;
-        });
-        return `<tr>${cells.join("")}</tr>`;
-      })
-      .join("");
-
-    const html = `<table><thead><tr>${headers
-      .map((h) => `<th>${escapeCell(h)}</th>`)
-      .join("")}</tr></thead><tbody>${bodyRows}</tbody></table>`;
-
-    const blob = new Blob([html], {
-      type: "application/vnd.ms-excel;charset=utf-8;",
-    });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "gstr1.xls";
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
-  };
 
   return (
     <div className="px-[var(--margin-x)] pt-4">
@@ -112,21 +88,29 @@ export function Toolbar({ table, filters, onChange, onSearch }) {
           >
             IGST
           </button>
+          <button
+            onClick={onExport}
+            className="inline-flex h-10 items-center rounded-md bg-green-600 px-4 text-sm font-medium text-white hover:bg-green-700 transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="mr-1.5 h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM8.5 16l2-3-2-3H10l1.25 2L12.5 10H14l-2 3 2 3h-1.5l-1.25-2L10 16H8.5z"/>
+            </svg>
+            Download Excel
+          </button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[200px_200px_1fr_auto_auto]">
         {/* Start Date */}
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium text-gray-500 uppercase">Start Date</label>
+        <div className="flex flex-col gap-1 justify-end">
           <DatePicker
             options={{
-              dateFormat: "Y-m-d",
-              altInput: true,
-              altFormat: "d/m/Y",
-              allowInput: true,
-              maxDate: today,
+              dateFormat: "d/m/Y",
+              allowInput: false,
+              maxDate: startMaxDate,
             }}
+            hasCalenderIcon={false}
+            placeholder="Start Date"
             value={filters.startdate}
             onChange={(dates, dateStr) => onChange("startdate", dateStr)}
             className={clsx(
@@ -138,16 +122,16 @@ export function Toolbar({ table, filters, onChange, onSearch }) {
         </div>
 
         {/* End Date */}
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium text-gray-500 uppercase">End Date</label>
+        <div className="flex flex-col gap-1 justify-end">
           <DatePicker
             options={{
-              dateFormat: "Y-m-d",
-              altInput: true,
-              altFormat: "d/m/Y",
-              allowInput: true,
+              dateFormat: "d/m/Y",
+              allowInput: false,
               maxDate: today,
+              minDate: endMinDate,
             }}
+            hasCalenderIcon={false}
+            placeholder="End Date"
             value={filters.enddate}
             onChange={(dates, dateStr) => onChange("enddate", dateStr)}
             className={clsx(
@@ -184,7 +168,7 @@ export function Toolbar({ table, filters, onChange, onSearch }) {
         </div>
         <div className="flex flex-col gap-1 justify-end">
           <button
-            onClick={handleExport}
+            onClick={onExport}
             className="h-10 rounded border border-blue-600 bg-white px-6 text-sm font-medium text-blue-600 hover:bg-blue-50 transition-colors dark:bg-dark-900 dark:hover:bg-dark-800"
           >
             Export

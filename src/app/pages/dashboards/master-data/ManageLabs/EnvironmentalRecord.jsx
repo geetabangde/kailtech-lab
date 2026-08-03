@@ -58,9 +58,15 @@ export default function ViewEnvironmentalRecord() {
         console.log("API Response:", response.data);
 
         // Check if response has data
-        if (response.data) {
+        if (response.data && response.data.status === false) {
+          setEnvironmentalData(null);
+          toast.error(response.data.message || "No data found");
+        } else if (response.data && response.data.data) {
+          setEnvironmentalData(response.data.data);
+        } else if (response.data && (response.data.types || response.data.records)) {
           setEnvironmentalData(response.data);
         } else {
+          setEnvironmentalData(null);
           toast.error("No data found");
         }
       } catch (err) {
