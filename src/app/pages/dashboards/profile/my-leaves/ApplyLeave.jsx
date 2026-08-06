@@ -162,7 +162,7 @@ export default function ApplyLeave() {
     };
 
     try {
-      const res = await axios.post("profile/apply-leave", payload);
+      const res = await axios.post("profile/add-apply-leave", payload);
 
       if (res.data.status) {
         toast.success(res.data.message || "Leave application submitted successfully", {

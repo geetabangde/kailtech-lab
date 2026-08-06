@@ -88,10 +88,19 @@ export function IgstToolbar({ filters, onChange, onSearch, onExport }) {
           >
             SGST + CGST
           </button>
+          <button
+            onClick={onExport}
+            className="inline-flex h-10 items-center rounded-md bg-green-600 px-4 text-sm font-medium text-white hover:bg-green-700 transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="mr-1.5 h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM8.5 16l2-3-2-3H10l1.25 2L12.5 10H14l-2 3 2 3h-1.5l-1.25-2L10 16H8.5z"/>
+            </svg>
+            Download Excel
+          </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[200px_200px_1fr_auto_auto]">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[180px_180px_180px_1fr_auto]">
         {/* Start Date */}
         <div className="flex flex-col gap-1 justify-end">
           <DatePicker
@@ -133,6 +142,34 @@ export function IgstToolbar({ filters, onChange, onSearch, onExport }) {
           />
         </div>
 
+        {/* Invoice Type */}
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-medium text-gray-500 uppercase">Invoice Type</label>
+          <Select
+            options={[
+              { value: "", label: "All Types" },
+              { value: "B2B", label: "B2B" },
+              { value: "B2C", label: "B2C" },
+              { value: "EXPORT", label: "Export" },
+              { value: "SEZ", label: "SEZ" },
+              { value: "CREDIT_NOTE", label: "Credit Notes" },
+            ]}
+            placeholder="Invoice Type..."
+            styles={selectStyles}
+            value={[
+              { value: "", label: "All Types" },
+              { value: "B2B", label: "B2B" },
+              { value: "B2C", label: "B2C" },
+              { value: "EXPORT", label: "Export" },
+              { value: "SEZ", label: "SEZ" },
+              { value: "CREDIT_NOTE", label: "Credit Notes" },
+            ].find((opt) => opt.value === filters.supplierType) || { value: "", label: "All Types" }}
+            onChange={(opt) => onChange("supplierType", opt ? opt.value : "")}
+            className="react-select-container"
+            classNamePrefix="react-select"
+          />
+        </div>
+
         {/* Customer Select */}
         <div className="flex flex-col gap-1">
           <label className="text-xs font-medium text-gray-500 uppercase">Customer</label>
@@ -155,14 +192,6 @@ export function IgstToolbar({ filters, onChange, onSearch, onExport }) {
             className="h-10 rounded bg-blue-600 px-6 text-sm font-medium text-white hover:bg-blue-700 transition-colors shadow-sm"
           >
             Search
-          </button>
-        </div>
-        <div className="flex flex-col gap-1 justify-end">
-          <button
-            onClick={onExport}
-            className="h-10 rounded border border-blue-600 bg-white px-6 text-sm font-medium text-blue-600 hover:bg-blue-50 transition-colors dark:bg-dark-900 dark:hover:bg-dark-800"
-          >
-            Export
           </button>
         </div>
       </div>

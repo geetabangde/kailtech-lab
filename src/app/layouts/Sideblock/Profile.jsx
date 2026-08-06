@@ -53,9 +53,12 @@ export function Profile() {
 
   return (
     <Popover className="relative flex items-center gap-3">
-      <span className="dark:text-dark-100 text-sm font-semibold text-gray-700">
+      <Link 
+        to="/settings/general"
+        className="dark:text-dark-100 text-sm font-semibold text-gray-700 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+      >
         {fullName}
-      </span>
+      </Link>
       <PopoverButton
         as={Avatar}
         size={9}

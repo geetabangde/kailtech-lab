@@ -4,6 +4,7 @@ import { createColumnHelper } from "@tanstack/react-table";
 // Local Imports
 import { RowActions } from "./RowActions";
 import { EditableRemarkCell } from "./EditableRemarkCell";
+import dayjs from "dayjs";
 
 const columnHelper = createColumnHelper();
 
@@ -19,7 +20,10 @@ export const columns = [
   columnHelper.accessor("added_on", {
     id: "added_on",
     header: "Date",
-    cell: (info) => info.getValue() || " ",
+    cell: (info) => {
+      const val = info.getValue();
+      return val ? dayjs(val).format('DD/MM/YYYY HH:mm:ss') : " ";
+    },
   }),
 
   // ✅ Purpose

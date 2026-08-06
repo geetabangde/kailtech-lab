@@ -289,12 +289,12 @@ export default function EditProformaInvoice() {
           freight: d.freight ?? 0,
           mobilisation: d.mobilisation ?? 0,
           witnesstype: d.witnesstype || "%",
-          witnessnumber: d.witnessnumber || 0,
-          samplehandling: d.samplehandling || 0,
+          witnessnumber: Number(d.witnessnumber) || 0,
+          samplehandling: Number(d.samplehandling) || 0,
           sampleprep: d.sampleprep ?? 0,
-          cgstper: d.cgstper || 9,
-          sgstper: d.sgstper || 9,
-          igstper: d.igstper || 18,
+          cgstper: d.cgstper ?? 9,
+          sgstper: d.sgstper ?? 9,
+          igstper: d.igstper ?? 18,
           statecode: String(d.statecode ?? ""),
         });
         if (d.items)

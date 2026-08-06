@@ -31,7 +31,7 @@ const ROOT_DASHBOARDS = "/dashboards";
 const path = (root, item) => `${root}${item}`;
 
 const DASHBOARD_PERMISSION_RULES = {
-  "/dashboards/master-data": [382, 381, 79, 87, 74, 69, 343],
+  "/dashboards/master-data": [382, 381, 79, 87, 74, 69, 343, 342],
   "/dashboards/master-data/unit-types": [87],
   "/dashboards/master-data/modes": [87],
   "/dashboards/master-data/tax-slabs": [79],
@@ -45,6 +45,7 @@ const DASHBOARD_PERMISSION_RULES = {
   "/dashboards/master-data/view-activity-log": [381],
   "/dashboards/master-data/master-calibration-return": [69],
   "/dashboards/master-data/general-checklists": [382],
+  "/dashboards/master-data/instrument-status": [342],
   "/dashboards/calibration-operations": [87, 204, 380, 83],
   "/dashboards/calibration-operations/calibration-standards": [87],
   "/dashboards/calibration-operations/calibration-methods": [87],
@@ -568,6 +569,13 @@ export const generateDashboardsConfig = (labs = [], userPermissions = []) => {
             path: path(ROOT_DASHBOARDS, "/master-data/general-checklists"),
             title: "General Checklists",
             transKey: "nav.dashboards.general-checklists",
+          },
+          {
+            id: "dashboards.instrument-status",
+            type: NAV_TYPE_ITEM,
+            path: path(ROOT_DASHBOARDS, "/master-data/instrument-status"),
+            title: "Instrument Status",
+            transKey: "nav.dashboards.instrument-status",
           },
         ],
       },

@@ -51,14 +51,14 @@ export default function EmployeePermissions() {
           axios.get(`/rolemanagment/get-roles`).catch(() => ({ data: { data: [] } })),
           axios.get(`/master/list-lab`).catch(() => ({ data: { data: [] } }))
         ]);
-        
+
         const result = permResponse.data;
         const rolesData = rolesResponse.data?.data || [];
         const labsData = labsResponse.data?.data || [];
 
         if ((result.status === "true" || result.status === true) && result.data) {
           const d = result.data.allotments || {};
-          const userD = result.data.employee || {}; 
+          const userD = result.data.employee || {};
 
           setFormData({
             role: d.role !== undefined && d.role !== null ? d.role : "",
@@ -135,13 +135,12 @@ export default function EmployeePermissions() {
     setLoading(true);
 
     try {
-      const form = new FormData();
-      form.append("userid", id);
-      Object.keys(formData).forEach((key) => {
-        form.append(key, formData[key] !== null ? formData[key] : "");
-      });
+      const payload = {
+        userid: Number(id),
+        ...formData
+      };
 
-      const response = await axios.post(`/hrm/update-userrole/${id}`, form);
+      const response = await axios.post(`/hrm/update-employee-permissions`, payload);
       const result = response.data;
 
       if (result.status === "true" || result.status === true) {

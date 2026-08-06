@@ -116,12 +116,15 @@ export default function ViewDinForm() {
   if (statusInt === 99) watermarkText = "REJECTED";
   else if ([-2, -1, 0].includes(statusInt)) watermarkText = "DRAFT";
 
-  // Helpers to parse date safely since new API returns DD/MM/YYYY string already
+  // Helpers to parse date safely
   const safeDate = (dateStr) => {
     if (!dateStr) return "";
-    if (dateStr.includes("/")) return dateStr;
-    return dayjs(dateStr).format("DD/MM/YYYY");
-  }
+    const parsed = dayjs(dateStr);
+    if (parsed.isValid()) {
+      return parsed.format("DD/MM/YYYY");
+    }
+    return dateStr;
+  };
 
   return (
     <Page title="View DIN Form">
@@ -275,7 +278,7 @@ export default function ViewDinForm() {
               <div className="flex">
                 <span className="font-bold w-40 shrink-0">Dispatch Through:</span>
                 <span>
-                  {dinDetails.dispatch_through} {dinDetails.dispatch_contact_details ? `(${dinDetails.dispatch_contact_details})` : ""}
+                  {dinDetails.dispatch_through} {dinDetails.dispatch_contact_details?.trim() ? `(${dinDetails.dispatch_contact_details.trim()})` : ""}
                 </span>
               </div>
 

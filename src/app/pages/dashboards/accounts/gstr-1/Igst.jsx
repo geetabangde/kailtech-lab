@@ -7,7 +7,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 import clsx from "clsx";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router";
 import axios from "utils/axios";
 
@@ -16,8 +16,16 @@ import { Table, Card, THead, TBody, Th, Tr, Td } from "components/ui";
 import { Page } from "components/shared/Page";
 import { useThemeContext } from "app/contexts/theme/context";
 import { IgstToolbar } from "./IgstToolbar";
-import { igstColumns } from "./igst-columns";
+import { igstColumns, getSupplierType } from "./igst-columns";
+import { getPlaceOfSupply, getGstRate } from "./columns";
 import * as XLSX from "xlsx";
+
+// ─── Helper: format date to DD/MM/YYYY ─────────────────────────────────────
+function formatDate(val) {
+  if (!val) return "";
+  const d = new Date(val);
+  return isNaN(d) ? val : d.toLocaleDateString("en-GB");
+}
 
 // ----------------------------------------------------------------------
 
@@ -38,6 +46,7 @@ export default function GSTR1IGST() {
     startdate: "",
     enddate: "",
     customerid: "",
+    supplierType: "",
   });
 
   const handleFilterChange = (name, value) => {
@@ -67,8 +76,69 @@ export default function GSTR1IGST() {
         apiParams.enddate = `${y}-${m}-${d}`;
       }
 
+      // Fetch IGST invoices
       const res = await axios.get("/accounts/get-igst_report", { params: apiParams });
-      setData(Array.isArray(res.data) ? res.data : res.data?.data || []);
+      const invoiceData = Array.isArray(res.data) ? res.data : res.data?.data || [];
+
+      // Fetch Credit Notes
+      const cnRes = await axios.get("/accounts/get-credit-not-list");
+      const rawCnData = Array.isArray(cnRes.data) ? cnRes.data : cnRes.data?.data || [];
+
+      // Filter Credit Notes client-side by status, customer, date range, and inter-state status
+      const filteredCnData = rawCnData.filter((cn) => {
+        // Status filter: only approved or e-invoiced credit notes
+        const status = Number(cn.status);
+        if (status !== 1 && status !== 2) return false;
+
+        // Customer ID filter
+        if (filters.customerid && String(cn.customerid || cn.id_customer) !== String(filters.customerid)) {
+          return false;
+        }
+
+        // Date filter
+        const cnDateRaw = cn.creditnotedate || cn.cndate || "";
+        if (!cnDateRaw || cnDateRaw === "0000-00-00") return false;
+        const cnD = new Date(cnDateRaw);
+        if (isNaN(cnD)) return false;
+
+        if (filters.startdate) {
+          const [sd, sm, sy] = filters.startdate.split("/");
+          const startDateObj = new Date(`${sy}-${sm}-${sd}T00:00:00`);
+          if (cnD < startDateObj) return false;
+        }
+
+        if (filters.enddate) {
+          const [ed, em, ey] = filters.enddate.split("/");
+          const endDateObj = new Date(`${ey}-${em}-${ed}T23:59:59`);
+          if (cnD > endDateObj) return false;
+        }
+
+        // Inter-state filter (IGST): has IGST amount OR state code is NOT "23" and is present
+        const hasIgst = Number(cn.igstamount || 0) > 0;
+        const isInterState = String(cn.statecode || "").trim() !== "23" && cn.statecode;
+        if (!hasIgst && !isInterState) return false;
+
+        return true;
+      });
+
+      // Map Credit Notes with negative values to match GSTR-1 structure
+      const mappedCnData = filteredCnData.map((cn) => ({
+        ...cn,
+        id: `cn-${cn.id}`,
+        isCreditNote: true,
+        gstno: cn.gstno || "",
+        custname: cn.custname || cn.customername || cn.cname || "",
+        invoiceno: cn.creditnoteno ? `${cn.creditnoteno} (CN)` : `CN-${cn.id}`,
+        invoicedate: cn.creditnotedate || cn.cndate || cn.created_at,
+        finaltotal: -(Number(cn.finaltotal || 0)),
+        subtotal2: -(Number(cn.subtotal || cn.subtotal2 || 0)),
+        cgstamount: -(Number(cn.cgstamount || 0)),
+        sgstamount: -(Number(cn.sgstamount || 0)),
+        igstamount: -(Number(cn.igstamount || 0)),
+        roundoff: -(Number(cn.roundoff || 0)),
+      }));
+
+      setData([...invoiceData, ...mappedCnData]);
     } catch (err) {
       console.error("Error fetching IGST data:", err);
     } finally {
@@ -76,42 +146,101 @@ export default function GSTR1IGST() {
     }
   };
 
-  // Excel Export — exact PHP export columns
+  const filteredData = useMemo(() => {
+    return data.filter((row) => {
+      if (filters.supplierType === "CREDIT_NOTE") {
+        return row.isCreditNote === true;
+      }
+      if (!filters.supplierType) return true;
+      return getSupplierType(row) === filters.supplierType && !row.isCreditNote;
+    });
+  }, [data, filters.supplierType]);
+
+  // ─── Excel Export — different headers based on Invoice Type filter ────────
   const exportToExcel = () => {
-    if (!data.length) {
+    if (!filteredData.length) {
       alert("Pehle Search karein, tab Export karein.");
       return;
     }
 
-    const exportData = data.map((row, idx) => {
-      let invDate = row.invoicedate;
-      if (invDate) {
-        const dObj = new Date(invDate);
-        if (!isNaN(dObj)) invDate = dObj.toLocaleDateString("en-GB"); // DD/MM/YYYY
-      }
-      return {
-        "Sr No.": idx + 1,
-        "GSTIN NO": row.gstno || "",
-        "RECEIVER NAME": row.custname || "",
-        "INVOICE NO": row.invoiceno || "",
-        "INVOICE DATE": invDate || "",
-        "TOTAL INVOICE VALUE": Number(row.finaltotal || 0),
-        "TAXABLE VALUE": Number(row.subtotal2 || 0),
-        "IGST TAX": Number(row.igstamount || 0),
-        "ROUND OFF": Number(row.roundoff || 0),
-      };
-    });
+    const currentType = filters.supplierType;
+    let exportData;
+    let sheetName;
+    let fileName;
+
+    if (currentType === "CREDIT_NOTE") {
+      // Credit Note headers
+      sheetName = "Credit Notes";
+      fileName = `GSTR1_IGST_CreditNotes_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      exportData = filteredData.map((row) => ({
+        "GSTIN/UIN of Recipient": row.gstno || "",
+        "Receiver Name": row.custname || "",
+        "Note Number": row.invoiceno || "",
+        "Note Date": formatDate(row.invoicedate),
+        "Note Type": "C",
+        "Place of Supply": getPlaceOfSupply(row),
+        "Reverse Charge": String(row.reversecharge || row.reverse_charge || "N").toUpperCase() === "Y" ? "Y" : "N",
+        "Note Supply Type": "",
+        "Note value": Math.abs(Number(row.finaltotal || 0)),
+        "Applicable % of Tax Rate": "",
+        "Rate": getGstRate(row) || "",
+        "Taxable Value": Math.abs(Number(row.subtotal2 || 0)),
+        "Integrated Tax": Math.abs(Number(row.igstamount || 0)),
+        "Central Tax": Math.abs(Number(row.cgstamount || 0)),
+        "State/UT Tax": Math.abs(Number(row.sgstamount || 0)),
+        "Cess Amount": Math.abs(Number(row.cessamount || 0)),
+      }));
+    } else if (currentType === "EXPORT") {
+      // Export invoice headers
+      sheetName = "Export Invoices";
+      fileName = `GSTR1_IGST_Export_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      exportData = filteredData.map((row) => ({
+        "Export Type": row.gstno ? "WPAY" : "WOPAY",
+        "Invoice Number": row.invoiceno || "",
+        "Invoice Date": formatDate(row.invoicedate),
+        "Invoice value": Number(row.finaltotal || 0),
+        "Port Code": row.portcode || row.port_code || "",
+        "Shipping Bill Number": row.shippingbillno || row.shipping_bill_no || "",
+        "Shipping Bill Date": formatDate(row.shippingbilldate || row.shipping_bill_date),
+        "Rate": getGstRate(row) || "",
+        "Taxable Value": Number(row.subtotal2 || 0),
+        "Integrated Tax": Number(row.igstamount || 0),
+      }));
+    } else {
+      // B2B / B2C / SEZ / All Types — standard invoice headers
+      const typeLabel = currentType || "All";
+      sheetName = `${typeLabel} Invoices`;
+      fileName = `GSTR1_IGST_${typeLabel}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      exportData = filteredData.map((row) => ({
+        "GSTIN/UIN of Recipient": row.gstno || "",
+        "Receiver Name": row.custname || "",
+        "Invoice number": row.invoiceno || "",
+        "Invoice date": formatDate(row.invoicedate),
+        "Invoice value": Number(row.finaltotal || 0),
+        "Place of Supply": getPlaceOfSupply(row),
+        "Reverse Charge": String(row.reversecharge || row.reverse_charge || "N").toUpperCase() === "Y" ? "Y" : "N",
+        "Applicable % of Tax Rate": "",
+        "Invoice Type": row.isCreditNote ? "Credit Note" : getSupplierType(row),
+        "E-Commerce GSTIN": row.ecomgstin || row.ecom_gstin || "",
+        "Rate": getGstRate(row) || "",
+        "Taxable Value": Number(row.subtotal2 || 0),
+        "Integrated Tax": Number(row.igstamount || 0),
+        "Central Tax": Number(row.cgstamount || 0),
+        "State/UT Tax": Number(row.sgstamount || 0),
+        "Cess Amount": Number(row.cessamount || 0),
+      }));
+    }
 
     const worksheet = XLSX.utils.json_to_sheet(exportData);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Gstr 1 List");
-    const colWidths = Object.keys(exportData[0]).map((key) => ({ wch: Math.max(key.length, 16) }));
+    XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+    const colWidths = Object.keys(exportData[0]).map((key) => ({ wch: Math.max(key.length + 2, 16) }));
     worksheet["!cols"] = colWidths;
-    XLSX.writeFile(workbook, `masterequipmentlist.xls`);
+    XLSX.writeFile(workbook, fileName);
   };
 
   const table = useReactTable({
-    data,
+    data: filteredData,
     columns: igstColumns,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -119,15 +248,16 @@ export default function GSTR1IGST() {
   });
 
   // Totals for numeric columns
-  const totals = data.reduce(
+  const totals = filteredData.reduce(
     (acc, row) => {
       acc.finaltotal += Number(row.finaltotal || 0);
       acc.subtotal2 += Number(row.subtotal2 || 0);
       acc.igstamount += Number(row.igstamount || 0);
+      acc.cessamount += Number(row.cessamount || 0);
       acc.roundoff += Number(row.roundoff || 0);
       return acc;
     },
-    { finaltotal: 0, subtotal2: 0, igstamount: 0, roundoff: 0 },
+    { finaltotal: 0, subtotal2: 0, igstamount: 0, cessamount: 0, roundoff: 0 },
   );
 
   return (
@@ -238,13 +368,13 @@ export default function GSTR1IGST() {
                                     return (
                                       <Td
                                         key={col.id}
-                                        colSpan={5}
+                                        colSpan={7}
                                         className="text-right"
                                       >
                                         Total
                                       </Td>
                                     );
-                                  if (idx < 5) return null;
+                                  if (idx < 7) return null;
                                   if (col.id === "finaltotal")
                                     return (
                                       <Td key={col.id}>
@@ -261,6 +391,12 @@ export default function GSTR1IGST() {
                                     return (
                                       <Td key={col.id}>
                                         {totals.igstamount.toFixed(2)}
+                                      </Td>
+                                    );
+                                  if (col.id === "cessamount")
+                                    return (
+                                      <Td key={col.id}>
+                                        {totals.cessamount.toFixed(2)}
                                       </Td>
                                     );
                                   if (col.id === "roundoff")

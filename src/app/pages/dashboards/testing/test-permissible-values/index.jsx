@@ -251,7 +251,7 @@ export default function ProductsDatatableV1() {
                   hoverable
                   dense={tableSettings.enableRowDense}
                   sticky={tableSettings.enableFullScreen}
-                  className="w-full text-left rtl:text-right"
+                  className="w-full table-fixed text-left rtl:text-right"
                 >
                   <THead>
                     {table.getHeaderGroups().map((headerGroup) => (
@@ -311,7 +311,7 @@ export default function ProductsDatatableV1() {
                               )}
                             >
                               {header.column.getCanFilter() ? (
-                                <div onClick={(e) => e.stopPropagation()}>
+                                <div onClick={(e) => e.stopPropagation()} className="w-full min-w-[60px]">
                                   <Input
                                     size="sm"
                                     placeholder={`Search...`}
@@ -323,7 +323,7 @@ export default function ProductsDatatableV1() {
                                     }
                                     classNames={{
                                       input:
-                                        "ring-primary-500/30 dark:bg-dark-900 dark:border-dark-700 h-7 border-gray-300 px-2 py-1 text-[10px] focus:ring-1",
+                                        "ring-primary-500/30 dark:bg-dark-900 dark:border-dark-700 h-7 border-gray-300 px-2 py-1 text-[10px] focus:ring-1 w-full",
                                     }}
                                   />
                                 </div>

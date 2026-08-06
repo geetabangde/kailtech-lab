@@ -40,11 +40,12 @@ export default function ViewQuotation() {
         const viewData = quoteRes.data.data;
         if (editRes.data?.status === "true" || editRes.data?.status === true) {
           const q = editRes.data.data?.quotation;
+          const customerData = editRes.data.data?.customerData;
           if (q) {
             viewData.notes = q.notes || viewData.notes;
             viewData.customterms = q.customterms || viewData.customterms;
-            
-            // If unregistered customer, use the data saved in the quotation directly
+
+            // PHP logic: if (empty($customer) || $customer == 'new') → new customer fields
             if (!q.customer || String(q.customer) === "0" || q.customer === "new") {
               viewData.customer = {
                 name: q.customername || "",
@@ -53,6 +54,39 @@ export default function ViewQuotation() {
                 email: q.concernpersonemail || "",
                 contact_person: q.contactpersonname || ""
               };
+            } else {
+              // PHP logic: selectfieldwhere(`customer-address`, "concat(address,',',city,',',pincode)", "customer=$customer and id=$caddress")
+              // Find the selected address from addresses array using selected_address ID (caddress)
+              if (customerData?.addresses && customerData?.selected_address) {
+                const selectedAddr = customerData.addresses.find(
+                  (a) => String(a.id) === String(customerData.selected_address)
+                );
+                if (selectedAddr) {
+                  // Build address string same as PHP: concat(address,',',city,',',pincode)
+                  const addrParts = [selectedAddr.address, selectedAddr.city, selectedAddr.pincode]
+                    .filter(Boolean)
+                    .join(", ");
+                  viewData.customer = {
+                    ...viewData.customer,
+                    address: addrParts
+                  };
+                }
+              }
+
+              // Fix contact person: find from contacts array using selected_contact (cperson)
+              if (customerData?.contacts && customerData?.selected_contact) {
+                const selectedContact = customerData.contacts.find(
+                  (c) => String(c.id) === String(customerData.selected_contact)
+                );
+                if (selectedContact) {
+                  viewData.customer = {
+                    ...viewData.customer,
+                    contact_person: selectedContact.name || viewData.customer?.contact_person,
+                    mobile: selectedContact.mobile || viewData.customer?.mobile,
+                    email: selectedContact.email || viewData.customer?.email
+                  };
+                }
+              }
             }
           }
         }

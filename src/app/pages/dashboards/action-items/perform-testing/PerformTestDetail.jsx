@@ -554,6 +554,9 @@ function ActionCell({ row, onRefresh, lrn }) {
                   key="start-direct"
                   to={getStartUrl("direct")}
                   onClick={(e) => {
+                    if (e.ctrlKey || e.metaKey || e.shiftKey || e.button === 1) {
+                      return; // Let the browser open it in a new tab
+                    }
                     e.preventDefault();
                     if (!submitting) handleDirectStart();
                   }}
@@ -581,6 +584,9 @@ function ActionCell({ row, onRefresh, lrn }) {
                   key="start-modal"
                   to={getStartUrl("modal")}
                   onClick={(e) => {
+                    if (e.ctrlKey || e.metaKey || e.shiftKey || e.button === 1) {
+                      return; // Let the browser open it in a new tab
+                    }
                     e.preventDefault();
                     setStartDateModal(true);
                   }}
@@ -604,13 +610,13 @@ function ActionCell({ row, onRefresh, lrn }) {
             // FIX #2: <button href=...> kaam nahi karta → <a> use karo
             // PHP: <a href="testinput.php?hakuna={teid}"> Test Input</a>
             elements.push(
-              <a
+              <Link
                 key="test-input"
-                href={`/dashboards/action-items/perform-testing/test-input/${testeventdata_id}`}
+                to={`/dashboards/action-items/perform-testing/test-input/${testeventdata_id}`}
                 className="text-xs font-semibold text-blue-600 hover:underline dark:text-blue-400"
               >
                 Test Input
-              </a>
+              </Link>
             );
           } else {
             // PHP: $flag = "Pending Test Input"
@@ -637,13 +643,13 @@ function ActionCell({ row, onRefresh, lrn }) {
         if (is_chemist) {
           // PHP: $flag = ' <a href="testinput.php?hakuna={teid}"> Test Input</a>'
           elements.push(
-            <a
+            <Link
               key="test-input"
-              href={`/dashboards/action-items/perform-testing/test-input/${testeventdata_id}`}
+              to={`/dashboards/action-items/perform-testing/test-input/${testeventdata_id}`}
               className="text-xs font-semibold text-blue-600 hover:underline dark:text-blue-400"
             >
               Test Input
-            </a>
+            </Link>
           );
         } else {
           // PHP: $flag = "Pending Test Input "
@@ -672,14 +678,14 @@ function ActionCell({ row, onRefresh, lrn }) {
             Test Completed
           </span>
           {/* PHP: target="_blank" href="viewrawdatasingle.php?hakuna={teid}" */}
-          <a
-            href={`/dashboards/action-items/perform-testing/view-raw-data/${testeventdata_id}`}
+          <Link
+            to={`/dashboards/action-items/perform-testing/view-raw-data/${testeventdata_id}`}
             target="_blank"
             rel="noopener noreferrer"
             className="text-xs font-semibold text-blue-600 hover:underline dark:text-blue-400"
           >
             View Raw Data
-          </a>
+          </Link>
         </div>
       );
     }
@@ -689,13 +695,13 @@ function ActionCell({ row, onRefresh, lrn }) {
     // Route: /perform-testing/test-documents/:trfid/:tid/:teid
     if (has_documents) {
       elements.push(
-        <a
+        <Link
           key="view-docs"
-          href={`/dashboards/action-items/perform-testing/test-documents/${trfid}/${tid}/${testeventdata_id}`}
+          to={`/dashboards/action-items/perform-testing/test-documents/${trfid}/${tid}/${testeventdata_id}`}
           className="inline-flex items-center gap-1 rounded bg-blue-500 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-blue-600"
         >
           View Documents
-        </a>
+        </Link>
       );
     }
 
@@ -991,7 +997,7 @@ export default function PerformTestDetail() {
   // ── Loading state ─────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <Page title="Tests List">
+      <Page title="Perform Test">
         <div className="flex h-[60vh] items-center justify-center gap-3 text-gray-500">
           <Spinner /> Loading...
         </div>
@@ -1000,7 +1006,7 @@ export default function PerformTestDetail() {
   }
 
   return (
-    <Page title="Tests List">
+    <Page title="Perform Test">
       <div className="transition-content w-full pb-8 px-[var(--margin-x)]">
 
         {/* ── Page Header ─────────────────────────────────────────────────── */}

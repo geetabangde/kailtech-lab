@@ -33,18 +33,17 @@ export default function FillReturnCheckList() {
             setLoading(true);
             // NOTE: Replace these API URLs with the actual ones on your backend.
             const [resChecklist, resInstruments] = await Promise.all([
-                axios.get("/profile/get-return-checklist", { params: { id } }),
-                axios.get("/profile/get-active-instruments"),
+                axios.get(`/profile/get-return-checklist/${id}`),
             ]);
 
-            if (resChecklist.data?.status) {
-                setMatrixList(resChecklist.data.matrix || []);
-                setGeneralList(resChecklist.data.general || []);
+            if (resChecklist.data?.success || resChecklist.data?.status) {
+                setMatrixList(resChecklist.data.data?.checklist_records || resChecklist.data.matrix || []);
+                setGeneralList(resChecklist.data.data?.general_checklist_records || resChecklist.data.general || []);
             } else {
                 toast.error(resChecklist.data?.message || "Failed to load checklists");
             }
 
-            if (resInstruments.data?.status) {
+            if (resInstruments?.data?.status) {
                 setInstruments(resInstruments.data.data || []);
             }
         } catch (err) {
@@ -112,9 +111,9 @@ export default function FillReturnCheckList() {
             setSubmitting(true);
 
             const payload = {
-                id,
-                matrix: matrixList,
-                general: generalList,
+                gatepass: id,
+                checklistmatrix: matrixList,
+                generalmatrix: generalList,
             };
 
             // NOTE: Update this API path to match insertReturnChecklist.php equivalent
@@ -156,7 +155,7 @@ export default function FillReturnCheckList() {
                             Fill Item List
                         </h3>
                         <Link to="/dashboards/profile/my-issue-item-list">
-                            <Button color="info" variant="solid">
+                            <Button color="info" variant="filled">
                                 &laquo; Issued Item list
                             </Button>
                         </Link>
@@ -190,7 +189,7 @@ export default function FillReturnCheckList() {
                                             <Tr key={idx}>
                                                 <Td>{idx + 1}</Td>
                                                 <Td className="whitespace-normal min-w-[150px] max-w-[200px] text-xs leading-tight">
-                                                    {`${row.name || row.instrument_name || row.equipment_name || ""} (${row.idno || row.instrument_no || row.equipment_idno || ""})`}
+                                                    {row.master_equipment || `${row.name || row.instrument_name || row.equipment_name || ""} (${row.idno || row.instrument_no || row.equipment_idno || ""})`}
                                                 </Td>
                                                 <Td>{row.discipline_name || row.discipline || ""}</Td>
                                                 <Td>
@@ -312,7 +311,7 @@ export default function FillReturnCheckList() {
                                             <Tr key={idx}>
                                                 <Td>{idx + 1}</Td>
                                                 <Td className="whitespace-normal min-w-[150px] max-w-[200px] text-xs leading-tight">
-                                                    {`${row.name || row.instrument_name || row.equipment_name || ""} (${row.idno || row.instrument_no || row.equipment_idno || ""})`}
+                                                    {row.master_equipment || `${row.name || row.instrument_name || row.equipment_name || ""} (${row.idno || row.instrument_no || row.equipment_idno || ""})`}
                                                 </Td>
                                                 <Td>{row.accessoriesname || row.accessories_name || ""}</Td>
                                                 <Td>
@@ -342,16 +341,16 @@ export default function FillReturnCheckList() {
                                                 <Td>
                                                     <input
                                                         type="text"
-                                                        value={row.rcondition || ""}
-                                                        onChange={(e) => handleGeneralChange(idx, "rcondition", e.target.value)}
+                                                        value={row.return_condition || row.rcondition || ""}
+                                                        onChange={(e) => handleGeneralChange(idx, "return_condition", e.target.value)}
                                                         className="form-input text-xs px-2 py-1.5 w-24 rounded border-gray-300 dark:border-dark-600 dark:bg-dark-900"
                                                     />
                                                 </Td>
                                                 <Td>
                                                     <input
                                                         type="text"
-                                                        value={row.rremark1 || ""}
-                                                        onChange={(e) => handleGeneralChange(idx, "rremark1", e.target.value)}
+                                                        value={row.return_remarks || row.rremark1 || ""}
+                                                        onChange={(e) => handleGeneralChange(idx, "return_remarks", e.target.value)}
                                                         className="form-input text-xs px-2 py-1.5 w-24 rounded border-gray-300 dark:border-dark-600 dark:bg-dark-900"
                                                     />
                                                 </Td>

@@ -4,7 +4,7 @@ import { Link } from "react-router";
 import clsx from "clsx";
 
 // Local Imports
-import Logo from "assets/appLogo.svg?react";
+
 import { Menu } from "./Menu";
 import { Item } from "./Menu/Item";
 import { Profile } from "../../Profile";
@@ -23,13 +23,7 @@ export function MainPanel({ nav, setActiveSegment, activeSegment }) {
           cardSkin === "shadow" ? "dark:bg-dark-750" : "dark:bg-dark-900",
         )}
       >
-        {/* Application Logo */}
-        <div className="flex pt-3.5">
-          <Link to="/">
-            <Logo className="size-10 text-primary-600 dark:text-primary-400" />
-          </Link>
-        </div>
-
+        {/* Application Logo Removed as requested */}
         <Menu
           nav={nav}
           activeSegment={activeSegment}

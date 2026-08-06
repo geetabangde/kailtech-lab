@@ -140,7 +140,7 @@ export default function ApproveSignature() {
 
     setMultiLoading(true);
     try {
-      await axios.post("/approvals/approve-signatures", { ids });
+      await axios.post("/approvals/approve-multiple-signatures", { ids });
       toast.success(`${ids.length} signature(s) approved successfully ✅`);
       table.options.meta?.deleteRows(selectedRows);
       table.resetRowSelection();

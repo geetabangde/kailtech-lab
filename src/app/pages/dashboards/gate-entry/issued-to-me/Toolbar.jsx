@@ -12,6 +12,7 @@ import { EllipsisHorizontalIcon } from "@heroicons/react/20/solid";
 
 import { Button, Input } from "components/ui";
 import ReactSelect from "react-select";
+import { DatePicker } from "components/shared/form/Datepicker";
 import { TableConfig } from "./TableConfig";
 import { useBreakpointsContext } from "app/contexts/breakpoint/context";
 
@@ -94,27 +95,37 @@ export function Toolbar({ table }) {
             isFullScreenEnabled ? "px-4 sm:px-5" : "px-[var(--margin-x)]",
           )}
         >
-          <div className="flex shrink-0 space-x-2 ">
+          <div className="flex shrink-0 items-center space-x-2 ">
             <SearchInput table={table} />
             <div className="flex items-center space-x-2">
               <span className="text-xs font-medium text-gray-500 dark:text-dark-200">Min:</span>
-              <Input
-                type="date"
+              <DatePicker
+                options={{
+                  dateFormat: "Y-m-d",
+                  altInput: true,
+                  altFormat: "d/m/Y",
+                  maxDate: table.getState().filters?.maxDate || new Date().toISOString().split('T')[0]
+                }}
                 value={table.getState().filters?.minDate || ""}
-                max={table.getState().filters?.maxDate || new Date().toISOString().split('T')[0]}
-                onChange={(e) => table.options.meta.setFilters(prev => ({ ...prev, minDate: e.target.value }))}
+                onChange={(selectedDates, dateStr) => table.options.meta.setFilters(prev => ({ ...prev, minDate: dateStr }))}
                 className="h-8 w-32 text-xs"
+                placeholder="dd/mm/yyyy"
               />
             </div>
             <div className="flex items-center space-x-2">
               <span className="text-xs font-medium text-gray-500 dark:text-dark-200">Max:</span>
-              <Input
-                type="date"
+              <DatePicker
+                options={{
+                  dateFormat: "Y-m-d",
+                  altInput: true,
+                  altFormat: "d/m/Y",
+                  minDate: table.getState().filters?.minDate || "",
+                  maxDate: new Date().toISOString().split('T')[0]
+                }}
                 value={table.getState().filters?.maxDate || ""}
-                min={table.getState().filters?.minDate || ""}
-                max={new Date().toISOString().split('T')[0]}
-                onChange={(e) => table.options.meta.setFilters(prev => ({ ...prev, maxDate: e.target.value }))}
+                onChange={(selectedDates, dateStr) => table.options.meta.setFilters(prev => ({ ...prev, maxDate: dateStr }))}
                 className="h-8 w-32 text-xs"
+                placeholder="dd/mm/yyyy"
               />
             </div>
             <div className="flex items-center space-x-2">
@@ -136,12 +147,15 @@ export function Toolbar({ table }) {
                   styles={{
                     control: (base) => ({
                       ...base,
-                      minHeight: "42px",
+                      minHeight: "32px",
+                      height: "32px",
                       borderRadius: "0.5rem",
                       borderColor: "#D1D5DB",
                       boxShadow: "none",
                       "&:hover": { borderColor: "#9CA3AF" },
                     }),
+                    valueContainer: (base) => ({ ...base, padding: "0 8px" }),
+                    indicatorsContainer: (base) => ({ ...base, height: "30px" }),
                     menuPortal: (base) => ({ ...base, zIndex: 9999 }),
                   }}
                 />

@@ -9,7 +9,26 @@ const columnHelper = createColumnHelper();
 
 
 export const columns = [
-
+  // Checkbox column for multiple selection
+  columnHelper.display({
+    id: "selection",
+    header: ({ table }) => (
+      <input
+        type="checkbox"
+        checked={table.getIsAllRowsSelected()}
+        onChange={table.getToggleAllRowsSelectedHandler()}
+        className="size-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+      />
+    ),
+    cell: ({ row }) => (
+      <input
+        type="checkbox"
+        checked={row.getIsSelected()}
+        onChange={row.getToggleSelectedHandler()}
+        className="size-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+      />
+    ),
+  }),
 
   // PHP: $n[] = $i;  (S.NO — auto-incremented counter)
   columnHelper.display({

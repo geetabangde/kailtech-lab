@@ -91,8 +91,8 @@ export default function FillCheckList() {
 
       const payload = {
         gatepass,
-        matrix: matrixList,
-        general: generalList,
+        checklistmatrix: matrixList,
+        generalmatrix: generalList,
       };
 
       // NOTE: Update this API path to match insertIssueChecklist.php equivalent

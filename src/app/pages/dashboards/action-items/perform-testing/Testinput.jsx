@@ -1,6 +1,6 @@
 // Import Dependencies
 import { useState, useEffect, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import axios from "utils/axios";
 import dayjs from "dayjs";
 import { toast } from "sonner";
@@ -467,14 +467,12 @@ export default function TestInput() {
       <div className="transition-content w-full px-[var(--margin-x)] pb-10">
         {/* PHP: <a href="performtest.php?hakuna={trfproduct}"> Back To Tests</a> */}
         <div className="mb-5">
-          <button
-            onClick={() =>
-              navigate(`/dashboards/action-items/perform-testing/${trfproduct}`)
-            }
-            className="rounded-lg border border-blue-300 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100 dark:border-blue-700 dark:bg-blue-900/20 dark:text-blue-400"
+          <Link
+            to={`/dashboards/action-items/perform-testing/${trfproduct}`}
+            className="inline-flex items-center rounded-lg border border-blue-300 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100 dark:border-blue-700 dark:bg-blue-900/20 dark:text-blue-400"
           >
             ← Back To Tests
-          </button>
+          </Link>
         </div>
 
         <Card className="p-6">

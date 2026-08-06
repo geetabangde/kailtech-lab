@@ -286,7 +286,11 @@ export function RowActions({ row, table }) {
           canEdit && (
             <ActionBtn
               color="warning"
-              to={`/dashboards/accounts/calibration-invoice-list/edit/${rowData.id}`}
+              to={
+                !rowData.inwardid
+                  ? `/dashboards/accounts/calibration-invoice-list/edit-advance/${rowData.id}`
+                  : `/dashboards/accounts/calibration-invoice-list/edit/${rowData.id}`
+              }
             >
               Edit
             </ActionBtn>

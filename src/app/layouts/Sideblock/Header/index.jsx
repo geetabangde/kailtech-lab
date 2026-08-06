@@ -8,6 +8,7 @@ import { Profile } from "../Profile";
 import { useThemeContext } from "app/contexts/theme/context";
 import { useAuthContext } from "app/contexts/auth/context";
 import { getFinancialYears } from "utils/financialYear";
+import { SymbolToolbar } from "components/shared/SymbolToolbar";
 import { useState, useEffect } from "react";
 
 // ----------------------------------------------------------------------
@@ -66,8 +67,13 @@ export function Header() {
         </Button>
       </div>
 
+      {/* Symbol Toolbar */}
+      <div className="flex flex-1 items-center justify-start -ml-2 overflow-hidden">
+        <SymbolToolbar />
+      </div>
+
       {/* Actions & Profile Section - Flexible Center for balance */}
-      <div className="flex flex-1 items-center justify-end gap-4 px-[var(--margin-x)]">
+      <div className="flex items-center justify-end gap-4 px-[var(--margin-x)] shrink-0">
         <Profile />
       </div>
     </header>

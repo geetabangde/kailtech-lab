@@ -17,15 +17,15 @@ export const columns = [
   }),
 
   // ✅ Product Name
-  columnHelper.accessor("product_name", {
-    id: "product_name",
+  columnHelper.accessor("name", {
+    id: "name",
     header: "PRODUCT NAME",
     cell: (info) => info.getValue() ?? "—",
   }),
 
   // ✅ ID No
-  columnHelper.accessor("id_no", {
-    id: "id_no",
+  columnHelper.accessor("idno", {
+    id: "idno",
     header: "ID NO",
     cell: (info) => info.getValue() ?? "—",
   }),
@@ -45,22 +45,22 @@ export const columns = [
   }),
 
   // ✅ Batch No.
-  columnHelper.accessor("batch_no", {
-    id: "batch_no",
+  columnHelper.accessor("batchno", {
+    id: "batchno",
     header: "BATCH NO.",
     cell: (info) => info.getValue() ?? "—",
   }),
 
   // ✅ Expiry
-  columnHelper.accessor("expiry", {
-    id: "expiry",
+  columnHelper.accessor("expdate", {
+    id: "expdate",
     header: "EXPIRY",
     cell: (info) => info.getValue() ?? "—",
   }),
 
   // ✅ Quantity
-  columnHelper.accessor("quantity", {
-    id: "quantity",
+  columnHelper.accessor("qty_with_unit", {
+    id: "qty_with_unit",
     header: "QUANTITY",
     cell: (info) => info.getValue() ?? "—",
   }),
@@ -68,7 +68,7 @@ export const columns = [
   // ✅ Edit — conditionally rendered via columnVisibility (permission 348)
   columnHelper.display({
     id: "edit",
-    header: () => <div className="text-center w-full">EDIT</div>,
+    header: () => <div className="text-center w-full">Edit</div>,
     cell: RowActions,
     meta: { align: "center" },
   }),
@@ -86,8 +86,8 @@ export const columns = [
     header: "CRITICAL",
     cell: (info) => {
       const val = info.getValue();
-      if (val === null || val === undefined) return "—";
-      return val ? (
+      if (val === null || val === undefined || val === "") return "—";
+      return val === "Yes" ? (
         <span className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-700 dark:bg-red-900/30 dark:text-red-400">
           Yes
         </span>

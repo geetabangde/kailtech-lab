@@ -318,7 +318,7 @@ export default function PerformTest() {
   // PHP: if(!in_array(7, $permissions)) header("location:index.php");
   if (!permissions.includes(7)) {
     return (
-      <Page title="Perform Test">
+      <Page title="Enter Test data">
         <div className="flex h-60 items-center justify-center rounded-xl border border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20">
           <p className="text-sm font-medium text-red-600 dark:text-red-400">
             Access Denied - Permission 7 required
@@ -330,7 +330,7 @@ export default function PerformTest() {
 
   if (firstLoad) {
     return (
-      <Page title="Perform Test">
+      <Page title="Enter Test data">
         <div className="flex h-[60vh] items-center justify-center gap-3 text-gray-500">
           <svg
             className="h-5 w-5 animate-spin text-blue-600"
@@ -357,7 +357,7 @@ export default function PerformTest() {
   }
 
   return (
-    <Page title="Perform Test">
+    <Page title="Enter Test data">
       <div className="transition-content w-full pb-5">
         <div
           className={clsx(

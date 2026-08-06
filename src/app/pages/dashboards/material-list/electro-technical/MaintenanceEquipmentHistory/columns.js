@@ -15,7 +15,7 @@ export const columns = [
     label: "Row Selection",
     header: SelectHeader,
     cell: SelectCell,
-    size: 50,
+    size: 40,
   }),
 
   // S No
@@ -23,7 +23,7 @@ export const columns = [
     id: "s_no",
     header: "S No",
     cell: (info) => info.row.index + 1,
-    size: 80,
+    size: 60,
   }),
 
   // Type of Service
@@ -32,7 +32,7 @@ export const columns = [
     header: "Type Of Service",
     cell: (info) => info.getValue() || "-",
     enableColumnFilter: true,
-    size: 150,
+    size: 130,
   }),
 
   // Service Provider (NO JSX)
@@ -40,7 +40,7 @@ export const columns = [
     id: "serviceprovider",
     header: "Name and address of service provider",
     cell: (info) => info.getValue() || "-",
-    size: 300,
+    size: 240,
   }),
 
   // Certificate No
@@ -48,7 +48,7 @@ export const columns = [
     id: "certificateno",
     header: "Certificate No",
     cell: (info) => info.getValue() || "-",
-    size: 150,
+    size: 130,
   }),
 
   // Start Date
@@ -56,7 +56,7 @@ export const columns = [
     id: "startdate",
     header: "START DATE",
     cell: DateCell,
-    size: 150,
+    size: 100,
   }),
 
   // End Date
@@ -64,7 +64,7 @@ export const columns = [
     id: "enddate",
     header: "END DATE",
     cell: DateCell,
-    size: 150,
+    size: 100,
   }),
 
   // IMC Added (NO JSX)
@@ -72,7 +72,7 @@ export const columns = [
     id: "imcadded",
     header: "IMC ADDED",
     cell: (info) => info.getValue() || "No",
-    size: 120,
+    size: 90,
   }),
 
   // Action
@@ -81,6 +81,6 @@ export const columns = [
     label: "Row Actions",
     header: "ACTION",
     cell: RowActions,
-    size: 220,
+    size: 200,
   }),
 ];

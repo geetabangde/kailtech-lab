@@ -462,7 +462,11 @@ export default function EditCalibrationInvoice() {
         setInvoiceNo(inv.invoiceno ?? "");
         setCustomerid(String(inv.customerid ?? cust.id ?? ""));
         setPotype(inv.potype ?? "Normal");
-        setSelectedPo(d.selected_po ?? inv.ponumber ?? "");
+        
+        // Trim selected PO to ensure match
+        const initialPo = String(d.selected_po ?? inv.ponumber ?? "").trim();
+        setSelectedPo(initialPo);
+        
         setSelectedInwards(selInw.map(String));
         // invoicedate already in YYYY-MM-DD from this API
         setInvoicedate(
@@ -482,8 +486,14 @@ export default function EditCalibrationInvoice() {
         });
 
         // ── PO list — po_list is string[] ──
-        // Store as-is; PO select renders p directly (string)
-        setPonumbers(poList);
+        // Trim to match selectedPo
+        let poArray = poList.map(p => String(p).trim());
+        
+        if (initialPo && !poArray.includes(initialPo)) {
+          poArray = [initialPo, ...poArray];
+        }
+        
+        setPonumbers(poArray);
 
         // ── Inward options — convert [{id,inwarddate}] → [{id,display}] ──
         // PHP format: "3585(17/05/2025)"
@@ -560,9 +570,9 @@ export default function EditCalibrationInvoice() {
     try {
       const res = await axios.get(`/accounts/get-ponumber/${cid}`);
       const list = res.data.data ?? res.data ?? [];
-      // API may return objects {ponumber} or strings
+      // API may return objects {ponumber} or strings. Trim to ensure consistency.
       setPonumbers(
-        list.map((p) => (typeof p === "string" ? p : (p.ponumber ?? p))),
+        list.map((p) => String(typeof p === "string" ? p : (p.ponumber ?? p)).trim()),
       );
     } catch {
       toast.error("Failed to load PO numbers");

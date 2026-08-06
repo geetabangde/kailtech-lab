@@ -904,6 +904,16 @@ const protectedRoutes = {
                     ).default,
                   }),
                 },
+                {
+                  path: "instrument-status",
+                  lazy: async () => ({
+                    Component: (
+                      await import(
+                        "app/pages/dashboards/master-data/InstrumentStatus"
+                      )
+                    ).default,
+                  }),
+                },
               ],
             },
             {
@@ -2186,6 +2196,16 @@ const protectedRoutes = {
                         Component: (
                           await import(
                             "app/pages/dashboards/testing/trfs-starts-jobs/PrintSlip"
+                          )
+                        ).default,
+                      }),
+                    },
+                    {
+                      path: "view-raw-data/:id",
+                      lazy: async () => ({
+                        Component: (
+                          await import(
+                            "app/pages/dashboards/testing/trfs-starts-jobs/ViewRawData"
                           )
                         ).default,
                       }),
@@ -3901,6 +3921,26 @@ const protectedRoutes = {
                   }),
                 },
                 {
+                  path: "proforma-invoice/add-item-calibration/:id",
+                  lazy: async () => ({
+                    Component: (
+                      await import(
+                        "app/pages/dashboards/accounts/proforma-invoice/AddProformaInvoiceItemCalibration"
+                      )
+                    ).default,
+                  }),
+                },
+                {
+                  path: "proforma-invoice/add-item-testing/:id",
+                  lazy: async () => ({
+                    Component: (
+                      await import(
+                        "app/pages/dashboards/accounts/proforma-invoice/AddProformaInvoiceItemTesting"
+                      )
+                    ).default,
+                  }),
+                },
+                {
                   path: "proforma-invoice/view/:id",
                   lazy: async () => ({
                     Component: (
@@ -3936,6 +3976,16 @@ const protectedRoutes = {
                     Component: (
                       await import(
                         "app/pages/dashboards/accounts/calibration-invoice-list/EditCalibrationInvoice"
+                      )
+                    ).default,
+                  }),
+                },
+                {
+                  path: "calibration-invoice-list/edit-advance/:id",
+                  lazy: async () => ({
+                    Component: (
+                      await import(
+                        "app/pages/dashboards/accounts/calibration-invoice-list/EditAdvanceCalibrationInvoice"
                       )
                     ).default,
                   }),
@@ -5706,16 +5756,7 @@ const protectedRoutes = {
                         ).default,
                       }),
                     },
-                    {
-                      path: "edit/:id",
-                      lazy: async () => ({
-                        Component: (
-                          await import(
-                            "app/pages/dashboards/profile/my-department-stock/Edit"
-                          )
-                        ).default,
-                      }),
-                    },
+
                   ],
                 },
                 {

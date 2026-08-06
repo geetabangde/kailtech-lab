@@ -5,7 +5,6 @@ import {
   getFacetedMinMaxValues,
   getFacetedUniqueValues,
   getFilteredRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
@@ -23,7 +22,6 @@ import { fuzzyFilter } from "utils/react-table/fuzzyFilter";
 import { useSkipper } from "utils/react-table/useSkipper";
 import { Toolbar } from "./Toolbar";
 import { columns } from "./columns";
-import { PaginationSection } from "components/shared/table/PaginationSection";
 import { SelectedRowsActions } from "./SelectedRowsActions";
 import { useThemeContext } from "app/contexts/theme/context";
 import { getUserAgentBrowser } from "utils/dom/getUserAgentBrowser";
@@ -61,7 +59,16 @@ export default function CompleteLedgerReport() {
     try {
       setLoading(true);
       setSearched(true);
-      const res = await axios.get("/accounts/get-ledger-report", { params: filters });
+
+      const apiParams = {
+        startdate: filters.startdate,
+        enddate: filters.enddate,
+        customerid: filters.customerid,
+        type: filters.typeofinvoice, // Map to backend parameter name
+        bd: filters.bd,
+      };
+
+      const res = await axios.get("/accounts/get-ledger-report", { params: apiParams });
       const rows = res.data?.data || [];
       // Sort rows by transactiondate to ensure correct running balance calculation
       const sortedRows = [...rows].sort((a, b) => {
@@ -174,7 +181,6 @@ export default function CompleteLedgerReport() {
     onSortingChange: setSorting,
     getSortedRowModel: getSortedRowModel(),
 
-    getPaginationRowModel: getPaginationRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onColumnPinningChange: setColumnPinning,
 
@@ -413,21 +419,6 @@ export default function CompleteLedgerReport() {
                 </Table>
               </div>
               <SelectedRowsActions table={table} />
-              {table.getCoreRowModel().rows.length && (
-                <div
-                  className={clsx(
-                    "px-4 pb-4 sm:px-5 sm:pt-4",
-                    tableSettings.enableFullScreen &&
-                    "bg-gray-50 dark:bg-dark-800",
-                    !(
-                      table.getIsSomeRowsSelected() ||
-                      table.getIsAllRowsSelected()
-                    ) && "pt-4",
-                  )}
-                >
-                  <PaginationSection table={table} />
-                </div>
-              )}
             </Card>
           </div>
         </div>

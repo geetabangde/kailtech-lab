@@ -19,21 +19,20 @@ export const columns = [
   // 2. Product
   columnHelper.accessor(
     (row) => {
-      const val = row.product_name || row.name || row.desci;
-      return val && val !== "-" && val !== "NA" ? val : "N/A";
+      return row.product_name || row.name || row.desci;
     },
     {
       id: "product_name",
       header: "PRODUCT",
       cell: (info) => {
         const val = info.getValue();
-        if (!val || val === "-") return "-";
+        if (!val) return val;
 
         // Split by " - " delimiter
-        const parts = val.split(" - ");
+        const parts = String(val).split(" - ");
         if (parts.length > 1) {
           return (
-            <div className="flex flex-col py-1 whitespace-normal min-w-[350px] max-w-md">
+            <div className="flex flex-col py-1 whitespace-normal max-w-[250px] break-words">
               <span className="dark:text-dark-100 text-gray-700 font-medium">
                 {parts[0]}
               </span>
@@ -43,7 +42,7 @@ export const columns = [
             </div>
           );
         }
-        return <div className="py-1 whitespace-normal min-w-[350px] max-w-md">{val}</div>;
+        return <div className="py-1 whitespace-normal max-w-[250px] break-words">{val}</div>;
       },
       filterFn: "includesString",
     },
@@ -54,16 +53,18 @@ export const columns = [
     (row) => {
       const val = row.parameter_name || row.parametername || row.parameter;
       if (Array.isArray(val)) {
-        return (
-          val.filter((v) => v && v !== "-" && v !== "NA").join(", ") || "N/A"
-        );
+        return val.join(", ");
       }
-      return val && val !== "-" && val !== "NA" ? val : "N/A";
+      return val;
     },
     {
       id: "parameter_name",
       header: "PARAMETER",
-      cell: (info) => info.getValue(),
+      cell: (info) => (
+        <div className="whitespace-normal break-words max-w-[200px]">
+          {info.getValue()}
+        </div>
+      ),
       filterFn: "includesString",
     },
   ),
@@ -71,13 +72,16 @@ export const columns = [
   // 4. Standard
   columnHelper.accessor(
     (row) => {
-      const val = row.standard_name || row.standardname || row.standard;
-      return val && val !== "-" && val !== "NA" ? val : "N/A";
+      return row.standard_name || row.standardname || row.standard;
     },
     {
       id: "standard_name",
       header: "STANDARD",
-      cell: (info) => info.getValue(),
+      cell: (info) => (
+        <div className="whitespace-normal break-words max-w-[150px]">
+          {info.getValue()}
+        </div>
+      ),
       filterFn: "includesString",
     },
   ),
@@ -86,8 +90,7 @@ export const columns = [
   columnHelper.accessor(
     (row) => {
       const { pvaluemin, pvaluemax } = row;
-      const isValid = (val) =>
-        val !== null && val !== undefined && val !== "" && val !== "NA";
+      const isValid = (val) => val !== null && val !== undefined;
 
       if (Array.isArray(pvaluemin) && Array.isArray(pvaluemax)) {
         return pvaluemin
@@ -104,12 +107,16 @@ export const columns = [
       if (hasMin || hasMax) {
         return `${hasMin ? pvaluemin : ""} - ${hasMax ? pvaluemax : ""}`;
       }
-      return "N/A";
+      return null;
     },
     {
       id: "range",
       header: "RANGE",
-      cell: (info) => info.getValue(),
+      cell: (info) => (
+        <div className="whitespace-normal break-words max-w-[150px]">
+          {info.getValue()}
+        </div>
+      ),
       filterFn: "includesString",
     },
   ),
@@ -118,22 +125,20 @@ export const columns = [
   columnHelper.accessor(
     (row) => {
       const { grade_name, size_name, grade, size } = row;
-      const isValid = (val) =>
-        val && val !== "NA" && val !== "N/A" && val !== "-";
+      const g = grade_name ?? grade;
+      const s = size_name ?? size;
 
-      const g = isValid(grade_name)
-        ? grade_name
-        : isValid(grade)
-          ? grade
-          : null;
-      const s = isValid(size_name) ? size_name : isValid(size) ? size : null;
-
-      return [g, s].filter(Boolean).join(" / ") || "N/A";
+      const parts = [g, s].filter(val => val !== null && val !== undefined && val !== "");
+      return parts.length > 0 ? parts.join(" / ") : null;
     },
     {
       id: "grade_size",
       header: "GRADE/SIZE",
-      cell: (info) => info.getValue(),
+      cell: (info) => (
+        <div className="whitespace-normal break-words max-w-[150px]">
+          {info.getValue()}
+        </div>
+      ),
       filterFn: "includesString",
     },
   ),
@@ -150,7 +155,11 @@ export const columns = [
     {
       id: "specification",
       header: "SPECIFICATION",
-      cell: (info) => info.getValue(),
+      cell: (info) => (
+        <div className="whitespace-normal max-w-[200px] break-words">
+          {info.getValue()}
+        </div>
+      ),
       filterFn: "includesString",
     },
   ),

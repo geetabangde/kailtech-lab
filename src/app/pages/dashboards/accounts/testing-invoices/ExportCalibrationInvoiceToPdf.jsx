@@ -16,7 +16,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 // ─── Shared inline style tokens (zero Tailwind / zero oklch) ─────────────────
 const S = {
-    wrap: { fontFamily: "Arial,Helvetica,sans-serif", fontSize: 13, color: "#111", backgroundColor: "#fff", padding: "16px 20px", width: "100%" },
+    wrap: { fontFamily: "Arial,Helvetica,sans-serif", fontSize: 12, color: "#111", backgroundColor: "#fff", padding: "12px 15px", width: "100%" },
     table: { width: "100%", borderCollapse: "collapse", marginBottom: 8, tableLayout: "fixed" },
     th: { textAlign: "center", backgroundColor: "#f3f4f6" },
     td: { verticalAlign: "middle" },
@@ -86,7 +86,7 @@ function InvoicePrintTemplate({ inv, addr, items, qrUrl, signUrl, digitalSignUrl
                 </div>
             )}
 
-            <div style={{ textAlign: "center", marginBottom: 8, marginTop: 80 }}>
+            <div style={{ textAlign: "center", marginBottom: 8, marginTop: withLH ? 10 : 80 }}>
                 <div style={{ fontSize: 14, fontWeight: "bold", textTransform: "uppercase" }}>TAX INVOICE</div>
                 <div style={{ fontSize: 12, textTransform: "uppercase", marginTop: 4 }}>FOR {inv.typeofinvoice || ""} CHARGES</div>
                 <div style={{ fontSize: 12, textTransform: "uppercase", marginTop: 2 }}>ORIGINAL FOR RECIPIENT</div>
@@ -97,8 +97,8 @@ function InvoicePrintTemplate({ inv, addr, items, qrUrl, signUrl, digitalSignUrl
     return (
         <div style={S.wrap}>
             {/* Page 1 */}
-            <div style={{ display: "flex", flexDirection: "column", minHeight: "257mm" }}>
-                <div style={{ flex: 1 }}>
+            <div style={{ display: "block", minHeight: "257mm", position: "relative", paddingBottom: "50px" }}>
+                <div>
                     <HeaderSection />
 
                     {/* Customer + Invoice meta */}
@@ -270,10 +270,10 @@ function InvoicePrintTemplate({ inv, addr, items, qrUrl, signUrl, digitalSignUrl
                             </tr>
                         </tbody>
                     </table>
-                </div>{/* end flex:1 */}
+                </div>
 
                 {/* Page 1 Footer */}
-                <div style={{ textAlign: "center", fontSize: 11, paddingTop: 8, borderTop: "1px solid #000", marginTop: "auto" }}>
+                <div style={{ textAlign: "center", fontSize: 11, paddingTop: 8, borderTop: "1px solid #000", position: "absolute", bottom: 0, left: 0, right: 0 }}>
                     <div style={{ fontWeight: "bold" }}>
                         Plot No.141 C, Electronic Complex, Pardeshipura, Indore-452010 (INDIA) Ph. +91-4787555 (30 Lines), 4046055,4048055
                     </div>
@@ -284,8 +284,8 @@ function InvoicePrintTemplate({ inv, addr, items, qrUrl, signUrl, digitalSignUrl
             </div>{/* end page 1 wrapper */}
 
             {/* Page 2: Bank + Signatory */}
-            <div style={{ pageBreakBefore: "always", paddingTop: 10, display: "flex", flexDirection: "column", minHeight: "270mm" }}>
-                <div style={{ flex: 1 }}>
+            <div style={{ pageBreakBefore: "always", paddingTop: 10, display: "block", minHeight: "257mm", position: "relative", paddingBottom: "50px" }}>
+                <div>
                     <HeaderSection />
                     <table style={S.table}>
                         <colgroup>
@@ -349,10 +349,10 @@ function InvoicePrintTemplate({ inv, addr, items, qrUrl, signUrl, digitalSignUrl
                     <div style={{ textAlign: "left", fontSize: 10, marginTop: 4 }}>
                         This is a system generated invoice //
                     </div>
-                </div>{/* end flex:1 */}
+                </div>
 
                 {/* Page 2 Footer */}
-                <div style={{ textAlign: "center", fontSize: 11, paddingTop: 8, borderTop: "1px solid #000", marginTop: "auto" }}>
+                <div style={{ textAlign: "center", fontSize: 11, paddingTop: 8, borderTop: "1px solid #000", position: "absolute", bottom: 0, left: 0, right: 0 }}>
                     <div style={{ fontWeight: "bold" }}>
                         Plot No.141 C, Electronic Complex, Pardeshipura, Indore-452010 (INDIA) Ph. +91-4787555 (30 Lines), 4046055,4048055
                     </div>
@@ -383,7 +383,7 @@ export function printCalibrationInvoice(templateProps, withLH, logoSrc, pageTitl
     *, *::before, *::after { box-sizing: border-box; }
     @page { size: A4; margin: 0; }
     @page :first { margin-top: 0; }
-    body  { margin: 0; font-family: Arial, Helvetica, sans-serif; font-size: 14px; color: #111; background: #f5f5f5; }
+    body  { margin: 0; font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #111; background: #f5f5f5; }
     @media print {
       #toolbar { display: none !important; }
       body { background: #fff; }
@@ -416,7 +416,7 @@ export function printCalibrationInvoice(templateProps, withLH, logoSrc, pageTitl
       box-shadow: 0 4px 24px rgba(0,0,0,0.12);
     }
     table  { border-collapse: collapse; width: 100%; margin-bottom: 8px; table-layout: fixed; }
-    th, td { border: 1px solid #000; padding: 6px 8px; font-size: 13px; vertical-align: middle; word-break: break-word; overflow: hidden; }
+    th, td { border: 1px solid #000; padding: 4px 6px; font-size: 11px; vertical-align: middle; word-break: break-word; overflow: hidden; }
     th     { background: #f3f4f6; text-align: center; font-weight: bold; }
     td.right  { text-align: right; }
     td.center { text-align: center; }

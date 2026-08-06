@@ -1,7 +1,64 @@
 // Import Dependencies
 import { createColumnHelper } from "@tanstack/react-table";
+import { getPlaceOfSupply, getGstRate } from "./columns";
 
 const columnHelper = createColumnHelper();
+
+export const getSupplierType = (row) => {
+  const rawType = row.supplier_type || row.supplier_typ || row.sup_type || row.suptyp || row.invoice_type || row.invoice_typ;
+  if (rawType) {
+    const upper = String(rawType).toUpperCase();
+    if (upper.includes("B2B")) return "B2B";
+    if (upper.includes("B2C")) return "B2C";
+    if (upper.includes("EXP") || upper.includes("EXPORT")) return "EXPORT";
+    if (upper.includes("SEZ")) return "SEZ";
+  }
+
+  const country = String(row.country || row.country_id || "").trim().toUpperCase();
+  const gst = (row.gstno || "").trim();
+  const hasGst = gst && gst !== "0" && gst !== "NA" && gst.toUpperCase() !== "URP";
+  
+  const txpType = String(row.txptype || row.txp_type || "").trim().toUpperCase();
+  const address = String(row.address || row.billingaddress || row.custaddress || row.address1 || "").toUpperCase();
+  const name = String(row.custname || row.customername || row.cname || "").toUpperCase();
+  const stateCode = String(row.statecode || row.state_code || row.state || "").trim().toUpperCase();
+  const stateName = String(row.statename || row.state_name || "").trim().toUpperCase();
+
+  // Export Detection:
+  // 1. Explicit export taxpayer type
+  // 2. Presence of shipping bill/port code
+  // 3. Country is not India
+  // 4. State code or name is "NA", "97" (Other Territory / Outside India)
+  const isExport = (txpType === "EXP" || txpType === "EXPWOP" || txpType === "EXPWP" || txpType === "EXPORT") ||
+                   !!(row.portcode || row.port_code || row.shippingbillno || row.shipping_bill_no) ||
+                   (country !== "" && country !== "1" && country !== "0" && country !== "IN" && country !== "INDIA") ||
+                   (stateCode === "NA" || stateCode === "97") ||
+                   (stateName === "NA" || stateName.includes("OUTSIDE") || stateName.includes("OTHER"));
+
+  // SEZ Detection:
+  // 1. If txptype field is explicitly SEZ/SEZWOP/SEZWP
+  // 2. If customer name or billing address literally contains "SEZ"
+  // NOTE: Do NOT use zero CGST+SGST as a signal — ALL inter-state B2B invoices have 0 CGST/SGST
+  const isSEZ = (txpType === "SEZ" || txpType === "SEZWOP" || txpType === "SEZWP") ||
+                address.includes("SEZ") ||
+                name.includes("SEZ");
+
+  if (isExport) {
+    return "EXPORT";
+  }
+
+  if (country === "1" || country === "0" || !country) {
+    if (!hasGst) {
+      return "B2C";
+    } else if (isSEZ) {
+      return "SEZ";
+    } else {
+      return "B2B";
+    }
+  } else {
+    return "EXPORT";
+  }
+};
 
 export const igstColumns = [
   columnHelper.display({
@@ -11,8 +68,13 @@ export const igstColumns = [
   }),
   columnHelper.accessor("gstno", {
     id: "gstno",
-    header: "GSTIN NO",
+    header: "GSTIN/UIN",
     cell: (info) => info.getValue() ?? "-",
+  }),
+  columnHelper.display({
+    id: "supplier_type",
+    header: "INVOICE TYPE",
+    cell: (info) => getSupplierType(info.row.original),
   }),
   columnHelper.accessor("custname", {
     id: "custname",
@@ -36,18 +98,44 @@ export const igstColumns = [
   }),
   columnHelper.accessor("finaltotal", {
     id: "finaltotal",
-    header: "TOTAL INVOICE VALUE",
-    cell: (info) => info.getValue() ?? "-",
+    header: "INVOICE VALUE",
+    cell: (info) => Number(info.getValue() || 0).toFixed(2),
+  }),
+  columnHelper.display({
+    id: "place_of_supply",
+    header: "PLACE OF SUPPLY",
+    cell: (info) => getPlaceOfSupply(info.row.original) || "-",
+  }),
+  columnHelper.display({
+    id: "reverse_charge",
+    header: "REVERSE CHARGE",
+    cell: (info) => {
+      const val = info.row.original.reversecharge || info.row.original.reverse_charge || "";
+      return String(val).toUpperCase() === "Y" ? "Y" : "N";
+    },
+  }),
+  columnHelper.display({
+    id: "gst_rate",
+    header: "RATE (%)",
+    cell: (info) => {
+      const rate = getGstRate(info.row.original);
+      return rate > 0 ? `${rate}%` : "-";
+    },
   }),
   columnHelper.accessor("subtotal2", {
     id: "subtotal2",
     header: "TAXABLE VALUE",
-    cell: (info) => info.getValue() ?? "-",
+    cell: (info) => Number(info.getValue() || 0).toFixed(2),
   }),
   columnHelper.accessor("igstamount", {
     id: "igstamount",
-    header: "IGST TAX",
-    cell: (info) => info.getValue() ?? "-",
+    header: "INTEGRATED TAX",
+    cell: (info) => Number(info.getValue() || 0).toFixed(2),
+  }),
+  columnHelper.display({
+    id: "cessamount",
+    header: "CESS",
+    cell: (info) => Number(info.row.original.cessamount || 0).toFixed(2),
   }),
   columnHelper.accessor("roundoff", {
     id: "roundoff",

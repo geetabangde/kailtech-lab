@@ -100,7 +100,7 @@ export function Toolbar({ filters, onChange, onSearch, onExport }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[200px_200px_1fr_auto_auto]">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[180px_180px_180px_1fr_auto]">
         {/* Start Date */}
         <div className="flex flex-col gap-1 justify-end">
           <DatePicker
@@ -142,6 +142,34 @@ export function Toolbar({ filters, onChange, onSearch, onExport }) {
           />
         </div>
 
+        {/* Invoice Type */}
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-medium text-gray-500 uppercase">Invoice Type</label>
+          <Select
+            options={[
+              { value: "", label: "All Types" },
+              { value: "B2B", label: "B2B" },
+              { value: "B2C", label: "B2C" },
+              { value: "EXPORT", label: "Export" },
+              { value: "SEZ", label: "SEZ" },
+              { value: "CREDIT_NOTE", label: "Credit Notes" },
+            ]}
+            placeholder="Invoice Type..."
+            styles={selectStyles}
+            value={[
+              { value: "", label: "All Types" },
+              { value: "B2B", label: "B2B" },
+              { value: "B2C", label: "B2C" },
+              { value: "EXPORT", label: "Export" },
+              { value: "SEZ", label: "SEZ" },
+              { value: "CREDIT_NOTE", label: "Credit Notes" },
+            ].find((opt) => opt.value === filters.supplierType) || { value: "", label: "All Types" }}
+            onChange={(opt) => onChange("supplierType", opt ? opt.value : "")}
+            className="react-select-container"
+            classNamePrefix="react-select"
+          />
+        </div>
+
         {/* Customer Select */}
         <div className="flex flex-col gap-1">
           <label className="text-xs font-medium text-gray-500 uppercase">Customer</label>
@@ -164,14 +192,6 @@ export function Toolbar({ filters, onChange, onSearch, onExport }) {
             className="h-10 rounded bg-blue-600 px-6 text-sm font-medium text-white hover:bg-blue-700 transition-colors shadow-sm"
           >
             Search
-          </button>
-        </div>
-        <div className="flex flex-col gap-1 justify-end">
-          <button
-            onClick={onExport}
-            className="h-10 rounded border border-blue-600 bg-white px-6 text-sm font-medium text-blue-600 hover:bg-blue-50 transition-colors dark:bg-dark-900 dark:hover:bg-dark-800"
-          >
-            Export
           </button>
         </div>
       </div>
