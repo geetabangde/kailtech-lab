@@ -135,7 +135,7 @@ const InstrumentMatrix = () => {
       errors.unit = "Unit is required.";
     }
 
-    if (!editFormData.instrangemin) {
+    if (editFormData.instrangemin === "" || editFormData.instrangemin === null || editFormData.instrangemin === undefined) {
       errors.instrangemin = "Instrument range min is required.";
     }
 
@@ -671,7 +671,7 @@ const InstrumentMatrix = () => {
                       >
                         <div>{item.unittype}</div>
                         <div>
-                          {item.unit} {item.unit_text}
+                          {item.unit_text || item.unit}
                         </div>
                         <div>
                           {item.instrangemin} to {item.instrangemax}
@@ -1007,9 +1007,9 @@ const InstrumentMatrix = () => {
                                 {(item.calibration_points || []).map((point, pointIndex) => (
                                   <tr key={point.id || pointIndex} className="hover:bg-blue-25 border-b border-gray-200 last:border-b-0">
                                     <td className="border-r border-gray-200 px-4 py-2">{pointIndex + 1}</td>
-                                    <td className="border-r border-gray-200 px-4 py-2">{point.unittype}</td>
-                                    <td className="border-r border-gray-200 px-4 py-2">{point.mode}</td>
-                                    <td className="border-r border-gray-200 px-4 py-2">{point.unit}</td>
+                                    <td className="border-r border-gray-200 px-4 py-2">{item.unittype}</td>
+                                    <td className="border-r border-gray-200 px-4 py-2">{item.mode}</td>
+                                    <td className="border-r border-gray-200 px-4 py-2">{item.unit}</td>
                                     <td className="border-r border-gray-200 px-4 py-2">{point.point}</td>
                                     <td className="px-4 py-2">
                                       {canEdit && (
@@ -1199,7 +1199,7 @@ const MatrixForm = ({
                         value: type.id,
                         label: type.name,
                       }))
-                      .find((opt) => opt.value === editFormData.unittype) || null
+                      .find((opt) => String(opt.value) === String(editFormData.unittype) || opt.label === editFormData.unittype) || null
                   }
                   onChange={(selected) =>
                     setEditFormData((prev) => ({
@@ -1227,7 +1227,7 @@ const MatrixForm = ({
                         value: unit.id,
                         label: `${unit.name} (${unit.description})`,
                       }))
-                      .find((opt) => opt.value === parseInt(editFormData.unit)) || null
+                      .find((opt) => String(opt.value) === String(editFormData.unit)) || null
                   }
                   onChange={(selected) => {
                     const selectedUnit = units.find(
@@ -1250,7 +1250,7 @@ const MatrixForm = ({
                   type="number"
                   label="Instrument range min"
                   name="instrangemin"
-                  value={editFormData.instrangemin || ""}
+                  value={editFormData.instrangemin !== undefined && editFormData.instrangemin !== null ? editFormData.instrangemin : ""}
                   onChange={(e) =>
                     setEditFormData((prev) => ({
                       ...prev,
@@ -1267,7 +1267,7 @@ const MatrixForm = ({
                   type="number"
                   label="Instrument range max"
                   name="instrangemax"
-                  value={editFormData.instrangemax || ""}
+                  value={editFormData.instrangemax !== undefined && editFormData.instrangemax !== null ? editFormData.instrangemax : ""}
                   onChange={(e) =>
                     setEditFormData((prev) => ({
                       ...prev,
@@ -1284,7 +1284,7 @@ const MatrixForm = ({
                   type="number"
                   label="Operating range min"
                   name="operangemin"
-                  value={editFormData.operangemin || ""}
+                  value={editFormData.operangemin !== undefined && editFormData.operangemin !== null ? editFormData.operangemin : ""}
                   onChange={(e) =>
                     setEditFormData((prev) => ({
                       ...prev,
@@ -1301,7 +1301,7 @@ const MatrixForm = ({
                   type="number"
                   label="Operating range max"
                   name="operangemax"
-                  value={editFormData.operangemax || ""}
+                  value={editFormData.operangemax !== undefined && editFormData.operangemax !== null ? editFormData.operangemax : ""}
                   onChange={(e) =>
                     setEditFormData((prev) => ({
                       ...prev,
@@ -1319,7 +1319,7 @@ const MatrixForm = ({
                   step="0.001"
                   label="Least Count"
                   name="leastcount"
-                  value={editFormData.leastcount || ""}
+                  value={editFormData.leastcount !== undefined && editFormData.leastcount !== null ? editFormData.leastcount : ""}
                   onChange={(e) =>
                     setEditFormData((prev) => ({
                       ...prev,
@@ -1345,7 +1345,7 @@ const MatrixForm = ({
                         value: mode.id,
                         label: mode.name,
                       }))
-                      .find((opt) => opt.value === editFormData.mode) || null
+                      .find((opt) => String(opt.value) === String(editFormData.mode) || opt.label?.toLowerCase() === String(editFormData.mode).toLowerCase()) || null
                   }
                   onChange={(selected) =>
                     setEditFormData((prev) => ({

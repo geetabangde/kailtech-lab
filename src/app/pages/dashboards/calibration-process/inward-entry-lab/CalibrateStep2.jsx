@@ -271,7 +271,13 @@ const Calibratestep2 = () => {
 
                             // Prepare Unit name and description
                             const unitName = point.unitName || (unitData ? unitData.name : 'N/A');
-                            const unitType = point.unittype || 'General';
+
+                            // If unittype is numeric, it's a scope/matrix type ID — use matrix_type directly
+                            const unittypeRaw = point.unittype || 'General';
+                            const isNumericUnittype = unittypeRaw && /^\d+$/.test(String(unittypeRaw).trim());
+                            const unitType = isNumericUnittype
+                                ? (point.matrix_type || unittypeRaw)  // use matrix_type name from API
+                                : unittypeRaw;
 
                             // Parse validityid and supportvalidityid for pre-filling masters
                             const mastersArray = point.validityid ? point.validityid.toString().split(',').filter(Boolean).map(id => parseInt(id)) : [];
