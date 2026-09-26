@@ -29,7 +29,6 @@ export const GtmCmcTable = ({ data }) => (
           <th className="border border-gray-300 px-1 py-2">Type A</th>
           <th className="border border-gray-300 px-1 py-2">Uncertainty of master-1<br />Sensor in °C</th>
           <th className="border border-gray-300 px-1 py-2">Uncertainty of master-2<br />in (6.5DMM) in value</th>
-          <th className="border border-gray-300 px-1 py-2">Sensitivity Coefficient</th>
           <th className="border border-gray-300 px-1 py-2">Uncertainty of master-2<br />in (°C)</th>
           <th className="border border-gray-300 px-1 py-2">Stability Of Bath</th>
           <th className="border border-gray-300 px-1 py-2">Uniformity Of Bath</th>
@@ -39,7 +38,7 @@ export const GtmCmcTable = ({ data }) => (
           <th className="border border-gray-300 px-1 py-2">Degree of Freedom</th>
           <th className="border border-gray-300 px-1 py-2">Coverage Factor (k)</th>
           <th className="border border-gray-300 px-1 py-2">Expanded Uncertainty in Value</th>
-          <th className="border border-gray-300 px-1 py-2">CmC Taken</th>
+          <th className="border border-gray-300 px-1 py-2">CMC Taken</th>
         </tr>
       </thead>
       <tbody>
@@ -56,7 +55,6 @@ export const GtmCmcTable = ({ data }) => (
             <td className="border border-gray-300 px-1 py-2">{typeof row.typeA === 'number' ? formatUncertaintyValue(row.typeA, 6) : row.typeA}</td>
             <td className="border border-gray-300 px-1 py-2">{typeof row.uncertaintyMaster1 === 'number' ? formatUncertaintyValue(row.uncertaintyMaster1, 6) : row.uncertaintyMaster1}</td>
             <td className="border border-gray-300 px-1 py-2">{typeof row.uncertaintyMaster2Value === 'number' ? formatUncertaintyValue(row.uncertaintyMaster2Value, 6) : row.uncertaintyMaster2Value}</td>
-            <td className="border border-gray-300 px-1 py-2">{typeof row.sensitivityCoefficient === 'number' ? formatUncertaintyValue(row.sensitivityCoefficient, 6) : row.sensitivityCoefficient}</td>
             <td className="border border-gray-300 px-1 py-2">{typeof row.uncertaintyMaster2Celsius === 'number' ? formatUncertaintyValue(row.uncertaintyMaster2Celsius, 6) : row.uncertaintyMaster2Celsius}</td>
             <td className="border border-gray-300 px-1 py-2">{typeof row.stabilityBath === 'number' ? formatUncertaintyValue(row.stabilityBath, 6) : row.stabilityBath}</td>
             <td className="border border-gray-300 px-1 py-2">{typeof row.uniformityBath === 'number' ? formatUncertaintyValue(row.uniformityBath, 6) : row.uniformityBath}</td>

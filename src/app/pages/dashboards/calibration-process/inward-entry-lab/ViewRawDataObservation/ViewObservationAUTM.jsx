@@ -20,8 +20,11 @@ export const normalizeAutmGroups = (observationData) => {
       item?.calibration_points ||
       item?.calibrationPoints ||
       item?.points ||
+      item?.rows ||
       item?.observations ||
-      (item?.point_id || item?.id ? [item] : []);
+      // Only treat the item itself as a point when it is not a matrix wrapper,
+      // otherwise a matrix (which also has an id) becomes one bogus row.
+      ((item?.point_id || item?.id) && !item?.matrix_id && !item?.matrixid ? [item] : []);
 
     if (Array.isArray(calibrationPoints) && calibrationPoints.length > 0) {
       const numericPoints = calibrationPoints
@@ -42,8 +45,8 @@ export const normalizeAutmGroups = (observationData) => {
         dialGaugeSetting: item?.dialguageseting ?? item?.dial_gauge_setting ?? '',
         ratio: item?.ratio ?? '1',
         relativeRes: item?.releativeres ?? item?.relative_resolution ?? '',
-        removalForce: item?.removalforce ?? [],
-        zeroError: item?.zeroerror ?? [],
+        removalForce: item?.removalforce ?? item?.removal_force ?? [],
+        zeroError: item?.zeroerror ?? item?.zero_error ?? [],
         calibrationPoints,
         raw: item,
       }];
@@ -200,7 +203,15 @@ export const createAUTMRows = (observationData, currentRawdata) => {
 export const parseAUTMDynamicData = (observationData) => {
   if (!observationData) return [];
   if (Array.isArray(observationData)) return observationData;
-  if (observationData.matrices && Array.isArray(observationData.matrices)) return observationData.matrices;
+  if (observationData.matrices && Array.isArray(observationData.matrices)) {
+    const matrices = observationData.matrices;
+    // pre_loading_cycles sits next to matrices, not inside them. Attach it so the
+    // component can render the checkboxes from the response instead of guessing.
+    if (Array.isArray(observationData.pre_loading_cycles)) {
+      matrices.preLoadingCycles = observationData.pre_loading_cycles;
+    }
+    return matrices;
+  }
   if (observationData.matrix && Array.isArray(observationData.matrix)) return observationData.matrix;
   if (observationData.calibration_points && Array.isArray(observationData.calibration_points)) return observationData.calibration_points;
   if (observationData.data && Array.isArray(observationData.data)) return observationData.data;
@@ -258,6 +269,23 @@ export const ViewObservationAUTM = ({
     return startTemp ? startTemp.toFixed(1) : '24.0';
   }, [inwardEntry?.temperature, data?.instrument?.tempend, data?.tempend]);
 
+  // Pre-loading cycles: checked state comes from the response; nothing is checked
+  // by default, matching the PHP which renders all five boxes unchecked.
+  const preLoadingCycles = useMemo(() => {
+    const source =
+      dynamicObservations?.preLoadingCycles ||
+      data?.pre_loading_cycles ||
+      data?.preLoadingCycles;
+
+    const checkedSet = new Set(
+      (Array.isArray(source) ? source : [])
+        .filter((c) => c?.checked === true)
+        .map((c) => Number(c.cycle))
+    );
+
+    return [1, 2, 3, 4, 5].map((num) => ({ num, checked: checkedSet.has(num) }));
+  }, [dynamicObservations, data?.pre_loading_cycles, data?.preLoadingCycles]);
+
   // Source observations
   const matrixGroups = useMemo(() => {
     const source =
@@ -309,12 +337,12 @@ export const ViewObservationAUTM = ({
               <td colSpan={4} className="border border-gray-300 px-3 py-2 font-medium text-gray-700">
                 No. Of Pre-Loading Cycle Before calibration
               </td>
-              {[1, 2, 3, 4, 5].map((num) => (
+              {preLoadingCycles.map(({ num, checked }) => (
                 <td key={num} className="border border-gray-300 px-3 py-2 text-center">
                   <div className="inline-flex items-center gap-1.5">
                     <input
                       type="checkbox"
-                      checked={num === 1}
+                      checked={checked}
                       readOnly
                       className="w-4 h-4 text-blue-600 rounded border-gray-300"
                     />

@@ -16,6 +16,7 @@ import ObservationBiomedical from './Observations/ObservationBiomedical';
 import ObservationVC, { calculateVCValues } from './Observations/ObservationVC';
 import ObservationAPG, { calculateAPGValues, createAPGRows, getAPGTableConfig } from './Observations/ObservationAPG';
 import ObservationUTM, { calculateUTMValues } from './Observations/ObservationUTM';
+import ObservationAUTM from './Observations/ObservationAUTM';
 import ObservationCustom, { calculateCustomValues } from './Observations/ObservationCustom';
 import ObservationEXM, { calculateEXMValues } from './Observations/ObservationEXM';
 import ObservationWBN, { calculateWBNValues } from './Observations/ObservationWBN';
@@ -24,6 +25,9 @@ import ObservationDW, { calculateDWValues, createDWRows, getDWTableConfig } from
 import { calculateTSValues, createTSRows, getTSTableConfig } from './Observations/ObservationTS';
 import { calculateDPGValues, createDPGRows, getDPGTableConfig } from './Observations/ObservationDPG';
 import { calculateTHValues, createTHRows, getTHTableConfig } from './Observations/ObservationTH';
+import ObservationVOLNL, { calculateVOLNLValues, getVOLNLTableConfig, VOLNL_COLUMNS, VOLNL_MAX_REPEATABLE } from './Observations/ObservationVOLNL';
+import ObservationVOL, { calculateVOLValues, getVOLTableConfig, VOL_COLUMNS, VOL_MAX_REPEATABLE } from './Observations/ObservationVOL';
+import ObservationVHT, { getVHTTableConfig, VHT_COLUMNS, VHT_MAX_REPEATABLE } from './Observations/ObservationVHT';
 import { calculateMTValues, createMTRows, getMTTableConfig } from './Observations/ObservationMT';
 import { calculateCTGValues, createCTGRows, getCTGTableConfig } from './Observations/ObservationCTG';
 import { calculateFGValues, createFGRows, getFGTableConfig } from './Observations/ObservationFG';
@@ -34,6 +38,56 @@ import { calculateTMValues, createTMRows, getTMTableConfig } from './Observation
 import { calculateUCValues, createUCRows, getUCTableConfig } from './Observations/ObservationUC';
 import { calculateMMValues, createMMRows, getMMTableConfig } from './Observations/ObservationMM';
 import { calculateRTDWIValues, createRTDWIRows, getRTDWITableConfig } from './Observations/ObservationRTDWI';
+import {
+  TSWOI_COLS,
+  calculateTSWOIValues,
+  calculateTSWOIPoint,
+  createTSWOIRows,
+  extractTSWOIPoints,
+  getTSWOIFieldType,
+  getTSWOIRowType,
+  getTSWOITableConfig,
+  isTSWOICellEditable,
+  validateTSWOIRow,
+} from './Observations/ObservationTSWOI';
+import {
+  TSWI_COLS,
+  calculateTSWIValues,
+  calculateTSWIPoint,
+  createTSWIRows,
+  extractTSWIPoints,
+  getTSWIFieldType,
+  getTSWIReadingLeastCount,
+  getTSWIRowType,
+  getTSWITableConfig,
+  isTSWICellEditable,
+  validateTSWIRow,
+} from './Observations/ObservationTSWI';
+import {
+  SW_COLS,
+  calculateSWAverage,
+  calculateSWError,
+  createSWRows,
+  extractSWPoints,
+  getSWFieldType,
+  getSWReadingLeastCount,
+  getSWRowType,
+  getSWTableConfig,
+  isSWCellEditable,
+  isSWReadingColumn,
+  validateSWRow,
+} from './Observations/ObservationSW';
+import {
+  SUTM_COLS,
+  createSUTMRows,
+  extractSUTMPoints,
+  getSUTMCalculatedCells,
+  getSUTMFieldType,
+  getSUTMTableConfig,
+  isSUTMCellEditable,
+  isSUTMInputColumn,
+  validateSUTMRow,
+} from './Observations/ObservationSUTM';
 import ObservationGTM, { calculateGTMValues, createGTMRows, getGTMTableConfig } from './Observations/ObservationGTM';
 import ObservationPR, { calculatePRValues, createPRRows, getPRTableConfig } from './Observations/ObservationPR';
 import ObservationUpload from './Observations/ObservationUpload';
@@ -60,6 +114,8 @@ const CalibrateStep3 = () => {
   const [visualTestInputs, setVisualTestInputs] = useState({});
   const [safetyTestInputs, setSafetyTestInputs] = useState({});
   const [leastCountData, setLeastCountData] = useState({});
+  const [volnlInstrumentData, setVolnlInstrumentData] = useState({});
+  const [volInstrumentData, setVolInstrumentData] = useState({});
   const [tableInputValues, setTableInputValues] = useState({});
   const [thermalCoeff, setThermalCoeff] = useState({
     uuc: '',
@@ -262,9 +318,20 @@ const CalibrateStep3 = () => {
     return 0;
   };
 
+  // observationcustom only: the template's layout settings, kept separately because
+  // the main instrument fetch replaces the whole `instrument` object
+  const [customSettings, setCustomSettings] = useState(null);
+
+  // observationcustom only: instrument merged with its template settings
+  const getCustomInstrument = () => (
+    (instrument && instrument.mastertoshow !== undefined)
+      ? instrument
+      : { ...(instrument || {}), ...(customSettings || {}) }
+  );
+
   const [unitsList, setUnitsList] = useState([]);
   const [diagram, setDiagram] = useState('');
-  const [roomTemperature, setRoomTemperature] = useState('');
+
 
   // Helper function to calculate due date from enddate and calibration validity
   const calculateDueDate = (startDateStr, frequency) => {
@@ -315,7 +382,7 @@ const CalibrateStep3 = () => {
     };
 
     // ✅ CHANGED: Fetch units for both RTD WI and GTM
-    if (observationTemplate === 'observationrtdwi' || observationTemplate === 'observationgtm') {
+    if (observationTemplate === 'observationrtdwi' || observationTemplate === 'observationgtm' || observationTemplate === 'observationtswoi' || observationTemplate === 'observationtswi') {
       fetchUnits();
     }
   }, [observationTemplate]);
@@ -331,7 +398,6 @@ const CalibrateStep3 = () => {
         },
       })
       .then((res) => {
-        console.log('✅ API Data:', res.data);
         const data = res.data;
 
         setInwardEntry(data.inwardEntry);
@@ -395,47 +461,19 @@ const CalibrateStep3 = () => {
         }));
 
         // Calculate initial room temperature for UTM
-        if (observationTemplate === 'observationutm') {
-          const startTemp = parseFloat(data.inwardEntry?.temperature) || 0;
-          const endTemp = parseFloat(data.instrument?.tempend) || 0;
-          if (startTemp && endTemp) {
-            setRoomTemperature(((startTemp + endTemp) / 2).toFixed(1));
-          }
-        }
+        // if (observationTemplate === 'observationutm') {
+        //   const startTemp = parseFloat(data.inwardEntry?.temperature) || 0;
+        //   const endTemp = parseFloat(data.instrument?.tempend) || 0;
+        //   if (startTemp && endTemp) {
+        //     setRoomTemperature(((startTemp + endTemp) / 2).toFixed(1));
+        //   }
+        // }
       })
       .catch((err) => {
         console.error('❌ API Error:', err.response?.data || err);
         toast.error('Failed to fetch calibration data');
       });
   }, [inwardId, instId, caliblocation, calibacc]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Recalculate room temperature and UUC values when temperature changes for UTM
-  useEffect(() => {
-    if (observationTemplate === 'observationutm') {
-      const startTemp = parseFloat(inwardEntry?.temperature) || 0;
-      const endTemp = parseFloat(formData.tempend) || 0;
-      if (startTemp && endTemp) {
-        const newRoomTemp = ((startTemp + endTemp) / 2).toFixed(1);
-        setRoomTemperature(newRoomTemp);
-
-        // Recalculate UUC values for all point rows
-        const newValues = { ...tableInputValues };
-        if (selectedTableData?.rowMeta) {
-          selectedTableData.rowMeta.forEach((meta, rowIndex) => {
-            if (meta.kind === 'point') {
-              const calculatedUucKey = `${rowIndex}-2`;
-              const uucKey = `${rowIndex}-3`;
-              const calculatedUuc = tableInputValues[calculatedUucKey] || selectedTableData.staticRows[rowIndex]?.[2];
-              if (calculatedUuc) {
-                newValues[uucKey] = applyTemperatureCompensation(calculatedUuc);
-              }
-            }
-          });
-          setTableInputValues(newValues);
-        }
-      }
-    }
-  }, [formData.tempend, inwardEntry?.temperature, observationTemplate]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const safeGetValue = (item) => {
     if (item === undefined || item === null || item === '') return '';
@@ -837,7 +875,7 @@ const CalibrateStep3 = () => {
 
     // Determine the highest nominal value row for specific templates
     let maxNominalRowIndex = -1;
-    if (['observationmt', 'observationctg', 'observationfg', 'observationmsr', 'observationexm', 'observationvc', 'observationhg', 'observationit'].includes(selectedTableData.id)) {
+    if (['observationmt', 'observationctg', 'observationfg', 'observationmsr', 'observationexm', 'observationvc', 'observationhg'].includes(selectedTableData.id)) {
       let maxNominal = -Infinity;
       selectedTableData.staticRows.forEach((row, rowIndex) => {
         const nominalKey = `${rowIndex}-1`;
@@ -850,8 +888,9 @@ const CalibrateStep3 = () => {
       });
     }
 
-    selectedTableData.staticRows.forEach((row, rowIndex) => {
-      const isLastRow = (rowIndex === selectedTableData.staticRows.length - 1) || (maxNominalRowIndex !== -1 && rowIndex === maxNominalRowIndex);
+    const validationRows = selectedTableData.staticRows || [];
+    validationRows.forEach((row, rowIndex) => {
+      const isLastRow = (rowIndex === validationRows.length - 1) || (maxNominalRowIndex !== -1 && rowIndex === maxNominalRowIndex);
 
       if (selectedTableData.id === 'observationmm') {
         const calibPointId = selectedTableData.hiddenInputs?.calibrationPoints?.[rowIndex];
@@ -879,16 +918,9 @@ const CalibrateStep3 = () => {
               newErrors[key] = 'This field is required';
             }
           } else {
-            const numValue = parseFloat(value);
-
-            // Check if value is less than least count
-            if (numValue < leastCount) {
-              newErrors[key] = `Please enter a value with in leastcount ${leastCount}`;
-            }
-            // Check if value is divisible by least count
-            else if (numValue % leastCount !== 0) {
-              newErrors[key] = `Please Enter Value divisible by ${leastCount}`;
-            }
+            // Scaled-integer least-count check; float % flagged valid values like 3 with LC 0.001
+            const { isValid, error } = validateLeastCount(value.trim(), leastCount);
+            if (!isValid) newErrors[key] = error;
           }
         }
       } else if (selectedTableData.id === 'observationexm' || selectedTableData.id === 'observationvc') {
@@ -915,11 +947,6 @@ const CalibrateStep3 = () => {
         const mode = point?.mode?.toLowerCase() || '';
         const weighingCount = selectedTableData?.weighingCount ?? 0;
         const repeatabilityCount = selectedTableData?.repeatabilityCount ?? 0;
-        const calibPointId = selectedTableData.hiddenInputs?.calibrationPoints?.[rowIndex];
-        const lcInfo = leastCountData[calibPointId] || leastCountData[String(calibPointId)];
-        const lcUuc = typeof lcInfo === 'object' ? (lcInfo?.uuc) : (point?.least_count_uuc || point?.least_count || point?.leastcount || instrument?.leastcount);
-        const leastCount = (lcUuc && lcUuc !== 'NA') ? parseFloat(lcUuc) : null;
-
         const isWeighing = mode.includes('weighing') || (weighingCount > 0 && rowIndex < weighingCount) || (!mode && rowIndex < weighingCount);
         const isRepeatability = mode.includes('repeatability') || (repeatabilityCount > 0 && rowIndex >= weighingCount && rowIndex < weighingCount + repeatabilityCount);
         const isEccentricity = mode.includes('eccentricity') || (rowIndex >= weighingCount + repeatabilityCount);
@@ -932,13 +959,6 @@ const CalibrateStep3 = () => {
           const num = parseFloat(val);
           if (isNaN(num)) {
             newErrors[key] = 'Please enter a valid number';
-            return;
-          }
-          if (leastCount && !isNaN(leastCount) && leastCount > 0) {
-            const { isValid, error } = validateLeastCount(val, leastCount);
-            if (!isValid) {
-              newErrors[key] = error;
-            }
           }
         };
 
@@ -1273,6 +1293,22 @@ const CalibrateStep3 = () => {
             newErrors[avgCKey] = 'This field is required';
           }
         }
+      } else if (selectedTableData.id === 'observationtswoi') {
+        // PHP: required,number on every editable numeric input; no least-count check
+        const rowData = row.map((cell, idx) => tableInputValues[`${rowIndex}-${idx}`] ?? (cell?.toString() || ''));
+        Object.assign(newErrors, validateTSWOIRow(rowData, rowIndex));
+      } else if (selectedTableData.id === 'observationtswi') {
+        // PHP: required,number on editable inputs; UUC readings also inleastcount/divisibleby
+        const rowData = row.map((cell, idx) => tableInputValues[`${rowIndex}-${idx}`] ?? (cell?.toString() || ''));
+        Object.assign(newErrors, validateTSWIRow(rowData, rowIndex, selectedTableData.rowMeta?.[rowIndex], validateLeastCount));
+      } else if (selectedTableData.id === 'observationsw') {
+        // PHP: every editable input required; UUC/master readings also inleastcount/divisibleby
+        const rowData = row.map((cell, idx) => tableInputValues[`${rowIndex}-${idx}`] ?? (cell?.toString() || ''));
+        Object.assign(newErrors, validateSWRow(rowData, rowIndex, selectedTableData.rowMeta?.[rowIndex], validateLeastCount));
+      } else if (selectedTableData.id === 'observationsutm') {
+        // PHP: displacement and time are required,number; no least-count check
+        const rowData = row.map((cell, idx) => tableInputValues[`${rowIndex}-${idx}`] ?? (cell?.toString() || ''));
+        Object.assign(newErrors, validateSUTMRow(rowData, rowIndex));
       } else if (selectedTableData.id === 'observationuc') {
         // Range (col 2), Calculated Value (col 3), Set Value (col 4) are required
         for (let col = 2; col <= 4; col++) {
@@ -1283,21 +1319,32 @@ const CalibrateStep3 = () => {
           }
         }
 
-        // Observations 1-5 (col 5-9) are required
+        // Observations 1-5 (col 5-9) are required and must respect the least count
+        const calibPointId = selectedTableData.hiddenInputs?.calibrationPoints?.[rowIndex];
+        const obsLc = getUCObservationLc(leastCountData[calibPointId] || leastCountData[String(calibPointId)]);
         for (let col = 5; col <= 9; col++) {
           const key = `${rowIndex}-${col}`;
           const value = tableInputValues[key] ?? (row[col]?.toString() || '');
-          const isOptional = (col === 8 || col === 9) && !isLastRow;
-          if (!value.trim() && !isOptional) {
+          if (!value.trim()) {
             newErrors[key] = 'This field is required';
+          } else if (isNaN(Number(value))) {
+            newErrors[key] = 'Please enter a valid number';
+          } else if (obsLc) {
+            const { isValid, error } = validateLeastCount(value.trim(), obsLc);
+            if (!isValid) newErrors[key] = error;
           }
         }
       }
       else if (selectedTableData.id === 'observationth') {
         const rowType = row[1]; // UUC or Master
-        const calibPointId = selectedTableData.calibrationPoints?.[rowIndex];
-        const lcs = leastCountData[calibPointId];
-        const leastCount = rowType === 'UUC' ? (lcs?.uuc ?? 0.001) : (lcs?.master ?? 0.001);
+        // The point id lives in hiddenInputs for TH; reading only
+        // selectedTableData.calibrationPoints left lcs undefined, so both branches
+        // silently validated against the 0.001 fallback instead of the real least
+        // count. Same lookup the TH blur handler uses.
+        const calibPointId = selectedTableData?.hiddenInputs?.calibrationPoints?.[rowIndex]
+          ?? selectedTableData?.calibrationPoints?.[rowIndex];
+        const lcs = leastCountData[calibPointId] || leastCountData[String(calibPointId)];
+        const leastCount = parseFloat(rowType === 'UUC' ? (lcs?.uuc ?? 0.001) : (lcs?.master ?? 0.001));
 
         if (rowType === 'UUC') {
           // Range is required
@@ -1322,8 +1369,16 @@ const CalibrateStep3 = () => {
             if (!isNaN(numValue) && numValue !== 0) {
               if (numValue < leastCount) {
                 newErrors[key] = `Please enter a value within least count ${leastCount}`;
-              } else if (numValue % leastCount !== 0) {
-                newErrors[key] = `Please enter a value divisible by ${leastCount}`;
+              } else {
+                // Float modulo is unreliable here: 15.2 % 0.001 is 0.000999...,
+                // not 0, so every value looked indivisible. Compare as scaled
+                // integers, same as the blur-time check does.
+                const factor = 1000000;
+                const scaledVal = Math.round(numValue * factor);
+                const scaledLc = Math.round(leastCount * factor);
+                if (scaledLc > 0 && scaledVal % scaledLc !== 0) {
+                  newErrors[key] = `Please enter a value divisible by ${leastCount}`;
+                }
               }
             }
           }
@@ -1457,7 +1512,6 @@ const CalibrateStep3 = () => {
         // Handle observationupload separately — it returns ulrno/issuedate/accreditation
         if (observationTemplate === 'observationupload') {
           if (isSuccess && response.data.data) {
-            console.log('📤 ObservationUpload data:', response.data.data);
             setUploadData(response.data.data);
           }
           return;
@@ -1465,7 +1519,6 @@ const CalibrateStep3 = () => {
 
         if (isSuccess && (response.data.data || response.data.calibration_points || observationTemplate === 'observationbiomedical')) {
           const observationData = observationTemplate === 'observationbiomedical' ? response.data : (response.data.data || response.data);
-          console.log('📊 Observation Data:', observationData);
 
           if (observationTemplate === 'observationmt' && observationData.thermal_coeff) {
             setThermalCoeff({
@@ -1476,7 +1529,6 @@ const CalibrateStep3 = () => {
           }
 
           if (observationTemplate === 'observationodfm' && observationData.calibration_points) {
-            console.log('Setting ODFM observations:', observationData.calibration_points);
             setObservations(observationData.calibration_points);
           } else if (observationTemplate === 'observationdpg' && observationData.observations) {
             // console.log('✅ Setting DPG Observations:', observationData.observations);
@@ -1484,14 +1536,12 @@ const CalibrateStep3 = () => {
           } else if (observationTemplate === 'observationapg') {
             setObservations(observationData);
           } else if (observationTemplate === 'observationmm') {
-            console.log('🔍 Processing observationmm data structure');
 
             // ✅ NEW: Initialize least count map
             const leastCountMap = {};
 
             // Try different possible data structures for MM
             if (observationData.calibration_points && Array.isArray(observationData.calibration_points)) {
-              console.log('Setting MM observations from calibration_points:', observationData.calibration_points);
               setObservations(observationData.calibration_points);
 
               // Extract least count data
@@ -1507,7 +1557,6 @@ const CalibrateStep3 = () => {
                 }
               });
             } else if (observationData.data && Array.isArray(observationData.data)) {
-              console.log('Setting MM observations from data:', observationData.data);
               setObservations(observationData.data);
 
               // Extract least count data from nested structure
@@ -1521,7 +1570,6 @@ const CalibrateStep3 = () => {
                 }
               });
             } else if (observationData.unit_types && Array.isArray(observationData.unit_types)) {
-              console.log('Setting MM observations from unit_types:', observationData.unit_types);
               setObservations(observationData.unit_types);
 
               // Extract least count data from unit_types structure
@@ -1535,7 +1583,6 @@ const CalibrateStep3 = () => {
                 }
               });
             } else if (Array.isArray(observationData)) {
-              console.log('Setting MM observations directly:', observationData);
               setObservations(observationData);
 
               // Extract least count data from array structure
@@ -1552,7 +1599,6 @@ const CalibrateStep3 = () => {
                 }
               });
             } else {
-              console.log('No MM observations found in expected format, trying to extract from object');
 
               // Try to extract calibration points from the object structure
               const possiblePoints = Object.values(observationData).filter(
@@ -1560,7 +1606,6 @@ const CalibrateStep3 = () => {
               );
 
               if (possiblePoints.length > 0) {
-                console.log('Found potential MM points:', possiblePoints);
                 setObservations(possiblePoints);
 
                 // Extract least count from found points
@@ -1570,29 +1615,23 @@ const CalibrateStep3 = () => {
                   }
                 });
               } else {
-                console.log('No MM observations found');
                 setObservations([]);
               }
             }
 
             // ✅ Store least count data for validation
-            console.log('📊 MM Least Count Map:', leastCountMap);
             setLeastCountData(leastCountMap);
           }
           else if (observationTemplate === 'observationavg') {
-            console.log('Setting AVG observations:', observationData);
 
             const avgData = observationData.data || observationData;
 
             if (avgData.calibration_point && Array.isArray(avgData.calibration_point)) {
-              console.log('✅ AVG calibration_point found:', avgData.calibration_point);
               setObservations(avgData.calibration_point);
             } else {
-              console.log('❌ No AVG calibration_point found');
               setObservations([]);
             }
           } else if (observationTemplate === 'observationes') {
-            console.log('Setting ES observations:', observationData);
             const esData = observationData.data || observationData;
             const measure = Array.isArray(esData.performance_testing_measure) ? esData.performance_testing_measure : [];
             const source = Array.isArray(esData.performance_testing_source) ? esData.performance_testing_source : [];
@@ -1606,46 +1645,48 @@ const CalibrateStep3 = () => {
               setObservations([]);
             }
           } else if (observationTemplate === 'observationppg' && observationData.observations) {
-            console.log('✅ Setting PPG Observations:', observationData.observations);
             setObservations(observationData.observations);
           } else if (observationTemplate === 'observationmg') {
-            console.log('Setting MG observations:', observationData);
 
             // Handle nested data structure for MG
             const mgData = observationData.data || observationData;
 
             if (mgData.calibration_points && Array.isArray(mgData.calibration_points)) {
-              console.log('✅ MG calibration_points found:', mgData.calibration_points);
               setObservations(mgData.calibration_points);
             } else if (mgData.observations && Array.isArray(mgData.observations)) {
-              console.log('✅ MG observations found:', mgData.observations);
               setObservations(mgData.observations);
             } else {
-              console.log('❌ No MG calibration_points found');
               setObservations([]);
             }
           }
 
           else if (observationTemplate === 'observationrtdwi') {
-            console.log('Setting RTD WI observations:', observationData);
 
             if (observationData.calibration_points && Array.isArray(observationData.calibration_points)) {
-              console.log('✅ RTD WI calibration_points found:', observationData.calibration_points.length, 'points');
               setObservations(observationData.calibration_points);
             } else {
-              console.log('❌ No RTD WI calibration_points found');
               setObservations([]);
             }
           }
+          else if (observationTemplate === 'observationtswoi') {
+            setObservations(extractTSWOIPoints(observationData) || []);
+          }
+          else if (observationTemplate === 'observationtswi') {
+            setObservations(extractTSWIPoints(observationData) || []);
+          }
+          else if (observationTemplate === 'observationsw') {
+            setObservations(extractSWPoints(observationData) || []);
+          }
+          else if (observationTemplate === 'observationsutm') {
+            setObservations(extractSUTMPoints(observationData) || []);
+          }
           else if (observationTemplate === 'observationfg') {
-            console.log('Setting FG observations:', observationData);
 
             // Handle nested data structure for FG
             const fgData = observationData.data || observationData;
 
             // Check if calibration_points exists directly
             if (fgData.calibration_points && Array.isArray(fgData.calibration_points)) {
-              console.log('✅ FG calibration_points found directly:', fgData.calibration_points);
               setObservations(fgData.calibration_points);
 
               // Handle thermal coefficients for FG
@@ -1655,12 +1696,10 @@ const CalibrateStep3 = () => {
                   master: fgData.thermal_coefficients.thermal_coeff_master || '',
                   thickness_of_graduation: '' // FG doesn't use this field
                 });
-                console.log('✅ FG Thermal coefficients set:', fgData.thermal_coefficients);
               }
             }
             // Check if unit_types exists (for backward compatibility)
             else if (fgData.unit_types && Array.isArray(fgData.unit_types)) {
-              console.log('✅ FG unit_types found:', fgData.unit_types);
               setObservations(fgData.unit_types);
 
               // Handle thermal coefficients for FG
@@ -1670,18 +1709,14 @@ const CalibrateStep3 = () => {
                   master: fgData.thermal_coeff.master || '',
                   thickness_of_graduation: '' // FG doesn't use this field
                 });
-                console.log('✅ FG Thermal coefficients set:', fgData.thermal_coeff);
               }
             } else {
-              console.log('❌ No FG calibration_points or unit_types found');
               setObservations([]);
             }
           } else if (observationTemplate === 'observationexm') {
-            console.log('Setting EXM observations:', observationData);
 
             // EXM structure is similar to HG but thermal coefficients are directly uuc/master
             if (observationData.calibration_points && Array.isArray(observationData.calibration_points)) {
-              console.log('✅ EXM calibration_points found:', observationData.calibration_points);
               setObservations(observationData.calibration_points);
               seedTableInputsFromPoints(observationData.calibration_points);
 
@@ -1694,7 +1729,6 @@ const CalibrateStep3 = () => {
                 parallinternal: addl.parallelism_spindle_anvil?.value ?? addl.parallinternal?.value ?? ''
               });
             } else {
-              console.log('❌ No EXM calibration_points found');
               setObservations([]);
             }
           } else if (observationTemplate === 'observationvc') {
@@ -1706,14 +1740,11 @@ const CalibrateStep3 = () => {
               vcPoints = observationData;
             }
             if (!vcPoints) vcPoints = [];
-            console.log('Setting VC observations:', vcPoints);
 
             if (Array.isArray(vcPoints) && vcPoints.length > 0) {
-              console.log('✅ VC calibration_points found:', vcPoints.length, 'points');
               setObservations(vcPoints);
               seedTableInputsFromPoints(vcPoints);
             } else {
-              console.log('❌ No VC calibration_points found');
               setObservations([]);
             }
 
@@ -1724,7 +1755,6 @@ const CalibrateStep3 = () => {
                 master: thermal.master || '',
                 thickness_of_graduation: ''
               });
-              console.log('✅ VC Thermal coefficients set:', thermal);
             }
 
             const addl = response.data.additional_measurements || observationData?.additional_measurements || {};
@@ -1733,26 +1763,20 @@ const CalibrateStep3 = () => {
               parallexternal: addl.parallelism_external?.value ?? addl.parallexternal ?? addl.external ?? response.data.parallexternal ?? '',
             });
           } else if (observationTemplate === 'observationgtm') {
-            console.log('Setting GTM observations:', observationData);
 
             if (observationData.calibration_points && Array.isArray(observationData.calibration_points)) {
-              console.log('✅ GTM calibration_points found:', observationData.calibration_points.length, 'points');
               setObservations(observationData.calibration_points);
             } else {
-              console.log('❌ No GTM calibration_points found');
               setObservations([]);
             }
           }
 
           else if (observationTemplate === 'observationpr') {
-            console.log('Setting PR observations:', observationData);
             const prData = observationData?.data || observationData;
             const matrices = prData?.matrices || observationData?.matrices || response.data?.matrices || [];
             if (Array.isArray(matrices) && matrices.length > 0) {
-              console.log('✅ PR matrices found:', matrices.length, 'matrices');
               setObservations(matrices);
             } else if (Array.isArray(prData?.points)) {
-              console.log('✅ PR points found:', prData.points.length, 'points');
               setObservations([{ matrix_id: 'default', points: prData.points }]);
             } else {
               setObservations(Array.isArray(prData) ? prData : []);
@@ -1760,13 +1784,10 @@ const CalibrateStep3 = () => {
           }
 
           else if (observationTemplate === 'observationit') {
-            console.log('Setting IT observations:', observationData);
-
             // Handle nested data structure
             const itData = observationData.data || observationData;
 
             if (itData.calibration_points) {
-              console.log('✅ IT calibration_points found:', itData.calibration_points);
               setObservations(itData.calibration_points);
 
               // FIX: Handle thermal coefficients for IT with correct keys
@@ -1776,23 +1797,16 @@ const CalibrateStep3 = () => {
                   master: itData.thermal_coefficients.master_coefficient || '',
                   thickness_of_graduation: prev.thickness_of_graduation || '', // preserve existing
                 }));
-                console.log('✅ IT Thermal coefficients set:', {
-                  uuc: itData.thermal_coefficients.uuc_coefficient,
-                  master: itData.thermal_coefficients.master_coefficient
-                });
               }
             } else {
-              console.log('❌ No IT calibration_points found');
               setObservations([]);
             }
           } else if (observationTemplate === 'observationhg') {
-            console.log('Setting HG observations:', observationData);
 
             // HG has calibration_points in the second object of the array
             const hgData = observationData[1] || observationData;
 
             if (hgData.calibration_points && Array.isArray(hgData.calibration_points)) {
-              console.log('✅ HG calibration_points found:', hgData.calibration_points);
               setObservations(hgData.calibration_points);
 
               // Handle thermal coefficients from the first object
@@ -1802,21 +1816,17 @@ const CalibrateStep3 = () => {
                   master: observationData[0].thermal_coefficients.master_coefficient || '',
                   thickness_of_graduation: '' // HG doesn't use this field
                 });
-                console.log('✅ HG Thermal coefficients set:', observationData[0].thermal_coefficients);
               }
             } else {
-              console.log('❌ No HG calibration_points found');
               setObservations([]);
             }
           } else if (observationTemplate === 'observationmsr') {
-            console.log('Setting MSR observations:', observationData);
 
             // Handle array structure - MSR returns array with unit types
             if (Array.isArray(observationData) && observationData.length > 0) {
               const msrData = observationData[0]; // Get first unit type object
 
               if (msrData.calibration_points && Array.isArray(msrData.calibration_points)) {
-                console.log('✅ MSR calibration_points found:', msrData.calibration_points);
                 setObservations(msrData.calibration_points);
 
                 // Handle thermal coefficients
@@ -1826,25 +1836,20 @@ const CalibrateStep3 = () => {
                     master: msrData.thermal_coeff.master || '',
                     thickness_of_graduation: '' // MSR doesn't use this field
                   });
-                  console.log('✅ MSR Thermal coefficients set:', msrData.thermal_coeff);
                 }
               } else {
-                console.log('❌ No MSR calibration_points found');
                 setObservations([]);
               }
             } else {
-              console.log('❌ MSR data not in expected array format');
               setObservations([]);
             }
           }
           else if (observationTemplate === 'observationmt') {
-            console.log('Setting MT observations:', observationData);
 
             // Handle nested data structure for MT
             const mtData = observationData.data || observationData;
 
             if (mtData.calibration_points) {
-              console.log('✅ MT calibration_points found:', mtData.calibration_points);
               setObservations(mtData.calibration_points);
 
               const leastCountMap = {};
@@ -1873,27 +1878,21 @@ const CalibrateStep3 = () => {
                   master: mtData.thermal_coeff.master || '',
                   thickness_of_graduation: mtData.thermal_coeff.thickness_of_graduation || ''
                 });
-                console.log('✅ MT Thermal coefficients set:', mtData.thermal_coeff);
               }
             } else {
-              console.log('❌ No MT calibration_points found');
               setObservations([]);
             }
           }
 
           else if (observationTemplate === 'observationdg') {
-            console.log('🔍 Setting DG observations:', observationData);
 
             // DG can return data in multiple formats - handle all cases
             if (observationData.observations && Array.isArray(observationData.observations)) {
-              console.log('✅ DG observations found:', observationData.observations.length, 'points');
               setObservations(observationData.observations);
             } else if (Array.isArray(observationData)) {
               // Fallback if data is directly an array
-              console.log('✅ DG observations as array:', observationData.length, 'points');
               setObservations(observationData);
             } else {
-              console.log('❌ No DG observations found in expected format');
               setObservations([]);
             }
 
@@ -1904,27 +1903,20 @@ const CalibrateStep3 = () => {
                 master: observationData.thermal_coefficients.master || '',
                 thickness_of_graduation: '' // DG doesn't use this field
               });
-              console.log('✅ DG Thermal coefficients set:', observationData.thermal_coefficients);
             }
           }
 
           else if (observationTemplate === 'observationdw') {
-            console.log('🔍 Setting DW observations (initial):', observationData);
-            console.log('📦 Full response structure:', response.data);
 
             const env = response.data?.environment || observationData.environment;
             const dwData = Array.isArray(observationData) ? observationData : observationData.data || observationData.calibration_points;
-            console.log('🔢 DW Data extracted:', dwData);
 
-            console.log('🌍 Full environment object:', JSON.stringify(env));
-            console.log('🔍 Checking pressure_start:', { has_pressure_start: 'pressure_start' in env, value: env?.pressure_start });
 
             if (env) {
               const envPressureStart = env.pressure_start || env.pressurestart || '';
               const envPressureEnd = env.pressure_end || env.pressureend || '';
               const envStabilizationTime = env.stabilization_time || env.stabilizationtime || '';
 
-              console.log('📝 Extracted environment values:', { envPressureStart, envPressureEnd, envStabilizationTime });
 
               setFormData(prev => ({
                 ...prev,
@@ -1938,28 +1930,23 @@ const CalibrateStep3 = () => {
                 [`${instId}-pressure-end`]: envPressureEnd,
                 [`${instId}-stabilization`]: envStabilizationTime,
               };
-              console.log('💾 About to set tableInputValues:', envTableValues);
 
               setTableInputValues(prev => ({
                 ...prev,
                 ...envTableValues,
               }));
 
-              console.log('✅ Environment values set in tableInputValues');
             }
 
             if (Array.isArray(dwData) && dwData.length > 0) {
-              console.log('✅ DW observations set:', dwData.length, 'points');
               setObservations(dwData);
             } else {
-              console.log('❌ No DW observations found');
               setObservations([]);
             }
           }
 
 
-          else if (observationTemplate === 'observationutm') {
-            console.log('Setting UTM observations:', observationData);
+          else if (observationTemplate === 'observationutm' || observationTemplate === 'observationautm') {
 
             const utmData =
               observationData.matrices && Array.isArray(observationData.matrices)
@@ -1974,17 +1961,121 @@ const CalibrateStep3 = () => {
                         ? observationData
                         : [observationData];
 
-            setObservations(utmData.filter(Boolean));
+            const utmObservations = utmData.filter(Boolean);
+            // pre_loading_cycles sits next to matrices in the response; carry it along
+            // so the AUTM component can show the saved checkbox state.
+            if (Array.isArray(observationData.pre_loading_cycles)) {
+              utmObservations.preLoadingCycles = observationData.pre_loading_cycles;
+            }
+            setObservations(utmObservations);
+
+            // Initialize tableInputValues with saved UTM observations
+            if (utmData && Array.isArray(utmData)) {
+              setTableInputValues(prev => {
+                const updated = { ...prev };
+
+                utmData.forEach((matrix) => {
+                  const calibrationPoints = matrix.calibration_points || matrix.rows || [];
+
+                  calibrationPoints.forEach((point, pointIndex) => {
+                    const realId = selectedTableData?.calibration_points?.[pointIndex]?.id ||
+                      selectedTableData?.calibration_points?.[pointIndex]?.point_id ||
+                      selectedTableData?.calibration_points?.[pointIndex]?.calibration_point_id;
+                    const pointId = point.id || point.point_id || point.calibration_point_id || point.calibrationpoint || realId || `pt-${pointIndex}`;
+
+                    // Load setpoint (force value)
+                    if (point.force) {
+                      updated[`${pointId}-setpoint`] = String(point.force);
+                    }
+
+                    // Load calculated UUC (at standard temperature)
+                    if (point.calculated_uuc) {
+                      updated[`${pointId}-calculateduuc`] = String(point.calculated_uuc);
+                    }
+
+                    // Load UUC at room temperature (with temperature compensation)
+                    if (point.uuc) {
+                      updated[`${pointId}-uuc`] = String(point.uuc);
+                    }
+
+                    // Load master readings (m0, m1, m2)
+                    if (point.master_readings && Array.isArray(point.master_readings)) {
+                      point.master_readings.forEach((reading, idx) => {
+                        if (reading !== null && reading !== undefined && reading !== '') {
+                          updated[`${pointId}-m${idx}`] = String(reading);
+                        }
+                      });
+                    }
+
+                    // Load calculated values
+                    if (point.average_master) {
+                      updated[`${pointId}-average`] = String(point.average_master);
+                    }
+                    if (point.error) {
+                      updated[`${pointId}-error`] = String(point.error);
+                    }
+                    if (point.percent_error) {
+                      updated[`${pointId}-percentError`] = String(point.percent_error);
+                    }
+                    if (point.repeatability) {
+                      updated[`${pointId}-repeatability`] = String(point.repeatability);
+                    }
+                  });
+
+                  // Load removal force data
+                  if (matrix.zero_error_data && matrix.zero_error_data.removal_forces) {
+                    matrix.zero_error_data.removal_forces.forEach((force, idx) => {
+                      if (force !== null && force !== undefined && force !== '') {
+                        updated[`removalforce-${idx}`] = String(force);
+                      }
+                    });
+                  }
+
+                  // Load zero error data
+                  if (matrix.zero_error_data && matrix.zero_error_data.zero_errors) {
+                    matrix.zero_error_data.zero_errors.forEach((error, idx) => {
+                      if (error !== null && error !== undefined && error !== '') {
+                        updated[`zeroerror-${idx}`] = String(error);
+                      }
+                    });
+                  }
+
+                  // Load additional data
+                  if (matrix.additional_data) {
+                    if (matrix.additional_data.class_of_machine) {
+                      updated['classofmachine'] = String(matrix.additional_data.class_of_machine);
+                    }
+                    if (matrix.additional_data.dial_gauge_setting) {
+                      updated['dialguagesetting'] = String(matrix.additional_data.dial_gauge_setting);
+                    }
+                    if (matrix.additional_data.max_relative_resolution !== undefined && matrix.additional_data.max_relative_resolution !== null) {
+                      updated['releativeres'] = String(matrix.additional_data.max_relative_resolution);
+                    }
+                  }
+
+                  // Load flat observations from matrix (often returned this way for AUTM)
+                  if (matrix.observations && Array.isArray(matrix.observations)) {
+                    matrix.observations.forEach((obs) => {
+                      const ptId = obs.calibrationpoint || obs.calibration_point_id || obs.point_id;
+                      if (obs.type === 'master') {
+                        updated[`${ptId}-m${obs.repeatable}`] = String(obs.value);
+                      } else if (obs.type === 'removalforce') {
+                        updated[`${ptId}-removalforce-${obs.repeatable}`] = String(obs.value);
+                      } else if (obs.type === 'classofmachine') {
+                        updated[`${ptId}-classofmachine`] = String(obs.value);
+                      } else if (obs.type === 'dialguageseting' || obs.type === 'dialgaugesetting') {
+                        updated[`${ptId}-dialguageseting`] = String(obs.value);
+                      }
+                    });
+                  }
+                });
+
+                return updated;
+              });
+            }
           }
 
           else if (observationTemplate === 'observationctg' && observationData.points) {
-            console.log(
-              'CTG Points with IDs:',
-              observationData.points.map((p) => ({
-                id: p.id,
-                sr_no: p.sr_no,
-              }))
-            );
             setObservations(observationData.points);
 
             // ✅ NEW: Extract least count data for CTG
@@ -1995,7 +2086,6 @@ const CalibrateStep3 = () => {
               }
             });
             setLeastCountData(leastCountMap);
-            console.log('📊 CTG Least Count Map:', leastCountMap);
 
             if (observationTemplate === 'observationctg' && observationData.thermal_coeff) {
               setThermalCoeff({
@@ -2004,7 +2094,6 @@ const CalibrateStep3 = () => {
               });
             }
           } else if (observationTemplate === 'observationtm') {
-            console.log('Setting TM observations:', observationData);
             if (Array.isArray(observationData)) {
               setObservations(observationData);
             } else if (observationData.calibration_points && Array.isArray(observationData.calibration_points)) {
@@ -2015,17 +2104,31 @@ const CalibrateStep3 = () => {
               setObservations([]);
             }
           } else if (observationTemplate === 'observationuc') {
-            console.log('Setting UC observations:', observationData);
             const ucData = observationData.data || observationData;
 
             if (ucData.measure_data || ucData.source_data) {
               const combined = [];
               if (Array.isArray(ucData.measure_data)) {
-                combined.push(...ucData.measure_data.map(p => ({ ...p, mode: 'Measure' })));
+                combined.push(...ucData.measure_data.map(p => ({ ...p, mode: 'Measure', cusset_error: p.cusset_error ?? ucData.cusset_error })));
               }
               if (Array.isArray(ucData.source_data)) {
-                combined.push(...ucData.source_data.map(p => ({ ...p, mode: 'Source' })));
+                combined.push(...ucData.source_data.map(p => ({ ...p, mode: 'Source', cusset_error: p.cusset_error ?? ucData.cusset_error })));
               }
+
+              // PHP validates observation columns with inleastcount/divisibleby against
+              // crfmatrix.leastcount (Measure, readings on UUC) or mastermatrix.leastcount
+              // (Source, readings on master). Keep the raw string so its decimal count is
+              // preserved; least_count_uuc/least_count_master are decimal counts, not LCs.
+              const leastCountMap = {};
+              combined.forEach(point => {
+                const calibPointId = point.point_id?.toString() || point.calibration_point_id?.toString() || point.id?.toString();
+                if (!calibPointId) return;
+                const obsLc = point.mode === 'Measure'
+                  ? (point.leastcount ?? point.least_count)
+                  : (point.master_leastcount ?? point.masterleastcount);
+                leastCountMap[calibPointId] = { obs: obsLc != null ? String(obsLc).trim() : null };
+              });
+              setLeastCountData(prev => ({ ...prev, ...leastCountMap }));
               setObservations(combined);
             } else if (Array.isArray(ucData)) {
               setObservations(ucData);
@@ -2053,8 +2156,84 @@ const CalibrateStep3 = () => {
             });
             setLeastCountData(leastCountMap);
             setObservations(points);
+          } else if (observationTemplate === 'observationvht') {
+            const points = Array.isArray(observationData)
+              ? observationData
+              : (observationData.data || observationData.calibration_points || []);
+            setObservations(Array.isArray(points) ? points : []);
+          } else if (observationTemplate === 'observationvol') {
+            const points = Array.isArray(observationData)
+              ? observationData
+              : (observationData.data || observationData.calibration_points || []);
+
+            // Ambient/water temperature and pressure are stored against the
+            // instrument, not a calibration point.
+            const instData =
+              observationData.instrument_data
+              || observationData.environment
+              || observationData.instrument
+              || {};
+
+            const pick = (...keys) => {
+              for (const k of keys) {
+                if (instData[k] !== undefined && instData[k] !== null && instData[k] !== '') return instData[k];
+              }
+              return '';
+            };
+
+            const volInst = {
+              ambienttemp: pick('ambienttemp', 'ambient_temp'),
+              watertemp: pick('watertemp', 'water_temp'),
+              pressure: pick('pressure', 'air_pressure'),
+            };
+            setVolInstrumentData(volInst);
+            setTableInputValues(prev => ({
+              ...prev,
+              [`${instId}-ambienttemp`]: volInst.ambienttemp,
+              [`${instId}-watertemp`]: volInst.watertemp,
+              [`${instId}-pressure`]: volInst.pressure,
+            }));
+
+            setObservations(Array.isArray(points) ? points : []);
+          } else if (observationTemplate === 'observationvolnl') {
+            const points = Array.isArray(observationData)
+              ? observationData
+              : (observationData.data || observationData.calibration_points || []);
+
+            // Material coefficient, water temperature and air pressure are stored
+            // against the instrument, not a calibration point.
+            const instData =
+              observationData.instrument_data
+              || observationData.environment
+              || observationData.instrument
+              || {};
+
+            const pick = (...keys) => {
+              for (const k of keys) {
+                if (instData[k] !== undefined && instData[k] !== null && instData[k] !== '') return instData[k];
+              }
+              return '';
+            };
+
+            const volnlInst = {
+              materialcofficient: pick('materialcofficient', 'material_coefficient'),
+              watertemp: pick('watertemp', 'water_temp', 'water_temp_start'),
+              watertemp2: pick('watertemp2', 'water_temp2', 'water_temp_end'),
+              pressure: pick('pressure', 'air_pressure', 'air_pressure_start'),
+              pressure2: pick('pressure2', 'air_pressure2', 'air_pressure_end'),
+            };
+            setVolnlInstrumentData(volnlInst);
+            setTableInputValues(prev => ({
+              ...prev,
+              [`${instId}-materialcofficient`]: volnlInst.materialcofficient,
+              [`${instId}-watertemp`]: volnlInst.watertemp,
+              [`${instId}-watertemp2`]: volnlInst.watertemp2,
+              [`${instId}-pressure`]: volnlInst.pressure,
+              [`${instId}-pressure2`]: volnlInst.pressure2,
+            }));
+
+            setObservations(Array.isArray(points) ? points : []);
           } else if (observationTemplate === 'observationts') {
-            console.log('Setting TS observations:', observationData);
             const uucCoeff = observationData.thermal_coefficient_uuc ?? observationData.thermal_coefficients?.uuc ?? observationData.thermal_coeff?.uuc ?? '';
             const masterCoeff = observationData.thermal_coefficient_master ?? observationData.thermal_coefficients?.master ?? observationData.thermal_coeff?.master ?? '';
             if (uucCoeff || masterCoeff) {
@@ -2091,7 +2270,6 @@ const CalibrateStep3 = () => {
               const observations = point.observations ? [...point.observations] : [];
               const averages = [];
               if (point.readings && Array.isArray(point.readings)) {
-                console.log(`  Point ${pointIdx}: Processing ${point.readings.length} readings (decimals: ${masterLcDecPlaces})`);
                 point.readings.forEach((r, idx) => {
                   const globalRowIdx = pointIdx * 5 + idx;
                   if (r.values && Array.isArray(r.values)) {
@@ -2103,30 +2281,25 @@ const CalibrateStep3 = () => {
                       if (repParts.length === 2) {
                         const colIdx = parseInt(repParts[1], 10) + 1;
                         seededValues[`${globalRowIdx}-${colIdx}`] = cleanVal;
-                        console.log(`  ✅ Row ${globalRowIdx}, Col ${colIdx}: ${vObj.value} → ${cleanVal} (${masterLcDecPlaces} decimals)`);
                       }
                     });
                   }
-                  // Calculate average from readings if available, else fallback to r.average
                   let rowAvg = '';
-                  if (r.values && Array.isArray(r.values) && r.values.length > 0) {
+                  if (r.average !== undefined && r.average !== null && String(r.average).trim() !== '') {
+                    const numAvg = parseFloat(r.average);
+                    rowAvg = !isNaN(numAvg) ? numAvg.toFixed(masterLcDecPlaces) : String(r.average);
+                  } else if (r.values && Array.isArray(r.values) && r.values.length > 0) {
                     const nums = r.values.map(v => parseFloat(v.value)).filter(n => !isNaN(n));
                     if (nums.length > 0) {
-                      rowAvg = (nums.reduce((a, b) => a + b, 0) / nums.length).toFixed(2);
+                      rowAvg = (nums.reduce((a, b) => a + b, 0) / nums.length).toFixed(masterLcDecPlaces);
                     }
-                  }
-                  if (!rowAvg && r.average !== undefined && r.average !== null && r.average !== '') {
-                    const numAvg = parseFloat(r.average);
-                    rowAvg = !isNaN(numAvg) ? numAvg.toFixed(2) : String(r.average);
                   }
                   if (rowAvg) {
                     averages.push({ repeatable: idx.toString(), value: rowAvg });
                     seededValues[`${globalRowIdx}-9`] = rowAvg;
-                    console.log(`Added average: repeatable="${idx}", value="${rowAvg}"`);
                   }
                 });
               }
-              console.log(`  Point ${pointIdx}: Final averages array =`, averages);
               return { ...point, observations, averages };
             });
 
@@ -2136,17 +2309,15 @@ const CalibrateStep3 = () => {
             if (Object.keys(seededValues).length > 0) {
               setTableInputValues(prev => ({ ...prev, ...seededValues }));
             }
-            console.log('Final tsData:', tsData);
             setObservations(tsData);
           } else if (observationTemplate === 'observationcustom') {
-            console.log('Setting Custom observations:', observationData);
             if (observationData.instrument_settings) {
+              setCustomSettings(observationData.instrument_settings);
               setInstrument(prev => ({ ...prev, ...observationData.instrument_settings }));
             }
             const points = observationData.calibration_points || observationData.points || observationData.data || (Array.isArray(observationData) ? observationData : []);
             setObservations(Array.isArray(points) ? points : []);
           } else if (observationTemplate === 'observationbiomedical') {
-            console.log('Setting biomedical observations:', observationData);
             const formatPoint = (p, mode, isSafety) => {
               let effectiveLc = p.least_count;
               let effectiveLcDec = (p.lc_decimals != null && p.lc_decimals !== 'NA' && p.lc_decimals !== '') ? parseInt(p.lc_decimals, 10) : null;
@@ -2442,7 +2613,6 @@ const CalibrateStep3 = () => {
               }
             }
           } else if (observationTemplate === 'observationwb') {
-            console.log('Setting WB observations:', observationData);
             let allPoints = [];
             const dataObj = observationData.data || observationData;
             if (dataObj.weighing_process || dataObj.repeatability || dataObj.eccentricity) {
@@ -2545,16 +2715,15 @@ const CalibrateStep3 = () => {
             setObservations([]);
           }
         } else {
-          console.log('No observations found');
           setObservations([]);
         }
-      } catch (error) {
-        console.log('Error fetching observations:', error);
+      } catch {
         setObservations([]);
       }
     };
 
     fetchObservations();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [observationTemplate, instId, inwardId]);
 
   useEffect(() => {
@@ -2664,23 +2833,67 @@ const CalibrateStep3 = () => {
     });
   };
 
-  const calculateRoomTemperature = () => {
-    const startTemp = parseFloat(inwardEntry?.temperature) || 0;
-    const endTemp = parseFloat(formData.temprend) || 0;
-    if (startTemp && endTemp) {
-      return ((startTemp + endTemp) / 2).toFixed(1);
-    }
-    return '';
+  // TSWOI: both rows of the point that rowIndex belongs to (UUC row, then Master row),
+  // with current input values applied over the static rows
+  const getTSWOIPointRows = (rowIndex, values = tableInputValues) => {
+    const staticRows = selectedTableData?.staticRows || [];
+    const uucIndex = getTSWOIRowType(staticRows[rowIndex]) === 'uuc' ? rowIndex : rowIndex - 1;
+    const masterIndex = uucIndex + 1;
+    const buildRow = (idx) => (staticRows[idx] || []).map((cell, c) => values[`${idx}-${c}`] ?? (cell?.toString() || ''));
+    return { uucIndex, masterIndex, uucRow: buildRow(uucIndex), masterRow: buildRow(masterIndex) };
   };
 
-  const applyTemperatureCompensation = (calculatedUuc) => {
-    const avgTemp = parseFloat(roomTemperature) || parseFloat(calculateRoomTemperature()) || 23;
-    const numCalculatedUuc = parseFloat(calculatedUuc);
-    if (!isNaN(numCalculatedUuc) && !isNaN(avgTemp)) {
-      const compensated = (0.00027 * (avgTemp - 23) + 1) * numCalculatedUuc;
-      return compensated.toFixed(1);
-    }
-    return calculatedUuc;
+  // TSWOI points are one per two rows; cusset_error is copied onto each point on load
+  const getTSWOICussetError = (rowIndex) => observations?.[Math.floor(rowIndex / 2)]?.cusset_error;
+
+  // TSWOI: recalculate a whole point and write its calculated cells into values
+  const applyTSWOICalculations = (values, rowIndex) => {
+    const { uucIndex, masterIndex, uucRow, masterRow } = getTSWOIPointRows(rowIndex, values);
+    const calc = calculateTSWOIPoint(uucRow, masterRow, getTSWOICussetError(rowIndex));
+    values[`${uucIndex}-${TSWOI_COLS.AVERAGE}`] = calc.uuc.average;
+    values[`${uucIndex}-${TSWOI_COLS.CORRECTED_AVERAGE}`] = calc.uuc.correctedAverage;
+    values[`${masterIndex}-${TSWOI_COLS.AVERAGE}`] = calc.master.average;
+    values[`${masterIndex}-${TSWOI_COLS.CORRECTED_AVERAGE}`] = calc.master.correctedAverage;
+    values[`${uucIndex}-${TSWOI_COLS.DEVIATION}`] = calc.error;
+    return { uucIndex, masterIndex, calc };
+  };
+
+  // TSWI: same UUC/Master row pairing as TSWOI (getTSWOIPointRows only reads the
+  // 'UUC'/'Master' label in col 2); recalculates the point and writes its calculated cells
+  const applyTSWICalculations = (values, rowIndex) => {
+    const { uucIndex, masterIndex, uucRow, masterRow } = getTSWOIPointRows(rowIndex, values);
+    const calc = calculateTSWIPoint(uucRow, masterRow, selectedTableData?.rowMeta?.[rowIndex], getTSWOICussetError(rowIndex));
+    values[`${uucIndex}-${TSWI_COLS.CONVERTED_AVERAGE}`] = calc.uuc.average;
+    values[`${masterIndex}-${TSWI_COLS.AVERAGE}`] = calc.master.average;
+    values[`${masterIndex}-${TSWI_COLS.CORRECTED_AVERAGE}`] = calc.master.correctedAverage;
+    values[`${uucIndex}-${TSWI_COLS.DEVIATION}`] = calc.error;
+    return { uucIndex, masterIndex, calc };
+  };
+
+  // SW: same UUC/Master row pairing as TSWOI. After a reading changes, recalculates
+  // that row's average and the error (from the new average and the other row's
+  // current average, as PHP's onkeyup averageavg + substractminus do)
+  const applySWCalculations = (values, rowIndex) => {
+    const { uucIndex, masterIndex, uucRow, masterRow } = getTSWOIPointRows(rowIndex, values);
+    const meta = selectedTableData?.rowMeta?.[rowIndex];
+    const newAverage = calculateSWAverage(rowIndex === uucIndex ? uucRow : masterRow, meta);
+    values[`${rowIndex}-${SW_COLS.AVERAGE}`] = newAverage;
+    const uucAverage = rowIndex === uucIndex ? newAverage : uucRow[SW_COLS.AVERAGE];
+    const masterAverage = rowIndex === masterIndex ? newAverage : masterRow[SW_COLS.AVERAGE];
+    values[`${uucIndex}-${SW_COLS.ERROR}`] = calculateSWError(uucAverage, masterAverage, meta, getTSWOICussetError(rowIndex));
+    return { uucIndex, masterIndex };
+  };
+
+  // SUTM: one row per point. Recalculates both set speeds, the mean speed and the
+  // error from the row's displacement/time inputs and writes them into values
+  const applySUTMCalculations = (values, rowIndex) => {
+    const staticRow = selectedTableData?.staticRows?.[rowIndex] || [];
+    const rowData = staticRow.map((cell, c) => values[`${rowIndex}-${c}`] ?? (cell?.toString() || ''));
+    const cells = getSUTMCalculatedCells(rowData, selectedTableData?.rowMeta?.[rowIndex], observations?.[rowIndex]?.cusset_error);
+    Object.entries(cells).forEach(([col, val]) => {
+      values[`${rowIndex}-${col}`] = val;
+    });
+    return cells;
   };
 
   const calculateRowValues = (rowData, template, rowIndex) => {
@@ -2722,7 +2935,12 @@ const CalibrateStep3 = () => {
       Object.assign(result, calculateTHValues(rowData, calibPointId, leastCountData));
     }
     else if (template === 'observationts') {
-      Object.assign(result, calculateTSValues(rowData));
+      const calibPointId = selectedTableData?.hiddenInputs?.calibrationPoints?.[rowIndex] || selectedTableData?.calibrationPoints?.[rowIndex];
+      const lcInfo = leastCountData[calibPointId];
+      const masterLc = typeof lcInfo === 'object' ? (lcInfo?.master ?? 0.01) : (parseFloat(lcInfo) || 0.01);
+      const masterLcStr = (typeof lcInfo === 'object' && lcInfo?.masterLeastCountStr) ? lcInfo.masterLeastCountStr : masterLc?.toString();
+      const decPlaces = masterLcStr && masterLcStr.includes('.') ? (masterLcStr.split('.')[1] || '').length : 2;
+      Object.assign(result, calculateTSValues(rowData, decPlaces));
     } else if (template === 'observationwbn') {
       const point = observations?.[rowIndex];
       const wbnResult = calculateWBNValues(rowData, rowIndex, selectedTableData, instrument, point);
@@ -2803,15 +3021,6 @@ const CalibrateStep3 = () => {
         ? (avgForward - avgBackward).toFixed(d)
         : '';
 
-      console.log('DG Calculation:', {
-        set1Forward, set2Forward, set1Backward, set2Backward,
-        nominalValue,
-        averageForward: result.averageForward,
-        averageBackward: result.averageBackward,
-        errorForward: result.errorForward,
-        errorBackward: result.errorBackward,
-        hysteresis: result.hysteresis
-      });
     } else if (template === 'observationmsr') {
       Object.assign(result, calculateMSRValues(rowData));
     } else if (template === 'observationavg') {
@@ -2832,12 +3041,6 @@ const CalibrateStep3 = () => {
         ? (Math.max(...validReadings) - Math.min(...validReadings)).toFixed(3)
         : '';
 
-      console.log('🔢 AVG Calculation:', {
-        m1, m2, setPressureMaster,
-        average: result.average,
-        error: result.error,
-        hysteresis: result.hysteresis
-      });
     } else if (template === 'observationfg') {
       const calibPointId = selectedTableData?.hiddenInputs?.calibrationPoints?.[rowIndex] || selectedTableData?.calibrationPoints?.[rowIndex];
       Object.assign(result, calculateFGValues(rowData, calibPointId, leastCountData));
@@ -2861,12 +3064,6 @@ const CalibrateStep3 = () => {
         ? (Math.max(...validReadings) - Math.min(...validReadings)).toFixed(2)
         : '';
 
-      console.log('🔢 MG Calculation:', {
-        m1, m2, setPressureMaster,
-        average: result.average,
-        error: result.error,
-        hysteresis: result.hysteresis
-      });
     }
     else if (template === 'observationvc') {
       Object.assign(result, calculateVCValues(rowData));
@@ -2877,16 +3074,40 @@ const CalibrateStep3 = () => {
     else if (template === 'observationrtdwi') {
       Object.assign(result, calculateRTDWIValues(rowData));
     }
+    else if (template === 'observationtswoi') {
+      // Deviation spans the point's UUC and Master rows, so pass the other row too
+      const { uucIndex, uucRow, masterRow } = getTSWOIPointRows(rowIndex);
+      const pairRow = rowIndex === uucIndex ? masterRow : uucRow;
+      Object.assign(result, calculateTSWOIValues(rowData, pairRow, getTSWOICussetError(rowIndex)));
+    }
+    else if (template === 'observationtswi') {
+      const { uucIndex, uucRow, masterRow } = getTSWOIPointRows(rowIndex);
+      const pairRow = rowIndex === uucIndex ? masterRow : uucRow;
+      Object.assign(result, calculateTSWIValues(rowData, pairRow, selectedTableData?.rowMeta?.[rowIndex], getTSWOICussetError(rowIndex)));
+    }
     else if (template === 'observationmm') {
       Object.assign(result, calculateMMValues(rowData));
     } else if (template === 'observationodfm') {
-      const observations = parsedValues.slice(3, 8).filter((val) => val !== 0);
-      result.average = observations.length
-        ? (observations.reduce((sum, val) => sum + val, 0) / observations.length).toFixed(3)
+      const obsValues = parsedValues.slice(3, 8).filter((val) => val !== 0);
+
+      // Error is expressed in the master unit, so it follows the master least count
+      const calibPointId = selectedTableData?.hiddenInputs?.calibrationPoints?.[rowIndex] || selectedTableData?.calibrationPoints?.[rowIndex];
+      const lcInfo = leastCountData[calibPointId] || leastCountData[String(calibPointId)];
+      const point = observations?.[rowIndex];
+      const masterLc = (typeof lcInfo === 'object' ? (lcInfo?.masterStr ?? lcInfo?.master) : null)
+        ?? point?.metadata?.master_least_count
+        ?? point?.master_least_count
+        ?? point?.masterleastcount;
+      const masterDec = (masterLc !== undefined && masterLc !== null && masterLc !== 'NA')
+        ? getDecimalPlaces(masterLc)
+        : 3;
+
+      result.average = obsValues.length
+        ? (obsValues.reduce((sum, val) => sum + val, 0) / obsValues.length).toFixed(3)
         : '';
       const nominalValue = parsedValues[2];
       result.error = result.average && nominalValue
-        ? (parseFloat(result.average) - nominalValue).toFixed(2)
+        ? (parseFloat(result.average) - nominalValue).toFixed(masterDec)
         : '';
     } else if (template === 'observationapg') {
       Object.assign(result, calculateAPGValues(rowData));
@@ -2912,7 +3133,10 @@ const CalibrateStep3 = () => {
       });
     }
     else if (template === 'observationtm') {
-      Object.assign(result, calculateTMValues(rowData));
+      const point = observations?.[rowIndex] || selectedTableData?.calibration_points?.[rowIndex];
+      Object.assign(result, calculateTMValues(rowData, point, {
+        errorMode: instrument?.error,
+      }));
     }
     // ✅ DW calculation — isolated in ObservationDW.jsx
     else if (template === 'observationdw') {
@@ -2921,13 +3145,26 @@ const CalibrateStep3 = () => {
     else if (template === 'observationutm') {
       Object.assign(result, calculateUTMValues(rowData, rowIndex, selectedTableData));
     }
+    else if (template === 'observationvol') {
+      const point = observations?.[rowIndex] || selectedTableData?.calibration_points?.[rowIndex];
+      Object.assign(result, calculateVOLValues(rowData, point, {
+        errorMode: instrument?.error,
+      }));
+    }
+    else if (template === 'observationvolnl') {
+      const point = observations?.[rowIndex] || selectedTableData?.calibration_points?.[rowIndex];
+      Object.assign(result, calculateVOLNLValues(rowData, point, {
+        waterTempAvg: (parseFloat(tableInputValues[`${instId}-watertemp`]) + parseFloat(tableInputValues[`${instId}-watertemp2`])) / 2,
+        errorMode: instrument?.error,
+      }));
+    }
     else if (template === 'observationwb') {
       const point = observations?.[rowIndex];
       Object.assign(result, calculateWBValues(rowData, rowIndex, selectedTableData, instrument, point));
     }
     else if (template === 'observationcustom') {
       const point = observations?.[rowIndex];
-      Object.assign(result, calculateCustomValues(rowData, instrument, point));
+      Object.assign(result, calculateCustomValues(rowData, getCustomInstrument(), point));
     }
 
     return result;
@@ -2976,9 +3213,9 @@ const CalibrateStep3 = () => {
           if (layout.specIdx !== -1) row[layout.specIdx] = extractPointValue(point, 'specification');
           if (layout.setpointIdx !== -1) {
             let spVal = extractPointValue(point, 'setpoint');
-            if (!spVal && instrument.setpoint === 'Master') {
+            if (!spVal && getCustomInstrument().setpoint === 'Master') {
               spVal = extractPointValue(point, 'master', 0);
-            } else if (!spVal && instrument.setpoint === 'UUC') {
+            } else if (!spVal && getCustomInstrument().setpoint === 'UUC') {
               spVal = extractPointValue(point, 'uuc', 0);
             }
             if (!spVal) {
@@ -3144,7 +3381,6 @@ const CalibrateStep3 = () => {
           safeGetValue(point.hysteresis),
         ];
 
-        console.log('✅ AVG Row created:', row);
 
         rows.push(row);
         calibrationPoints.push(point.point_id?.toString() || '');
@@ -3155,6 +3391,14 @@ const CalibrateStep3 = () => {
     }
     else if (observationTemplate === 'observationrtdwi' || template === 'observationrtdwi') {
       return createRTDWIRows(dataArray, observationData);
+    } else if (template === 'observationtswoi') {
+      return createTSWOIRows(dataArray);
+    } else if (template === 'observationtswi') {
+      return createTSWIRows(dataArray);
+    } else if (template === 'observationsw') {
+      return createSWRows(dataArray);
+    } else if (template === 'observationsutm') {
+      return createSUTMRows(dataArray);
     } else if (template === 'observationth') {
       return createTHRows(dataArray);
     }
@@ -3173,7 +3417,6 @@ const CalibrateStep3 = () => {
           safeGetValue(point.calculations?.hysteresis || point.hysterisis || point.hysteresis),
         ];
 
-        console.log('✅ MG Row created:', row);
 
         rows.push(row);
         calibrationPoints.push(point.point_id?.toString() || point.calibration_point_id?.toString() || '');
@@ -3195,7 +3438,6 @@ const CalibrateStep3 = () => {
       return createUCRows(dataArray);
     }
     else if (template === 'observationes') {
-      console.log('🔄 Creating ES observation rows from:', dataArray);
 
       const allRows = [];
       const allCalibrationPoints = [];
@@ -3294,7 +3536,6 @@ const CalibrateStep3 = () => {
           row.push('');
         }
 
-        console.log('✅ EXM Row created:', row);
 
         rows.push(row);
         calibrationPoints.push(point.point_id?.toString() || '');
@@ -3351,12 +3592,11 @@ const CalibrateStep3 = () => {
         const maxPoint = safeGetValue(group.maxPoint ?? (numericPoints.length ? Math.max(...numericPoints) : ''));
 
         group.calibrationPoints.forEach((point, pointIndex) => {
-          const pointId = safeGetValue(point?.point_id ?? point?.calibration_point_id ?? point?.id ?? '');
           const masterValues = [0, 1, 2].map((idx) => getObservationValueByType(point, 'master', idx));
           const calculatedUuc = getObservationValueByType(point, 'calculateduuc', 0);
           const rawUuc = getObservationValueByType(point, 'uuc', 0);
-          // Apply temperature compensation to UUC value
-          const compensatedUuc = rawUuc || applyTemperatureCompensation(calculatedUuc);
+          const compensatedUuc = rawUuc || calculatedUuc || '';
+
           const row = [
             point?.sr_no?.toString() || point?.sequence_number?.toString() || (pointIndex + 1).toString(),
             getObservationValueByType(point, 'setpoint', 0),
@@ -3370,18 +3610,17 @@ const CalibrateStep3 = () => {
           ];
 
           rows.push(row);
+
+          // Every pushed row must have a matching hiddenInputs/rowMeta entry, otherwise
+          // the indexes shift and a point row resolves to the removal/zeroerror meta.
+          const pointId = safeGetValue(
+            point?.id ?? point?.point_id ?? point?.calibration_point_id ?? ''
+          );
           calibrationPoints.push(pointId);
-          types.push('setpoint');
+          types.push('master');
           repeatables.push('0');
-          values.push(row[1] || '0');
-          rowMeta.push({
-            kind: 'point',
-            matrixId,
-            matrixType: group.matrixType,
-            minPoint,
-            maxPoint,
-            leastCount,
-          });
+          values.push(masterValues[0] || '0');
+          rowMeta.push({ kind: 'point', matrixId, pointId });
         });
 
         const removalValues = [0, 1, 2].map((idx) => getObservationValueByType(group.raw, 'removalforce', idx));
@@ -3603,8 +3842,11 @@ const CalibrateStep3 = () => {
     };
   };
 
-  const getCustomLayoutIndices = (instrument) => {
-    if (!instrument) return null;
+  const getCustomLayoutIndices = (inst) => {
+    // The main instrument fetch replaces `instrument` wholesale and drops the
+    // template settings; fall back to the copy captured from the observations call
+    const instrument = (inst && inst.mastertoshow !== undefined) ? inst : getCustomInstrument();
+    if (!instrument || instrument.mastertoshow === undefined) return null;
     let colIdx = 1;
 
     let hasParameter = instrument.parametertoshow === "Yes";
@@ -3757,6 +3999,21 @@ const CalibrateStep3 = () => {
   const observationTables = [
     getTHTableConfig(observations),
     {
+      ...getVHTTableConfig(observations),
+      calibration_points: Array.isArray(observations) ? observations : [],
+    },
+    {
+      ...getVOLTableConfig(observations, inwardEntry?.conformitystatement === 'Yes'),
+      calibration_points: Array.isArray(observations) ? observations : [],
+      instrument_data: volInstrumentData,
+      conformitystatement: inwardEntry?.conformitystatement,
+    },
+    {
+      ...getVOLNLTableConfig(observations),
+      calibration_points: Array.isArray(observations) ? observations : [],
+      instrument_data: volnlInstrumentData,
+    },
+    {
       id: 'observationcustom',
       name: 'Observation Custom',
       category: 'Custom',
@@ -3838,6 +4095,10 @@ const CalibrateStep3 = () => {
 
     getMSRTableConfig(observations),
     getRTDWITableConfig(observations),
+    getTSWOITableConfig(observations),
+    getTSWITableConfig(observations),
+    getSWTableConfig(observations),
+    getSUTMTableConfig(observations),
     getGTMTableConfig(observations, instrument),
     getPRTableConfig(observations, instrument), {
       id: 'observationppg',
@@ -3984,7 +4245,7 @@ const CalibrateStep3 = () => {
           'Sr. No.',
           'Force (F)',
           'Std. at 23/24 +/-1 C',
-          `Std. at Room Temp (°C)${roomTemperature ? ` - ${roomTemperature}` : ''}`
+          `Std. at Room Temp (°C)`,
         ],
         subHeaders: {
           'Observed (F)': ['Position 0° / Obs 1', 'Position 120° / Obs 2', 'Position 240° / Obs 3']
@@ -3996,7 +4257,22 @@ const CalibrateStep3 = () => {
       rowMeta: createObservationRows(observations, 'observationutm').rowMeta,
       calibration_points: observations && Array.isArray(observations) && observations.length > 0
         ? observations[0]?.calibration_points || observations
-        : []
+        : [],
+      metadata: (observations && Array.isArray(observations) && observations[0]?.metadata) || {},
+      additional_data: (observations && Array.isArray(observations) && observations[0]?.additional_data) || {},
+      zero_error_data: (observations && Array.isArray(observations) && observations[0]?.zero_error_data) || {},
+    },
+    {
+      id: 'observationautm',
+      name: 'Observation AUTM',
+      category: 'Force',
+      structure: null,
+      calibration_points: observations && Array.isArray(observations) && observations.length > 0
+        ? observations[0]?.calibration_points || observations
+        : [],
+      metadata: (observations && Array.isArray(observations) && observations[0]?.metadata) || {},
+      additional_data: (observations && Array.isArray(observations) && observations[0]?.additional_data) || {},
+      zero_error_data: (observations && Array.isArray(observations) && observations[0]?.zero_error_data) || {},
     },
     {
       id: 'observationwb',
@@ -4089,6 +4365,15 @@ const CalibrateStep3 = () => {
 
   const tableStructure = generateTableStructure();
 
+  // UC observation least count as a string (keeps its decimal count), or null when
+  // the matrix has none ("NA", "0", missing) so no LC check applies.
+  const getUCObservationLc = (lcInfo) => {
+    const lc = typeof lcInfo === 'object' ? lcInfo?.obs : lcInfo;
+    if (lc == null || lc === '' || lc === 'NA') return null;
+    const num = parseFloat(lc);
+    return !isNaN(num) && num > 0 ? String(lc).trim() : null;
+  };
+
   // ✅ CORRECTED: Complete least count validation with proper floating-point handling
   const validateLeastCount = (value, leastCount) => {
     if (value === '' || value === null || value === undefined) {
@@ -4159,10 +4444,6 @@ const CalibrateStep3 = () => {
     const calibPointId = selectedTableData.hiddenInputs?.calibrationPoints?.[rowIndex];
     const lcInfo = leastCountData[calibPointId] || leastCountData[String(calibPointId)];
 
-    if (selectedTableData?.id === 'observationwb' || selectedTableData?.id === 'observationwbn') {
-      console.log('🔍 WB Input Validation:', { rowIndex, colIndex, value, calibPointId, lcInfo });
-    }
-
     // ✅ CORRECTED: Validate least count (both decimal places AND divisibility)
     if (value && value !== '.') {
       let leastCount = null;
@@ -4173,10 +4454,21 @@ const CalibrateStep3 = () => {
         leastCount = typeof lcInfo === 'object' ? (lcInfo?.master ?? 0.01) : (parseFloat(lcInfo) || 0.01);
       } else if (selectedTableData?.id === 'observationmt') {
         // Handled in dedicated real-time validation block below
-      } else if (selectedTableData?.id === 'observationvc' || selectedTableData?.id === 'observationfg' || selectedTableData?.id === 'observationctg' || selectedTableData?.id === 'observationit') {
+      } else if (selectedTableData?.id === 'observationvc' || selectedTableData?.id === 'observationfg' || selectedTableData?.id === 'observationctg' || selectedTableData?.id === 'observationit' || selectedTableData?.id === 'observationth') {
         leastCount = typeof lcInfo === 'object' ? (lcInfo?.master ?? lcInfo?.uuc ?? 0.001) : (parseFloat(lcInfo) || 0.001);
       } else if (selectedTableData?.id === 'observationmm') {
         leastCount = typeof lcInfo === 'object' ? (lcInfo?.master ?? lcInfo?.uuc ?? 2) : (parseFloat(lcInfo) || 2);
+      } else if (selectedTableData?.id === 'observationuc') {
+        // Only observation columns carry inleastcount/divisibleby in PHP; Range is free text
+        leastCount = (colIndex >= 5 && colIndex <= 9) ? getUCObservationLc(lcInfo) : null;
+      } else if (selectedTableData?.id === 'observationtswi') {
+        // Only UUC readings carry inleastcount/divisibleby in PHP
+        const tswiRowType = getTSWIRowType(selectedTableData.staticRows?.[rowIndex]);
+        leastCount = getTSWIReadingLeastCount(tswiRowType, colIndex, selectedTableData.rowMeta?.[rowIndex]);
+      } else if (selectedTableData?.id === 'observationsw') {
+        // UUC readings use the UUC least count, master readings the master least count
+        const swRowType = getSWRowType(selectedTableData.staticRows?.[rowIndex]);
+        leastCount = getSWReadingLeastCount(swRowType, colIndex, selectedTableData.rowMeta?.[rowIndex]);
       } else if (lcInfo) {
         leastCount = typeof lcInfo === 'object' ? (lcInfo?.uuc ?? lcInfo?.master ?? 0.01) : (parseFloat(lcInfo) || 0.01);
       }
@@ -4187,7 +4479,6 @@ const CalibrateStep3 = () => {
         const { isValid, error } = validateLeastCount(value, leastCount);
         const key = `${rowIndex}-${colIndex}`;
         if (!isValid) {
-          console.log('❌ Least count validation failed:', { value, leastCount, error });
           setObservationErrors(prevErrors => ({
             ...prevErrors,
             [key]: error
@@ -4208,8 +4499,15 @@ const CalibrateStep3 = () => {
       const key = `${rowIndex}-${colIndex}`;
       newValues[key] = value;
 
-      // Clear previous error on input change
-      if (observationErrors[key]) {
+      // Clear previous error on input change. Skipped for UC observation cells that were
+      // just least-count validated above, otherwise this (queued later) wipes the new error.
+      const ucLcHandled = selectedTableData.id === 'observationuc' && colIndex >= 5 && colIndex <= 9
+        && value && value !== '.' && getUCObservationLc(lcInfo);
+      const tswiLcHandled = selectedTableData.id === 'observationtswi' && value && value !== '.'
+        && getTSWIReadingLeastCount(getTSWIRowType(selectedTableData.staticRows?.[rowIndex]), colIndex, selectedTableData.rowMeta?.[rowIndex]);
+      const swLcHandled = selectedTableData.id === 'observationsw' && value && value !== '.'
+        && getSWReadingLeastCount(getSWRowType(selectedTableData.staticRows?.[rowIndex]), colIndex, selectedTableData.rowMeta?.[rowIndex]);
+      if (observationErrors[key] && !ucLcHandled && !tswiLcHandled && !swLcHandled) {
         setObservationErrors(prevErrors => {
           if (!prevErrors[key]) return prevErrors;
           const newErrors = { ...prevErrors };
@@ -4284,27 +4582,15 @@ const CalibrateStep3 = () => {
         const leastCount = leastCountData[calibPointId] || 2;
 
         if (value.trim()) {
-          const numValue = parseFloat(value);
-
-          // Clear previous error
+          // Float modulo is unreliable (3 % 0.001 is 0.000999..., not 0), so use the
+          // scaled-integer check shared with the other templates.
+          const { isValid, error } = validateLeastCount(value.trim(), leastCount);
           setObservationErrors(prevErrors => {
             const newErrors = { ...prevErrors };
-            delete newErrors[key];
+            if (isValid) delete newErrors[key];
+            else newErrors[key] = error;
             return newErrors;
           });
-
-          // Validate and set error if needed
-          if (numValue < leastCount) {
-            setObservationErrors(prevErrors => ({
-              ...prevErrors,
-              [key]: `Please enter a value with in leastcount ${leastCount}`
-            }));
-          } else if (numValue % leastCount !== 0) {
-            setObservationErrors(prevErrors => ({
-              ...prevErrors,
-              [key]: `Please Enter Value divisible by ${leastCount}`
-            }));
-          }
         }
       }
 
@@ -4729,6 +5015,19 @@ const CalibrateStep3 = () => {
           }
         }
       }
+      else if (selectedTableData.id === 'observationtswoi') {
+        // Averages, corrected averages and the deviation (on the UUC row) for this point
+        applyTSWOICalculations(newValues, rowIndex);
+      }
+      else if (selectedTableData.id === 'observationtswi') {
+        applyTSWICalculations(newValues, rowIndex);
+      }
+      else if (selectedTableData.id === 'observationsw') {
+        if (isSWReadingColumn(colIndex)) applySWCalculations(newValues, rowIndex);
+      }
+      else if (selectedTableData.id === 'observationsutm') {
+        if (isSUTMInputColumn(colIndex)) applySUTMCalculations(newValues, rowIndex);
+      }
       else if (selectedTableData.id === 'observationrtdwi') {
         const rowType = rowData[2];
 
@@ -4913,7 +5212,7 @@ const CalibrateStep3 = () => {
     });
   };
 
-  const handleObservationBlur = async (rowIndex, colIndex, value, pointIdOverride) => {
+  const handleObservationBlur = async (rowIndex, colIndex, value, pointIdOverride, computed = null) => {
     const token = localStorage.getItem('authToken');
     const hiddenInputs = selectedTableData?.hiddenInputs || {
       calibrationPoints: [],
@@ -4952,14 +5251,14 @@ const CalibrateStep3 = () => {
       }
     }
 
-    console.log('DEBUG handleObservationBlur:', { rowIndex, colIndex, value, pointIdOverride, id: selectedTableData?.id, calibrationPointId });
     if (!calibrationPointId) {
       toast.error('Calibration point ID not found');
       return;
     }
 
     const staticRow = selectedTableData?.staticRows?.[rowIndex] || [];
-    const rowData = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((idx) => {
+    const colCount = Math.max(12, staticRow.length);
+    const rowData = Array.from({ length: colCount }, (_, idx) => {
       if (idx === colIndex) return (value !== undefined && value !== null ? value.toString().trim() : '');
       const inputKey = `${rowIndex}-${idx}`;
       return tableInputValues[inputKey] ?? (staticRow[idx]?.toString() || '');
@@ -4980,9 +5279,9 @@ const CalibrateStep3 = () => {
         } else if (colIndex === layout.specIdx) {
           type = 'specification';
         } else if (colIndex === layout.setpointIdx) {
-          if (instrument.setpoint === 'Master') {
+          if (getCustomInstrument().setpoint === 'Master') {
             type = 'master';
-          } else if (instrument.setpoint === 'UUC') {
+          } else if (getCustomInstrument().setpoint === 'UUC') {
             type = 'uuc';
           } else {
             type = 'setpoint';
@@ -5376,7 +5675,6 @@ const CalibrateStep3 = () => {
           [`${rowIndex}-10`]: calculated.hysteresis || '0',
         }));
 
-        console.log('DG Real-time Update:', calculated);
       }
     }
     else if (selectedTableData.id === 'observationgtm') {
@@ -5522,7 +5820,6 @@ const CalibrateStep3 = () => {
       // Send all payloads
       try {
         for (const payload of payloads) {
-          console.log('📡 Sending GTM payload:', payload);
           await axios.post(
             `${JWT_HOST_API}/calibrationprocess/set-observations`,
             payload,
@@ -5535,7 +5832,6 @@ const CalibrateStep3 = () => {
           );
         }
 
-        console.log('✅ GTM observations saved successfully!');
         toast.success('Observation and calculated values saved successfully!');
         await refetchObservations();
       } catch (err) {
@@ -5545,7 +5841,6 @@ const CalibrateStep3 = () => {
       return;
     }
     else if (selectedTableData.id === 'observationpr') {
-      console.log('🔍 PR Blur Handler triggered:', { rowIndex, colIndex, value, calibrationPointId });
 
       let type = '';
       let repeatable = '0';
@@ -5576,7 +5871,6 @@ const CalibrateStep3 = () => {
         repeatable = '0';
       }
       else {
-        console.log('❌ PR: Column not handled:', colIndex);
         return;
       }
 
@@ -5593,11 +5887,24 @@ const CalibrateStep3 = () => {
 
       // When master observations change (columns 2, 3, 4), also save calculated values
       if (colIndex >= 2 && colIndex <= 4) {
+        // PHP submits the whole form, so the readonly setpoint is persisted with every row.
+        // Here the setpoint field is readonly and never blurs, so push it alongside.
+        const setpointVal = rowData[1] ?? '';
+        if (setpointVal !== '') {
+          payloads.push({
+            inwardid: inwardId,
+            instid: instId,
+            calibrationpoint: calibrationPointId,
+            type: 'setpoint',
+            repeatable: '0',
+            value: setpointVal,
+          });
+        }
+
         const meanVal = tableInputValues[`${calibrationPointId}-averagemaster`] ?? tableInputValues[`averagemaster${calibrationPointId}`] ?? rowData[5] ?? '';
         const repVal = tableInputValues[`${calibrationPointId}-repeatability`] ?? tableInputValues[`repeatability${calibrationPointId}`] ?? rowData[6] ?? '';
         const factorVal = tableInputValues[`${calibrationPointId}-factor`] ?? tableInputValues[`factor${calibrationPointId}`] ?? rowData[7] ?? '';
 
-        console.log('📊 PR Calculated values:', { meanVal, repVal, factorVal });
 
         // Save Mean (averagemaster)
         if (meanVal !== '') {
@@ -5636,12 +5943,10 @@ const CalibrateStep3 = () => {
         }
       }
 
-      console.log('📤 PR Payloads to send:', payloads);
 
       // Send all payloads
       try {
         for (const payload of payloads) {
-          console.log('📡 Sending PR payload:', payload);
           await axios.post(
             `${JWT_HOST_API}/calibrationprocess/set-observations`,
             payload,
@@ -5654,7 +5959,6 @@ const CalibrateStep3 = () => {
           );
         }
 
-        console.log('✅ PR observations saved successfully!');
         toast.success('Observation and calculated values saved successfully!');
         await refetchObservations();
       } catch (err) {
@@ -5662,6 +5966,480 @@ const CalibrateStep3 = () => {
         toast.error(err.response?.data?.message || 'Failed to save PR observations');
       }
       return;
+    }
+
+    else if (selectedTableData.id === 'observationutm') {
+      const rowMeta = selectedTableData.rowMeta?.[rowIndex];
+
+      if (rowMeta?.kind === 'point') {
+        // Setpoint (column 1) - force value
+        if (colIndex === 1) {
+          payloads.push({
+            inwardid: inwardId,
+            instid: instId,
+            calibrationpoint: calibrationPointId,
+            type: 'setpoint',
+            repeatable: '0',
+            value: value || '0',
+          });
+        }
+        // Calculated UUC (column 2) - at standard temperature
+        else if (colIndex === 2) {
+          payloads.push({
+            inwardid: inwardId,
+            instid: instId,
+            calibrationpoint: calibrationPointId,
+            type: 'calculateduuc',
+            repeatable: '0',
+            value: value || '0',
+          });
+        }
+        // UUC at room temperature (column 3) - with temperature compensation
+        else if (colIndex === 3) {
+          payloads.push({
+            inwardid: inwardId,
+            instid: instId,
+            calibrationpoint: calibrationPointId,
+            type: 'uuc',
+            repeatable: '0',
+            value: value || '0',
+          });
+        }
+        // Master observations (m0, m1, m2) - columns 4, 5, 6
+        else if (colIndex >= 4 && colIndex <= 6) {
+          const type = 'master';
+          const repeatable = (colIndex - 4).toString();
+
+          payloads.push({
+            inwardid: inwardId,
+            instid: instId,
+            calibrationpoint: calibrationPointId,
+            type: type,
+            repeatable: repeatable,
+            value: value || '0',
+          });
+
+          // When master observations change, save calculated values
+          const avgMaster = calculated.average || '0';
+          const error = calculated.error || '0';
+          const percentError = calculated.percentError || '0';
+          const repeatability = calculated.repeatability || '0';
+
+          payloads.push({
+            inwardid: inwardId,
+            instid: instId,
+            calibrationpoint: calibrationPointId,
+            type: 'averagemaster',
+            repeatable: '0',
+            value: avgMaster,
+          });
+
+          payloads.push({
+            inwardid: inwardId,
+            instid: instId,
+            calibrationpoint: calibrationPointId,
+            type: 'error',
+            repeatable: '0',
+            value: error,
+          });
+
+          payloads.push({
+            inwardid: inwardId,
+            instid: instId,
+            calibrationpoint: calibrationPointId,
+            type: 'percenterror',
+            repeatable: '0',
+            value: percentError,
+          });
+
+          payloads.push({
+            inwardid: inwardId,
+            instid: instId,
+            calibrationpoint: calibrationPointId,
+            type: 'repeatability',
+            repeatable: '0',
+            value: repeatability,
+          });
+
+          // Update UI immediately
+          setTableInputValues(prev => ({
+            ...prev,
+            [`${rowIndex}-7`]: avgMaster,
+            [`${rowIndex}-8`]: error,
+            [`${rowIndex}-9`]: percentError,
+            [`${rowIndex}-10`]: repeatability,
+          }));
+        }
+      } else if (rowMeta?.kind === 'removal') {
+        // Removal force observations - columns 4, 5, 6
+        // According to PHP, removal force uses MATRIX ID as calibration point
+        if (colIndex >= 4 && colIndex <= 6) {
+          const type = 'removalforce';
+          const repeatable = (colIndex - 4).toString();
+          const matrixId = rowMeta.matrixId; // Use matrix ID, not point ID
+
+          payloads.push({
+            inwardid: inwardId,
+            instid: instId,
+            calibrationpoint: matrixId,
+            type: type,
+            repeatable: repeatable,
+            value: value || '0',
+          });
+
+          // Calculate and save zero error
+          const maxPoint = parseFloat(rowMeta.maxPoint) || 0;
+          const removal = parseFloat(value) || 0;
+          const zeroErr = maxPoint && removal ? ((removal / maxPoint) * 100).toFixed(2) : '0';
+
+          // Find the zero error row for this matrix
+          const zeroRowIndex = selectedTableData.rowMeta?.findIndex(
+            (meta) => meta.kind === 'zeroerror' && meta.matrixId === rowMeta.matrixId
+          );
+
+          if (zeroRowIndex >= 0) {
+            // Zero error also uses matrix ID
+            const zeroPointId = rowMeta.matrixId;
+
+            payloads.push({
+              inwardid: inwardId,
+              instid: instId,
+              calibrationpoint: zeroPointId,
+              type: 'zeroerror',
+              repeatable: (colIndex - 4).toString(),
+              value: zeroErr,
+            });
+
+            // Update UI immediately
+            setTableInputValues(prev => ({
+              ...prev,
+              [`${zeroRowIndex}-${colIndex}`]: zeroErr,
+            }));
+          }
+        }
+      } else if (rowMeta?.kind === 'zeroerror') {
+        // Zero error can be manually edited
+        // According to PHP, zero error uses MATRIX ID as calibration point
+        const type = 'zeroerror';
+        const repeatable = (colIndex - 4).toString();
+        const matrixId = rowMeta.matrixId; // Use matrix ID, not point ID
+
+        payloads.push({
+          inwardid: inwardId,
+          instid: instId,
+          calibrationpoint: matrixId,
+          type: type,
+          repeatable: repeatable,
+          value: value || '0',
+        });
+      } else if (rowMeta?.kind === 'machine') {
+        // Class of Machine / Dial Gauge Setting row
+        // According to PHP, these fields use MATRIX ID as calibration point
+        let type = '';
+
+        if (colIndex === 1) {
+          type = 'classofmachine';
+        } else if (colIndex === 5) {
+          type = 'dialguageseting';
+        }
+
+        if (type) {
+          const matrixId = rowMeta.matrixId; // Use matrix ID, not point ID
+          payloads.push({
+            inwardid: inwardId,
+            instid: instId,
+            calibrationpoint: matrixId,
+            type: type,
+            repeatable: '0',
+            value: value || '',
+          });
+        }
+      }
+    }
+    else if (selectedTableData.id === 'observationautm') {
+      let type = '';
+      let repeatable = '0';
+      let targetPointId = calibrationPointId;
+
+      // Matrix-level fields first: their column indexes must not collide with the
+      // 4..7 observation range (dial gauge used to be 5 and was saved as removalforce).
+      if (colIndex === 1) {
+        type = 'classofmachine';
+      } else if (colIndex === 9) {
+        type = 'dialguageseting';
+      } else if (colIndex === 10) {
+        type = 'ratio';
+        if (computed?.relativeRes !== undefined && computed.relativeRes !== '') {
+          payloads.push({
+            inwardid: inwardId, instid: instId, calibrationpoint: targetPointId,
+            type: 'releativeres', repeatable: '0', value: computed.relativeRes,
+          });
+        }
+      } else if (colIndex >= 4 && colIndex <= 7) {
+        // Check if the passed ID is a calibration point ID (observations is an array of matrices for AUTM)
+        const isPoint = targetPointId.toString().startsWith('pt-') ||
+          observations.some(matrix => {
+            const points = matrix.calibration_points || matrix.rows || [];
+            return points.some((p, index) =>
+              String(p.id) === String(targetPointId) ||
+              String(p.point_id) === String(targetPointId) ||
+              String(p.calibration_point_id) === String(targetPointId) ||
+              String(p.calibrationpoint) === String(targetPointId) ||
+              `pt-${index}` === String(targetPointId)
+            );
+          }) ||
+          (selectedTableData?.calibration_points && selectedTableData.calibration_points.some(p =>
+            String(p.id) === String(targetPointId) ||
+            String(p.point_id) === String(targetPointId) ||
+            String(p.calibration_point_id) === String(targetPointId)
+          ));
+
+        if (isPoint) {
+          type = 'master';
+          repeatable = (colIndex - 4).toString();
+
+          // The component already computes these exactly as the PHP does
+          // (error = uuc - averagemaster, %error = error/averagemaster*100,
+          //  repeatability = (max-min)/averagemaster*100). Persist those values so
+          // what is stored always matches what is displayed.
+          const push = (t, v) => {
+            if (v === undefined || v === null || v === '') return;
+            payloads.push({
+              inwardid: inwardId, instid: instId, calibrationpoint: targetPointId,
+              type: t, repeatable: '0', value: v.toString(),
+            });
+          };
+
+          push('averagemaster', computed?.avgMaster);
+          push('error', computed?.error);
+          push('percenterror', computed?.percentError);
+          push('repeatability', computed?.repeatability);
+          // PHP submits these three per point as well.
+          push('setpoint', computed?.setpoint);
+          push('calculateduuc', computed?.calculatedUuc);
+          push('uuc', computed?.uuc);
+
+        } else {
+          // If it's not a point, it's the matrixId used for removal force
+          type = 'removalforce';
+          repeatable = (colIndex - 4).toString();
+
+          const matrix = observations.find(m =>
+            String(m.id) === String(targetPointId) ||
+            String(m.matrix_id) === String(targetPointId) ||
+            String(m.matrixid) === String(targetPointId)
+          );
+
+          // Prefer the value the component displays; the local recalculation below
+          // can resolve maxPoint to 0 and store zeroerror as "0".
+          if (computed?.zeroError !== undefined && computed.zeroError !== '') {
+            payloads.push({ inwardid: inwardId, instid: instId, calibrationpoint: targetPointId, type: 'zeroerror', repeatable: (colIndex - 4).toString(), value: computed.zeroError });
+          } else if (matrix) {
+            const pts = matrix.calibration_points || matrix.rows || [];
+            const numPts = pts.map(p => parseFloat(p.point ?? p.setpoint)).filter(n => !isNaN(n));
+            const maxPoint = numPts.length ? Math.max(...numPts) : 0;
+            const removal = parseFloat(value || 0);
+            const zeroErr = maxPoint && removal ? ((removal / maxPoint) * 100).toFixed(2) : '0';
+
+            payloads.push({ inwardid: inwardId, instid: instId, calibrationpoint: targetPointId, type: 'zeroerror', repeatable: (colIndex - 4).toString(), value: zeroErr });
+          }
+        }
+      }
+
+      if (type) {
+        payloads.push({
+          inwardid: inwardId,
+          instid: instId,
+          calibrationpoint: targetPointId,
+          type: type,
+          repeatable: repeatable,
+          value: value || '0',
+        });
+      }
+    }
+
+    else if (selectedTableData.id === 'observationsutm') {
+      const field = getSUTMFieldType(colIndex);
+      if (!field || !isSUTMCellEditable(colIndex)) return;
+
+      const cellValue = value !== undefined && value !== null ? value.toString().trim() : '';
+      payloads.push({
+        inwardid: inwardId,
+        instid: instId,
+        calibrationpoint: calibrationPointId,
+        type: field.type,
+        repeatable: field.repeatable,
+        value: cellValue,
+      });
+
+      // Displacement/time change the set speeds, the mean speed and the error
+      const values = { ...tableInputValues, [`${rowIndex}-${colIndex}`]: cellValue };
+      const cells = applySUTMCalculations(values, rowIndex);
+      Object.entries(cells).forEach(([col, calcValue]) => {
+        const calcField = getSUTMFieldType(Number(col));
+        payloads.push({
+          inwardid: inwardId,
+          instid: instId,
+          calibrationpoint: calibrationPointId,
+          type: calcField.type,
+          repeatable: calcField.repeatable,
+          value: calcValue,
+        });
+      });
+
+      setTableInputValues(prev => {
+        const next = { ...prev };
+        Object.entries(cells).forEach(([col, calcValue]) => {
+          next[`${rowIndex}-${col}`] = calcValue;
+        });
+        return next;
+      });
+    }
+    else if (selectedTableData.id === 'observationsw') {
+      const rowType = getSWRowType(rowData);
+      const field = getSWFieldType(rowType, colIndex);
+      if (!field || !isSWCellEditable(rowType, colIndex)) return;
+
+      const cellValue = value !== undefined && value !== null ? value.toString().trim() : '';
+      payloads.push({
+        inwardid: inwardId,
+        instid: instId,
+        calibrationpoint: calibrationPointId,
+        type: field.type,
+        repeatable: field.repeatable,
+        value: cellValue,
+      });
+
+      // A reading changes this row's average and the error; hand-edited
+      // averages, error and uncertainty are saved as typed
+      if (isSWReadingColumn(colIndex)) {
+        const values = { ...tableInputValues, [`${rowIndex}-${colIndex}`]: cellValue };
+        const { uucIndex } = applySWCalculations(values, rowIndex);
+        const calcCells = [[rowIndex, SW_COLS.AVERAGE], [uucIndex, SW_COLS.ERROR]];
+
+        calcCells.forEach(([calcRow, calcCol]) => {
+          const calcField = getSWFieldType(calcRow === uucIndex ? 'uuc' : 'master', calcCol);
+          payloads.push({
+            inwardid: inwardId,
+            instid: instId,
+            calibrationpoint: calibrationPointId,
+            type: calcField.type,
+            repeatable: calcField.repeatable,
+            value: values[`${calcRow}-${calcCol}`],
+          });
+        });
+
+        setTableInputValues(prev => {
+          const next = { ...prev };
+          calcCells.forEach(([calcRow, calcCol]) => {
+            next[`${calcRow}-${calcCol}`] = values[`${calcRow}-${calcCol}`];
+          });
+          return next;
+        });
+      }
+    }
+    else if (selectedTableData.id === 'observationtswi') {
+      const rowType = getTSWIRowType(rowData);
+      const field = getTSWIFieldType(rowType, colIndex);
+      if (!field || !isTSWICellEditable(rowType, colIndex)) return;
+
+      const cellValue = value !== undefined && value !== null ? value.toString().trim() : '';
+      payloads.push({
+        inwardid: inwardId,
+        instid: instId,
+        calibrationpoint: calibrationPointId,
+        type: field.type,
+        repeatable: field.repeatable,
+        value: cellValue,
+      });
+
+      // UUC readings -> averageuuc and the deviation; master readings / ambient mV ->
+      // averagemaster and saveragemaster; master Average (unit) -> the deviation
+      const isReading = colIndex >= TSWI_COLS.OBS_START && colIndex <= TSWI_COLS.OBS_END;
+      const values = { ...tableInputValues, [`${rowIndex}-${colIndex}`]: cellValue };
+      const { uucIndex, masterIndex } = applyTSWICalculations(values, rowIndex);
+      const calcCells = [];
+      if (rowType === 'uuc' && isReading) {
+        calcCells.push([uucIndex, TSWI_COLS.CONVERTED_AVERAGE], [uucIndex, TSWI_COLS.DEVIATION]);
+      }
+      if (rowType === 'master' && (isReading || colIndex === TSWI_COLS.AMBIENT)) {
+        calcCells.push([masterIndex, TSWI_COLS.AVERAGE], [masterIndex, TSWI_COLS.CORRECTED_AVERAGE]);
+      }
+      if (rowType === 'master' && colIndex === TSWI_COLS.CONVERTED_AVERAGE) {
+        calcCells.push([uucIndex, TSWI_COLS.DEVIATION]);
+      }
+
+      calcCells.forEach(([calcRow, calcCol]) => {
+        const calcField = getTSWIFieldType(calcRow === uucIndex ? 'uuc' : 'master', calcCol);
+        payloads.push({
+          inwardid: inwardId,
+          instid: instId,
+          calibrationpoint: calibrationPointId,
+          type: calcField.type,
+          repeatable: calcField.repeatable,
+          value: values[`${calcRow}-${calcCol}`],
+        });
+      });
+
+      if (calcCells.length) {
+        setTableInputValues(prev => {
+          const next = { ...prev };
+          calcCells.forEach(([calcRow, calcCol]) => {
+            next[`${calcRow}-${calcCol}`] = values[`${calcRow}-${calcCol}`];
+          });
+          return next;
+        });
+      }
+    }
+    else if (selectedTableData.id === 'observationtswoi') {
+      const rowType = getTSWOIRowType(rowData);
+      const field = getTSWOIFieldType(rowType, colIndex);
+      if (!field || !isTSWOICellEditable(rowType, colIndex)) return;
+
+      const cellValue = value !== undefined && value !== null ? value.toString().trim() : '';
+      payloads.push({
+        inwardid: inwardId,
+        instid: instId,
+        calibrationpoint: calibrationPointId,
+        type: field.type,
+        repeatable: field.repeatable,
+        value: cellValue,
+      });
+
+      // Readings and ambient mV change this row's average and corrected average;
+      // Average (unit) changes the deviation, which is stored on the UUC row
+      const isReading = colIndex >= TSWOI_COLS.OBS_START && colIndex <= TSWOI_COLS.OBS_END;
+      const values = { ...tableInputValues, [`${rowIndex}-${colIndex}`]: cellValue };
+      const { uucIndex } = applyTSWOICalculations(values, rowIndex);
+      const calcCells = [];
+      if (isReading || colIndex === TSWOI_COLS.AMBIENT) {
+        calcCells.push([rowIndex, TSWOI_COLS.AVERAGE], [rowIndex, TSWOI_COLS.CORRECTED_AVERAGE]);
+      }
+      if (colIndex === TSWOI_COLS.CONVERTED_AVERAGE) {
+        calcCells.push([uucIndex, TSWOI_COLS.DEVIATION]);
+      }
+
+      calcCells.forEach(([calcRow, calcCol]) => {
+        const calcField = getTSWOIFieldType(calcRow === uucIndex ? 'uuc' : 'master', calcCol);
+        payloads.push({
+          inwardid: inwardId,
+          instid: instId,
+          calibrationpoint: calibrationPointId,
+          type: calcField.type,
+          repeatable: calcField.repeatable,
+          value: values[`${calcRow}-${calcCol}`],
+        });
+      });
+
+      if (calcCells.length) {
+        setTableInputValues(prev => {
+          const next = { ...prev };
+          calcCells.forEach(([calcRow, calcCol]) => {
+            next[`${calcRow}-${calcCol}`] = values[`${calcRow}-${calcCol}`];
+          });
+          return next;
+        });
+      }
     }
     else if (selectedTableData.id === 'observationrtdwi') {
       const rowType = rowData[2];
@@ -5835,6 +6613,105 @@ const CalibrateStep3 = () => {
           }));
         }
       }
+    } else if (selectedTableData.id === 'observationvht') {
+      const obsEnd = VHT_COLUMNS.observationStart + VHT_MAX_REPEATABLE - 1;
+
+      if (colIndex >= VHT_COLUMNS.observationStart && colIndex <= obsEnd) {
+        const repeatable = (colIndex - VHT_COLUMNS.observationStart).toString();
+
+        const pushVht = (type, val, rep = '0') => {
+          if (val === undefined || val === null || val === '') return;
+          payloads.push({
+            inwardid: inwardId,
+            instid: instId,
+            calibrationpoint: calibrationPointId,
+            type,
+            repeatable: rep,
+            value: val.toString(),
+          });
+        };
+
+        pushVht('cuuc', value || '0', repeatable);
+        // The converted reading belongs to the same repeatable slot.
+        pushVht('uuc', computed?.convertedReading, repeatable);
+
+        // The component computes these from the values on screen; persist them so
+        // the stored copy always matches what the operator sees.
+        pushVht('caverageuuc', computed?.caverageuuc);
+        pushVht('averageuuc', computed?.averageuuc);
+        pushVht('error', computed?.error);
+        pushVht('percenterror', computed?.percentError);
+        // PHP posts the Nominal/Set Value too, which is how a point with no
+        // stored master row gets one (it falls back to the calibration point).
+        pushVht('master', computed?.master);
+      } else {
+        return;
+      }
+    } else if (selectedTableData.id === 'observationvol') {
+      const masterEnd = VOL_COLUMNS.masterStart + VOL_MAX_REPEATABLE - 1;
+
+      const pushVol = (type, val, repeatable = '0') => {
+        if (val === undefined || val === null || val === '') return;
+        payloads.push({
+          inwardid: inwardId,
+          instid: instId,
+          calibrationpoint: calibrationPointId,
+          type,
+          repeatable,
+          value: val.toString(),
+        });
+      };
+
+      if (colIndex >= VOL_COLUMNS.masterStart && colIndex <= masterEnd) {
+        pushVol('master', value || '0', (colIndex - VOL_COLUMNS.masterStart).toString());
+        // The component computes these from the values on screen; persist them so
+        // the stored copy always matches what the operator sees.
+        pushVol('averagemaster', computed?.average);
+        pushVol('caveragemaster', computed?.convertedAverage);
+        pushVol('error', computed?.error);
+        pushVol('zvalue', computed?.zValue);
+      } else if (colIndex === VOL_COLUMNS.specification) {
+        pushVol('specification', value || '');
+      } else if (colIndex === VOL_COLUMNS.remark) {
+        pushVol('remark', value || '');
+      } else {
+        return;
+      }
+    } else if (selectedTableData.id === 'observationvolnl') {
+      const masterEnd = VOLNL_COLUMNS.masterStart + VOLNL_MAX_REPEATABLE - 1;
+
+      if (colIndex >= VOLNL_COLUMNS.masterStart && colIndex <= masterEnd) {
+        payloads.push({
+          inwardid: inwardId,
+          instid: instId,
+          calibrationpoint: calibrationPointId,
+          type: 'master',
+          repeatable: (colIndex - VOLNL_COLUMNS.masterStart).toString(),
+          value: value || '0',
+        });
+
+        // The component computes these from the values on screen; persist them so
+        // the stored copy always matches what the operator sees.
+        const push = (type, val) => {
+          if (val === undefined || val === null || val === '') return;
+          payloads.push({
+            inwardid: inwardId,
+            instid: instId,
+            calibrationpoint: calibrationPointId,
+            type,
+            repeatable: '0',
+            value: val.toString(),
+          });
+        };
+
+        push('averagemaster', computed?.average);
+        push('caveragemaster', computed?.convertedVolume);
+        push('volumeat', computed?.volumeAt);
+        push('error', computed?.error);
+        push('zvalue', computed?.zValue);
+      } else {
+        return;
+      }
     } else if (selectedTableData.id === 'observationth') {
       const isUUCRow = rowData[1] === 'UUC';
       const isMasterRow = rowData[1] === 'Master';
@@ -5848,7 +6725,7 @@ const CalibrateStep3 = () => {
           type = 'setpoint';
         } else if (colIndex >= 5 && colIndex <= 9) {
           type = 'uuc';
-          repeatable = (colIndex - 4).toString();
+          repeatable = (colIndex - 5).toString();
         } else if (colIndex === 10) {
           type = 'averageuuc';
         } else {
@@ -5890,7 +6767,7 @@ const CalibrateStep3 = () => {
       } else if (isMasterRow) {
         if (colIndex >= 5 && colIndex <= 9) {
           type = 'master';
-          repeatable = (colIndex - 4).toString();
+          repeatable = (colIndex - 5).toString();
         } else if (colIndex === 10) {
           type = 'averagemaster';
         } else if (colIndex === 11) {
@@ -5947,14 +6824,6 @@ const CalibrateStep3 = () => {
         return;
       }
 
-      console.log('📡 MSR Observation Blur:', {
-        rowIndex,
-        colIndex,
-        type,
-        repeatable,
-        value: value || '0',
-        calibrationPointId
-      });
 
       payloads.push({
         inwardid: inwardId,
@@ -5967,10 +6836,6 @@ const CalibrateStep3 = () => {
 
       // Always update average and error when observations change
       if (colIndex >= 2 && colIndex <= 6) {
-        console.log('📊 MSR Calculated Values:', {
-          average: calculated.average,
-          error: calculated.error
-        });
 
         payloads.push({
           inwardid: inwardId,
@@ -5997,7 +6862,6 @@ const CalibrateStep3 = () => {
         }));
       }
 
-      console.log('📤 MSR Payloads being sent:', payloads);
     }
     else if (selectedTableData.id === 'observationppg') {
       // COMPLETE PPG LOGIC
@@ -6072,13 +6936,6 @@ const CalibrateStep3 = () => {
           [`${rowIndex}-12`]: calculated.hysteresis || '0',
         }));
 
-        console.log('🔄 PPG Real-time Update:', {
-          rowIndex,
-          average: calculated.average,
-          error: calculated.error,
-          repeatability: calculated.repeatability,
-          hysteresis: calculated.hysteresis
-        });
       }
     } else if (selectedTableData.id === 'observationavg') {
       let type = '';
@@ -7014,7 +7871,6 @@ const CalibrateStep3 = () => {
     const validPayloads = payloads.filter(p => p && p.value !== undefined && p.value !== null && p.value.toString().trim() !== '');
     if (validPayloads.length === 0) return;
 
-    console.log('📡 Observation Blur Payloads:', validPayloads);
 
     try {
       for (const payload of validPayloads) {
@@ -7030,7 +7886,6 @@ const CalibrateStep3 = () => {
         );
       }
 
-      console.log(`Observation [${rowIndex}, ${colIndex}] and calculated values saved successfully!`);
       toast.success(`Observation and calculated values saved successfully!`);
 
       await refetchObservations();
@@ -7072,7 +7927,6 @@ const CalibrateStep3 = () => {
       value: value || '0',
     };
 
-    console.log('📡 Thermal Coefficient Payload:', payload);
 
     try {
       await axios.post(
@@ -7086,7 +7940,6 @@ const CalibrateStep3 = () => {
         }
       );
 
-      console.log(`✅ Thermal coefficient (${type}) saved successfully!`);
       toast.success(`Thermal coefficient saved successfully!`);
     } catch (err) {
       console.error(`❌ Error saving thermal coefficient (${type}):`, err);
@@ -7114,7 +7967,6 @@ const CalibrateStep3 = () => {
       value: value || '0',
     };
 
-    console.log('📡 Parallelism Payload:', payload);
 
     try {
       await axios.post(
@@ -7128,7 +7980,6 @@ const CalibrateStep3 = () => {
         }
       );
 
-      console.log(`✅ Parallelism (${type}) saved successfully!`);
       toast.success(`Parallelism saved successfully!`);
     } catch (err) {
       console.error(`❌ Error saving parallelism (${type}):`, err);
@@ -7156,41 +8007,32 @@ const CalibrateStep3 = () => {
 
         // ✅ ADD OBSERVATIONAVG CASE HERE
         if (observationTemplate === 'observationavg') {
-          console.log('🔄 Refetching AVG observations:', observationData);
 
           const avgData = observationData.data || observationData;
 
           if (avgData.calibration_point && Array.isArray(avgData.calibration_point)) {
-            console.log('✅ Refetched AVG calibration_point:', avgData.calibration_point.length, 'points');
             setObservations(avgData.calibration_point);
           } else {
-            console.log('❌ No AVG calibration_point found after refetch');
             setObservations([]);
           }
         }
         else if (observationTemplate === 'observationmg') {
-          console.log('🔄 Refetching MG observations:', observationData);
 
           const mgData = observationData.data || observationData;
 
           if (mgData.calibration_points && Array.isArray(mgData.calibration_points)) {
-            console.log('✅ Refetched MG calibration_points:', mgData.calibration_points.length, 'points');
             setObservations(mgData.calibration_points);
           } else if (mgData.observations && Array.isArray(mgData.observations)) {
-            console.log('✅ Refetched MG observations:', mgData.observations.length, 'points');
             setObservations(mgData.observations);
           } else {
-            console.log('❌ No MG calibration_points found after refetch');
             setObservations([]);
           }
         } else if (observationTemplate === 'observationmsr') {
-          console.log('🔄 Refetching MSR observations:', observationData);
 
           if (Array.isArray(observationData) && observationData.length > 0) {
             const msrData = observationData[0];
 
             if (msrData.calibration_points && Array.isArray(msrData.calibration_points)) {
-              console.log('✅ Refetched MSR calibration_points:', msrData.calibration_points.length, 'points');
               setObservations(msrData.calibration_points);
 
               if (msrData.thermal_coeff) {
@@ -7201,24 +8043,19 @@ const CalibrateStep3 = () => {
                 });
               }
             } else {
-              console.log('❌ No MSR calibration_points found after refetch');
               setObservations([]);
             }
           }
         }
         else if (observationTemplate === 'observationdg') {
-          console.log('🔄 Refetching DG observations:', observationData);
 
           // DG returns observations array directly at root level
           if (observationData.observations && Array.isArray(observationData.observations)) {
-            console.log('✅ DG observations found:', observationData.observations);
             setObservations(observationData.observations);
           } else if (Array.isArray(observationData)) {
             // Fallback if data is directly an array
-            console.log('✅ DG observations as array:', observationData);
             setObservations(observationData);
           } else {
-            console.log('❌ No DG observations found');
             setObservations([]);
           }
 
@@ -7229,7 +8066,6 @@ const CalibrateStep3 = () => {
               master: observationData.thermal_coefficients.master || '',
               thickness_of_graduation: '' // DG doesn't use this field
             });
-            console.log('✅ DG Thermal coefficients set:', observationData.thermal_coefficients);
           }
         }
         else if (observationTemplate === 'observationctg' && observationData.points) {
@@ -7253,46 +8089,54 @@ const CalibrateStep3 = () => {
         }
 
         else if (observationTemplate === 'observationppg' && observationData.observations) {
-          console.log('🔄 Refetching PPG observations:', observationData.observations);
           setObservations(observationData.observations);
         }
 
         else if (observationTemplate === 'observationgtm') {
-          console.log('🔄 Refetching GTM observations:', observationData);
 
           const gtmPoints = observationData.calibration_points || observationData.data?.calibration_points || (Array.isArray(observationData.data) ? observationData.data : null);
           if (gtmPoints && Array.isArray(gtmPoints)) {
-            console.log('✅ Refetched GTM calibration_points:', gtmPoints.length, 'points');
             setObservations(gtmPoints);
-          } else {
-            console.log('⚠️ GTM: No new data found, keeping existing observations');
           }
         }
         else if (observationTemplate === 'observationrtdwi') {
-          console.log('🔄 Refetching RTD WI observations:', observationData);
 
           if (observationData.calibration_points && Array.isArray(observationData.calibration_points)) {
-            console.log('✅ Refetched RTD WI calibration_points:', observationData.calibration_points.length, 'points');
             setObservations(observationData.calibration_points);
           } else if (observationData.calibration_data && Array.isArray(observationData.calibration_data)) {
-            console.log('✅ Refetched RTD WI calibration_data:', observationData.calibration_data.length, 'points');
             setObservations(observationData.calibration_data);
           } else if (observationData.data && observationData.data.calibration_points) {
-            console.log('✅ Refetched RTD WI nested calibration_points:', observationData.data.calibration_points.length, 'points');
             setObservations(observationData.data.calibration_points);
           } else {
-            console.log('⚠️ RTD WI: Keeping existing observations to prevent table disappearing');
             // DON'T clear observations - keep existing data to prevent table disappearing
           }
         }
+        else if (observationTemplate === 'observationtswoi') {
+          // Keep existing data when the response has no points, as RTDWI does
+          const tswoiPoints = extractTSWOIPoints(observationData);
+          if (tswoiPoints) setObservations(tswoiPoints);
+        }
+        else if (observationTemplate === 'observationtswi') {
+          // Keep existing data when the response has no points, as RTDWI does
+          const tswiPoints = extractTSWIPoints(observationData);
+          if (tswiPoints) setObservations(tswiPoints);
+        }
+        else if (observationTemplate === 'observationsw') {
+          // Keep existing data when the response has no points, as RTDWI does
+          const swPoints = extractSWPoints(observationData);
+          if (swPoints) setObservations(swPoints);
+        }
+        else if (observationTemplate === 'observationsutm') {
+          // Keep existing data when the response has no points, as RTDWI does
+          const sutmPoints = extractSUTMPoints(observationData);
+          if (sutmPoints) setObservations(sutmPoints);
+        }
         else if (observationTemplate === 'observationfg') {
-          console.log('🔄 Refetching FG observations:', observationData);
 
           const fgData = observationData.data || observationData;
 
           // Check both possible structures
           if (fgData.calibration_points && Array.isArray(fgData.calibration_points)) {
-            console.log('✅ Refetched FG calibration_points:', fgData.calibration_points.length, 'points');
             setObservations(fgData.calibration_points);
 
             if (fgData.thermal_coefficients) {
@@ -7303,7 +8147,6 @@ const CalibrateStep3 = () => {
               });
             }
           } else if (fgData.unit_types && Array.isArray(fgData.unit_types)) {
-            console.log('✅ Refetched FG unit_types:', fgData.unit_types.length, 'types');
             setObservations(fgData.unit_types);
 
             if (fgData.thermal_coeff) {
@@ -7314,27 +8157,20 @@ const CalibrateStep3 = () => {
               });
             }
           } else {
-            console.log('❌ No FG calibration_points or unit_types found after refetch');
             setObservations([]);
           }
         }
         else if (observationTemplate === 'observationpr') {
-          console.log('🔄 Refetching PR observations:', observationData);
 
           const prData = observationData?.data || observationData;
           const matrices = prData?.matrices || observationData?.matrices || [];
 
           if (Array.isArray(matrices) && matrices.length > 0) {
-            console.log('✅ Refetched PR matrices:', matrices.length, 'matrices');
             setObservations(matrices);
           } else if (Array.isArray(prData?.points)) {
-            console.log('✅ Refetched PR points:', prData.points.length, 'points');
             setObservations([{ matrix_id: 'default', points: prData.points }]);
           } else if (Array.isArray(prData)) {
-            console.log('✅ Refetched PR as array:', prData.length, 'items');
             setObservations(prData);
-          } else {
-            console.log('⚠️ PR: No new data found, keeping existing observations');
           }
         }
 
@@ -7379,7 +8215,6 @@ const CalibrateStep3 = () => {
           const itData = observationData.data || observationData;
 
           if (itData.calibration_points) {
-            console.log('✅ Refetching IT observations:', itData.calibration_points);
             setObservations(itData.calibration_points);
 
             if (itData.thermal_coefficients) {
@@ -7393,10 +8228,8 @@ const CalibrateStep3 = () => {
             setObservations([]);
           }
         } else if (observationTemplate === 'observationexm') {
-          console.log('🔄 Refetching EXM observations:', observationData);
 
           if (observationData.calibration_points && Array.isArray(observationData.calibration_points)) {
-            console.log('✅ Refetched EXM calibration_points:', observationData.calibration_points.length, 'points');
             setObservations(observationData.calibration_points);
             seedTableInputsFromPoints(observationData.calibration_points);
 
@@ -7409,7 +8242,6 @@ const CalibrateStep3 = () => {
               parallinternal: addl.parallelism_spindle_anvil?.value ?? addl.parallinternal?.value ?? ''
             });
           } else {
-            console.log('❌ No EXM calibration_points found after refetch');
             setObservations([]);
           }
         } else if (observationTemplate === 'observationvc') {
@@ -7421,14 +8253,11 @@ const CalibrateStep3 = () => {
             vcPoints = observationData;
           }
           if (!vcPoints) vcPoints = [];
-          console.log('🔄 Refetching VC observations:', vcPoints);
 
           if (Array.isArray(vcPoints) && vcPoints.length > 0) {
-            console.log('✅ Refetched VC calibration_points:', vcPoints.length, 'points');
             setObservations(vcPoints);
             seedTableInputsFromPoints(vcPoints);
           } else {
-            console.log('❌ No VC calibration_points found after refetch');
             setObservations([]);
           }
 
@@ -7447,13 +8276,11 @@ const CalibrateStep3 = () => {
             parallexternal: addl.parallelism_external?.value ?? addl.parallexternal ?? addl.external ?? response.data.parallexternal ?? '',
           });
         } else if (observationTemplate === 'observationhg') {
-          console.log('🔄 Refetching HG observations:', observationData);
 
           // HG has calibration_points in the second object of the array
           const hgData = observationData[1] || observationData;
 
           if (hgData.calibration_points && Array.isArray(hgData.calibration_points)) {
-            console.log('✅ Refetched HG calibration_points:', hgData.calibration_points.length, 'points');
             setObservations(hgData.calibration_points);
 
             // Handle thermal coefficients from the first object
@@ -7465,7 +8292,6 @@ const CalibrateStep3 = () => {
               });
             }
           } else {
-            console.log('❌ No HG calibration_points found after refetch');
             setObservations([]);
           }
         }
@@ -7473,7 +8299,6 @@ const CalibrateStep3 = () => {
           const mtData = observationData.data || observationData;
 
           if (mtData.calibration_points) {
-            console.log('✅ Refetching MT observations:', mtData.calibration_points);
             setObservations(mtData.calibration_points);
 
             const leastCountMap = {};
@@ -7516,7 +8341,6 @@ const CalibrateStep3 = () => {
           setObservations(observationData);
         }
         else if (observationTemplate === 'observationdw') {
-          console.log('🔄 Refetching DW observations:', observationData);
 
           const dwData = Array.isArray(observationData) ? observationData : observationData.data || observationData.calibration_points;
           const env = response.data?.environment || observationData.environment;
@@ -7526,7 +8350,6 @@ const CalibrateStep3 = () => {
             const envPressureEnd = env.pressure_end || env.pressureend || '';
             const envStabilizationTime = env.stabilization_time || env.stabilizationtime || '';
 
-            console.log('📝 Setting environment values (refetch):', { envPressureStart, envPressureEnd, envStabilizationTime });
 
             setFormData(prev => ({
               ...prev,
@@ -7542,19 +8365,15 @@ const CalibrateStep3 = () => {
               [`${instId}-stabilization`]: envStabilizationTime,
             }));
 
-            console.log('✅ Environment values set in tableInputValues (refetch) with instId:', instId);
           }
 
           if (Array.isArray(dwData) && dwData.length > 0) {
-            console.log('✅ DW refetch set:', dwData.length, 'points');
             setObservations(dwData);
           } else {
-            console.log('❌ No DW data found after refetch');
             setObservations([]);
           }
         }
         else if (observationTemplate === 'observationtm') {
-          console.log('🔄 Refetching TM observations:', observationData);
           if (Array.isArray(observationData)) {
             setObservations(observationData);
           } else if (observationData.calibration_points && Array.isArray(observationData.calibration_points)) {
@@ -7566,15 +8385,14 @@ const CalibrateStep3 = () => {
           }
         }
         else if (observationTemplate === 'observationcustom') {
-          console.log('🔄 Refetching Custom observations:', observationData);
           if (observationData.instrument_settings) {
+            setCustomSettings(observationData.instrument_settings);
             setInstrument(prev => ({ ...prev, ...observationData.instrument_settings }));
           }
           const points = observationData.calibration_points || observationData.points || observationData.data || (Array.isArray(observationData) ? observationData : []);
           setObservations(Array.isArray(points) ? points : []);
         }
         else if (observationTemplate === 'observationts') {
-          console.log('🔄 Refetching TS observations:', observationData);
           const uucCoeff = observationData.thermal_coefficient_uuc ?? observationData.thermal_coefficients?.uuc ?? observationData.thermal_coeff?.uuc ?? '';
           const masterCoeff = observationData.thermal_coefficient_master ?? observationData.thermal_coefficients?.master ?? observationData.thermal_coeff?.master ?? '';
           if (uucCoeff || masterCoeff) {
@@ -7604,16 +8422,16 @@ const CalibrateStep3 = () => {
                 if (r.values && Array.isArray(r.values)) {
                   observations.push(...r.values);
                 }
+                const decimals = String(masterLc).includes('.') ? String(masterLc).split('.')[1].length : 2;
                 let rowAvg = '';
-                if (r.values && Array.isArray(r.values) && r.values.length > 0) {
+                if (r.average !== undefined && r.average !== null && String(r.average).trim() !== '') {
+                  const numAvg = parseFloat(r.average);
+                  rowAvg = !isNaN(numAvg) ? numAvg.toFixed(decimals) : String(r.average);
+                } else if (r.values && Array.isArray(r.values) && r.values.length > 0) {
                   const nums = r.values.map(v => parseFloat(v.value)).filter(n => !isNaN(n));
                   if (nums.length > 0) {
-                    rowAvg = (nums.reduce((a, b) => a + b, 0) / nums.length).toFixed(2);
+                    rowAvg = (nums.reduce((a, b) => a + b, 0) / nums.length).toFixed(decimals);
                   }
-                }
-                if (!rowAvg && r.average !== undefined && r.average !== null) {
-                  const numAvg = parseFloat(r.average);
-                  rowAvg = !isNaN(numAvg) ? numAvg.toFixed(2) : String(r.average);
                 }
                 if (rowAvg) {
                   averages.push({ repeatable: idx.toString(), value: rowAvg });
@@ -7630,12 +8448,10 @@ const CalibrateStep3 = () => {
           if (tsData.length > 0) {
             setObservations(tsData);
           } else {
-            console.log('⚠️ TS: No data after refetch — keeping existing observations to prevent table disappearing');
             // Don't call setObservations([]) — keep existing data so the table stays visible
           }
         }
         else if (observationTemplate === 'observationbiomedical') {
-          console.log('🔄 Refetching Biomedical observations:', response.data);
           const rawData = response.data;
           const formatPoint = (p, mode, isSafety) => {
             let effectiveLc = p.least_count;
@@ -7716,6 +8532,25 @@ const CalibrateStep3 = () => {
               uuccount: cfg.uuc_count ?? prev?.uuccount,
             }));
           }
+        } else if (observationTemplate === 'observationutm' || observationTemplate === 'observationautm') {
+          const utmData =
+            observationData.matrices && Array.isArray(observationData.matrices)
+              ? observationData.matrices
+              : observationData.matrix && Array.isArray(observationData.matrix)
+                ? observationData.matrix
+                : observationData.data && Array.isArray(observationData.data)
+                  ? observationData.data
+                  : observationData.calibration_points && Array.isArray(observationData.calibration_points)
+                    ? [{ calibration_points: observationData.calibration_points }]
+                    : Array.isArray(observationData)
+                      ? observationData
+                      : [observationData];
+
+          const utmObservations = utmData.filter(Boolean);
+          if (Array.isArray(observationData.pre_loading_cycles)) {
+            utmObservations.preLoadingCycles = observationData.pre_loading_cycles;
+          }
+          setObservations(utmObservations);
         } else if (observationTemplate === 'observationwb' || observationTemplate === 'observationwbn') {
           let allPoints = [];
           const dataObj = observationData?.data || observationData;
@@ -7736,7 +8571,7 @@ const CalibrateStep3 = () => {
         }
       }
     } catch (error) {
-      console.log('Error refetching observations:', error);
+      console.error('Error refetching observations:', error);
     }
   };
 
@@ -8492,7 +9327,6 @@ const CalibrateStep3 = () => {
         );
       }
 
-      console.log(`Row [${rowIndex}] saved successfully!`);
       toast.success(`Observation and calculated values saved successfully!`);
 
       await refetchObservations();
@@ -8710,12 +9544,11 @@ const CalibrateStep3 = () => {
                         // colIndex 0 = Sr No, colIndex 1 = Unit (handled above)
                         // colIndex 3 = Calculated master/uuc (read only in PHP)
                         // colIndex 4 = Master/uuc original (read only in PHP)
-                        // colIndex 8 = Obs 4 (editable only on last row)
-                        // colIndex 9 = Obs 5 (editable only on last row)
+                        // colIndex 8 = Obs 4
+                        // colIndex 9 = Obs 5
                         // colIndex 10 = Average (read only in PHP)
                         // colIndex 11 = Error (read only in PHP)
-                        const isLastRowInGroup = relativeRowIndex === modeGroup.calibration_points.length - 1;
-                        const isObs45Disabled = !isLastRowInGroup && (colIndex === 8 || colIndex === 9);
+                        const isObs45Disabled = false; // Observation 4 and 5 are always editable for UC
                         const isDisabled = [0, 3, 4, 10, 11].includes(colIndex) || isObs45Disabled;
 
                         return (
@@ -8729,14 +9562,9 @@ const CalibrateStep3 = () => {
                               value={currentValue}
                               onChange={(e) => {
                                 if (isDisabled) return;
-                                handleInputChange(actualRowIndex, colIndex, e.target.value);
-                                if (observationErrors[key]) {
-                                  setObservationErrors(prev => {
-                                    const newErrors = { ...prev };
-                                    delete newErrors[key];
-                                    return newErrors;
-                                  });
-                                }
+                                const fieldType = colIndex === 2 ? 'text' : 'numeric';
+                                // handleInputChange sets or clears this cell's least-count error itself
+                                handleInputChange(actualRowIndex, colIndex, e.target.value, fieldType);
                               }}
                               onBlur={(e) => {
                                 if (isDisabled) return;
@@ -8844,7 +9672,7 @@ const CalibrateStep3 = () => {
                         <input
                           type="text"
                           value={getValue(3)}
-                          onChange={(e) => handleInputChange(rowIndex, 3, e.target.value)}
+                          onChange={(e) => handleInputChange(rowIndex, 3, e.target.value, 'text')}
                           onBlur={(e) => handleObservationBlur(rowIndex, 3, e.target.value)}
                           className={`w-full px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${getError(3) ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'}`}
                         />
@@ -9100,7 +9928,10 @@ const CalibrateStep3 = () => {
     });
   };
 
-  const handleBiomedicalInputBlur = async (pointId, type, index, currentValue, masterCount = 1, uucCount = 5) => {
+  // DW (dead weight) reading types are per-cycle, exactly like master/uuc readings.
+  const CYCLE_INDEXED_TYPES = ['master', 'uuc', 'pressure', 'uuca', 'mastera', 'masterb', 'uucb', 'deltai'];
+
+  const handleBiomedicalInputBlur = async (pointId, type, index, currentValue, masterCount = 1, uucCount = 5, options = {}) => {
     const key = `${pointId}-${type}${type === 'master' || type === 'uuc' ? `-${index}` : ''}`;
     // Use the value passed directly from the input (avoids stale closure on tableInputValues)
     const value = currentValue !== undefined ? currentValue : (tableInputValues[key] || '');
@@ -9211,7 +10042,10 @@ const CalibrateStep3 = () => {
       instid: instId,
       calibrationpoint: pointId,
       type: type,
-      repeatable: (type === 'master' || type === 'uuc' || type === 'pressure') ? index.toString() : '0',
+      // PHP stores stabilizationtime at repeatable=1, not 0.
+      repeatable: CYCLE_INDEXED_TYPES.includes(type)
+        ? index.toString()
+        : (type === 'stabilizationtime' ? '1' : '0'),
       value: value || '0',
     };
 
@@ -9239,7 +10073,7 @@ const CalibrateStep3 = () => {
       }
 
       if (response.data.status || response.data.staus || response.data.success) {
-        toast.success('Observation saved successfully');
+        if (!options.silent) toast.success('Observation saved successfully');
       } else {
         toast.error('Failed to save observation');
       }
@@ -9338,8 +10172,9 @@ const CalibrateStep3 = () => {
       }
     }
 
-    // Process each row
-    selectedTableData.staticRows.forEach((row, rowIndex) => {
+    // Process each row. Some templates (AUTM) render their own table and persist
+    // via the blur handler, so they have no staticRows at all.
+    (selectedTableData.staticRows || []).forEach((row, rowIndex) => {
       let calibPointId = selectedTableData.hiddenInputs?.calibrationPoints?.[rowIndex] || '';
       if (selectedTableData?.id === 'observationgtm') {
         const pointIdx = Math.floor(rowIndex / 2);
@@ -9372,7 +10207,8 @@ const CalibrateStep3 = () => {
           }
           if (layout.setpointIdx !== -1) {
             calibrationPoints.push(calibPointId);
-            const setpointType = instrument.setpoint === 'Master' ? 'master' : (instrument.setpoint === 'UUC' ? 'uuc' : 'setpoint');
+            const ci = getCustomInstrument();
+            const setpointType = ci.setpoint === 'Master' ? 'master' : (ci.setpoint === 'UUC' ? 'uuc' : 'setpoint');
             types.push(setpointType);
             repeatables.push('0');
             values.push(rowData[layout.setpointIdx] ?? '');
@@ -9413,6 +10249,108 @@ const CalibrateStep3 = () => {
             repeatables.push('0');
             values.push(rowData[layout.remarkIdx] ?? '');
           }
+        }
+      }
+
+      else if (selectedTableData.id === 'observationutm') {
+        const rowMeta = selectedTableData.rowMeta?.[rowIndex];
+        if (rowMeta?.kind === 'point') {
+          const pointId = calibPointId;
+          const setpoint = rowData[1] || '0';
+          const calculatedUuc = rowData[2] || '0';
+
+          const startTemp = parseFloat(instrument?.temperature ?? inwardEntry?.temperature ?? inwardEntry?.tempstart) || 0;
+          const endTemp = parseFloat(formData?.tempend) || 0;
+          const roomTemp = (startTemp > 0 && endTemp > 0) ? (startTemp + endTemp) / 2 : (endTemp || startTemp || 0);
+          const compUuc = (calculatedUuc && roomTemp > 0)
+            ? ((0.00027 * (roomTemp - 23) + 1) * parseFloat(calculatedUuc)).toFixed(1)
+            : (rowData[3] || calculatedUuc || '0');
+
+          const m0 = tableInputValues[`${pointId}-m0`] ?? rowData[4] ?? '';
+          const m1 = tableInputValues[`${pointId}-m1`] ?? rowData[5] ?? '';
+          const m2 = tableInputValues[`${pointId}-m2`] ?? rowData[6] ?? '';
+          const masters = [m0, m1, m2];
+
+          // 1. setpoint
+          calibrationPoints.push(pointId);
+          types.push('setpoint');
+          repeatables.push('0');
+          values.push(setpoint);
+
+          // 2. calculateduuc
+          calibrationPoints.push(pointId);
+          types.push('calculateduuc');
+          repeatables.push('0');
+          values.push(calculatedUuc);
+
+          // 3. uuc (room temp compensated)
+          calibrationPoints.push(pointId);
+          types.push('uuc');
+          repeatables.push('0');
+          values.push(compUuc);
+
+          // 4. master readings
+          masters.forEach((m, mIdx) => {
+            calibrationPoints.push(pointId);
+            types.push('master');
+            repeatables.push(mIdx.toString());
+            values.push(m || '0');
+          });
+
+          // 5. averagemaster
+          calibrationPoints.push(pointId);
+          types.push('averagemaster');
+          repeatables.push('0');
+          values.push(calculated.average || rowData[7] || '0');
+
+          // 6. error
+          calibrationPoints.push(pointId);
+          types.push('error');
+          repeatables.push('0');
+          values.push(calculated.error || rowData[8] || '0');
+
+          // 7. percenterror
+          calibrationPoints.push(pointId);
+          types.push('percenterror');
+          repeatables.push('0');
+          values.push(calculated.percentError || rowData[9] || '0');
+
+          // 8. repeatability
+          calibrationPoints.push(pointId);
+          types.push('repeatability');
+          repeatables.push('0');
+          values.push(calculated.repeatability || rowData[10] || '0');
+        } else if (rowMeta?.kind === 'removal') {
+          [0, 1, 2].forEach((posIdx) => {
+            const val = tableInputValues[`removalforce-${posIdx}`] ?? rowData[4 + posIdx] ?? '0';
+            calibrationPoints.push(calibPointId);
+            types.push('removalforce');
+            repeatables.push(posIdx.toString());
+            values.push(val || '0');
+          });
+        } else if (rowMeta?.kind === 'zeroerror') {
+          [0, 1, 2].forEach((posIdx) => {
+            const zeroVal = calculated[`zero${posIdx}`] || rowData[4 + posIdx] || '0';
+            calibrationPoints.push(calibPointId);
+            types.push('zeroerror');
+            repeatables.push(posIdx.toString());
+            values.push(zeroVal || '0');
+          });
+        } else if (rowMeta?.kind === 'resolution') {
+          calibrationPoints.push(calibPointId);
+          types.push('releativeres');
+          repeatables.push('0');
+          values.push(rowData[8] || '0');
+        } else if (rowMeta?.kind === 'machine') {
+          calibrationPoints.push(calibPointId);
+          types.push('classofmachine');
+          repeatables.push('0');
+          values.push(tableInputValues['classofmachine'] ?? rowData[1] ?? '0');
+
+          calibrationPoints.push(calibPointId);
+          types.push('dialguageseting');
+          repeatables.push('0');
+          values.push(tableInputValues['dialguagesetting'] ?? rowData[5] ?? '0');
         }
       }
 
@@ -9487,6 +10425,65 @@ const CalibrateStep3 = () => {
         types.push('error');
         repeatables.push('0');
         values.push(calculated.error || '0');
+      }
+      else if (selectedTableData.id === 'observationsutm') {
+        // Every PHP field of the row; speeds, mean speed and error freshly calculated
+        const calculatedCells = getSUTMCalculatedCells(rowData, selectedTableData.rowMeta?.[rowIndex], observations?.[rowIndex]?.cusset_error);
+        rowData.forEach((cell, colIndex) => {
+          const field = getSUTMFieldType(colIndex);
+          if (!field) return;
+          const cellValue = colIndex in calculatedCells ? calculatedCells[colIndex] : cell;
+          calibrationPoints.push(calibPointId);
+          types.push(field.type);
+          repeatables.push(field.repeatable);
+          values.push(cellValue || '0');
+        });
+      }
+      else if (selectedTableData.id === 'observationsw') {
+        // Every PHP field of the row as shown; averages and error can be edited by hand in PHP
+        const rowType = getSWRowType(rowData);
+        rowData.forEach((cell, colIndex) => {
+          const field = getSWFieldType(rowType, colIndex);
+          if (!field) return;
+          calibrationPoints.push(calibPointId);
+          types.push(field.type);
+          repeatables.push(field.repeatable);
+          values.push(cell || '0');
+        });
+      }
+      else if (selectedTableData.id === 'observationtswi') {
+        // Every PHP field of the row; calculated cells use freshly calculated values
+        const rowType = getTSWIRowType(rowData);
+        const calculatedCells = rowType === 'uuc'
+          ? { [TSWI_COLS.CONVERTED_AVERAGE]: calculated.average, [TSWI_COLS.DEVIATION]: calculated.error }
+          : { [TSWI_COLS.AVERAGE]: calculated.average, [TSWI_COLS.CORRECTED_AVERAGE]: calculated.correctedAverage };
+        rowData.forEach((cell, colIndex) => {
+          const field = getTSWIFieldType(rowType, colIndex);
+          if (!field) return;
+          const cellValue = colIndex in calculatedCells ? calculatedCells[colIndex] : cell;
+          calibrationPoints.push(calibPointId);
+          types.push(field.type);
+          repeatables.push(field.repeatable);
+          values.push(cellValue || '0');
+        });
+      }
+      else if (selectedTableData.id === 'observationtswoi') {
+        // Every PHP field of the row; calculated cells use freshly calculated values
+        const rowType = getTSWOIRowType(rowData);
+        const calculatedCells = {
+          [TSWOI_COLS.AVERAGE]: calculated.average,
+          [TSWOI_COLS.CORRECTED_AVERAGE]: calculated.correctedAverage,
+          [TSWOI_COLS.DEVIATION]: calculated.error,
+        };
+        rowData.forEach((cell, colIndex) => {
+          const field = getTSWOIFieldType(rowType, colIndex);
+          if (!field) return;
+          const cellValue = colIndex in calculatedCells ? calculatedCells[colIndex] : cell;
+          calibrationPoints.push(calibPointId);
+          types.push(field.type);
+          repeatables.push(field.repeatable);
+          values.push(cellValue || '0');
+        });
       }
       else if (selectedTableData.id === 'observationrtdwi') {
         const isUUCRow = rowData[2] === 'UUC';
@@ -9794,11 +10791,6 @@ const CalibrateStep3 = () => {
           repeatables.push('0');
           values.push(latestDeviation);
 
-          console.log('📤 GTM UUC Submit Payloads:', {
-            uucAverageC,
-            latestDeviation,
-            rowIndex
-          });
 
         } else if (isMasterRow) {
           // Master row payloads
@@ -9843,17 +10835,14 @@ const CalibrateStep3 = () => {
           repeatables.push('0');
           values.push(masterConvertedAvg);
 
-          console.log('📤 GTM Master Submit Payloads:', {
-            masterAverageOmega,
-            masterConvertedAvg,
-            rowIndex
-          });
         }
       }
 
       else if (selectedTableData.id === 'observationpr') {
-        const pointObj = observations?.[rowIndex] || selectedTableData?.calibration_points?.[rowIndex];
-        calibPointId = pointObj?.point_id || pointObj?.id || pointObj?.calibration_point_id || calibPointId;
+        // calibPointId already resolved above from selectedTableData.hiddenInputs.calibrationPoints[rowIndex],
+        // which createPRRows() populates from each point's real calib_point_id. ObservationPR.jsx writes the
+        // same value as its `pointId` when saving into tableInputValues (`${pointId}-m0`, `mast0er${pointId}`, etc.)
+        // so we key off calibPointId here to match.
 
         // 1. Setpoint (col 1: type setpoint, repeatable 0)
         calibrationPoints.push(calibPointId);
@@ -9867,8 +10856,8 @@ const CalibrateStep3 = () => {
           types.push('master');
           repeatables.push(obsIndex.toString());
           const masterVal =
-            tableInputValues[`${pointObj?.id}-m${obsIndex}`] ??
-            tableInputValues[`mast${obsIndex}er${pointObj?.id}`] ??
+            tableInputValues[`${calibPointId}-m${obsIndex}`] ??
+            tableInputValues[`mast${obsIndex}er${calibPointId}`] ??
             tableInputValues[`${rowIndex}-${colIndex}`] ??
             rowData[colIndex] ??
             '';
@@ -9877,8 +10866,8 @@ const CalibrateStep3 = () => {
 
         // 3. Mean (col 5: type averagemaster, repeatable 0)
         const meanVal =
-          tableInputValues[`${pointObj?.id}-averagemaster`] ??
-          tableInputValues[`averagemaster${pointObj?.id}`] ??
+          tableInputValues[`${calibPointId}-averagemaster`] ??
+          tableInputValues[`averagemaster${calibPointId}`] ??
           tableInputValues[`${rowIndex}-5`] ??
           rowData[5] ??
           '';
@@ -9889,8 +10878,8 @@ const CalibrateStep3 = () => {
 
         // 4. Repeatability (col 6: type repeatability, repeatable 0)
         const repVal =
-          tableInputValues[`${pointObj?.id}-repeatability`] ??
-          tableInputValues[`repeatability${pointObj?.id}`] ??
+          tableInputValues[`${calibPointId}-repeatability`] ??
+          tableInputValues[`repeatability${calibPointId}`] ??
           tableInputValues[`${rowIndex}-6`] ??
           rowData[6] ??
           '';
@@ -9901,8 +10890,8 @@ const CalibrateStep3 = () => {
 
         // 5. Factor (col 7: type factor, repeatable 0)
         const factorVal =
-          tableInputValues[`${pointObj?.id}-factor`] ??
-          tableInputValues[`factor${pointObj?.id}`] ??
+          tableInputValues[`${calibPointId}-factor`] ??
+          tableInputValues[`factor${calibPointId}`] ??
           tableInputValues[`${rowIndex}-7`] ??
           rowData[7] ??
           '';
@@ -10381,7 +11370,6 @@ const CalibrateStep3 = () => {
 
       else if (selectedTableData.id === 'observationts') {
         const rc = selectedTableData.hiddenInputs?.repeatables?.[rowIndex] ?? (rowIndex % 5).toString();
-        console.log(`🔍 observationts Row ${rowIndex}: calibPointId=${calibPointId}, rc=${rc}`);
 
         for (let i = 0; i < 8; i++) {
           const colIdx = i + 1;
@@ -10390,7 +11378,6 @@ const CalibrateStep3 = () => {
           types.push('uuc');
           repeatables.push(`${rc}-${i}`);
           values.push(readingValue);
-          console.log(`  📊 Reading ${rc}-${i}: ${readingValue}`);
         }
 
         const avgValue = calculated.average || tableInputValues[`${rowIndex}-9`] || rowData[9] || '0';
@@ -10398,7 +11385,6 @@ const CalibrateStep3 = () => {
         types.push('averageuuc');
         repeatables.push(rc.toString());
         values.push(avgValue);
-        console.log(`  📊 Average ${rc}: ${avgValue}`);
       }
 
     });
@@ -10564,7 +11550,7 @@ const CalibrateStep3 = () => {
       if (formData.stabilizationtime) {
         calibrationPoints.push(instId);
         types.push('stabilizationtime');
-        repeatables.push('0');
+        repeatables.push('1'); // PHP stores stabilizationtime at repeatable=1
         values.push(formData.stabilizationtime);
       }
     }
@@ -10634,18 +11620,6 @@ const CalibrateStep3 = () => {
       ...(basic_safety.length > 0 && { basic_safety }),
     };
 
-    console.log('Step 3 Payload:', payloadStep3);
-
-    // ✅ DEBUG: Log specific observationts data
-    if (selectedTableData?.id === 'observationts') {
-      const tsEntries = payloadStep3.calibrationpoint.map((cp, idx) => ({
-        calibrationpoint: cp,
-        type: payloadStep3.type[idx],
-        repeatable: payloadStep3.repeatable[idx],
-        value: payloadStep3.value[idx]
-      }));
-      console.log('📋 ObservationTS Data being submitted:', JSON.stringify(tsEntries, null, 2));
-    }
 
     let requestBody = payloadStep3;
     let requestHeaders = {
@@ -10677,7 +11651,7 @@ const CalibrateStep3 = () => {
     }
 
     try {
-      const response = await axios.post(
+      await axios.post(
         `${JWT_HOST_API}/calibrationprocess/insert-calibration-step3`,
         requestBody,
         {
@@ -10685,12 +11659,6 @@ const CalibrateStep3 = () => {
         }
       );
 
-      console.log('✅ Step 3 Response:', response.data);
-
-      // ✅ DEBUG: Check if response contains observationts data
-      if (selectedTableData?.id === 'observationts') {
-        console.log('📋 Backend Response Status:', response.status, response.data?.status);
-      }
 
       toast.success('All data submitted successfully!');
       setTimeout(() => {
@@ -10965,7 +11933,7 @@ const CalibrateStep3 = () => {
                   </div>
                 )}
 
-                {selectedTableData && (tableStructure || selectedTableData.id === 'observationdw' || selectedTableData.id === 'observationwb' || selectedTableData.id === 'observationbiomedical' || selectedTableData.id === 'observationvc' || selectedTableData.id === 'observationapg' || selectedTableData.id === 'observationutm' || selectedTableData.id === 'observationcustom' || selectedTableData.id === 'observationexm' || selectedTableData.id === 'observationgtm' || selectedTableData.id === 'observationpr' || selectedTableData.id === 'observationupload') && (
+                {selectedTableData && (tableStructure || selectedTableData.id === 'observationdw' || selectedTableData.id === 'observationwb' || selectedTableData.id === 'observationbiomedical' || selectedTableData.id === 'observationvc' || selectedTableData.id === 'observationapg' || selectedTableData.id === 'observationutm' || selectedTableData.id === 'observationautm' || selectedTableData.id === 'observationvolnl' || selectedTableData.id === 'observationvol' || selectedTableData.id === 'observationvht' || selectedTableData.id === 'observationcustom' || selectedTableData.id === 'observationexm' || selectedTableData.id === 'observationgtm' || selectedTableData.id === 'observationpr' || selectedTableData.id === 'observationupload') && (
                   <div className="space-y-6">
                     {selectedTableData.id === 'observationupload' ? (
                       <ObservationUpload
@@ -11043,12 +12011,60 @@ const CalibrateStep3 = () => {
                         setTableInputValues={setTableInputValues}
                         validateDecimalPlaces={validateDecimalPlaces}
                         inwardEntry={inwardEntry}
+                        instrument={instrument}
                         formData={formData}
+                        handleObservationBlur={handleObservationBlur}
+                      />
+                    ) : selectedTableData.id === 'observationvht' ? (
+                      <ObservationVHT
+                        selectedTableData={selectedTableData}
+                        tableInputValues={tableInputValues}
+                        setTableInputValues={setTableInputValues}
+                        handleObservationBlur={handleObservationBlur}
+                        observations={observations}
+                        instrument={instrument}
+                      />
+                    ) : selectedTableData.id === 'observationvol' ? (
+                      <ObservationVOL
+                        selectedTableData={selectedTableData}
+                        tableInputValues={tableInputValues}
+                        setTableInputValues={setTableInputValues}
+                        validateDecimalPlaces={validateDecimalPlaces}
+                        handleObservationBlur={handleObservationBlur}
+                        handleBiomedicalInputBlur={handleBiomedicalInputBlur}
+                        observations={observations}
+                        instId={instId}
+                        instrument={instrument}
+                        inwardEntry={inwardEntry}
+                      />
+                    ) : selectedTableData.id === 'observationvolnl' ? (
+                      <ObservationVOLNL
+                        selectedTableData={selectedTableData}
+                        tableInputValues={tableInputValues}
+                        setTableInputValues={setTableInputValues}
+                        validateDecimalPlaces={validateDecimalPlaces}
+                        handleObservationBlur={handleObservationBlur}
+                        handleBiomedicalInputBlur={handleBiomedicalInputBlur}
+                        observations={observations}
+                        instId={instId}
+                        instrument={instrument}
+                      />
+                    ) : selectedTableData.id === 'observationautm' ? (
+                      <ObservationAUTM
+                        selectedTableData={selectedTableData}
+                        tableInputValues={tableInputValues}
+                        setTableInputValues={setTableInputValues}
+                        validateDecimalPlaces={validateDecimalPlaces}
+                        inwardEntry={inwardEntry}
+                        instrument={instrument}
+                        formData={formData}
+                        observations={observations}
+                        handleObservationBlur={handleObservationBlur}
                       />
                     ) : selectedTableData.id === 'observationcustom' ? (
                       <ObservationCustom
                         selectedTableData={selectedTableData}
-                        instrument={instrument}
+                        instrument={getCustomInstrument()}
                         tableInputValues={tableInputValues}
                         handleInputChange={handleInputChange}
                         handleObservationBlur={handleObservationBlur}
@@ -11190,8 +12206,7 @@ const CalibrateStep3 = () => {
                                           const key = `${actualRowIndex}-${colIndex}`;
                                           const currentValue = tableInputValues[key] ?? (cell?.toString() || '');
 
-                                          const isLastRowInUnitType = rowIndex === unitTypeRows.length - 1;
-                                          const isObs45Disabled = !isLastRowInUnitType && (colIndex === 8 || colIndex === 9);
+                                          const isObs45Disabled = false; // Observation 4 and 5 are always editable for MM
                                           const isDisabled =
                                             colIndex === 0 || // SR No
                                             colIndex === 1 || // Mode
@@ -11215,7 +12230,8 @@ const CalibrateStep3 = () => {
                                                 value={currentValue}
                                                 onChange={(e) => {
                                                   if (isDisabled) return;
-                                                  handleInputChange(actualRowIndex, colIndex, e.target.value);
+                                                  // Range (col 2) is free text, e.g. "0-200 V"
+                                                  handleInputChange(actualRowIndex, colIndex, e.target.value, colIndex === 2 ? 'text' : 'numeric');
                                                   // Clear error when user starts typing
                                                   if (observationErrors[key]) {
                                                     setObservationErrors(prev => {
@@ -11327,6 +12343,227 @@ const CalibrateStep3 = () => {
                                       }
                                     }
 
+                                    // SUTM: all cells handled here (only displacement and time are typed)
+                                    if (selectedTableData.id === 'observationsutm') {
+                                      const tdClass = 'px-3 py-2 whitespace-nowrap text-sm border-r border-gray-200 dark:border-gray-600 last:border-r-0 align-middle';
+                                      if (colIndex === SUTM_COLS.SR_NO) {
+                                        return (
+                                          <td key={colIndex} className={`${tdClass} text-center font-medium`}>
+                                            {cell}
+                                          </td>
+                                        );
+                                      }
+
+                                      const isEditable = isSUTMCellEditable(colIndex);
+                                      return (
+                                        <td key={colIndex} className={tdClass}>
+                                          <input
+                                            type="text"
+                                            className={`w-full min-w-[70px] px-2 py-1 border rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-600 text-gray-900 dark:text-white ${isEditable ? '' : 'cursor-not-allowed'} ${observationErrors[key] ? 'border-red-500' : 'border-gray-200 dark:border-gray-600'}`}
+                                            value={currentValue}
+                                            onChange={(e) => {
+                                              if (!isEditable) return;
+                                              handleInputChange(rowIndex, colIndex, e.target.value);
+                                            }}
+                                            onBlur={(e) => {
+                                              if (!isEditable) return;
+                                              handleObservationBlur(rowIndex, colIndex, e.target.value);
+                                            }}
+                                            disabled={!isEditable}
+                                          />
+                                          {observationErrors[key] && (
+                                            <div className="text-red-500 text-xs mt-1">{observationErrors[key]}</div>
+                                          )}
+                                        </td>
+                                      );
+                                    }
+
+                                    // SW: all cells handled here (paired UUC/Master rows, rowspans)
+                                    if (selectedTableData.id === 'observationsw') {
+                                      const rowType = getSWRowType(row);
+                                      const spansBothRows = selectedTableData.rowSpanColumns?.includes(colIndex);
+                                      // Sr. No., Set Value, Error and Uncertainty are merged into the UUC row (PHP rowspan="2")
+                                      if (spansBothRows && rowType !== 'uuc') return null;
+                                      const tdProps = {
+                                        rowSpan: spansBothRows ? 2 : undefined,
+                                        className: 'px-3 py-2 whitespace-nowrap text-sm border-r border-gray-200 dark:border-gray-600 last:border-r-0 align-middle',
+                                      };
+
+                                      if (colIndex === SW_COLS.SR_NO || colIndex === SW_COLS.VALUE_OF || cell === '-') {
+                                        return (
+                                          <td key={colIndex} {...tdProps} className={`${tdProps.className} text-center font-medium`}>
+                                            {cell}
+                                          </td>
+                                        );
+                                      }
+
+                                      const isEditable = isSWCellEditable(rowType, colIndex);
+                                      // Uncertainty is free text in PHP; everything else numeric
+                                      const fieldType = colIndex === SW_COLS.UNCERTAINTY ? 'text' : 'numeric';
+                                      return (
+                                        <td key={colIndex} {...tdProps}>
+                                          <input
+                                            type="text"
+                                            className={`w-full min-w-[70px] px-2 py-1 border rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-600 text-gray-900 dark:text-white ${isEditable ? '' : 'cursor-not-allowed'} ${observationErrors[key] ? 'border-red-500' : 'border-gray-200 dark:border-gray-600'}`}
+                                            value={currentValue}
+                                            onChange={(e) => {
+                                              if (!isEditable) return;
+                                              handleInputChange(rowIndex, colIndex, e.target.value, fieldType);
+                                            }}
+                                            onBlur={(e) => {
+                                              if (!isEditable) return;
+                                              handleObservationBlur(rowIndex, colIndex, e.target.value);
+                                            }}
+                                            disabled={!isEditable}
+                                          />
+                                          {observationErrors[key] && (
+                                            <div className="text-red-500 text-xs mt-1">{observationErrors[key]}</div>
+                                          )}
+                                        </td>
+                                      );
+                                    }
+
+                                    // TSWI: all cells handled here (paired UUC/Master rows, master unit select, rowspans)
+                                    if (selectedTableData.id === 'observationtswi') {
+                                      const rowType = getTSWIRowType(row);
+                                      const spansBothRows = selectedTableData.rowSpanColumns?.includes(colIndex);
+                                      // Sr. No., Set Point and Deviation are merged into the UUC row (PHP rowspan="2")
+                                      if (spansBothRows && rowType !== 'uuc') return null;
+                                      const tdProps = {
+                                        rowSpan: spansBothRows ? 2 : undefined,
+                                        className: 'px-3 py-2 whitespace-nowrap text-sm border-r border-gray-200 dark:border-gray-600 last:border-r-0 align-middle',
+                                      };
+
+                                      if (colIndex === TSWI_COLS.UNIT && rowType === 'master') {
+                                        return (
+                                          <td key={colIndex} {...tdProps}>
+                                            <Select
+                                              options={unitsList}
+                                              className="w-full min-w-[140px] text-sm"
+                                              classNamePrefix="select"
+                                              placeholder="Select unit..."
+                                              value={unitsList.find(u => String(u.value) === String(currentValue) || u.label === currentValue) || null}
+                                              styles={{
+                                                control: (base) => ({
+                                                  ...base,
+                                                  minHeight: '32px',
+                                                  fontSize: '0.875rem'
+                                                })
+                                              }}
+                                              onChange={(selected) => {
+                                                // PHP stores the unit id
+                                                const unitId = selected?.value?.toString() || '';
+                                                handleInputChange(rowIndex, colIndex, unitId, 'text');
+                                                handleObservationBlur(rowIndex, colIndex, unitId);
+                                              }}
+                                            />
+                                          </td>
+                                        );
+                                      }
+
+                                      // UUC unit is printed as text in PHP
+                                      if (colIndex === TSWI_COLS.SR_NO || colIndex === TSWI_COLS.VALUE_OF || colIndex === TSWI_COLS.UNIT || cell === '-') {
+                                        return (
+                                          <td key={colIndex} {...tdProps} className={`${tdProps.className} text-center font-medium`}>
+                                            {cell}
+                                          </td>
+                                        );
+                                      }
+
+                                      const isEditable = isTSWICellEditable(rowType, colIndex);
+                                      return (
+                                        <td key={colIndex} {...tdProps}>
+                                          <input
+                                            type="text"
+                                            className={`w-full min-w-[70px] px-2 py-1 border rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-600 text-gray-900 dark:text-white ${isEditable ? '' : 'cursor-not-allowed'} ${observationErrors[key] ? 'border-red-500' : 'border-gray-200 dark:border-gray-600'}`}
+                                            value={currentValue}
+                                            onChange={(e) => {
+                                              if (!isEditable) return;
+                                              handleInputChange(rowIndex, colIndex, e.target.value);
+                                            }}
+                                            onBlur={(e) => {
+                                              if (!isEditable) return;
+                                              handleObservationBlur(rowIndex, colIndex, e.target.value);
+                                            }}
+                                            disabled={!isEditable}
+                                          />
+                                          {observationErrors[key] && (
+                                            <div className="text-red-500 text-xs mt-1">{observationErrors[key]}</div>
+                                          )}
+                                        </td>
+                                      );
+                                    }
+
+                                    // TSWOI: all cells handled here (paired UUC/Master rows, unit selects, rowspans)
+                                    if (selectedTableData.id === 'observationtswoi') {
+                                      const rowType = getTSWOIRowType(row);
+                                      const spansBothRows = selectedTableData.rowSpanColumns?.includes(colIndex);
+                                      // Sr. No., Set Point and Deviation are merged into the UUC row (PHP rowspan="2")
+                                      if (spansBothRows && rowType !== 'uuc') return null;
+                                      const tdProps = {
+                                        rowSpan: spansBothRows ? 2 : undefined,
+                                        className: 'px-3 py-2 whitespace-nowrap text-sm border-r border-gray-200 dark:border-gray-600 last:border-r-0 align-middle',
+                                      };
+
+                                      if (colIndex === TSWOI_COLS.UNIT) {
+                                        return (
+                                          <td key={colIndex} {...tdProps}>
+                                            <Select
+                                              options={unitsList}
+                                              className="w-full min-w-[140px] text-sm"
+                                              classNamePrefix="select"
+                                              placeholder="Select unit..."
+                                              value={unitsList.find(u => String(u.value) === String(currentValue) || u.label === currentValue) || null}
+                                              styles={{
+                                                control: (base) => ({
+                                                  ...base,
+                                                  minHeight: '32px',
+                                                  fontSize: '0.875rem'
+                                                })
+                                              }}
+                                              onChange={(selected) => {
+                                                // PHP stores the unit id
+                                                const unitId = selected?.value?.toString() || '';
+                                                handleInputChange(rowIndex, colIndex, unitId, 'text');
+                                                handleObservationBlur(rowIndex, colIndex, unitId);
+                                              }}
+                                            />
+                                          </td>
+                                        );
+                                      }
+
+                                      if (colIndex === TSWOI_COLS.SR_NO || colIndex === TSWOI_COLS.VALUE_OF || cell === '-') {
+                                        return (
+                                          <td key={colIndex} {...tdProps} className={`${tdProps.className} text-center font-medium`}>
+                                            {cell}
+                                          </td>
+                                        );
+                                      }
+
+                                      const isEditable = isTSWOICellEditable(rowType, colIndex);
+                                      return (
+                                        <td key={colIndex} {...tdProps}>
+                                          <input
+                                            type="text"
+                                            className={`w-full min-w-[70px] px-2 py-1 border rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-600 text-gray-900 dark:text-white ${isEditable ? '' : 'cursor-not-allowed'} ${observationErrors[key] ? 'border-red-500' : 'border-gray-200 dark:border-gray-600'}`}
+                                            value={currentValue}
+                                            onChange={(e) => {
+                                              if (!isEditable) return;
+                                              handleInputChange(rowIndex, colIndex, e.target.value);
+                                            }}
+                                            onBlur={(e) => {
+                                              if (!isEditable) return;
+                                              handleObservationBlur(rowIndex, colIndex, e.target.value);
+                                            }}
+                                            disabled={!isEditable}
+                                          />
+                                          {observationErrors[key] && (
+                                            <div className="text-red-500 text-xs mt-1">{observationErrors[key]}</div>
+                                          )}
+                                        </td>
+                                      );
+                                    }
+
                                     // ✅ ADD GTM UNIT SELECT HANDLING (BEFORE RTD WI)
                                     if (selectedTableData.id === 'observationgtm' && cell === 'UNIT_SELECT') {
                                       return (
@@ -11416,13 +12653,11 @@ const CalibrateStep3 = () => {
                                       isObs45Disabled = (colIndex >= 2 && colIndex <= 6 && colIndex >= 2 + repeatableCycle);
                                     } else if (['observationctg', 'observationmsr', 'observationexm', 'observationvc', 'observationfg', 'observationhg'].includes(selectedTableData.id)) {
                                       isObs45Disabled = !isLastRow && (colIndex === 5 || colIndex === 6);
-                                    } else if (selectedTableData.id === 'observationodfm') {
-                                      isObs45Disabled = !isLastRow && (colIndex === 6 || colIndex === 7);
-                                    } else if (['observationmm', 'observationuc', 'observationes'].includes(selectedTableData.id)) {
+                                    } else if (selectedTableData.id === 'observationes') {
                                       isObs45Disabled = !isLastRow && (colIndex === 8 || colIndex === 9);
                                     } else if (selectedTableData.id === 'observationgtm') {
                                       isObs45Disabled = !isLastTwoRows && (colIndex === 9 || colIndex === 10);
-                                    } else if (['observationrtdwi', 'observationth'].includes(selectedTableData.id)) {
+                                    } else if (['observationrtdwi'].includes(selectedTableData.id)) {
                                       isObs45Disabled = !isLastTwoRows && (colIndex === 8 || colIndex === 9);
                                     }
 
@@ -11472,7 +12707,7 @@ const CalibrateStep3 = () => {
                                     } else if (selectedTableData.id === 'observationavg') {
                                       isDisabled = isDisabled || [5, 6, 7].includes(colIndex);
                                     } else if (selectedTableData.id === 'observationit') {
-                                      isDisabled = isDisabled || [1].includes(colIndex);
+                                      isDisabled = isDisabled || [1, 7, 8].includes(colIndex);
                                     } else if (selectedTableData.id === 'observationexm' || selectedTableData.id === 'observationvc') {
                                       isDisabled = isDisabled || [1, 7, 8].includes(colIndex);
                                     } else if (selectedTableData.id === 'observationfg') {
@@ -11543,7 +12778,8 @@ const CalibrateStep3 = () => {
                                           value={currentValue}
                                           onChange={(e) => {
                                             if (isDisabled) return;
-                                            handleInputChange(rowIndex, colIndex, e.target.value);
+                                            const fieldType = ((selectedTableData.id === 'observationth' && colIndex === 2) || (selectedTableData.id === 'observationodfm' && colIndex === 1) || (selectedTableData.id === 'observationuc' && colIndex === 2) || (selectedTableData.id === 'observationmm' && colIndex === 2)) ? 'text' : 'numeric';
+                                            handleInputChange(rowIndex, colIndex, e.target.value, fieldType);
                                             if (
                                               observationErrors[key] &&
                                               selectedTableData.id !== 'observationmm' &&

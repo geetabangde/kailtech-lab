@@ -1011,13 +1011,13 @@ const PerformCalibration = () => {
 
         try {
             // API call to cancel LRN
-            const response = await axios.post('/calibration/cancel-lrn', {
+            const response = await axios.post('calibrationoperations/request-cancel-lrn', {
                 itemId: currentCancelItem.id,
                 inwardId: inwardId,
                 reason: cancelReason
             });
 
-            if (response.data.success) {
+            if (response.data.success || response.data.status) {
                 toast.success("LRN cancelled successfully!");
                 // Refresh data
                 fetchCalibrationData();
@@ -1902,13 +1902,15 @@ const PerformCalibration = () => {
                             <div className="flex justify-end gap-2 p-4 border-t border-gray-200 bg-gray-50">
                                 <Button
                                     onClick={handleCloseCancelModal}
-                                    className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded text-sm font-medium transition-colors"
+                                    color="error"
+                                    className="px-4 py-2 text-sm font-medium transition-colors"
                                 >
                                     Close
                                 </Button>
                                 <Button
                                     onClick={handleCancelLRNSubmit}
-                                    className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded text-sm font-medium transition-colors"
+                                    color="primary"
+                                    className="px-4 py-2 text-sm font-medium transition-colors"
                                 >
                                     Review
                                 </Button>

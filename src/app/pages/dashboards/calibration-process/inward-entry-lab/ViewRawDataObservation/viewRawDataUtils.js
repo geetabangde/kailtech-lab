@@ -125,14 +125,17 @@ export const normalizeUtmGroups = (observationData) => {
       (item?.point_id || item?.id ? [item] : []);
 
     if (Array.isArray(calibrationPoints) && calibrationPoints.length > 0) {
+      const additional = item?.additional_data || {};
+      const zeroErrorData = item?.zero_error_data || null;
       return [{
         matrixId: safeGetValue(item?.matrix_id ?? item?.matrixid ?? item?.id ?? `matrix-${index + 1}`),
-        matrixType: item?.matrixtype || item?.matrix_type || item?.name || '',
-        leastCount: item?.leastcount ?? item?.least_count ?? item?.matrix?.leastcount,
-        minPoint: item?.minpoint ?? item?.min_point,
-        maxPoint: item?.maxpoint ?? item?.max_point,
-        classOfMachine: item?.classofmachine ?? item?.class_of_machine,
-        dialGaugeSetting: item?.dialguageseting ?? item?.dial_gauge_setting,
+        matrixType: item?.matrixtype || item?.matrix_type || item?.type || item?.name || '',
+        leastCount: item?.leastcount ?? item?.least_count ?? additional.least_count ?? item?.matrix?.leastcount,
+        minPoint: item?.minpoint ?? item?.min_point ?? additional.min_point,
+        maxPoint: item?.maxpoint ?? item?.max_point ?? zeroErrorData?.max_point,
+        classOfMachine: item?.classofmachine ?? item?.class_of_machine ?? additional.class_of_machine,
+        dialGaugeSetting: item?.dialguageseting ?? item?.dial_gauge_setting ?? additional.dial_gauge_setting,
+        zeroErrorData,
         calibrationPoints,
         raw: item,
       }];

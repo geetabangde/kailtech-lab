@@ -24,15 +24,19 @@ export const createFGRows = (dataArray) => {
   const rows = [];
   dataArray.forEach((point, index) => {
     if (!point) return;
+    // safeGetArray returns the array as-is, so a point with fewer than 5 readings
+    // must be padded here; otherwise Average/Error shift left into the unused
+    // observation columns.
     const observations = safeGetArray(point.observations || point.master_readings, 5);
+    const cells = Array.from({ length: 5 }, (_, i) => safeGetValue(observations[i] ?? ''));
+
     const row = [
       point.sr_no?.toString() || (index + 1).toString(),
       safeGetValue(point.nominal_value ?? point.point ?? point.test_point),
-      ...observations.slice(0, 5).map((obs) => safeGetValue(obs)),
+      ...cells,
       safeGetValue(point.average ?? point.average_master ?? point.mean),
       safeGetValue(point.error),
     ];
-    while (row.length < 8) row.push('');
     rows.push(row);
   });
   return rows;

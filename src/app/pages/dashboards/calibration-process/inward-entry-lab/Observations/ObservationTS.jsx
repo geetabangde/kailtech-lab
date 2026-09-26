@@ -4,20 +4,32 @@ import { safeGetValue } from './observationUtils';
  * Calculation logic for Test Sieve (TS) Observation
  * Computes average of the 8 aperture measurements formatted to 2 decimal places.
  */
-export const calculateTSValues = (rowData) => {
+export const calculateTSValues = (rowData, defaultDecPlaces) => {
   if (!rowData || !Array.isArray(rowData)) {
     return { average: '' };
   }
   const parsedValues = rowData.map(val => (val === '' || val === null || val === undefined ? NaN : parseFloat(val)));
   const readings = parsedValues.slice(1, 9);
+  const validReadingsStr = [];
   const validReadings = readings.filter((val, idx) => {
     const raw = rowData[idx + 1];
-    return raw !== undefined && raw !== null && String(raw).trim() !== '' && !isNaN(val);
+    if (raw !== undefined && raw !== null && String(raw).trim() !== '' && !isNaN(val)) {
+        validReadingsStr.push(String(raw).trim());
+        return true;
+    }
+    return false;
+  });
+
+  let maxDec = typeof defaultDecPlaces === 'number' && !isNaN(defaultDecPlaces) ? defaultDecPlaces : 2;
+  validReadingsStr.forEach(str => {
+      if (str.includes('.')) {
+          maxDec = Math.max(maxDec, str.split('.')[1].length);
+      }
   });
 
   return {
     average: validReadings.length
-      ? (validReadings.reduce((sum, val) => sum + val, 0) / validReadings.length).toFixed(2)
+      ? (validReadings.reduce((sum, val) => sum + val, 0) / validReadings.length).toFixed(maxDec)
       : ''
   };
 };
@@ -51,6 +63,9 @@ export const createTSRows = (dataArray) => {
     const calibPointId = point.point_id?.toString() || point.id?.toString() || point.calibration_point_id?.toString() || "1";
     const nominalSize = safeGetValue(point.nominal_size || point.point || point.nominal_value || point.test_point || "0");
 
+    const masterLc = point.master_matrix?.leastcount ?? point.least_count ?? point.masterleastcount ?? 0.01;
+    const decimals = String(masterLc).includes('.') ? String(masterLc).split('.')[1].length : 2;
+
     for (let rc = 0; rc < 5; rc++) {
       const rowValues = [];
       for (let i = 0; i < 8; i++) {
@@ -65,21 +80,23 @@ export const createTSRows = (dataArray) => {
             if (obs) obsValue = obs.value;
           }
         }
-        rowValues.push(safeGetValue(sanitizeSieveVal(obsValue, 2)));
+        rowValues.push(safeGetValue(sanitizeSieveVal(obsValue, decimals)));
       }
 
       let avgValue = '';
-      const validNums = rowValues.map(v => parseFloat(v)).filter(n => !isNaN(n));
-      if (validNums.length > 0) {
-        avgValue = (validNums.reduce((sum, n) => sum + n, 0) / validNums.length).toFixed(2);
+      if (point.readings && Array.isArray(point.readings) && point.readings[rc]?.average != null && String(point.readings[rc].average).trim() !== '') {
+        const numAvg = parseFloat(point.readings[rc].average);
+        avgValue = !isNaN(numAvg) ? numAvg.toFixed(decimals) : String(point.readings[rc].average);
       } else if (point.averages && Array.isArray(point.averages)) {
         const avg = point.averages.find(a => a != null && String(a.repeatable) === `${rc}`);
-        if (avg) avgValue = avg.value;
-      } else if (point.readings && Array.isArray(point.readings)) {
-        const reading = point.readings[rc];
-        if (reading && reading.average !== undefined && reading.average !== null) {
-          const numAvg = parseFloat(reading.average);
-          avgValue = !isNaN(numAvg) ? numAvg.toFixed(2) : String(reading.average);
+        if (avg) {
+          const numAvg = parseFloat(avg.value);
+          avgValue = !isNaN(numAvg) ? numAvg.toFixed(decimals) : String(avg.value);
+        }
+      } else {
+        const validNums = rowValues.map(v => parseFloat(v)).filter(n => !isNaN(n));
+        if (validNums.length > 0) {
+          avgValue = (validNums.reduce((sum, n) => sum + n, 0) / validNums.length).toFixed(decimals);
         }
       }
 

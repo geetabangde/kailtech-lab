@@ -7,10 +7,16 @@ const formatAverageDisplay = (val) => {
   return val; // Fallback to raw string if non-numeric
 };
 
-export const BiomedicalTableWithData = ({ tableData = [] }) => {
+const formatDecimals = (val, digits) => {
+  if (val === null || val === undefined || val === '') return '-';
+  const num = parseFloat(val);
+  return isNaN(num) ? val : num.toFixed(digits);
+};
+
+export const BiomedicalTableWithData = ({ tableData = [], showCalibrationPoint = true }) => {
   const headers = [
     'Sr No', 'Unit Type', 'Mode', '1', '2', '3', '4', '5', 'Unit',
-    'Calibration Point', 'Average', 'Std Deviation', 'Type A',
+    ...(showCalibrationPoint ? ['Calibration Point'] : []), 'Average', 'Std Deviation', 'Type A',
     'Accuracy Of Calibrator in Value', 'Uncertainty of Master in %',
     'Least Count', 'Combined Uncertainty', 'Degree of Freedom',
     'Coverage Factor (k)', 'Expanded Uncertainty in Value',
@@ -22,7 +28,7 @@ export const BiomedicalTableWithData = ({ tableData = [] }) => {
       <table className="w-full border-collapse text-[12px] text-gray-700 min-w-max">
         <thead>
           <tr className="bg-gray-100">
-            <th colSpan="13" className="border border-gray-300 px-2 py-2 bg-gray-200 font-semibold text-center">Type A Factor</th>
+            <th colSpan={showCalibrationPoint ? 13 : 12} className="border border-gray-300 px-2 py-2 bg-gray-200 font-semibold text-center">Type A Factor</th>
             <th colSpan="3" className="border border-gray-300 px-2 py-2 bg-gray-200 font-semibold text-center">Type B Factor</th>
             <th colSpan="7" className="border border-gray-300 px-2 py-2 bg-gray-200 font-semibold text-center">Uncertainty Measurement</th>
           </tr>
@@ -35,10 +41,10 @@ export const BiomedicalTableWithData = ({ tableData = [] }) => {
             const values = Array.from({ length: 5 }, (_, readingIndex) => row.values?.[readingIndex] ?? '');
             const cells = [
               row.srNo, row.unitType, row.mode, ...values, row.unitDesc,
-              row.calibrationPoint, formatAverageDisplay(row.average), row.stdDeviation, row.typeA,
+              ...(showCalibrationPoint ? [row.calibrationPoint] : []), formatAverageDisplay(row.average), formatDecimals(row.stdDeviation, 6), formatDecimals(row.typeA, 6),
               row.accuracyCalibrator, row.uncertaintyMaster, row.leastCount,
-              row.combinedUnc, row.dof, row.coverageFactor, row.expandedUncValue,
-              row.expandedUncPercent, row.cmcTaken, row.cmcScope
+              formatDecimals(row.combinedUnc, 7), formatDecimals(row.dof, 3), formatDecimals(row.coverageFactor, 2), formatDecimals(row.expandedUncValue, 6),
+              formatDecimals(row.expandedUncPercent, 6), row.cmcTaken, row.cmcScope
             ];
 
             return (
@@ -59,7 +65,7 @@ export const BiomedicalCmcTable = ({ data = [], electricSafetyData = [] }) => {
       {electricSafetyData.length > 0 && (
         <div className="mb-8">
           <h3 className="text-lg font-semibold text-gray-800 mb-4 border-b pb-2">Electric Safety</h3>
-          <BiomedicalTableWithData tableData={electricSafetyData} />
+          <BiomedicalTableWithData tableData={electricSafetyData} showCalibrationPoint={false} />
         </div>
       )}
       {data.length > 0 && (

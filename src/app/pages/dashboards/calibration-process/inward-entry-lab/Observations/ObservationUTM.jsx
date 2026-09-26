@@ -4,27 +4,25 @@ const ObservationUTM = ({
   setTableInputValues,
   validateDecimalPlaces,
   inwardEntry,
+  instrument,
   formData,
+  handleObservationBlur,
 }) => {
   if (selectedTableData?.id !== 'observationutm') return null;
 
-  // Calculate room temperature from start and end temperatures
-  const roomTemperature = (() => {
-    const startTemp = parseFloat(inwardEntry?.temperature) || 0;
-    const endTemp = parseFloat(formData?.tempend) || 0;
-    if (startTemp && endTemp) {
-      return (startTemp + endTemp) / 2;
-    }
-    return parseFloat(inwardEntry?.temperature) || 0;
-  })();
+  const startTemp = parseFloat(instrument?.temperature ?? inwardEntry?.temperature ?? inwardEntry?.tempstart) || 0;
+  const endTemp = parseFloat(formData?.tempend) || 0;
+  const roomTemperature = (startTemp > 0 && endTemp > 0)
+    ? (startTemp + endTemp) / 2
+    : (endTemp || startTemp || 0);
 
-  // Temperature compensation formula from PHP: (0.00027 * (avgtemp - 23) + 1) * calculateduuc
+  // Temperature compensation formula from PHP
   const applyTemperatureCompensation = (calculateduuc, temp) => {
-    if (!calculateduuc || temp === undefined || temp === null) return null;
+    if (!calculateduuc && calculateduuc !== 0) return null;
     const calcVal = parseFloat(calculateduuc);
     const tempVal = parseFloat(temp);
     if (isNaN(calcVal) || isNaN(tempVal)) return null;
-    return (0.00027 * (tempVal - 23) + 1) * calcVal;
+    return ((0.00027 * (tempVal - 23) + 1) * calcVal).toFixed(0); // already string
   };
 
   const formatValueByLc = (val, decimals, leastCount) => {
@@ -89,6 +87,13 @@ const ObservationUTM = ({
     return strVal;
   };
 
+  // PHP stores decimals as "NA" when no rounding should be applied.
+  const resolveDecimals = (spec) => {
+    if (spec === null || spec === undefined || spec === '' || spec === 'NA') return null;
+    const n = parseInt(spec, 10);
+    return isNaN(n) ? null : n;
+  };
+
   const getDecimalPlaces = (leastCount) => {
     if (!leastCount || leastCount === 'NA') return 0;
     const s = String(leastCount).trim();
@@ -104,6 +109,9 @@ const ObservationUTM = ({
     if (isNaN(v0) || isNaN(v1) || isNaN(v2)) return '';
 
     const avg = (v0 + v1 + v2) / 3;
+    // PHP forces mlc = "NA" for non-332 masters, so averageavg() does no rounding
+    // and never snaps to the master least count.
+    if (mlc_decimals === null) return String(avg);
     return formatValueByLc(avg, mlc_decimals, masterleastcount);
   };
 
@@ -114,8 +122,9 @@ const ObservationUTM = ({
     if (isNaN(uuc) || isNaN(avg)) return '';
 
     const error = uuc - avg;
-    const decimalPlaces = errorlc ?? 2;
-    return error.toFixed(decimalPlaces);
+    // PHP passes errorlc = "NA" to substractminus(), which applies no rounding.
+    if (errorlc === null || errorlc === undefined) return String(error);
+    return error.toFixed(errorlc);
   };
 
   const calculatePercentError = (error, avgMaster) => {
@@ -128,13 +137,14 @@ const ObservationUTM = ({
     return percentErr.toFixed(2);
   };
 
-  const calculateRepeatability = (m0, m1, m2) => {
+  const calculateRepeatability = (m0, m1, m2, avgMaster) => {
     const values = [m0, m1, m2].map(v => parseFloat(v)).filter(v => !isNaN(v));
-    if (values.length === 0) return '';
+    const avg = parseFloat(avgMaster);
+    if (values.length === 0 || isNaN(avg) || avg === 0) return '';
 
     const max = Math.max(...values);
     const min = Math.min(...values);
-    const repeatability = max - min;
+    const repeatability = ((max - min) / avg) * 100;
     return repeatability.toFixed(2);
   };
 
@@ -170,12 +180,33 @@ const ObservationUTM = ({
   const point = calibrationPoints[0];
   const uucUnit = point?.unit || selectedTableData?.metadata?.unit || 'kN';
   const masterUnit = point?.master_unit || selectedTableData?.metadata?.unit || 'kN';
+  const masterInstName = selectedTableData?.metadata?.master_instrument
+    ?? selectedTableData?.metadata?.master_instrument_name
+    ?? '';
+  // PHP only applies the 0.00027 temperature compensation for master type 332.
+  const masterType = String(
+    selectedTableData?.metadata?.master_type ?? instrument?.typeofmaster ?? ''
+  );
+  const usesTemperatureCompensation = masterType === '332';
+  const stdTemp = masterInstName.includes('Force Proving Ring') ? '23' : '24';
   const POSITIONS = ['Position 0°', 'Position 120°', 'Position 240°'];
 
-  // Calculate min and max points for this table
-  const allPoints = selectedTableData.calibration_points.map(p => parseFloat(p.point)).filter(p => !isNaN(p));
-  const minPoint = allPoints.length > 0 ? Math.min(...allPoints) : '';
-  const maxPoint = allPoints.length > 0 ? Math.max(...allPoints) : '';
+  // Calculate min and max points for this table (prefer backend-computed values; fall back to deriving from points)
+  const allPoints = selectedTableData.calibration_points.map(p => parseFloat(p.force ?? p.point)).filter(p => !isNaN(p));
+  const minPoint = selectedTableData?.additional_data?.min_point ?? (allPoints.length > 0 ? Math.min(...allPoints) : '');
+  const maxPoint = selectedTableData?.zero_error_data?.max_point ?? (allPoints.length > 0 ? Math.max(...allPoints) : '');
+
+  // Get matrix ID for persistence
+  const matrixId = calibrationPoints[0]?.matrix_id ?? calibrationPoints[0]?.id ?? '';
+
+  // Fall back to the values parsed from the fetched observations (staticRows) when
+  // no local edit exists yet in tableInputValues, so saved values survive a refresh.
+  const machineRowIndex = (selectedTableData?.rowMeta || []).findIndex(
+    (meta) => meta.kind === 'machine' && meta.matrixId === matrixId
+  );
+  const machineRow = machineRowIndex >= 0 ? selectedTableData?.staticRows?.[machineRowIndex] : null;
+  const defaultClassOfMachine = machineRow?.[1] ?? '';
+  const defaultDialGaugeSetting = machineRow?.[5] ?? '';
 
   return (
     <div className="mb-8">
@@ -208,9 +239,13 @@ const ObservationUTM = ({
             <tr className="bg-gray-100 dark:bg-gray-700 border-b border-gray-300 dark:border-gray-600">
               <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase border-r border-gray-300 dark:border-gray-600">Sr. No.</th>
               <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase border-r border-gray-300 dark:border-gray-600">Force (F) ({uucUnit})</th>
-              <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase border-r border-gray-300 dark:border-gray-600">Std. at 23 ± 1 (°C)</th>
-              <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase border-r border-gray-300 dark:border-gray-600">Calculated UUC ({masterUnit})</th>
-              <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase border-r border-gray-300 dark:border-gray-600">Std. at Room Temp ({masterUnit})</th>
+              <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase border-r border-gray-300 dark:border-gray-600">Std. at {stdTemp} ± 1 (°C)</th>
+              <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase border-r border-gray-300 dark:border-gray-600">
+                <div>Std. at Room Temp ({masterUnit})</div>
+                <div id="roomtemp" className="text-xs font-normal normal-case text-blue-600 dark:text-blue-400 mt-0.5">
+                  {roomTemperature > 0 ? `${roomTemperature} °C` : ''}
+                </div>
+              </th>
               <th colSpan="3" className="px-3 py-2 text-center text-xs font-medium text-gray-700 dark:text-gray-200 uppercase border-r border-gray-300 dark:border-gray-600">Observed (F) ({masterUnit})</th>
               <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase border-r border-gray-300 dark:border-gray-600">Mean (Fi)</th>
               <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase border-r border-gray-300 dark:border-gray-600">Error (q)</th>
@@ -228,20 +263,29 @@ const ObservationUTM = ({
           <tbody className="bg-white dark:bg-gray-800">
             {calibrationPoints.map((calibPoint, idx) => {
               const pointId = calibPoint.id || calibPoint.calibration_point_id;
-              const mlc_dec = getDecimalPlaces(calibPoint.master_least_count);
-              const lc_dec = getDecimalPlaces(calibPoint.least_count);
-              const error_dec = Math.max(mlc_dec, lc_dec);
+              // Prefer the decimal spec the backend sends ("NA" means: do not round).
+              const mlc_dec = calibPoint.decimal_places
+                ? resolveDecimals(calibPoint.decimal_places.mlc)
+                : getDecimalPlaces(calibPoint.master_least_count);
+              const lc_dec = calibPoint.decimal_places
+                ? resolveDecimals(calibPoint.decimal_places.lc)
+                : getDecimalPlaces(calibPoint.least_count);
+              const error_dec = calibPoint.decimal_places
+                ? resolveDecimals(calibPoint.decimal_places.error_lc)
+                : Math.max(mlc_dec ?? 0, lc_dec ?? 0);
 
-              // Calculate Calculated UUC (reference at 23°C)
-              const calculatedUuc = parseFloat(calibPoint.calculated_uuc) || '';
+              // Calculate Calculated UUC (reference at 23°C / 24°C)
+              const calculatedUuc = calibPoint.calculated_uuc ?? calibPoint.calculateduuc ?? calibPoint.std_at_reference_temp ?? '';
 
-              // Apply temperature compensation to UUC
-              const compensatedUuc = calculatedUuc
+              // PHP: uuc0 = calculateduuc for non-332 masters; only type 332 gets the
+              // (0.00027 * (avgTemp - 23) + 1) factor applied by changetemp().
+              const compensatedUuc = usesTemperatureCompensation
+                && calculatedUuc !== '' && calculatedUuc !== null && roomTemperature > 0
                 ? applyTemperatureCompensation(calculatedUuc, roomTemperature)
-                : null;
+                : (calibPoint.uuc ?? calibPoint.std_room ?? calculatedUuc);
 
               // Use compensated UUC for error calculation
-              const uucForError = compensatedUuc !== null ? compensatedUuc : calibPoint.uuc ?? calibPoint.point ?? '';
+              const uucForError = compensatedUuc !== null && compensatedUuc !== '' ? compensatedUuc : calibPoint.uuc ?? calibPoint.point ?? '';
 
               // Handle both API data structure (force, master_readings) and legacy structure (point, m0, m1, m2)
               const masterReadings = calibPoint.master_readings || [
@@ -250,14 +294,14 @@ const ObservationUTM = ({
                 calibPoint.m2 ?? ''
               ];
 
-              const m0Reading = tableInputValues[`${pointId}-m0`] ?? masterReadings[0] ?? '';
-              const m1Reading = tableInputValues[`${pointId}-m1`] ?? masterReadings[1] ?? '';
-              const m2Reading = tableInputValues[`${pointId}-m2`] ?? masterReadings[2] ?? '';
+              const m0Reading = tableInputValues[`${pointId}-m0`] ?? (masterReadings[0] ?? '');
+              const m1Reading = tableInputValues[`${pointId}-m1`] ?? (masterReadings[1] ?? '');
+              const m2Reading = tableInputValues[`${pointId}-m2`] ?? (masterReadings[2] ?? '');
 
               const avgMaster = calculateAverageMaster(m0Reading, m1Reading, m2Reading, mlc_dec, calibPoint.master_least_count);
               const error = calculateError(uucForError, avgMaster, error_dec);
               const percentError = calculatePercentError(error, avgMaster);
-              const repeatability = calculateRepeatability(m0Reading, m1Reading, m2Reading);
+              const repeatability = calculateRepeatability(m0Reading, m1Reading, m2Reading, avgMaster);
 
               return (
                 <tr key={pointId} className="border-b border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700">
@@ -268,7 +312,7 @@ const ObservationUTM = ({
                     <input
                       type="text"
                       className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white cursor-not-allowed"
-                      value={formatValueByLc(calibPoint.force ?? calibPoint.point ?? '', lc_dec, calibPoint.least_count)}
+                      value={calibPoint.force ?? calibPoint.point ?? ''}
                       readOnly
                     />
                   </td>
@@ -276,7 +320,8 @@ const ObservationUTM = ({
                     <input
                       type="text"
                       className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white cursor-not-allowed"
-                      value={calibPoint.standard_temp ?? calibPoint.std_23 ?? ''}
+                      title={`Calculated at ${stdTemp}°C: ${calculatedUuc}`}
+                      value={calculatedUuc}
                       readOnly
                     />
                   </td>
@@ -284,17 +329,8 @@ const ObservationUTM = ({
                     <input
                       type="text"
                       className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white cursor-not-allowed"
-                      title={`Calculated at 23°C: ${calculatedUuc}`}
-                      value={formatValueByLc(calculatedUuc, mlc_dec, calibPoint.master_least_count)}
-                      readOnly
-                    />
-                  </td>
-                  <td className="px-3 py-2 text-sm border-r border-gray-200 dark:border-gray-600 dark:text-white bg-gray-50 dark:bg-gray-700">
-                    <input
-                      type="text"
-                      className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white cursor-not-allowed"
-                      title={`Room Temp: ${roomTemperature}°C (compensated from 23°C)`}
-                      value={compensatedUuc !== null ? formatValueByLc(compensatedUuc, mlc_dec, calibPoint.master_least_count) : (calibPoint.room_temp ?? calibPoint.std_room ?? '')}
+                      title={`Room Temp: ${roomTemperature > 0 ? roomTemperature : ''}°C (compensated from 23°C)`}
+                      value={compensatedUuc ?? ''}
                       readOnly
                     />
                   </td>
@@ -302,15 +338,26 @@ const ObservationUTM = ({
                     <td key={posIdx} className="px-3 py-2 text-sm border-r border-gray-200 dark:border-gray-600 dark:text-white">
                       <input
                         type="number"
-                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-600 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        value={tableInputValues[`${pointId}-m${posIdx}`] ?? calibPoint[`m${posIdx}`] ?? ''}
-                        onChange={(e) => setTableInputValues({
-                          ...tableInputValues,
-                          [`${pointId}-m${posIdx}`]: e.target.value
-                        })}
+                        className="w-full px-2 py-1 border rounded bg-white dark:bg-gray-600 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 border-gray-300 dark:border-gray-600"
+                        value={tableInputValues[`${pointId}-m${posIdx}`] ?? masterReadings[posIdx] ?? ''}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setTableInputValues({
+                            ...tableInputValues,
+                            [`${pointId}-m${posIdx}`]: val
+                          });
+                        }}
                         onBlur={(e) => {
                           if (validateDecimalPlaces) {
                             validateDecimalPlaces(`${pointId}-m${posIdx}`, e.target.value, calibPoint.master_least_count);
+                          }
+                          if (handleObservationBlur) {
+                            handleObservationBlur(
+                              idx,
+                              posIdx + 4,
+                              e.target.value,
+                              pointId
+                            );
                           }
                         }}
                         placeholder={`M${posIdx}`}
@@ -376,11 +423,25 @@ const ObservationUTM = ({
                   <input
                     type="number"
                     className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-600 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    value={tableInputValues[`removalforce-${posIdx}`] ?? ''}
+                    value={tableInputValues[`removalforce-${posIdx}`]
+                      ?? selectedTableData?.zero_error_data?.removal_forces?.[posIdx]
+                      ?? ''}
                     onChange={(e) => setTableInputValues({
                       ...tableInputValues,
                       [`removalforce-${posIdx}`]: e.target.value
                     })}
+                    onBlur={(e) => {
+                      if (handleObservationBlur) {
+                        // Use a special row index for removal force data
+                        const removalRowIndex = calibrationPoints.length;
+                        handleObservationBlur(
+                          removalRowIndex,
+                          posIdx + 4,
+                          e.target.value,
+                          matrixId
+                        );
+                      }
+                    }}
                     placeholder={`Removal ${posIdx}`}
                   />
                 </td>
@@ -406,7 +467,9 @@ const ObservationUTM = ({
           <tbody className="bg-white dark:bg-gray-800">
             <tr className="border-b border-gray-200 dark:border-gray-600">
               {[0, 1, 2].map((posIdx) => {
-                const removalForce = tableInputValues[`removalforce-${posIdx}`] ?? '';
+                const removalForce = tableInputValues[`removalforce-${posIdx}`]
+                  ?? selectedTableData?.zero_error_data?.removal_forces?.[posIdx]
+                  ?? '';
                 const zeroErr = calculateZeroError(removalForce, maxPoint);
                 return (
                   <td key={posIdx} className="px-3 py-2 text-sm border-r border-gray-200 dark:border-gray-600 dark:text-white bg-gray-50 dark:bg-gray-700">
@@ -458,7 +521,12 @@ const ObservationUTM = ({
           <input
             type="text"
             className="flex-1 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white cursor-not-allowed"
-            value={calculateRelativeResolution(point?.least_count, minPoint)}
+            value={
+              selectedTableData?.additional_data?.max_relative_resolution !== undefined &&
+                selectedTableData?.additional_data?.max_relative_resolution !== null
+                ? String(selectedTableData.additional_data.max_relative_resolution)
+                : calculateRelativeResolution(point?.least_count, minPoint)
+            }
             readOnly
           />
         </div>
@@ -467,11 +535,21 @@ const ObservationUTM = ({
           <input
             type="text"
             className="flex-1 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-600 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={tableInputValues['classofmachine'] ?? ''}
+            value={tableInputValues['classofmachine'] ?? defaultClassOfMachine}
             onChange={(e) => setTableInputValues({
               ...tableInputValues,
               classofmachine: e.target.value
             })}
+            onBlur={(e) => {
+              if (handleObservationBlur) {
+                handleObservationBlur(
+                  calibrationPoints.length + 3,
+                  1,
+                  e.target.value,
+                  matrixId
+                );
+              }
+            }}
             placeholder="Enter class"
           />
         </div>
@@ -480,11 +558,21 @@ const ObservationUTM = ({
           <input
             type="text"
             className="flex-1 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-600 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={tableInputValues['dialguagesetting'] ?? ''}
+            value={tableInputValues['dialguagesetting'] ?? defaultDialGaugeSetting}
             onChange={(e) => setTableInputValues({
               ...tableInputValues,
               dialguagesetting: e.target.value
             })}
+            onBlur={(e) => {
+              if (handleObservationBlur) {
+                handleObservationBlur(
+                  calibrationPoints.length + 3,
+                  5,
+                  e.target.value,
+                  matrixId
+                );
+              }
+            }}
             placeholder="Enter setting"
           />
         </div>

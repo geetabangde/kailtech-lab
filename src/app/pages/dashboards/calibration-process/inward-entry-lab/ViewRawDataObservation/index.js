@@ -27,6 +27,10 @@ import { tmTableConfig, createTMRows, parseTMDynamicData } from './ViewObservati
 import { ucTableConfig, createUCRows, parseUCDynamicData } from './ViewObservationUC';
 import { mmTableConfig, createMMRows, parseMMDynamicData } from './ViewObservationMM';
 import { rtdwiTableConfig, createRTDWIRows, parseRTDWIDynamicData } from './ViewObservationRTDWI';
+import { tswoiTableConfig, createTSWOIViewRows, parseTSWOIDynamicData, TSWOI_ROWSPAN_COLUMNS } from './ViewObservationTSWOI';
+import { rtdwoiTableConfig, createRTDWOIViewRows, parseRTDWOIDynamicData, RTDWOI_ROWSPAN_COLUMNS } from './ViewObservationRTDWOI';
+import { tswiTableConfig, createTSWIViewRows, parseTSWIDynamicData, TSWI_ROWSPAN_COLUMNS } from './ViewObservationTSWI';
+import { swTableConfig, createSWViewRows, parseSWDynamicData, SW_ROWSPAN_COLUMNS } from './ViewObservationSW';
 import { apgTableConfig, createAPGRows, parseAPGDynamicData } from './ViewObservationAPG';
 import { dwTableConfig, createDWRows, parseDWDynamicData } from './ViewObservationDW';
 import { tsTableConfig, createTSRows, parseTSDynamicData } from './ViewObservationTS';
@@ -53,6 +57,10 @@ export {
   ucTableConfig, createUCRows,
   mmTableConfig, createMMRows,
   rtdwiTableConfig, createRTDWIRows,
+  tswoiTableConfig, createTSWOIViewRows, parseTSWOIDynamicData, TSWOI_ROWSPAN_COLUMNS,
+  rtdwoiTableConfig, createRTDWOIViewRows, parseRTDWOIDynamicData, RTDWOI_ROWSPAN_COLUMNS,
+  tswiTableConfig, createTSWIViewRows, parseTSWIDynamicData, TSWI_ROWSPAN_COLUMNS,
+  swTableConfig, createSWViewRows, parseSWDynamicData, SW_ROWSPAN_COLUMNS,
   apgTableConfig, createAPGRows,
   dwTableConfig, createDWRows,
   dgTableConfig, createDGRows, parseDGDynamicData,
@@ -229,6 +237,9 @@ export const getViewObservationTables = (rawdata) => [
   fgTableConfig,
   hgTableConfig,
   rtdwiTableConfig,
+  tswoiTableConfig,
+  rtdwoiTableConfig,
+  tswiTableConfig,
   msrTableConfig,
   tmTableConfig,
   gtmTableConfig,
@@ -253,19 +264,7 @@ export const getViewObservationTables = (rawdata) => [
   dgTableConfig,
   prTableConfig,
   tsTableConfig,
-  {
-    id: 'observationsw',
-    name: 'Observation SW',
-    category: 'Stop Watch',
-    structure: {
-      singleHeaders: ['Sr no', 'Setpoint'],
-      subHeaders: {
-        'Observation on UUC': ['1', '2', '3', '4', '5'],
-        'Observation on Master': ['1', '2', '3', '4', '5'],
-      },
-      remainingHeaders: ['Average UUC', 'Average Master', 'Error', 'Uncertainty'],
-    },
-  },
+  swTableConfig,
   wbTableConfig,
 ];
 
@@ -352,6 +351,12 @@ export const createViewObservationRows = (observationData, template, currentRawd
     unitTypes = mmRes.unitTypes;
   } else if (template === 'observationrtdwi') {
     rows = createRTDWIRows(dataArray);
+  } else if (template === 'observationtswoi') {
+    rows = createTSWOIViewRows(dataArray);
+  } else if (template === 'observationrtdwoi') {
+    rows = createRTDWOIViewRows(dataArray);
+  } else if (template === 'observationtswi') {
+    rows = createTSWIViewRows(dataArray);
   } else if (template === 'observationapg') {
     rows = createAPGRows(dataArray);
   } else if (template === 'observationdw') {
@@ -629,29 +634,7 @@ export const createViewObservationRows = (observationData, template, currentRawd
   } else if (template === 'observationdg') {
     rows = createDGRows(dataArray, currentRawdata);
   } else if (template === 'observationsw') {
-    dataArray.forEach((pointData, idx) => {
-      if (!pointData) return;
-      const leastCount = pointData.leastcount || '1';
-      const row = [
-        pointData.sr_no || (idx + 1),
-        pointData.setpoint || pointData.testpoint || '',
-        Array.isArray(pointData.uuc_values) ? pointData.uuc_values[0] ?? '' : (pointData.uuc_1 || ''),
-        Array.isArray(pointData.uuc_values) ? pointData.uuc_values[1] ?? '' : (pointData.uuc_2 || ''),
-        Array.isArray(pointData.uuc_values) ? pointData.uuc_values[2] ?? '' : (pointData.uuc_3 || ''),
-        Array.isArray(pointData.uuc_values) ? pointData.uuc_values[3] ?? '' : (pointData.uuc_4 || ''),
-        Array.isArray(pointData.uuc_values) ? pointData.uuc_values[4] ?? '' : (pointData.uuc_5 || ''),
-        formatValueByLc(pointData.average_uuc, null, leastCount),
-        Array.isArray(pointData.master_values) ? pointData.master_values[0] ?? '' : (pointData.master_1 || ''),
-        Array.isArray(pointData.master_values) ? pointData.master_values[1] ?? '' : (pointData.master_2 || ''),
-        Array.isArray(pointData.master_values) ? pointData.master_values[2] ?? '' : (pointData.master_3 || ''),
-        Array.isArray(pointData.master_values) ? pointData.master_values[3] ?? '' : (pointData.master_4 || ''),
-        Array.isArray(pointData.master_values) ? pointData.master_values[4] ?? '' : (pointData.master_5 || ''),
-        formatValueByLc(pointData.average_master, null, pointData.masterleastcount || '0.001'),
-        pointData.error || '',
-        pointData.uncertainty || '',
-      ];
-      rows.push(row);
-    });
+    rows = createSWViewRows(dataArray);
   }
 
   return {
@@ -704,14 +687,22 @@ export const parseDynamicObservation = (
     return parseMMDynamicData(observationData);
   } else if (template === 'observationrtdwi') {
     return parseRTDWIDynamicData(observationData);
+  } else if (template === 'observationtswoi') {
+    return parseTSWOIDynamicData(observationData);
+  } else if (template === 'observationrtdwoi') {
+    return parseRTDWOIDynamicData(observationData);
+  } else if (template === 'observationtswi') {
+    return parseTSWIDynamicData(observationData);
   } else if (template === 'observationapg') {
     return parseAPGDynamicData(observationData);
   } else if (template === 'observationdw') {
     return parseDWDynamicData(observationData, response, setEquipmentData);
   } else if (template === 'observationwb' || template === 'observationwbn') {
     return parseWBDynamicData(observationData);
-  } else if (template === 'observationts' || template === 'observationsw') {
+  } else if (template === 'observationts') {
     return parseTSDynamicData(observationData, response, setThermalCoeff);
+  } else if (template === 'observationsw') {
+    return parseSWDynamicData(observationData);
   } else if (template === 'observationvc') {
     const therm = observationData.thermal_coeff || observationData.thermal_coefficients || response?.data?.thermal_coefficients;
     if (therm && setThermalCoeff) {

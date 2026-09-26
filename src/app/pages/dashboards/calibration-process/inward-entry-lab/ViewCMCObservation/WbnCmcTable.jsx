@@ -34,7 +34,7 @@ export const WbnCmcTable = ({ data }) => (
       <tbody>
         {data.length > 0 ? (
           data.map((row, index) => {
-            const uuc0 = row.values?.[0] || '0';
+            const uuc0 = row.values?.[0] ?? row.reading_1 ?? '0';
             const uuc1 = row.values?.[1] || '0';
             const uuc2 = row.values?.[2] || '0';
             const uuc3 = row.values?.[3] || '0';
@@ -61,7 +61,7 @@ export const WbnCmcTable = ({ data }) => (
                 <td className="border border-gray-300 px-2 py-1">{row.coveragefactor}</td>
                 <td className="border border-gray-300 px-2 py-1">{Number(row.expandeduncertainty).toFixed(6)}</td>
                 <td className="border border-gray-300 px-2 py-1">{Number(row.expandeduncertaintymg).toFixed(4)}</td>
-                <td className="border border-gray-300 px-2 py-1">{Number(row.cmcuncertainty).toFixed(6)}</td>
+                <td className="border border-gray-300 px-2 py-1">{Number(row.cmcuncertainty)}</td>
               </tr>
             );
           })

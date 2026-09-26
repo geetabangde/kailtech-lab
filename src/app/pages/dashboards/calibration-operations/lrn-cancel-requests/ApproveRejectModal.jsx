@@ -18,7 +18,7 @@ export default function ApproveRejectModal({
     if (open) {
       setReason(initialReason);
       setRemark(initialRemark);
-      
+
       // ✅ Debug log to verify revRequestId
       console.log("Modal opened with revRequestId:", revRequestId);
     }
@@ -48,21 +48,27 @@ export default function ApproveRejectModal({
     try {
       const url =
         actionType === "approve"
-          ? "/calibrationoperations/approve-lrncancel-requests"
-          : "/calibrationoperations/reject-lrncancel-requests";
+          ? "calibrationoperations/approve-lrncancel-requests"
+          : "calibrationoperations/reject-lrncancel-requests";
 
       const payload = {
         revrequestid: Number(revRequestId), // ✅ Ensure number type
         reason: reason.trim(),
-        remark: remark.trim(),
+        remark: remark ? remark.trim() : "",
       };
 
       console.log(`${actionType} payload:`, payload); // Debug
 
       const response = await axios.post(url, payload);
 
+      if (response.data && response.data.status === false) {
+        toast.error(response.data.message || "Operation failed");
+        setLoading(false);
+        return;
+      }
+
       toast.success(
-        response.data.message ||
+        response.data?.message ||
         (actionType === "approve"
           ? "Request Approved Successfully"
           : "Request Rejected Successfully")
@@ -76,17 +82,24 @@ export default function ApproveRejectModal({
       if (onSuccess) {
         await onSuccess();
       }
-      
+
       // Close modal
       onClose();
     } catch (error) {
-      console.error("API Error:", error.response?.data || error);
-      
-      const errorMessage = 
-        error.response?.data?.message || 
-        error.response?.data?.errors || 
-        "Something went wrong. Please try again.";
-      
+      console.error("API Error:", error);
+
+      let errorMessage = "Something went wrong. Please try again.";
+      if (typeof error === "string") {
+        errorMessage = error;
+      } else if (error.response?.data) {
+        const data = error.response.data;
+        if (data.message) {
+          errorMessage = data.message;
+        } else if (data.errors) {
+          errorMessage = typeof data.errors === "string" ? data.errors : JSON.stringify(data.errors);
+        }
+      }
+
       toast.error(errorMessage);
     } finally {
       setLoading(false);

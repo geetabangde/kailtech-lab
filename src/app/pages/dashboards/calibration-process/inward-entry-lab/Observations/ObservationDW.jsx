@@ -18,7 +18,6 @@ const ObservationDW = ({
   });
 
   useEffect(() => {
-    console.log('📥 Syncing environment values from tableInputValues / formData');
     setEnvValues({
       pressureStart: tableInputValues[`${instId}-pressure-start`] ?? formData?.pressurestart ?? '',
       pressureEnd: tableInputValues[`${instId}-pressure-end`] ?? formData?.pressureend ?? '',
@@ -27,7 +26,8 @@ const ObservationDW = ({
   }, [tableInputValues, formData?.pressurestart, formData?.pressureend, formData?.stabilizationtime, instId]);
 
   const SIGDIG = 100000000;
-  const getMasterLeastCount = () => '0.001';
+  const getMasterLeastCount = (point) =>
+    point?.master_least_count ?? point?.least_count ?? 'any';
 
   if (!isDW) return null;
 
@@ -110,7 +110,53 @@ const ObservationDW = ({
     return apiAvg !== undefined && apiAvg !== null && apiAvg !== '' ? String(apiAvg) : '';
   };
 
+  // handleSubmit rebuilds the DW payload from selectedTableData.staticRows overlaid with
+  // tableInputValues[`${rowIndex}-${colIndex}`]. Reading edits live in local dwValues only,
+  // so mirror them into tableInputValues or submit re-sends the values loaded from the API
+  // and overwrites what the blur handler just saved.
+  const DW_COL_INDEX = { density: 3, s1: 4, u1: 5, u2: 6, s2: 7 };
+
+  const getRowIndex = (pointId, cycleIdx) => {
+    let base = 0;
+    for (const p of observations) {
+      const id = String(p.pointid ?? p.point_id ?? p.point ?? '');
+      // Must match the row count createDWRows() emits, or the indices drift.
+      const count = Array.isArray(p.cycles) && p.cycles.length
+        ? p.cycles.length
+        : (p.repeatable_cycle ? parseInt(p.repeatable_cycle, 10) : 3);
+      if (id === String(pointId)) return base + cycleIdx;
+      base += count;
+    }
+    return -1;
+  };
+
+  const syncToTableInputValues = (pointId, field, cycleIdx, value) => {
+    if (!setTableInputValues) return;
+    const colIndex = DW_COL_INDEX[field];
+    if (colIndex === undefined) return;
+
+    setTableInputValues(prev => {
+      const updated = { ...prev };
+      if (field === 'density') {
+        // Density spans every cycle row of the point.
+        const point = observations.find(
+          p => String(p.pointid ?? p.point_id ?? p.point ?? '') === String(pointId)
+        );
+        const count = (point?.cycles || []).length || 1;
+        for (let c = 0; c < count; c++) {
+          const r = getRowIndex(pointId, c);
+          if (r >= 0) updated[`${r}-${colIndex}`] = value;
+        }
+      } else {
+        const r = getRowIndex(pointId, cycleIdx);
+        if (r >= 0) updated[`${r}-${colIndex}`] = value;
+      }
+      return updated;
+    });
+  };
+
   const handleInputChange = (pointId, field, cycleIdx, value) => {
+    syncToTableInputValues(pointId, field, cycleIdx, value);
     const key = `${pointId}-${field}-${cycleIdx}`;
     setDwValues(prev => {
       const updated = {
@@ -135,9 +181,24 @@ const ObservationDW = ({
     });
   };
 
+  // PHP submits deltai (per cycle) and average (repeatable 0) alongside the readings,
+  // so save them whenever a reading changes.
+  const handleReadingBlur = async (pointId, type, cycleIndex, value) => {
+    if (!handleBiomedicalInputBlur) return;
+    await handleBiomedicalInputBlur(pointId, type, cycleIndex, value);
+
+    const delta = dwValues[`${pointId}-delta-${cycleIndex}`];
+    if (delta !== undefined && delta !== '') {
+      await handleBiomedicalInputBlur(pointId, 'deltai', cycleIndex, delta, 1, 5, { silent: true });
+    }
+    const avg = calculateAverageDeltaI(pointId);
+    if (avg !== undefined && avg !== '') {
+      await handleBiomedicalInputBlur(pointId, 'average', 0, avg, 1, 5, { silent: true });
+    }
+  };
+
   const renderReadingsTable = () => {
     if (!observations || observations.length === 0) return null;
-    const masterLC = getMasterLeastCount();
 
     return (
       <div className="overflow-x-auto mb-6">
@@ -162,6 +223,7 @@ const ObservationDW = ({
           <tbody>
             {observations.map((point) => {
               const pointId = point.pointid ?? point.point_id ?? point.point;
+              const masterLC = getMasterLeastCount(point);
               const cycles = point.cycles || [];
               const repeatableCount = cycles.length > 0 ? cycles.length : 1;
               const avgDiffVal = calculateAverageDeltaI(pointId);
@@ -221,7 +283,7 @@ const ObservationDW = ({
                             className="w-full px-2 py-1 border border-gray-300 rounded dark:bg-gray-600 dark:text-white"
                             value={s1Val}
                             onChange={(e) => handleInputChange(pointId, 's1', cycleIndex, e.target.value)}
-                            onBlur={(e) => handleBiomedicalInputBlur && handleBiomedicalInputBlur(pointId, 'uuca', cycleIndex, e.target.value)}
+                            onBlur={(e) => handleReadingBlur(pointId, 'uuca', cycleIndex, e.target.value)}
                             step={masterLC}
                             placeholder={`Min: ${masterLC}`}
                           />
@@ -238,7 +300,7 @@ const ObservationDW = ({
                             className="w-full px-2 py-1 border border-gray-300 rounded dark:bg-gray-600 dark:text-white"
                             value={u1Val}
                             onChange={(e) => handleInputChange(pointId, 'u1', cycleIndex, e.target.value)}
-                            onBlur={(e) => handleBiomedicalInputBlur && handleBiomedicalInputBlur(pointId, 'mastera', cycleIndex, e.target.value)}
+                            onBlur={(e) => handleReadingBlur(pointId, 'mastera', cycleIndex, e.target.value)}
                             step={masterLC}
                             placeholder={`Min: ${masterLC}`}
                           />
@@ -255,7 +317,7 @@ const ObservationDW = ({
                             className="w-full px-2 py-1 border border-gray-300 rounded dark:bg-gray-600 dark:text-white"
                             value={u2Val}
                             onChange={(e) => handleInputChange(pointId, 'u2', cycleIndex, e.target.value)}
-                            onBlur={(e) => handleBiomedicalInputBlur && handleBiomedicalInputBlur(pointId, 'masterb', cycleIndex, e.target.value)}
+                            onBlur={(e) => handleReadingBlur(pointId, 'masterb', cycleIndex, e.target.value)}
                             step={masterLC}
                             placeholder={`Min: ${masterLC}`}
                           />
@@ -272,7 +334,7 @@ const ObservationDW = ({
                             className="w-full px-2 py-1 border border-gray-300 rounded dark:bg-gray-600 dark:text-white"
                             value={s2Val}
                             onChange={(e) => handleInputChange(pointId, 's2', cycleIndex, e.target.value)}
-                            onBlur={(e) => handleBiomedicalInputBlur && handleBiomedicalInputBlur(pointId, 'uucb', cycleIndex, e.target.value)}
+                            onBlur={(e) => handleReadingBlur(pointId, 'uucb', cycleIndex, e.target.value)}
                             step={masterLC}
                             placeholder={`Min: ${masterLC}`}
                           />
@@ -361,13 +423,7 @@ const ObservationDW = ({
           }));
         }
       }
-
-      console.log(`🌐 ${field} changed to:`, value);
     };
-
-    console.log('🌐 Environment table - instId:', instId);
-    console.log('📊 Environment state values:', envValues);
-
     return (
       <div className="overflow-x-auto">
         <table className="w-full border-collapse border border-gray-300 dark:border-gray-600 text-sm">
@@ -418,12 +474,12 @@ const ObservationDW = ({
                   className="w-full px-2 py-1 border border-gray-300 rounded dark:bg-gray-600 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   value={envValues.stabilization}
                   onChange={(e) => handleEnvChange('stabilization', e.target.value)}
-                  onBlur={(e) => handleBiomedicalInputBlur && handleBiomedicalInputBlur(instId, 'stabilizationtime', 0, e.target.value)}
+                  onBlur={(e) => handleBiomedicalInputBlur && handleBiomedicalInputBlur(instId, 'stabilizationtime', 1, e.target.value)}
                   placeholder="Enter stabilization time"
                 />
                 <input type="hidden" name="calibrationpoint[]" value={instId} />
                 <input type="hidden" name="type[]" value="stabilizationtime" />
-                <input type="hidden" name="repeatable[]" value="0" />
+                <input type="hidden" name="repeatable[]" value="1" />
                 <input type="hidden" name="value[]" value={envValues.stabilization} />
               </td>
             </tr>
@@ -494,22 +550,29 @@ export const createDWRows = (dataArray) => {
 
   (dataArray || []).forEach((point) => {
     if (!point) return;
-    const cycles = point.repeatable_cycle ? parseInt(point.repeatable_cycle) : 3;
-    for (let cycle = 0; cycle < cycles; cycle++) {
+    // The API returns a `cycles` array per point; fall back to the flat per-field
+    // arrays only if an older shape shows up.
+    const apiCycles = Array.isArray(point.cycles) ? point.cycles : null;
+    const cycleCount = apiCycles
+      ? apiCycles.length
+      : (point.repeatable_cycle ? parseInt(point.repeatable_cycle) : 3);
+
+    for (let cycle = 0; cycle < cycleCount; cycle++) {
+      const c = apiCycles?.[cycle] || {};
       const row = [
         point.sr_no?.toString() || '',
-        (cycle + 1).toString(),
+        (c.cycle_no ?? cycle + 1).toString(),
         safeVal(point.nominal_value || point.test_point),
         safeVal(point.density),
-        safeVal(point.s1?.[cycle]), // uuca -> S1
-        safeVal(point.u1?.[cycle]), // mastera -> U1
-        safeVal(point.u2?.[cycle]), // masterb -> U2
-        safeVal(point.s2?.[cycle]), // uucb -> S2
-        safeVal(point.deltai?.[cycle]), // Diff
+        safeVal(c.S1 ?? c.s1 ?? point.s1?.[cycle]), // uuca -> S1
+        safeVal(c.U1 ?? c.u1 ?? point.u1?.[cycle]), // mastera -> U1
+        safeVal(c.U2 ?? c.u2 ?? point.u2?.[cycle]), // masterb -> U2
+        safeVal(c.S2 ?? c.s2 ?? point.s2?.[cycle]), // uucb -> S2
+        safeVal(c.Delta ?? c.deltai ?? point.deltai?.[cycle]), // Diff
         safeVal(point.average_diff), // Avg.Diff
       ];
       rows.push(row);
-      calibrationPoints.push(point.point_id?.toString() || '');
+      calibrationPoints.push((point.pointid ?? point.point_id ?? '').toString());
       types.push('input'); // Will be overridden dynamically in handleSubmit
       repeatables.push(cycle.toString());
       values.push(safeVal(point.nominal_value || point.test_point) || '0');

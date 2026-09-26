@@ -99,3 +99,34 @@ export const formatValueByLc = (val, decimals, leastCount) => {
   }
   return strVal;
 };
+
+export const validateLeastCount = (val, leastCount) => {
+  if (val === undefined || val === null || String(val).trim() === '') return { isValid: true, error: null };
+  const strVal = String(val).trim();
+  if (!/^-?\d*\.?\d*$/.test(strVal)) return { isValid: false, error: 'Please enter a valid number' };
+  const num = parseFloat(strVal);
+  if (isNaN(num)) return { isValid: false, error: 'Please enter a valid number' };
+
+  const lcStr = String(leastCount).trim();
+  const lcNum = parseFloat(lcStr);
+  const lcDec = (lcStr.includes('.') ? lcStr.split('.')[1].length : 3);
+
+  const valDec = strVal.includes('.') ? strVal.split('.')[1].length : 0;
+  if (lcDec >= 0 && valDec > lcDec) {
+    return { isValid: false, error: `Maximum ${lcDec} decimal place(s) allowed for least count ${lcStr}` };
+  }
+
+  if (num !== 0 && !strVal.endsWith('.') && (!strVal.includes('.') || valDec >= lcDec) && lcNum > 0) {
+    if (num < lcNum) {
+      return { isValid: false, error: `Please enter a value with in leastcount ${lcStr}` };
+    }
+    const factor = 1000000;
+    const scaledVal = Math.round(num * factor);
+    const scaledLc = Math.round(lcNum * factor);
+    if (scaledVal % scaledLc !== 0) {
+      return { isValid: false, error: `Please Enter Value divisible by ${lcStr}` };
+    }
+  }
+
+  return { isValid: true, error: null };
+};

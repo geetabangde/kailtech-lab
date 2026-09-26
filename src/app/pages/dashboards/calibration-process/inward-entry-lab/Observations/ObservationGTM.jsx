@@ -178,7 +178,9 @@ export const createGTMRows = (dataArray, instrument) => {
         // Initial / pre-calculated averages
         const avgUuc = safeGetValue(point.average_uuc ?? point.averageuuc ?? '');
         const avgMaster = safeGetValue(point.average_master ?? point.averagemaster ?? '');
-        const cAvgMaster = safeGetValue(point.converted_average_master ?? point.caveragemaster ?? '');
+        const masterUnitSymbol = point.master_unit_description ?? point.master_unit_name ?? point.master_unit ?? '';
+        const cAvgMasterFallback = convertMasterAverage(avgMaster, masterUnitSymbol, getDecimalPlaces(point.master_least_count ?? point.least_count ?? '0.001'));
+        const cAvgMaster = safeGetValue(point.converted_average_master ?? point.caveragemaster ?? cAvgMasterFallback ?? '');
         let errorVal = safeGetValue(point.error ?? '');
 
         // Strict validation: only set error if both UUC average and Converted Master Average are non-empty
@@ -205,9 +207,8 @@ export const createGTMRows = (dataArray, instrument) => {
             uucUnit,                                         // 4: Unit
             '-',                                             // 5: Sensitivity Coefficient
             ...uucReadings.slice(0, 5).map(v => safeGetValue(v)), // 6-10: Obs 1..5
-            '-',                                             // 11: Average (Ω) - dash for UUC
-            avgUuc,                                          // 12: Average (UUC Unit)
-            errorVal,                                        // 13: Deviation (UUC Unit) (rowspan 2)
+            avgUuc,                                          // 11: Average (UUC Unit)
+            errorVal,                                        // 12: Deviation (UUC Unit) (rowspan 2)
         ];
         rows.push(uucRow);
 
@@ -250,9 +251,8 @@ export const createGTMRows = (dataArray, instrument) => {
             masterUnit,                                      // 4: Unit
             sensCoeff,                                       // 5: Sensitivity Coefficient
             ...masterReadings.slice(0, 5).map(v => safeGetValue(v)), // 6-10: Obs 1..5
-            avgMaster,                                       // 11: Average (Ω)
-            cAvgMaster,                                      // 12: Average (UUC Unit)
-            '-',                                             // 13: Deviation (spanned)
+            cAvgMaster,                                      // 11: Average (UUC Unit)
+            '-',                                             // 12: Deviation (spanned)
         ];
         rows.push(masterRow);
 
@@ -289,6 +289,56 @@ export const createGTMRows = (dataArray, instrument) => {
 };
 
 /**
+ * Master unit -> multiplier that brings a master reading to plain ohms.
+ * Returns null when the unit is not a resistance unit (no conversion needed).
+ */
+const getOhmScale = (unitSymbol) => {
+    // Compared against lowercase text, so the unit symbol arrives as lowercase omega
+    const sym = String(unitSymbol ?? '').trim().toLowerCase();
+    if (!sym) return null;
+    if (sym.includes('mega') || sym.startsWith('mω') || sym === 'mohm') return 1e6;
+    if (sym.includes('kilo') || sym.startsWith('kω') || sym === 'kohm') return 1e3;
+    if (sym.includes('ohm') || sym.includes('ω') || sym.includes('Ω')) return 1;
+    return null;
+};
+
+/**
+ * PT100 RTD resistance -> temperature (Callendar-Van Dusen, inverted).
+ * R = R0 (1 + A t + B t^2) for t >= 0, with R0 = 100, A = 3.9083e-3, B = -5.775e-7.
+ * Below 0 degC (R < 100) the cubic C term is ignored; values there are approximate.
+ */
+const pt100ResistanceToTemp = (resistance) => {
+    const R = parseFloat(resistance);
+    if (isNaN(R) || R <= 0) return NaN;
+    const R0 = 100;
+    const A = 3.9083e-3;
+    const B = -5.775e-7;
+    const disc = A * A - 4 * B * (1 - R / R0);
+    if (disc < 0) return NaN;
+    return (-A + Math.sqrt(disc)) / (2 * B);
+};
+
+/**
+ * Converted Master Average: master average expressed in the UUC unit.
+ * Resistance master units are converted through the PT100 curve; when the master
+ * already reads in the UUC unit the average passes through unchanged.
+ */
+const convertMasterAverage = (avgMaster, masterUnitSymbol, decimals) => {
+    if (avgMaster === undefined || avgMaster === null || String(avgMaster).trim() === '') return '';
+    const num = parseFloat(avgMaster);
+    if (isNaN(num)) return '';
+
+    const scale = getOhmScale(masterUnitSymbol);
+    if (scale === null) {
+        // Same unit as the UUC - nothing to convert
+        return num.toFixed(decimals);
+    }
+
+    const temp = pt100ResistanceToTemp(num * scale);
+    return isNaN(temp) ? '' : temp.toFixed(decimals);
+};
+
+/**
  * Table config for GTM Observation
  */
 export const getGTMTableConfig = (observations, instrument) => {
@@ -306,14 +356,12 @@ export const getGTMTableConfig = (observations, instrument) => {
                 `Set Point (${uucUnit})`,
                 'Range',
                 'Value Of',
-                'Unit',
-                'Sensitivity Coefficient'
+                'Unit'
             ],
             subHeaders: {
                 'Observation ()': ['1', '2', '3', '4', '5']
             },
             remainingHeaders: [
-                'Average (Ω)',
                 `Average (${uucUnit})`,
                 `Deviation (${uucUnit})`
             ]
@@ -327,7 +375,7 @@ export const getGTMTableConfig = (observations, instrument) => {
  * Primary React Component: ObservationGTM
  * Self-contained component rendering the exact PHP GTM observation table with:
  * - Table class: standard clean Bootstrap-style bordered table (no colored badges or highlights)
- * - Headers: Sr. No., Set Point, Range, Value Of, Unit, Sensitivity Coefficient, Observation (1..5), Average (Ω), Average (°C), Deviation (°C)
+ * - Headers: Sr. No., Set Point, Range, Value Of, Unit, Observation (1..5), Average (°C), Deviation (°C)
  * - Row 1: UUC, Row 2: Master
  * - Pure PHP mathematical logic: UUC average, Master average, and Deviation = averageuuc - caveragemaster (or caveragemaster - averageuuc if stduuc)
  * - Strict behavior: Deviation is ONLY displayed when BOTH averageuuc and caveragemaster are valid non-empty numbers
@@ -493,7 +541,10 @@ const ObservationGTM = ({
         const cAvgMasterKey = `${pointId}-caveragemaster`;
         const cAvgMasterLegKey = `caveragemaster${pointId}`;
         const cAvgMasterRowKey = `${masterRowIdx}-12`;
-        const cAvgMasterVal = getValue(cAvgMasterKey, getValue(cAvgMasterLegKey, getValue(cAvgMasterRowKey, point.caveragemaster ?? point.converted_average_master ?? '')));
+        const avgMasterRaw = getValue(`${pointId}-averagemaster`, getValue(`averagemaster${pointId}`, getValue(`${masterRowIdx}-11`, point.average_master ?? point.averagemaster ?? '')));
+        const masterUnitFallback = getValue(`${pointId}-masterunit`, getValue(`masterunit${pointId}`, getValue(`${masterRowIdx}-4`, point.master_unit_id?.toString() ?? point.master_unit ?? '')));
+        const avgMasterFallback = convertMasterAverage(avgMasterRaw, getSelectedUnitSymbol(masterUnitFallback), errorDec);
+        const cAvgMasterVal = getValue(cAvgMasterKey, getValue(cAvgMasterLegKey, getValue(cAvgMasterRowKey, point.caveragemaster ?? point.converted_average_master ?? avgMasterFallback ?? '')));
 
         let newDeviation = '';
         if (newAvgUuc !== '' && cAvgMasterVal !== '' && String(cAvgMasterVal).trim() !== '') {
@@ -558,45 +609,20 @@ const ObservationGTM = ({
             newAvgMaster = avg.toFixed(mlcDec);
         }
 
-        if (setTableInputValues) {
-            setTableInputValues(prev => ({
-                ...prev,
-                [key]: val,
-                [legacyKey]: val,
-                [tableKey]: val,
-                [`${pointId}-averagemaster`]: newAvgMaster,
-                [`averagemaster${pointId}`]: newAvgMaster,
-                [`${masterRowIdx}-11`]: newAvgMaster,
-            }));
-        }
-
-        handleDecimalValidation(key, val, point.master_least_count);
-
-        if (handleInputChange) {
-            handleInputChange(masterRowIdx, obsIdx + 6, val);
-            handleInputChange(masterRowIdx, 11, newAvgMaster);
-        }
-    };
-
-    // Handle Converted Master Average change (caveragemaster) -> exact PHP substractminus
-    const handleCAvgMasterChange = (pointId, val, point, masterRowIdx, uucRowIdx) => {
-        const key = `${pointId}-caveragemaster`;
-        const legacyKey = `caveragemaster${pointId}`;
-        const tableKey = `${masterRowIdx}-12`;
-
+        // Converted Master Average is auto-calculated from the master average
+        const uucRowIdx = masterRowIdx - 1;
         const lcDec = getEffectiveDecimals(point, [], 'uuc');
-        const mlcDec = getEffectiveDecimals(point, [], 'master');
         const errorDec = Math.max(lcDec, mlcDec);
 
-        // Get current averageuuc
-        const avgUucKey = `${pointId}-averageuuc`;
-        const avgUucLegKey = `averageuuc${pointId}`;
-        const avgUucRowKey = `${uucRowIdx}-12`;
-        const avgUucVal = getValue(avgUucKey, getValue(avgUucLegKey, getValue(avgUucRowKey, point.average_uuc ?? point.averageuuc ?? '')));
+        const masterUnitVal = getValue(`${pointId}-masterunit`, getValue(`masterunit${pointId}`, getValue(`${masterRowIdx}-4`, point.master_unit_id?.toString() ?? point.master_unit ?? '')));
+        const newCAvgMaster = convertMasterAverage(newAvgMaster, getSelectedUnitSymbol(masterUnitVal), errorDec);
+
+        // Recompute deviation (substractminus) against the current UUC average
+        const avgUucVal = getValue(`${pointId}-averageuuc`, getValue(`averageuuc${pointId}`, getValue(`${uucRowIdx}-12`, point.average_uuc ?? point.averageuuc ?? '')));
 
         let newDeviation = '';
-        if (val !== '' && String(val).trim() !== '' && avgUucVal !== '' && String(avgUucVal).trim() !== '') {
-            const numCAvg = parseFloat(val);
+        if (newCAvgMaster !== '' && avgUucVal !== '' && String(avgUucVal).trim() !== '') {
+            const numCAvg = parseFloat(newCAvgMaster);
             const numAvgUuc = parseFloat(avgUucVal);
             if (!isNaN(numCAvg) && !isNaN(numAvgUuc)) {
                 const isStdUuc = instrument?.error === 'stduuc' || instrument?.error_type === 'stduuc';
@@ -611,16 +637,24 @@ const ObservationGTM = ({
                 [key]: val,
                 [legacyKey]: val,
                 [tableKey]: val,
+                [`${pointId}-averagemaster`]: newAvgMaster,
+                [`averagemaster${pointId}`]: newAvgMaster,
+                [`${masterRowIdx}-11`]: newAvgMaster,
+                [`${pointId}-caveragemaster`]: newCAvgMaster,
+                [`caveragemaster${pointId}`]: newCAvgMaster,
+                [`${masterRowIdx}-12`]: newCAvgMaster,
                 [`${pointId}-error`]: newDeviation,
                 [`error${pointId}`]: newDeviation,
                 [`${uucRowIdx}-13`]: newDeviation,
             }));
         }
 
-        handleDecimalValidation(key, val, point.master_least_count !== 'NA' ? point.master_least_count : point.least_count);
+        handleDecimalValidation(key, val, point.master_least_count);
 
         if (handleInputChange) {
-            handleInputChange(masterRowIdx, 12, val);
+            handleInputChange(masterRowIdx, obsIdx + 6, val);
+            handleInputChange(masterRowIdx, 11, newAvgMaster);
+            handleInputChange(masterRowIdx, 12, newCAvgMaster);
             handleInputChange(uucRowIdx, 13, newDeviation);
         }
     };
@@ -655,14 +689,8 @@ const ObservationGTM = ({
                             <th rowSpan={2} className="px-3 py-2 text-center border-r border-gray-300 dark:border-gray-600 min-w-[120px]">
                                 Unit
                             </th>
-                            <th rowSpan={2} className="px-3 py-2 text-center border-r border-gray-300 dark:border-gray-600 min-w-[110px]">
-                                Sensitivity Coefficient
-                            </th>
                             <th colSpan={5} className="px-3 py-2 text-center border-r border-gray-300 dark:border-gray-600">
                                 Observation ()
-                            </th>
-                            <th rowSpan={2} className="px-3 py-2 text-center border-r border-gray-300 dark:border-gray-600 min-w-[110px]">
-                                Average (Ω)
                             </th>
                             <th rowSpan={2} className="px-3 py-2 text-center border-r border-gray-300 dark:border-gray-600 min-w-[110px]">
                                 Average ({uucUnit})
@@ -707,9 +735,6 @@ const ObservationGTM = ({
                             const masterUnitKey = `${pointId}-masterunit`;
                             const masterUnitVal = getValue(masterUnitKey, getValue(`masterunit${pointId}`, getValue(`${masterRowIdx}-4`, point.master_unit_id?.toString() || point.master_unit_value?.toString() || point.master_unit || '12')));
 
-                            // Sensitivity Coefficient
-                            const sensKey = `${pointId}-sensitivitycoefficient`;
-                            const sensVal = getValue(sensKey, getValue(`sensitivitycoefficient${pointId}`, getValue(`${masterRowIdx}-5`, point.sensitivity_coefficient ?? point.sensitivitycoefficient ?? '')));
 
                             // UUC Readings (0..4) - reading backend uuc_values array
                             const uucReadings = [0, 1, 2, 3, 4].map(idx => {
@@ -751,15 +776,24 @@ const ObservationGTM = ({
                             const avgMasterKey = `${pointId}-averagemaster`;
                             const avgMasterVal = getValue(avgMasterKey, getValue(`averagemaster${pointId}`, getValue(`${masterRowIdx}-11`, fallbackAvgMaster)));
 
-                            // Converted Average Master (caveragemaster)
+                            // Converted Average Master (caveragemaster) - auto-calculated from the master average
                             const cAvgMasterKey = `${pointId}-caveragemaster`;
-                            const cAvgMasterVal = getValue(cAvgMasterKey, getValue(`caveragemaster${pointId}`, getValue(`${masterRowIdx}-12`, point.converted_average_master ?? point.caveragemaster ?? '')));
+                            const cAvgMasterFallback = convertMasterAverage(avgMasterVal, getSelectedUnitSymbol(masterUnitVal), Math.max(effectiveLcDec, effectiveMlcDec));
+                            const cAvgMasterVal = getValue(cAvgMasterKey, getValue(`caveragemaster${pointId}`, getValue(`${masterRowIdx}-12`, point.converted_average_master ?? point.caveragemaster ?? cAvgMasterFallback ?? '')));
 
                             // Calculated Deviation (Error) - only displayed if both UUC and Master Converted Average exist
                             const errorKey = `${pointId}-error`;
                             let errorVal = '';
                             if (avgUucVal !== '' && String(avgUucVal).trim() !== '' && cAvgMasterVal !== '' && String(cAvgMasterVal).trim() !== '') {
-                                errorVal = getValue(errorKey, getValue(`error${pointId}`, getValue(`${uucRowIdx}-13`, point.error ?? '')));
+                                let fallbackError = point.error ?? '';
+                                const numAvgUuc = parseFloat(avgUucVal);
+                                const numCAvg = parseFloat(cAvgMasterVal);
+                                if (!isNaN(numAvgUuc) && !isNaN(numCAvg)) {
+                                    const isStdUuc = instrument?.error === 'stduuc' || instrument?.error_type === 'stduuc';
+                                    const dev = isStdUuc ? (numCAvg - numAvgUuc) : (numAvgUuc - numCAvg);
+                                    fallbackError = dev.toFixed(Math.max(effectiveLcDec, effectiveMlcDec));
+                                }
+                                errorVal = getValue(errorKey, getValue(`error${pointId}`, getValue(`${uucRowIdx}-13`, fallbackError)));
                             }
 
                             return (
@@ -841,11 +875,6 @@ const ObservationGTM = ({
                                             {pointUucUnit}
                                         </td>
 
-                                        {/* 5: Sensitivity Coefficient (Dash for UUC) */}
-                                        <td className="px-3 py-2 text-center text-gray-500 dark:text-gray-400 border-r border-gray-300 dark:border-gray-600">
-                                            -
-                                        </td>
-
                                         {/* 6-10: UUC Observations 1 to 5 */}
                                         {[0, 1, 2, 3, 4].map((obsIdx) => {
                                             const fieldKey = `${pointId}-uuc-${obsIdx}`;
@@ -889,11 +918,6 @@ const ObservationGTM = ({
                                                 </td>
                                             );
                                         })}
-
-                                        {/* 11: Average (Ω) - Dash for UUC */}
-                                        <td className="px-3 py-2 text-center text-gray-500 dark:text-gray-400 border-r border-gray-300 dark:border-gray-600">
-                                            -
-                                        </td>
 
                                         {/* 12: Average (UUC Unit) - Readonly */}
                                         <td className="px-2 py-2 border-r border-gray-300 dark:border-gray-600">
@@ -1022,48 +1046,6 @@ const ObservationGTM = ({
                                             </div>
                                         </td>
 
-                                        {/* 5: Sensitivity Coefficient */}
-                                        <td className="px-2 py-2 border-r border-gray-300 dark:border-gray-600">
-                                            <input
-                                                type="hidden"
-                                                name="calibrationpoint[]"
-                                                value={pointId}
-                                            />
-                                            <input
-                                                type="hidden"
-                                                name="type[]"
-                                                value="sensitivitycoefficient"
-                                            />
-                                            <input
-                                                type="hidden"
-                                                name="repeatable[]"
-                                                value="0"
-                                            />
-                                            <input
-                                                type="number"
-                                                step="any"
-                                                name="value[]"
-                                                id={`sensitivitycoefficient${pointId}`}
-                                                value={sensVal}
-                                                onChange={(e) => {
-                                                    const val = e.target.value;
-                                                    setInputValue(sensKey, val, masterRowIdx, 5);
-                                                    if (setTableInputValues) {
-                                                        setTableInputValues(prev => ({
-                                                            ...prev,
-                                                            [`sensitivitycoefficient${pointId}`]: val,
-                                                            [`${masterRowIdx}-5`]: val,
-                                                        }));
-                                                    }
-                                                }}
-                                                onBlur={(e) => {
-                                                    if (handleObservationBlur) handleObservationBlur(masterRowIdx, 5, e.target.value, pointId);
-                                                }}
-                                                placeholder="Sens. Coeff."
-                                                className="w-full px-2 py-1 text-center bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-gray-800 dark:text-gray-200 focus:ring-1 focus:ring-blue-500 focus:outline-none"
-                                            />
-                                        </td>
-
                                         {/* 6-10: Master Observations 1 to 5 */}
                                         {[0, 1, 2, 3, 4].map((obsIdx) => {
                                             const fieldKey = `${pointId}-master-${obsIdx}`;
@@ -1108,7 +1090,8 @@ const ObservationGTM = ({
                                             );
                                         })}
 
-                                        {/* 11: Average (Ω) - Master Average (Readonly) */}
+                                        {/* Average (UUC Unit) - Converted Average Master (Editable) */}
+                                        {/* Master Average (Ω) column removed from view; value still submitted as hidden inputs */}
                                         <td className="px-2 py-2 border-r border-gray-300 dark:border-gray-600">
                                             <input
                                                 type="hidden"
@@ -1126,17 +1109,12 @@ const ObservationGTM = ({
                                                 value="0"
                                             />
                                             <input
-                                                type="text"
+                                                type="hidden"
                                                 name="value[]"
                                                 id={`averagemaster${pointId}`}
-                                                readOnly
                                                 value={avgMasterVal}
-                                                className="w-full px-2 py-1 text-center bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-gray-800 dark:text-gray-200 cursor-not-allowed"
+                                                readOnly
                                             />
-                                        </td>
-
-                                        {/* 12: Average (UUC Unit) - Converted Average Master (Editable) */}
-                                        <td className="px-2 py-2 border-r border-gray-300 dark:border-gray-600">
                                             <input
                                                 type="hidden"
                                                 name="calibrationpoint[]"
@@ -1153,17 +1131,13 @@ const ObservationGTM = ({
                                                 value="0"
                                             />
                                             <input
-                                                type="number"
-                                                step="any"
+                                                type="text"
                                                 name="value[]"
                                                 id={`caveragemaster${pointId}`}
+                                                readOnly
                                                 value={cAvgMasterVal}
-                                                onChange={(e) => handleCAvgMasterChange(pointId, e.target.value, point, masterRowIdx, uucRowIdx)}
-                                                onBlur={(e) => {
-                                                    if (handleObservationBlur) handleObservationBlur(masterRowIdx, 12, e.target.value, pointId);
-                                                }}
                                                 placeholder={`Avg (${pointUucUnit})`}
-                                                className="w-full px-2 py-1 text-center bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-gray-800 dark:text-gray-200 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                                                className="w-full px-2 py-1 text-center bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded text-gray-800 dark:text-gray-200 cursor-not-allowed"
                                             />
                                         </td>
                                     </tr>

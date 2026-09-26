@@ -28,6 +28,7 @@ export const DwCmcTable = ({ data }) => {
             <th rowSpan="3" className="border border-gray-300 px-1 py-2 bg-gray-200">Coverage Factor</th>
             <th rowSpan="3" className="border border-gray-300 px-1 py-2 bg-gray-200">Expanded Uncertainty (mg)</th>
             <th rowSpan="3" className="border border-gray-300 px-1 py-2 bg-gray-200">CMC Taken</th>
+            <th rowSpan="3" className="border border-gray-300 px-1 py-2 bg-gray-200">CMC Scope</th>
           </tr>
           <tr className="bg-gray-100 text-center font-semibold text-[11px]">
             <th className="border border-gray-300 px-1 py-2 bg-gray-200">S1</th>
@@ -122,6 +123,9 @@ export const DwCmcTable = ({ data }) => {
                       </td>
                       <td rowSpan={repeatCount} className="border border-gray-300 px-1 py-2">
                         {typeof row.cmcuncertainty === 'number' ? row.cmcuncertainty.toFixed(6) : (row.cmcuncertainty ?? '-')}
+                      </td>
+                      <td rowSpan={repeatCount} className="border border-gray-300 px-1 py-2">
+                        {typeof row.cmcscope === 'number' ? row.cmcscope : (row.cmc_scope !== undefined ? row.cmc_scope : (row.cmcscope ?? '-'))}
                       </td>
                     </>
                   )}

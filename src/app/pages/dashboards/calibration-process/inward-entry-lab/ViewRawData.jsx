@@ -16,7 +16,11 @@ import {
   TSTable,
   ViewObservationAUTM,
   ViewObservationPR,
-  ViewObservationWBN
+  ViewObservationWBN,
+  ViewObservationUTM,
+  TSWOI_ROWSPAN_COLUMNS,
+  TSWI_ROWSPAN_COLUMNS,
+  SW_ROWSPAN_COLUMNS
 } from './ViewRawDataObservation';
 
 export default function CalibrationReport() {
@@ -140,6 +144,13 @@ export default function CalibrationReport() {
     const headers = [];
     const subHeadersRow = [];
 
+    const asUnitText = (val) => {
+      if (val === null || val === undefined || val === '') return '';
+      if (typeof val === 'string') return val;
+      if (typeof val === 'number') return String(val);
+      return '';
+    };
+
     const uucUnit = unitInfo?.unit_description
       || unitInfo?.description
       || unitInfo?.uuc_unit?.description
@@ -160,23 +171,28 @@ export default function CalibrationReport() {
       || observationsList?.[0]?.master_unit
       || (selectedTableData?.id === 'observationgtm' ? 'Ω' : '');
 
+    const uucUnitText = asUnitText(uucUnit);
+    const masterUnitText = asUnitText(masterUnit);
+
     const formatHeader = (text) => {
       if (typeof text !== 'string') return text;
       let formatted = text;
-      if (uucUnit) {
+      if (uucUnitText) {
+        const u = uucUnitText.toUpperCase();
         formatted = formatted
-          .replace(/\(UUC Unit\)/gi, `(${uucUnit.toUpperCase()})`)
-          .replace(/\(UUCUNIT\)/gi, `(${uucUnit.toUpperCase()})`)
-          .replace(/\[unit\]/gi, uucUnit.toUpperCase())
-          .replace(/\(CALCULATIONUNIT\)/gi, `(${uucUnit.toUpperCase()})`)
-          .replace(/\[CALCULATIONUNIT\]/gi, uucUnit.toUpperCase());
+          .replace(/\(UUC Unit\)/gi, `(${u})`)
+          .replace(/\(UUCUNIT\)/gi, `(${u})`)
+          .replace(/\[unit\]/gi, u)
+          .replace(/\(CALCULATIONUNIT\)/gi, `(${u})`)
+          .replace(/\[CALCULATIONUNIT\]/gi, u);
       }
-      if (masterUnit) {
+      if (masterUnitText) {
+        const m = masterUnitText.toUpperCase();
         formatted = formatted
-          .replace(/\(Master Unit\)/gi, `(${masterUnit.toUpperCase()})`)
-          .replace(/\(MASTERUNIT\)/gi, `(${masterUnit.toUpperCase()})`)
-          .replace(/\[master unit\]/gi, masterUnit.toUpperCase())
-          .replace(/\[MASTERUNIT\]/gi, masterUnit.toUpperCase());
+          .replace(/\(Master Unit\)/gi, `(${m})`)
+          .replace(/\(MASTERUNIT\)/gi, `(${m})`)
+          .replace(/\[master unit\]/gi, m)
+          .replace(/\[MASTERUNIT\]/gi, m);
       }
       return formatted.replace(/\[|\]/g, '');
     };
@@ -425,6 +441,69 @@ export default function CalibrationReport() {
                 if (selectedTable) {
                   const units = matrices[0]?.header_info?.uuc_unit || matrices[0]?.header_info?.calculation_unit || 'N';
                   setTableStructure(prev => prev || generateTableStructure(selectedTable, units));
+                }
+              }
+            }
+
+            // Handle UTM observation data structure (matrices[].calibration_points)
+            if (resolvedTemplate === 'observationutm' && observation_data?.matrices) {
+              const matrices = observation_data.matrices || observation_data.data?.matrices;
+              if (Array.isArray(matrices) && matrices.length > 0 && matrices[0]?.calibration_points) {
+                setDynamicObservations(matrices);
+                const selectedTable = observationTables.find(table => table.id === resolvedTemplate);
+                if (selectedTable) {
+                  const units = matrices[0]?.metadata?.unit || 'kN';
+                  setTableStructure(prev => prev || generateTableStructure(selectedTable, units));
+                }
+              }
+            }
+
+            // Handle IT observation data that already comes in the main response
+            if (resolvedTemplate === 'observationit' && observation_data) {
+              const itPayload =
+                observation_data.data?.data ||
+                observation_data.data ||
+                observation_data;
+
+              if (itPayload?.calibration_points) {
+                setDynamicObservations(itPayload.calibration_points);
+
+                if (itPayload.thermal_coefficients) {
+                  setThermalCoeff({
+                    uuc: itPayload.thermal_coefficients.uuc_coefficient || '',
+                    master: itPayload.thermal_coefficients.master_coefficient || '',
+                    thickness_of_graduation: '',
+                  });
+                }
+
+                const selectedTable = observationTables.find(t => t.id === resolvedTemplate);
+                if (selectedTable) {
+                  const units = itPayload.calibration_points[0]?.unit || 'mm';
+                  setTableStructure(prev => prev || generateTableStructure(selectedTable, units, itPayload.calibration_points));
+                }
+              }
+            }
+
+            // Generic fallback: several templates (FG among them) ship their points as
+            // observation_data.calibration_points in this same response. Without this, an
+            // empty /ob/get-observation call leaves the table blank and the page falls back
+            // to the "No calibration results available" placeholder.
+            if (observation_data) {
+              const genericPoints =
+                observation_data.calibration_points ||
+                observation_data.data?.calibration_points ||
+                observation_data.data?.data?.calibration_points;
+
+              if (Array.isArray(genericPoints) && genericPoints.length > 0) {
+                // Never clobber points a template-specific handler already set.
+                setDynamicObservations(prev =>
+                  (Array.isArray(prev) && prev.length > 0) ? prev : genericPoints
+                );
+
+                const selectedTable = observationTables.find(t => t.id === resolvedTemplate);
+                if (selectedTable) {
+                  const units = genericPoints[0]?.unit || genericPoints[0]?.units;
+                  setTableStructure(prev => prev || generateTableStructure(selectedTable, units, genericPoints));
                 }
               }
             }
@@ -1025,13 +1104,19 @@ export default function CalibrationReport() {
               ) : observationTemplate === 'observationautm' ? (
                 <ViewObservationAUTM
                   rawdata={rawdata}
-                  observationRows={observationRows}
+                  currentRawdata={rawdata}
                   dynamicObservations={dynamicObservations}
                 />
               ) : observationTemplate === 'observationpr' ? (
                 <ViewObservationPR
                   observations={dynamicObservations}
                   instrument={rawdata?.listInstrument}
+                />
+              ) : observationTemplate === 'observationutm' ? (
+                <ViewObservationUTM
+                  rawdata={rawdata}
+                  currentRawdata={rawdata}
+                  dynamicObservations={dynamicObservations}
                 />
               ) : observationTemplate === 'observationmm' && observationRows?.unitTypes && observationRows.unitTypes.length > 0 ? (
                 observationRows.unitTypes.map((unitTypeGroup, groupIndex) => {
@@ -1174,20 +1259,62 @@ export default function CalibrationReport() {
                                 }
                               }
 
-                              // GTM rowSpan handling matching rawdatagtm.php (rowspan=2 for Sr. No., Set Point, Range, Average (Ω), Deviation)
+                              // GTM rowSpan handling matching rawdatagtm.php (rowspan=2 for Sr. No., Set Point, Range, Deviation)
                               let cellContent = cell;
                               if (observationTemplate === 'observationgtm') {
-                                const isSpanCol = [0, 1, 2, 11, 13].includes(colIndex);
+                                // Unit (col 4) is shared by the UUC and Master rows
+                                const isSpanCol = [0, 1, 2, 4, 11].includes(colIndex);
                                 if (isSpanCol) {
                                   if (rowIndex % 2 !== 0) {
                                     return null; // Master row omits spanned cells
                                   }
                                   rowSpanVal = 2; // UUC row spans 2 rows
-                                  // For Average (Ω) (col 11), pull from Master row if UUC row has '-' or empty
-                                  if (colIndex === 11 && (cellContent === '-' || !cellContent)) {
-                                    cellContent = observationRows?.rows?.[rowIndex + 1]?.[11] || cellContent;
-                                  }
                                 }
+                              }
+                              // SW: Sr. No., Set Value, Error and Uncertainty span the UUC and Master rows (PHP rowspan="2")
+                              if (observationTemplate === 'observationsw') {
+                                const spansBothRows = SW_ROWSPAN_COLUMNS.includes(colIndex);
+                                if (spansBothRows && row[2] !== 'UUC') return null;
+                                const isStatic = spansBothRows || cellContent === '-' || cellContent === 'UUC' || cellContent === 'Master';
+                                return (
+                                  <td
+                                    key={colIndex}
+                                    rowSpan={spansBothRows ? 2 : undefined}
+                                    className={`border border-gray-300 px-3 py-2 align-middle ${isStatic ? 'text-center font-medium' : ''}`}
+                                  >
+                                    {cellContent || ''}
+                                  </td>
+                                );
+                              }
+                              // TSWI: Sr. No., Set Point and Deviation span the UUC and Master rows (PHP rowspan="2")
+                              if (observationTemplate === 'observationtswi') {
+                                const spansBothRows = TSWI_ROWSPAN_COLUMNS.includes(colIndex);
+                                if (spansBothRows && row[2] !== 'UUC') return null;
+                                const isStatic = spansBothRows || cellContent === '-' || cellContent === 'UUC' || cellContent === 'Master';
+                                return (
+                                  <td
+                                    key={colIndex}
+                                    rowSpan={spansBothRows ? 2 : undefined}
+                                    className={`border border-gray-300 px-3 py-2 align-middle ${isStatic ? 'text-center font-medium' : ''}`}
+                                  >
+                                    {cellContent || ''}
+                                  </td>
+                                );
+                              }
+                              // TSWOI: Sr. No., Set Point and Deviation span the UUC and Master rows (PHP rowspan="2")
+                              if (observationTemplate === 'observationtswoi') {
+                                const spansBothRows = TSWOI_ROWSPAN_COLUMNS.includes(colIndex);
+                                if (spansBothRows && row[2] !== 'UUC') return null;
+                                const isStatic = spansBothRows || cellContent === '-' || cellContent === 'UUC' || cellContent === 'Master';
+                                return (
+                                  <td
+                                    key={colIndex}
+                                    rowSpan={spansBothRows ? 2 : undefined}
+                                    className={`border border-gray-300 px-3 py-2 align-middle ${isStatic ? 'text-center font-medium' : ''}`}
+                                  >
+                                    {cellContent || ''}
+                                  </td>
+                                );
                               }
                               // ADDED: Special handling for observationrtdwi and observationth static text and dashes
                               if ((observationTemplate === 'observationrtdwi' || observationTemplate === 'observationth') && (cellContent === '-' || cellContent === 'UUC' || cellContent === 'Master')) {

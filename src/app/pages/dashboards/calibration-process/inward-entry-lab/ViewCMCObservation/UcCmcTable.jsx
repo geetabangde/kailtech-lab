@@ -1,5 +1,34 @@
 import { formatUncertaintyValue } from "./viewCmcUtils";
 
+/**
+ * Maps the "uc" suffix uncertainty rows (uncertainty.original.data) to table rows.
+ * The backend already calculates every column for this suffix, so values are shown
+ * as returned rather than recalculated.
+ */
+export const mapUcCmcRows = (apiData) => (Array.isArray(apiData) ? apiData : []).map((item, index) => ({
+  srNo: item.sr_no ?? index + 1,
+  unitType: item.unit_type ?? "",
+  mode: item.mode ?? "",
+  values: Array.isArray(item.readings)
+    ? item.readings
+    : [item.reading_1, item.reading_2, item.reading_3, item.reading_4, item.reading_5].map((v) => v ?? ""),
+  unitDesc: item.unit ?? "",
+  calibrationPoint: item.calibration_point ?? "",
+  average: item.average ?? "",
+  stdDeviation: item.std_deviation ?? "",
+  typeA: item.type_a ?? "",
+  accuracyCalibrator: item.accuracy_of_calibrator ?? "",
+  uncertaintyMaster: item.uncertainty_of_master ?? "",
+  leastCount: item.least_count ?? "",
+  combinedUnc: item.combined_uncertainty ?? "",
+  dof: item.degree_of_freedom ?? "-",
+  coverageFactor: item.coverage_factor ?? "",
+  expandedUncValue: item.expanded_uncertainty_value ?? "",
+  expandedUncPercent: item.expanded_uncertainty_percent ?? "",
+  cmcTaken: item.cmc_taken ?? "",
+  cmcScope: item.cmc_scope ?? "",
+}));
+
 export const UcCmcTable = ({ data }) => (
   <div className="overflow-x-auto">
     <table className="w-full border-collapse text-[12px] text-gray-700 min-w-max">

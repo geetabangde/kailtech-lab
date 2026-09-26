@@ -62,38 +62,6 @@ const formatValueByLc = (val, decimals, leastCount) => {
   return strVal;
 };
 
-const validateWbnValue = (val, row) => {
-  if (val === undefined || val === null || String(val).trim() === '') return null;
-  const strVal = String(val).trim();
-  if (!/^-?\d*\.?\d*$/.test(strVal)) return 'Please enter a valid number';
-  const num = parseFloat(strVal);
-  if (isNaN(num)) return 'Please enter a valid number';
-
-  const lcStr = String(row?.least_count_uuc ?? row?.least_count ?? '0.010').trim();
-  const lcNum = parseFloat(lcStr);
-  const lcDec = (row?.lc !== undefined && row?.lc !== null && row?.lc !== '' && row?.lc !== 'NA')
-    ? parseInt(row.lc, 10)
-    : (lcStr.includes('.') ? lcStr.split('.')[1].length : 3);
-
-  const valDec = strVal.includes('.') ? strVal.split('.')[1].length : 0;
-  if (lcDec >= 0 && valDec > lcDec) {
-    return `Maximum ${lcDec} decimal place(s) allowed for least count ${lcStr}`;
-  }
-
-  if (num !== 0 && !strVal.endsWith('.') && (!strVal.includes('.') || valDec >= lcDec) && lcNum > 0) {
-    if (num < lcNum) {
-      return `Please enter a value with in leastcount ${lcStr}`;
-    }
-    const factor = 1000000;
-    const scaledVal = Math.round(num * factor);
-    const scaledLc = Math.round(lcNum * factor);
-    if (scaledVal % scaledLc !== 0) {
-      return `Please Enter Value divisible by ${lcStr}`;
-    }
-  }
-  return null;
-};
-
 const ObservationWBN = ({
   selectedTableData,
   tableInputValues,
@@ -106,7 +74,7 @@ const ObservationWBN = ({
   diagram: parentDiagram,
   setDiagram: parentSetDiagram,
 }) => {
-  const [localDiagram, setLocalDiagram] = useState('circalimg');
+  const [localDiagram, setLocalDiagram] = useState('');
   const diagram = parentDiagram || localDiagram;
   const setDiagram = parentSetDiagram || setLocalDiagram;
 
@@ -190,7 +158,7 @@ const ObservationWBN = ({
                         const key = `wbn-w-${rowIndex}-${obs.repeatable}`;
                         const flatKey = `${rowIndex}-${obsIdx + 2}`;
                         const currentVal = tableInputValues[key] !== undefined ? tableInputValues[key] : (obs.value ?? '');
-                        const error = observationErrors[key] || observationErrors[flatKey] || (currentVal ? validateWbnValue(currentVal, row) : null);
+                        const error = observationErrors[key] || observationErrors[flatKey];
 
                         return (
                           <td key={obsIdx} className="px-3 py-2 text-sm border-r border-gray-200 dark:border-gray-600 align-top">
@@ -208,17 +176,11 @@ const ObservationWBN = ({
                                     setTableInputValues(prev => ({ ...prev, [key]: val, [flatKey]: val }));
                                   }
 
-                                  const err = validateWbnValue(val, row);
                                   if (setObservationErrors) {
                                     setObservationErrors(prev => {
                                       const updated = { ...prev };
-                                      if (err) {
-                                        updated[key] = err;
-                                        updated[flatKey] = err;
-                                      } else {
-                                        delete updated[key];
-                                        delete updated[flatKey];
-                                      }
+                                      delete updated[key];
+                                      delete updated[flatKey];
                                       return updated;
                                     });
                                   }
@@ -308,7 +270,7 @@ const ObservationWBN = ({
                         const globalRowIndex = (selectedTableData.weighingCount || weighingProcess?.rows?.length || 0) + rowIndex;
                         const flatKey = `${globalRowIndex}-${obsIdx + 1}`;
                         const currentVal = tableInputValues[key] !== undefined ? tableInputValues[key] : (obs.value ?? '');
-                        const error = observationErrors[key] || observationErrors[flatKey] || (currentVal ? validateWbnValue(currentVal, row) : null);
+                        const error = observationErrors[key] || observationErrors[flatKey];
 
                         return (
                           <td key={obsIdx} className="px-3 py-2 text-sm border-r border-gray-200 dark:border-gray-600 align-top">
@@ -326,17 +288,11 @@ const ObservationWBN = ({
                                     setTableInputValues(prev => ({ ...prev, [key]: val, [flatKey]: val }));
                                   }
 
-                                  const err = validateWbnValue(val, row);
                                   if (setObservationErrors) {
                                     setObservationErrors(prev => {
                                       const updated = { ...prev };
-                                      if (err) {
-                                        updated[key] = err;
-                                        updated[flatKey] = err;
-                                      } else {
-                                        delete updated[key];
-                                        delete updated[flatKey];
-                                      }
+                                      delete updated[key];
+                                      delete updated[flatKey];
                                       return updated;
                                     });
                                   }
@@ -417,7 +373,7 @@ const ObservationWBN = ({
                         const globalRowIndex = wCount + rCount + rowIndex;
                         const flatKey = `${globalRowIndex}-${obsIdx + 1}`;
                         const currentVal = tableInputValues[key] !== undefined ? tableInputValues[key] : (obs.value ?? '');
-                        const error = observationErrors[key] || observationErrors[flatKey] || (currentVal ? validateWbnValue(currentVal, row) : null);
+                        const error = observationErrors[key] || observationErrors[flatKey];
 
                         return (
                           <td key={`cw-${obsIdx}`} className="px-3 py-2 text-sm border-r border-gray-200 dark:border-gray-600 align-top">
@@ -435,17 +391,11 @@ const ObservationWBN = ({
                                     setTableInputValues(prev => ({ ...prev, [key]: val, [flatKey]: val }));
                                   }
 
-                                  const err = validateWbnValue(val, row);
                                   if (setObservationErrors) {
                                     setObservationErrors(prev => {
                                       const updated = { ...prev };
-                                      if (err) {
-                                        updated[key] = err;
-                                        updated[flatKey] = err;
-                                      } else {
-                                        delete updated[key];
-                                        delete updated[flatKey];
-                                      }
+                                      delete updated[key];
+                                      delete updated[flatKey];
                                       return updated;
                                     });
                                   }
@@ -486,7 +436,7 @@ const ObservationWBN = ({
                         const globalRowIndex = wCount + rCount + rowIndex;
                         const flatKey = `${globalRowIndex}-${obsIdx + 6}`;
                         const currentVal = tableInputValues[key] !== undefined ? tableInputValues[key] : (obs.value ?? '');
-                        const error = observationErrors[key] || observationErrors[flatKey] || (currentVal ? validateWbnValue(currentVal, row) : null);
+                        const error = observationErrors[key] || observationErrors[flatKey];
 
                         return (
                           <td key={`acw-${obsIdx}`} className="px-3 py-2 text-sm border-r border-gray-200 dark:border-gray-600 align-top">
@@ -504,17 +454,11 @@ const ObservationWBN = ({
                                     setTableInputValues(prev => ({ ...prev, [key]: val, [flatKey]: val }));
                                   }
 
-                                  const err = validateWbnValue(val, row);
                                   if (setObservationErrors) {
                                     setObservationErrors(prev => {
                                       const updated = { ...prev };
-                                      if (err) {
-                                        updated[key] = err;
-                                        updated[flatKey] = err;
-                                      } else {
-                                        delete updated[key];
-                                        delete updated[flatKey];
-                                      }
+                                      delete updated[key];
+                                      delete updated[flatKey];
                                       return updated;
                                     });
                                   }

@@ -1,10 +1,10 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { formatValueByLc, getDecimalPlaces, safeGetValue } from './observationUtils';
 
 /**
  * Normalizes UTM/AUTM observation data into matrix groups.
  */
-export const normalizeAutmGroups = (observationData) => {
+const normalizeAutmGroups = (observationData) => {
   if (!observationData) return [];
   const source = Array.isArray(observationData) ? observationData : [observationData].filter(Boolean);
 
@@ -21,6 +21,7 @@ export const normalizeAutmGroups = (observationData) => {
       item?.calibration_points ||
       item?.calibrationPoints ||
       item?.points ||
+      item?.rows ||
       item?.observations ||
       (item?.point_id || item?.id ? [item] : []);
 
@@ -66,20 +67,30 @@ const ObservationAUTM = ({
   setTableInputValues,
   validateDecimalPlaces,
   inwardEntry,
+  instrument,
   formData,
   observations,
+  handleObservationBlur,
 }) => {
-  const [preloadCycle, setPreloadCycle] = useState(1);
+  const [preloadCycle, setPreloadCycle] = useState(null);
 
-  // Calculate room temperature from inwardEntry start temp and formData end temp
+  // Initialize preload cycle from the response's pre_loading_cycles
+  // ([{ cycle: 1..5, checked }]). Nothing is checked by default, like the PHP.
+  useEffect(() => {
+    const checked = observations?.preLoadingCycles?.find?.((c) => c?.checked === true);
+    setPreloadCycle(checked ? Number(checked.cycle) : null);
+  }, [observations]);
+
+  // Room temperature = (start temp + Temperature End) / 2, like PHP changetemp().
+  // PHP's start temp is the inward item's temperature ($rowinwarditem['temperature']),
+  // which is on `instrument`, not on inwardEntry. Kept unrounded for the formula.
   const roomTemperature = useMemo(() => {
-    const startTemp = parseFloat(inwardEntry?.temperature) || 0;
+    const startTemp = parseFloat(instrument?.temperature ?? inwardEntry?.temperature ?? inwardEntry?.tempstart) || 0;
     const endTemp = parseFloat(formData?.tempend) || 0;
-    if (startTemp && endTemp) {
-      return ((startTemp + endTemp) / 2).toFixed(1);
-    }
-    return startTemp ? startTemp.toFixed(1) : '24.0';
-  }, [inwardEntry?.temperature, formData?.tempend]);
+    if (startTemp && endTemp) return (startTemp + endTemp) / 2;
+    return endTemp || startTemp || 24;
+  }, [instrument?.temperature, inwardEntry?.temperature, inwardEntry?.tempstart, formData?.tempend]);
+  const roomTemperatureLabel = String(parseFloat(roomTemperature.toFixed(2)));
 
   // Temperature compensation formula from PHP: uuc0 = (0.00027 * (avgtemp - 23) + 1) * calculateduuc
   const applyTemperatureCompensation = (calculateduuc, temp) => {
@@ -159,7 +170,7 @@ const ObservationAUTM = ({
                 name="preload_cycle"
                 className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                 checked={preloadCycle === num}
-                onChange={() => setPreloadCycle(num)}
+                onChange={() => setPreloadCycle((prev) => (prev === num ? null : num))}
               />
               <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">{num}</span>
             </label>
@@ -186,14 +197,16 @@ const ObservationAUTM = ({
         // Calculate Max Relative Resolution from Ratio, Least Count, and Min Point
         // PHP formula: ((leastcount * (temp[0]/temp[1])) / minpoint) * 100
         const relativeResVal = (() => {
-          if (!minPoint || !matrix.leastCount || matrix.leastCount === 'NA') return '';
+          const stored = matrix.raw?.relative_resolution ?? matrix.raw?.releativeres;
+          const fallback = (stored !== undefined && stored !== null && stored !== '') ? String(stored) : '';
+          if (!minPoint || !matrix.leastCount || matrix.leastCount === 'NA') return fallback;
           const parts = String(ratioVal || '1').split(':');
           const ratioFactor = parts.length > 1 && parseFloat(parts[1]) !== 0
             ? (parseFloat(parts[0]) / parseFloat(parts[1]))
             : (parseFloat(parts[0]) || 1);
           const lc = parseFloat(matrix.leastCount);
           const minp = parseFloat(minPoint);
-          if (isNaN(lc) || isNaN(minp) || minp === 0) return '';
+          if (isNaN(lc) || isNaN(minp) || minp === 0) return fallback;
           return (((lc * ratioFactor) / minp) * 100).toFixed(2);
         })();
 
@@ -226,7 +239,7 @@ const ObservationAUTM = ({
                     </th>
                     <th rowSpan={3} className="px-3 py-2 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase border-r border-gray-300 dark:border-gray-600">
                       <div>Std. at Room Temp(°C)</div>
-                      <div className="text-xs font-normal text-blue-600 dark:text-blue-300">({roomTemperature} °C)</div>
+                      <div className="text-xs font-normal text-blue-600 dark:text-blue-300">({roomTemperatureLabel} °C)</div>
                     </th>
                     <th colSpan={4} className="px-3 py-2 text-center text-xs font-medium text-gray-700 dark:text-gray-200 uppercase border-r border-gray-300 dark:border-gray-600">
                       Observed (F) ({masterUnit})
@@ -262,7 +275,10 @@ const ObservationAUTM = ({
 
                 <tbody className="bg-white dark:bg-gray-800">
                   {matrix.calibrationPoints.map((point, pointIndex) => {
-                    const pointId = point.id || point.calibration_point_id || point.point_id || `pt-${pointIndex}`;
+                    const realId = selectedTableData?.calibration_points?.[pointIndex]?.id || 
+                                   selectedTableData?.calibration_points?.[pointIndex]?.point_id || 
+                                   selectedTableData?.calibration_points?.[pointIndex]?.calibration_point_id;
+                    const pointId = point.id || point.calibration_point_id || point.point_id || realId || `pt-${pointIndex}`;
                     const setpoint = point.point ?? point.setpoint ?? point.set_point ?? '';
 
                     const mlc_dec = getDecimalPlaces(point.master_least_count ?? matrix.masterLeastCount);
@@ -272,10 +288,14 @@ const ObservationAUTM = ({
                     // Calculated UUC (Standard at reference temp 24±1°C)
                     const calculatedUuc = point.calculateduuc ?? point.calculated_uuc ?? '';
 
-                    // Temperature-compensated UUC value at room temperature
+                    // Std. at Room Temp: PHP applies temperature compensation only for
+                    // master type 332 (Force Proving Ring); other masters use calculateduuc as-is.
                     const rawUuc = point.uuc ?? point.uuc0 ?? '';
-                    const compensatedUuc = calculatedUuc
-                      ? applyTemperatureCompensation(calculatedUuc, roomTemperature)
+                    const masterType = String(point.master_type ?? point.mastertype ?? point.typeofmaster ?? '');
+                    const compensatedUuc = calculatedUuc !== ''
+                      ? (masterType === '332'
+                          ? applyTemperatureCompensation(calculatedUuc, roomTemperature)
+                          : String(calculatedUuc))
                       : (rawUuc || setpoint);
 
                     const uucForError = compensatedUuc !== null && compensatedUuc !== '' ? compensatedUuc : setpoint;
@@ -379,7 +399,7 @@ const ObservationAUTM = ({
                             readOnly
                             id={`uuc${pointId}`}
                             className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white cursor-not-allowed text-right font-mono"
-                            title={`Room Temp: ${roomTemperature}°C`}
+                            title={`Room Temp: ${roomTemperatureLabel}°C`}
                             value={compensatedUuc}
                           />
                         </td>
@@ -401,6 +421,25 @@ const ObservationAUTM = ({
                               onBlur={(e) => {
                                 if (validateDecimalPlaces) {
                                   validateDecimalPlaces(`${pointId}-m${pn}`, e.target.value, point.master_least_count ?? matrix.masterLeastCount);
+                                }
+                                if (handleObservationBlur) {
+                                  // Pass the values shown on screen so the stored copy
+                                  // matches the display exactly.
+                                  handleObservationBlur(
+                                    pointIndex,
+                                    pn + 4,
+                                    e.target.value,
+                                    pointId,
+                                    {
+                                      avgMaster,
+                                      error,
+                                      percentError,
+                                      repeatability,
+                                      setpoint,
+                                      calculatedUuc,
+                                      uuc: compensatedUuc,
+                                    }
+                                  );
                                 }
                               }}
                               placeholder={`Obs ${pn + 1}`}
@@ -479,6 +518,7 @@ const ObservationAUTM = ({
                     {[0, 1, 2, 3].map((pn) => {
                       const removalKey = `${matrix.matrixId}-removalforce-${pn}`;
                       const removalVal = tableInputValues[removalKey] ??
+                        matrix.raw?.removal_force?.[pn] ??
                         matrix.raw?.removalforce?.[pn] ??
                         (matrix.raw?.observations?.find?.((o) => o.type === 'removalforce' && Number(o.repeatable) === pn)?.value ?? '');
 
@@ -495,6 +535,21 @@ const ObservationAUTM = ({
                             className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-right font-mono"
                             value={removalVal}
                             onChange={(e) => handleInputChange(removalKey, e.target.value)}
+                            onBlur={(e) => {
+                              if (handleObservationBlur) {
+                                const removal = parseFloat(e.target.value);
+                                const zeroError = (maxPoint && !isNaN(removal))
+                                  ? ((removal / parseFloat(maxPoint)) * 100).toFixed(2)
+                                  : '';
+                                handleObservationBlur(
+                                  matrix.calibrationPoints.length,
+                                  pn + 4,
+                                  e.target.value,
+                                  matrix.matrixId,
+                                  { zeroError }
+                                );
+                              }
+                            }}
                             placeholder={`Rem ${pn + 1}`}
                           />
                         </td>
@@ -503,7 +558,6 @@ const ObservationAUTM = ({
                     <td colSpan={4} className="bg-gray-100 dark:bg-gray-700"></td>
                   </tr>
 
-                  {/* Relative Zero Error % (f0) */}
                   <tr className="bg-gray-50 dark:bg-gray-750 border-b border-gray-300 dark:border-gray-600">
                     <th colSpan={4} className="px-3 py-2 text-left text-xs font-semibold text-gray-700 dark:text-gray-200 uppercase border-r border-gray-300 dark:border-gray-600">
                       Relative Zero Error % (f0)
@@ -511,12 +565,13 @@ const ObservationAUTM = ({
                     {[0, 1, 2, 3].map((pn) => {
                       const removalKey = `${matrix.matrixId}-removalforce-${pn}`;
                       const removalVal = tableInputValues[removalKey] ??
+                        matrix.raw?.removal_force?.[pn] ??
                         matrix.raw?.removalforce?.[pn] ??
                         (matrix.raw?.observations?.find?.((o) => o.type === 'removalforce' && Number(o.repeatable) === pn)?.value ?? '');
 
                       const zeroErr = (maxPoint && removalVal !== '' && !isNaN(parseFloat(removalVal)))
                         ? ((parseFloat(removalVal) / parseFloat(maxPoint)) * 100).toFixed(2)
-                        : (matrix.raw?.zeroerror?.[pn] ?? '');
+                        : (matrix.raw?.zero_error?.[pn] ?? matrix.raw?.zeroerror?.[pn] ?? '');
 
                       return (
                         <td key={pn} className="px-2 py-1 border-r border-gray-200 dark:border-gray-600">
@@ -537,7 +592,6 @@ const ObservationAUTM = ({
                     <td colSpan={4} className="bg-gray-100 dark:bg-gray-700"></td>
                   </tr>
 
-                  {/* Least count, Min Point, Ratio, Max Relative Resolution */}
                   <tr className="border-b border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800">
                     <td colSpan={2} className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 border-r border-gray-200 dark:border-gray-600">
                       Least count
@@ -565,6 +619,17 @@ const ObservationAUTM = ({
                         className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-center"
                         value={ratioVal}
                         onChange={(e) => handleInputChange(ratioKey, e.target.value)}
+                        onBlur={(e) => {
+                          if (handleObservationBlur) {
+                            handleObservationBlur(
+                              matrix.calibrationPoints.length + 2,
+                              10,
+                              e.target.value,
+                              matrix.matrixId,
+                              { relativeRes: relativeResVal }
+                            );
+                          }
+                        }}
                         placeholder="e.g. 1:1"
                       />
                     </td>
@@ -602,6 +667,16 @@ const ObservationAUTM = ({
                         className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
                         value={classVal}
                         onChange={(e) => handleInputChange(classKey, e.target.value)}
+                        onBlur={(e) => {
+                          if (handleObservationBlur) {
+                            handleObservationBlur(
+                              matrix.calibrationPoints.length + 3,
+                              1,
+                              e.target.value,
+                              matrix.matrixId
+                            );
+                          }
+                        }}
                         placeholder="Enter class"
                       />
                     </td>
@@ -619,6 +694,16 @@ const ObservationAUTM = ({
                         className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
                         value={dialVal}
                         onChange={(e) => handleInputChange(dialKey, e.target.value)}
+                        onBlur={(e) => {
+                          if (handleObservationBlur) {
+                            handleObservationBlur(
+                              matrix.calibrationPoints.length + 3,
+                              9,
+                              e.target.value,
+                              matrix.matrixId
+                            );
+                          }
+                        }}
                         placeholder="Enter dial gauge setting"
                       />
                     </td>
@@ -633,46 +718,6 @@ const ObservationAUTM = ({
   );
 };
 
-/**
- * Calculation helper for AUTM rows in dynamic calculation contexts
- */
-export const calculateAUTMValues = (rowData, rowIndex, selectedTableData) => {
-  const result = {};
-  const rowMeta = selectedTableData?.rowMeta?.[rowIndex] || {};
 
-  if (rowMeta.kind === 'removal') {
-    const maxPoint = parseFloat(rowMeta.maxPoint) || 0;
-    [4, 5, 6, 7].forEach((colIdx, idx) => {
-      const removal = parseFloat(rowData[colIdx]);
-      result[`zero${idx}`] = maxPoint && !isNaN(removal) ? ((removal / maxPoint) * 100).toFixed(2) : '';
-    });
-    return result;
-  }
-
-  if (rowMeta.kind !== 'point') return result;
-
-  // Master values for AUTM are in columns 4, 5, 6, 7
-  const masterValues = [4, 5, 6, 7]
-    .map((colIdx) => parseFloat(rowData[colIdx]))
-    .filter((val) => !isNaN(val));
-
-  const average = masterValues.length
-    ? masterValues.reduce((sum, val) => sum + val, 0) / masterValues.length
-    : null;
-
-  result.average = average !== null ? average.toFixed(3) : '';
-
-  const uuc = parseFloat(rowData[3]);
-  const error = average !== null && !isNaN(uuc) ? uuc - average : null;
-  result.error = error !== null ? error.toFixed(3) : '';
-  result.percentError = error !== null && average
-    ? ((error / average) * 100).toFixed(2)
-    : '';
-  result.repeatability = average && masterValues.length > 1
-    ? (((Math.max(...masterValues) - Math.min(...masterValues)) / average) * 100).toFixed(2)
-    : '';
-
-  return result;
-};
 
 export default ObservationAUTM;

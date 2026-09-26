@@ -421,7 +421,7 @@ const ObservationPR = ({
     };
 
     // Handle master observation input change (pn = 0, 1, 2)
-    const handleMasterChange = (pointId, pn, val, setpointVal, masterLeastCount, rowIndex) => {
+    const handleMasterChange = (pointId, pn, val, setpointVal, masterLeastCount, rowIndex, currentReadings = []) => {
         const mlcDec = getDecimalPlaces(masterLeastCount);
 
         // Validation
@@ -440,20 +440,23 @@ const ObservationPR = ({
             setInputErrors((prev) => ({ ...prev, [`${pointId}-m${pn}`]: null }));
         }
 
-        // Collect all 3 readings
+        // Collect all 3 readings.
+        // currentReadings holds the values currently rendered for this row, which already
+        // fall back to the values persisted on the calibration point. Without that fallback
+        // an untouched reading would resolve to '' and the mean/repeatability/factor would be
+        // recalculated (and saved) from a single reading.
         const readings = [0, 1, 2].map((i) => {
             if (i === pn) return val;
             const k1 = `${pointId}-m${i}`;
             const k2 = `mast${i}er${pointId}`;
             const k3 = `${rowIndex}-${i + 2}`;
-            return getVal(k1, getVal(k2, getVal(k3, '')));
+            return getVal(k1, getVal(k2, getVal(k3, currentReadings[i] ?? '')));
         });
 
         // Run PR calculation
         const calc = calculatePRValues(setpointVal, readings);
 
-        const updatedState = {
-            ...tableInputValues,
+        const changes = {
             [`${pointId}-m${pn}`]: val,
             [`mast${pn}er${pointId}`]: val,
             [`${rowIndex}-${pn + 2}`]: val,
@@ -472,7 +475,7 @@ const ObservationPR = ({
         };
 
         if (setTableInputValues) {
-            setTableInputValues(updatedState);
+            setTableInputValues((prev) => ({ ...prev, ...changes }));
         }
 
         if (validateDecimalPlaces) {
@@ -772,7 +775,8 @@ const ObservationPR = ({
                                                                     e.target.value,
                                                                     setpoint,
                                                                     masterLeastCount,
-                                                                    currentRowIndex
+                                                                    currentRowIndex,
+                                                                    [m0, m1, m2]
                                                                 )
                                                             }
                                                             onBlur={(e) => {
@@ -812,7 +816,8 @@ const ObservationPR = ({
                                                                     e.target.value,
                                                                     setpoint,
                                                                     masterLeastCount,
-                                                                    currentRowIndex
+                                                                    currentRowIndex,
+                                                                    [m0, m1, m2]
                                                                 )
                                                             }
                                                             onBlur={(e) => {
@@ -852,7 +857,8 @@ const ObservationPR = ({
                                                                     e.target.value,
                                                                     setpoint,
                                                                     masterLeastCount,
-                                                                    currentRowIndex
+                                                                    currentRowIndex,
+                                                                    [m0, m1, m2]
                                                                 )
                                                             }
                                                             onBlur={(e) => {

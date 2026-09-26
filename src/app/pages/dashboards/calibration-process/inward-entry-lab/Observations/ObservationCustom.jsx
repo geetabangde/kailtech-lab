@@ -101,6 +101,46 @@ const ObservationCustom = ({
   const layout = getCustomLayoutIndices();
   if (!layout) return null;
 
+  // Returns the first candidate that is neither undefined, null nor an empty string
+  const firstFilled = (...candidates) => {
+    for (const c of candidates) {
+      if (c !== undefined && c !== null && String(c) !== '') return c;
+    }
+    return '';
+  };
+
+  // Current value of a cell: live edit first, then the stored row value
+  const cellValue = (row, rowIndex, colIdx) => {
+    const v = tableInputValues[`${rowIndex}-${colIdx}`];
+    return (v !== undefined && v !== null && v !== '') ? v : (row?.[colIdx] ?? '');
+  };
+
+  // Mirrors the PHP averageavg() / substractminus() onkeyup pair: whenever an
+  // observation changes, push the new Average(s) and Error into the table straight away.
+  const handleObsChange = (row, rowIndex, colIdx, value, point) => {
+    if (handleInputChange) handleInputChange(rowIndex, colIdx, value);
+
+    const liveRow = row.map((cell, idx) => (idx === colIdx ? value : cellValue(row, rowIndex, idx)));
+    const calc = calculateCustomValues(liveRow, instrument, point) || {};
+
+    if (!handleInputChange) return;
+    if (layout.avgMasterIdx !== -1 && calc.averagemaster !== undefined) {
+      handleInputChange(rowIndex, layout.avgMasterIdx, calc.averagemaster);
+    }
+    if (layout.avgUucIdx !== -1 && calc.averageuuc !== undefined) {
+      handleInputChange(rowIndex, layout.avgUucIdx, calc.averageuuc);
+    }
+    if (layout.errorIdx !== -1 && calc.error !== undefined) {
+      handleInputChange(rowIndex, layout.errorIdx, calc.error);
+    }
+  };
+
+  // On blur, persist the edited cell; CalibrateStep3 saves the recalculated
+  // Average / Error alongside it for master, uuc and setpoint columns
+  const handleObsBlur = (rowIndex, colIdx, value) => {
+    if (handleObservationBlur) handleObservationBlur(rowIndex, colIdx, value);
+  };
+
   // In PHP: $rowspan = (uuc > 1 || master > 1) ? 2 : 1
   const isTwoHeaderRows = (layout.masterCount > 1 || layout.uucCount > 1) &&
     (layout.masterObsIndices.length > 0 || layout.uucObsIndices.length > 0);
@@ -193,24 +233,24 @@ const ObservationCustom = ({
     );
   };
 
-  const renderMasterCells = (row, rowIndex, point) => (
+  const renderMasterCells = (row, rowIndex, point, derived = {}) => (
     <>
       {layout.masterObsIndices.map((colIdx, obsIdx) => {
         const cellKey = `${rowIndex}-${colIdx}`;
         const hasError = !!observationErrors[cellKey];
         return (
-          <td key={`master-${obsIdx}`} className="px-3 py-2 text-sm border-r border-gray-200 dark:border-gray-600 dark:text-white">
+          <td key={`master-${obsIdx}`} className="px-1.5 py-2 text-sm border-r border-gray-200 dark:border-gray-600 dark:text-white">
             <div className="flex items-center gap-1">
               <input
                 type="number"
                 step="any"
                 id={`obs-cell-${cellKey}`}
                 data-cell-key={cellKey}
-                className={`w-full px-2 py-1 border rounded bg-white dark:bg-gray-600 text-gray-900 dark:text-white focus:outline-none focus:ring-2 ${hasError ? 'border-red-500 focus:ring-red-500 ring-1 ring-red-400' : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500'
+                className={`w-full min-w-[64px] px-2 py-1 border rounded bg-white dark:bg-gray-600 text-gray-900 dark:text-white focus:outline-none focus:ring-2 ${hasError ? 'border-red-500 focus:ring-red-500 ring-1 ring-red-400' : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500'
                   }`}
                 value={tableInputValues[cellKey] ?? row[colIdx] ?? ''}
-                onChange={(e) => handleInputChange && handleInputChange(rowIndex, colIdx, e.target.value)}
-                onBlur={(e) => handleObservationBlur && handleObservationBlur(rowIndex, colIdx, e.target.value)}
+                onChange={(e) => handleObsChange(row, rowIndex, colIdx, e.target.value, point)}
+                onBlur={(e) => handleObsBlur(rowIndex, colIdx, e.target.value)}
               />
               {point?.masterunit && isNaN(point.masterunit) && <span className="text-xs text-gray-500 shrink-0">{point.masterunit}</span>}
             </div>
@@ -222,13 +262,17 @@ const ObservationCustom = ({
       })}
 
       {layout.avgMasterIdx !== -1 && (
-        <td className="px-3 py-2 text-sm border-r border-gray-200 dark:border-gray-600 dark:text-white bg-gray-50 dark:bg-gray-700">
+        <td className="px-1.5 py-2 text-sm border-r border-gray-200 dark:border-gray-600 dark:text-white bg-gray-50 dark:bg-gray-700">
           <input
             type="text"
             id={`obs-cell-${rowIndex}-${layout.avgMasterIdx}`}
             data-cell-key={`${rowIndex}-${layout.avgMasterIdx}`}
-            className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white cursor-not-allowed"
-            value={tableInputValues[`${rowIndex}-${layout.avgMasterIdx}`] ?? row[layout.avgMasterIdx] ?? ''}
+            className="w-full min-w-[88px] px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white cursor-not-allowed"
+            value={firstFilled(
+              tableInputValues[`${rowIndex}-${layout.avgMasterIdx}`],
+              row[layout.avgMasterIdx],
+              derived.averagemaster
+            )}
             readOnly
           />
         </td>
@@ -236,24 +280,24 @@ const ObservationCustom = ({
     </>
   );
 
-  const renderUucCells = (row, rowIndex, point) => (
+  const renderUucCells = (row, rowIndex, point, derived = {}) => (
     <>
       {layout.uucObsIndices.map((colIdx, obsIdx) => {
         const cellKey = `${rowIndex}-${colIdx}`;
         const hasError = !!observationErrors[cellKey];
         return (
-          <td key={`uuc-${obsIdx}`} className="px-3 py-2 text-sm border-r border-gray-200 dark:border-gray-600 dark:text-white">
+          <td key={`uuc-${obsIdx}`} className="px-1.5 py-2 text-sm border-r border-gray-200 dark:border-gray-600 dark:text-white">
             <div className="flex items-center gap-1">
               <input
                 type="number"
                 step="any"
                 id={`obs-cell-${cellKey}`}
                 data-cell-key={cellKey}
-                className={`w-full px-2 py-1 border rounded bg-white dark:bg-gray-600 text-gray-900 dark:text-white focus:outline-none focus:ring-2 ${hasError ? 'border-red-500 focus:ring-red-500 ring-1 ring-red-400' : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500'
+                className={`w-full min-w-[64px] px-2 py-1 border rounded bg-white dark:bg-gray-600 text-gray-900 dark:text-white focus:outline-none focus:ring-2 ${hasError ? 'border-red-500 focus:ring-red-500 ring-1 ring-red-400' : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500'
                   }`}
                 value={tableInputValues[cellKey] ?? row[colIdx] ?? ''}
-                onChange={(e) => handleInputChange && handleInputChange(rowIndex, colIdx, e.target.value)}
-                onBlur={(e) => handleObservationBlur && handleObservationBlur(rowIndex, colIdx, e.target.value)}
+                onChange={(e) => handleObsChange(row, rowIndex, colIdx, e.target.value, point)}
+                onBlur={(e) => handleObsBlur(rowIndex, colIdx, e.target.value)}
               />
               {point?.unit && isNaN(point.unit) && <span className="text-xs text-gray-500 shrink-0">{point.unit}</span>}
             </div>
@@ -265,13 +309,17 @@ const ObservationCustom = ({
       })}
 
       {layout.avgUucIdx !== -1 && (
-        <td className="px-3 py-2 text-sm border-r border-gray-200 dark:border-gray-600 dark:text-white bg-gray-50 dark:bg-gray-700">
+        <td className="px-1.5 py-2 text-sm border-r border-gray-200 dark:border-gray-600 dark:text-white bg-gray-50 dark:bg-gray-700">
           <input
             type="text"
             id={`obs-cell-${rowIndex}-${layout.avgUucIdx}`}
             data-cell-key={`${rowIndex}-${layout.avgUucIdx}`}
-            className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white cursor-not-allowed"
-            value={tableInputValues[`${rowIndex}-${layout.avgUucIdx}`] ?? row[layout.avgUucIdx] ?? ''}
+            className="w-full min-w-[88px] px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white cursor-not-allowed"
+            value={firstFilled(
+              tableInputValues[`${rowIndex}-${layout.avgUucIdx}`],
+              row[layout.avgUucIdx],
+              derived.averageuuc
+            )}
             readOnly
           />
         </td>
@@ -281,7 +329,7 @@ const ObservationCustom = ({
 
   return (
     <div className="mb-8 overflow-x-auto border border-gray-200 dark:border-gray-600">
-      <table className="w-full text-sm border-collapse">
+      <table className="w-full min-w-max text-sm border-collapse">
         <thead>
           <tr className="bg-gray-100 dark:bg-gray-700 border-b border-gray-300 dark:border-gray-600">
             <th rowSpan={mainRowSpan} className="px-3 py-2 text-left text-xs font-medium text-gray-700 dark:text-gray-200 uppercase border-r border-gray-300 dark:border-gray-600 min-w-12">
@@ -357,10 +405,17 @@ const ObservationCustom = ({
         <tbody className="bg-white dark:bg-gray-800">
           {selectedTableData.staticRows.map((row, rowIndex) => {
             const point = observations?.[rowIndex] || {};
+            // Recompute from the live cell values so the read-only columns are never
+            // left blank when the stored value is missing
+            const liveRow = row.map((cell, idx) => {
+              const v = tableInputValues[`${rowIndex}-${idx}`];
+              return (v !== undefined && v !== null && v !== '') ? v : (cell ?? '');
+            });
+            const derived = calculateCustomValues(liveRow, instrument, point) || {};
             return (
               <tr key={rowIndex} className="border-b border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700">
                 {/* Sr. No. */}
-                <td className="px-3 py-2 text-sm border-r border-gray-200 dark:border-gray-600 dark:text-white bg-gray-50 dark:bg-gray-700 text-center font-medium">
+                <td className="px-1.5 py-2 text-sm border-r border-gray-200 dark:border-gray-600 dark:text-white bg-gray-50 dark:bg-gray-700 text-center font-medium">
                   {rowIndex + 1}
                 </td>
 
@@ -369,12 +424,12 @@ const ObservationCustom = ({
                   const cellKey = `${rowIndex}-${layout.paramIdx}`;
                   const hasError = !!observationErrors[cellKey];
                   return (
-                    <td className="px-3 py-2 text-sm border-r border-gray-200 dark:border-gray-600 dark:text-white">
+                    <td className="px-1.5 py-2 text-sm border-r border-gray-200 dark:border-gray-600 dark:text-white">
                       <input
                         type="text"
                         id={`obs-cell-${cellKey}`}
                         data-cell-key={cellKey}
-                        className={`w-full px-2 py-1 border rounded bg-white dark:bg-gray-600 text-gray-900 dark:text-white focus:outline-none focus:ring-2 ${hasError ? 'border-red-500 focus:ring-red-500 ring-1 ring-red-400' : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500'
+                        className={`w-full min-w-[64px] px-2 py-1 border rounded bg-white dark:bg-gray-600 text-gray-900 dark:text-white focus:outline-none focus:ring-2 ${hasError ? 'border-red-500 focus:ring-red-500 ring-1 ring-red-400' : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500'
                           }`}
                         value={tableInputValues[cellKey] ?? row[layout.paramIdx] ?? ''}
                         onChange={(e) => handleInputChange && handleInputChange(rowIndex, layout.paramIdx, e.target.value, 'text')}
@@ -392,12 +447,12 @@ const ObservationCustom = ({
                   const cellKey = `${rowIndex}-${layout.specIdx}`;
                   const hasError = !!observationErrors[cellKey];
                   return (
-                    <td className="px-3 py-2 text-sm border-r border-gray-200 dark:border-gray-600 dark:text-white">
+                    <td className="px-1.5 py-2 text-sm border-r border-gray-200 dark:border-gray-600 dark:text-white">
                       <input
                         type="text"
                         id={`obs-cell-${cellKey}`}
                         data-cell-key={cellKey}
-                        className={`w-full px-2 py-1 border rounded bg-white dark:bg-gray-600 text-gray-900 dark:text-white focus:outline-none focus:ring-2 ${hasError ? 'border-red-500 focus:ring-red-500 ring-1 ring-red-400' : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500'
+                        className={`w-full min-w-[64px] px-2 py-1 border rounded bg-white dark:bg-gray-600 text-gray-900 dark:text-white focus:outline-none focus:ring-2 ${hasError ? 'border-red-500 focus:ring-red-500 ring-1 ring-red-400' : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500'
                           }`}
                         value={tableInputValues[cellKey] ?? row[layout.specIdx] ?? ''}
                         onChange={(e) => handleInputChange && handleInputChange(rowIndex, layout.specIdx, e.target.value, 'text')}
@@ -416,22 +471,22 @@ const ObservationCustom = ({
                   const isEditable = instrument?.setpoint === 'UUC';
                   const hasError = !!observationErrors[cellKey];
                   return (
-                    <td className={`px-3 py-2 text-sm border-r border-gray-200 dark:border-gray-600 dark:text-white ${isEditable ? '' : 'bg-gray-50 dark:bg-gray-700'}`}>
+                    <td className={`px-1.5 py-2 text-sm border-r border-gray-200 dark:border-gray-600 dark:text-white ${isEditable ? '' : 'bg-gray-50 dark:bg-gray-700'}`}>
                       <div className="flex items-center gap-1">
                         <input
                           type={isEditable ? "number" : "text"}
                           step="any"
                           id={`obs-cell-${cellKey}`}
                           data-cell-key={cellKey}
-                          className={`w-full px-2 py-1 border rounded ${isEditable
+                          className={`w-full min-w-[88px] px-2 py-1 border rounded ${isEditable
                               ? `bg-white dark:bg-gray-600 text-gray-900 dark:text-white focus:outline-none focus:ring-2 ${hasError ? 'border-red-500 focus:ring-red-500 ring-1 ring-red-400' : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500'
                               }`
                               : 'border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white cursor-not-allowed'
                             }`}
                           value={tableInputValues[cellKey] ?? row[layout.setpointIdx] ?? ''}
                           readOnly={!isEditable}
-                          onChange={(e) => isEditable && handleInputChange && handleInputChange(rowIndex, layout.setpointIdx, e.target.value)}
-                          onBlur={(e) => isEditable && handleObservationBlur && handleObservationBlur(rowIndex, layout.setpointIdx, e.target.value)}
+                          onChange={(e) => isEditable && handleObsChange(row, rowIndex, layout.setpointIdx, e.target.value, point)}
+                          onBlur={(e) => isEditable && handleObsBlur(rowIndex, layout.setpointIdx, e.target.value)}
                         />
                         {point?.unit && isNaN(point.unit) && <span className="text-xs text-gray-500 shrink-0">{point.unit}</span>}
                       </div>
@@ -445,25 +500,29 @@ const ObservationCustom = ({
                 {/* Observations in dynamic order */}
                 {layout.order === 'master-first' ? (
                   <>
-                    {renderMasterCells(row, rowIndex, point)}
-                    {renderUucCells(row, rowIndex, point)}
+                    {renderMasterCells(row, rowIndex, point, derived)}
+                    {renderUucCells(row, rowIndex, point, derived)}
                   </>
                 ) : (
                   <>
-                    {renderUucCells(row, rowIndex, point)}
-                    {renderMasterCells(row, rowIndex, point)}
+                    {renderUucCells(row, rowIndex, point, derived)}
+                    {renderMasterCells(row, rowIndex, point, derived)}
                   </>
                 )}
 
                 {/* Error */}
                 {layout.errorIdx !== -1 && (
-                  <td className="px-3 py-2 text-sm border-r border-gray-200 dark:border-gray-600 dark:text-white bg-gray-50 dark:bg-gray-700">
+                  <td className="px-1.5 py-2 text-sm border-r border-gray-200 dark:border-gray-600 dark:text-white bg-gray-50 dark:bg-gray-700">
                     <input
                       type="text"
                       id={`obs-cell-${rowIndex}-${layout.errorIdx}`}
                       data-cell-key={`${rowIndex}-${layout.errorIdx}`}
-                      className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white cursor-not-allowed"
-                      value={tableInputValues[`${rowIndex}-${layout.errorIdx}`] ?? row[layout.errorIdx] ?? ''}
+                      className="w-full min-w-[88px] px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white cursor-not-allowed"
+                      value={firstFilled(
+                        tableInputValues[`${rowIndex}-${layout.errorIdx}`],
+                        row[layout.errorIdx],
+                        derived.error
+                      )}
                       readOnly
                     />
                   </td>
@@ -474,12 +533,12 @@ const ObservationCustom = ({
                   const cellKey = `${rowIndex}-${layout.remarkIdx}`;
                   const hasError = !!observationErrors[cellKey];
                   return (
-                    <td className="px-3 py-2 text-sm dark:text-white">
+                    <td className="px-1.5 py-2 text-sm dark:text-white">
                       <input
                         type="text"
                         id={`obs-cell-${cellKey}`}
                         data-cell-key={cellKey}
-                        className={`w-full px-2 py-1 border rounded bg-white dark:bg-gray-600 text-gray-900 dark:text-white focus:outline-none focus:ring-2 ${hasError ? 'border-red-500 focus:ring-red-500 ring-1 ring-red-400' : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500'
+                        className={`w-full min-w-[64px] px-2 py-1 border rounded bg-white dark:bg-gray-600 text-gray-900 dark:text-white focus:outline-none focus:ring-2 ${hasError ? 'border-red-500 focus:ring-red-500 ring-1 ring-red-400' : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500'
                           }`}
                         value={tableInputValues[cellKey] ?? row[layout.remarkIdx] ?? ''}
                         onChange={(e) => handleInputChange && handleInputChange(rowIndex, layout.remarkIdx, e.target.value, 'text')}

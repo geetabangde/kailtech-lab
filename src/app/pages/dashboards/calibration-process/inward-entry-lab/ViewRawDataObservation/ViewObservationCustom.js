@@ -219,31 +219,29 @@ export const createCustomRows = (dataArray, currentRawdata, observationData) => 
       );
 
       if (layout.setpointIdx !== -1) {
-        const isMasterSp = instrumentSettings?.setpoint === 'Master';
-        const spDec = isMasterSp ? masterDecimals : uucDecimals;
-        const spLc = isMasterSp ? masterLc : uucLc;
         const rawSp = point.point ?? summary.setpoint?.[0]?.value ?? summary.master?.[0]?.value ?? summary.uuc?.[0]?.value;
-        row[layout.setpointIdx] = formatValueByLc(rawSp, spDec, spLc);
+        // Show the stored value exactly as the API returns it.
+        row[layout.setpointIdx] = safeGetValue(rawSp);
       }
 
       const masterVals = [...(summary.master ?? point.master ?? [])].sort(
         (a, b) => Number(a?.repeatable ?? 0) - Number(b?.repeatable ?? 0)
       );
       layout.masterObsIndices.forEach((idx, i) => {
-        row[idx] = formatValueByLc(masterVals[i]?.value ?? masterVals[i], masterDecimals, masterLc);
+        row[idx] = safeGetValue(masterVals[i]?.value ?? masterVals[i]);
       });
-      if (layout.avgMasterIdx !== -1) row[layout.avgMasterIdx] = formatValueByLc(
-        summary.averagemaster?.[0]?.value ?? point.averagemaster, masterDecimals, masterLc
+      if (layout.avgMasterIdx !== -1) row[layout.avgMasterIdx] = safeGetValue(
+        summary.averagemaster?.[0]?.value ?? point.averagemaster
       );
 
       const uucVals = [...(summary.uuc ?? point.uuc ?? [])].sort(
         (a, b) => Number(a?.repeatable ?? 0) - Number(b?.repeatable ?? 0)
       );
       layout.uucObsIndices.forEach((idx, i) => {
-        row[idx] = formatValueByLc(uucVals[i]?.value ?? uucVals[i], uucDecimals, uucLc);
+        row[idx] = safeGetValue(uucVals[i]?.value ?? uucVals[i]);
       });
-      if (layout.avgUucIdx !== -1) row[layout.avgUucIdx] = formatValueByLc(
-        summary.averageuuc?.[0]?.value ?? point.averageuuc, uucDecimals, uucLc
+      if (layout.avgUucIdx !== -1) row[layout.avgUucIdx] = safeGetValue(
+        summary.averageuuc?.[0]?.value ?? point.averageuuc
       );
 
       if (layout.errorIdx !== -1) {

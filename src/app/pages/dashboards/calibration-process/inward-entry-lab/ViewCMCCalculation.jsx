@@ -4,7 +4,7 @@ import axios from "utils/axios";
 import { toast } from "sonner";
 import { Button } from "components/ui";
 import { UNCERTAINTY_LAYOUTS } from "../../calibration-operations/instrument-list/components/UncertaintyLayouts";
-import { CmcTableRenderer, safeGetArrayValue } from "./ViewCMCObservation";
+import { CmcTableRenderer, safeGetArrayValue, mapTswoiCmcRows, mapTswiCmcRows, mapUcCmcRows, mapSutmCmcRows } from "./ViewCMCObservation";
 
 const SUFFIX_NAMES = {
   ctg: "Coating Thickness Gauge",
@@ -25,6 +25,9 @@ const SUFFIX_NAMES = {
   mg: "Magnehelic Gauge",
   exm: "External Micrometer",
   rtdwi: "RTD Sensor With Indicator",
+  tswoi: "Thermocouple Sensor Without Indicator",
+  tswi: "Thermocouple Sensor With Indicator",
+  sutm: "Speed of Universal Testing Machine",
   ppg: "Precision Pressure Gauge",
   gtm: "Glass Thermometer",
   dg: "Digital Dial Gauge",
@@ -32,8 +35,13 @@ const SUFFIX_NAMES = {
   wb: "Weighing Balance",
   tm: "Tachometer",
   utm: "Universal Testing Machine",
+  autm: "Automatic Universal Testing Machine",
+  volnl: "Volumetric (Neck Level)",
+  vol: "Volumetric",
+  vht: "Hardness Tester",
   wbn: "Weighing Balance",
   observationuc: "Universal Calibrator",
+  uc: "Universal Calibrator",
   biomedical: "Biomedical",
   cent: "Centrifuge",
   th: "Thermo-Hygrometer",
@@ -253,6 +261,14 @@ export default function ViewCMCCalculation() {
           } else if (instrumentSuffix === "cent") {
             // For Centrifuge, data is inside uncertainty.data array
             apiData = response.data.data?.uncertainty?.data || [];
+          } else if (instrumentSuffix === "utm") {
+            // For UTM, uncertainty.original.data is an object; the rows live in calibration_points
+            apiData =
+              response.data.data?.uncertainty?.original?.data?.calibration_points ||
+              response.data.data?.uncertainty?.data?.calibration_points ||
+              (Array.isArray(response.data.data?.uncertainty?.original?.data)
+                ? response.data.data.uncertainty.original.data
+                : []);
           } else {
             // For other instruments, fallback to uncertainty.original.data or uncertainty direct
             apiData =
@@ -425,6 +441,15 @@ export default function ViewCMCCalculation() {
               cmcTaken: item.cmc_taken,
             }));
             setData(mappedData);
+          } else if (instrumentSuffix === "tswoi") {
+            // TSWOI formulas (Type A x sensitivity, master-2 scaled by UUC corrected average)
+            setData(mapTswoiCmcRows(apiData));
+          } else if (instrumentSuffix === "tswi") {
+            // TSWI formulas (Type A without sensitivity, master-2 scaled by master corrected average, k = 2)
+            setData(mapTswiCmcRows(apiData));
+          } else if (instrumentSuffix === "sutm") {
+            // SUTM formulas (speed from displacement/time, linear scale + stop watch master uncertainty)
+            setData(mapSutmCmcRows(apiData));
           } else if (instrumentSuffix === "rtdwi") {
             const mappedData = apiData.map((item) => {
               const testpoint = parseFloat(item.calibration_point || item.point || 0);
@@ -892,6 +917,7 @@ export default function ViewCMCCalculation() {
                 coveragefactor: item.coveragefactor ?? item.coverage_factor ?? 2,
                 expandeduncertainty: item.expandeduncertainty ?? item.expanded_uncertainty ?? item.expanded_unc,
                 cmcuncertainty: item.cmcuncertainty ?? item.cmc_uncertainty ?? item.cmc,
+                cmcscope: item.cmcscope ?? item.cmc_scope,
               };
             });
             setData(mappedData);
@@ -928,6 +954,7 @@ export default function ViewCMCCalculation() {
               coverageFactor: item.coverage_factor ?? item.coveragefactor ?? 2,
               expandedUnc: item.expanded_uncertainty_g ?? item.expandeduncertainty ?? item.expanded_uncertainty ?? item.expanded_unc,
               expandedUncmg: item.expanded_uncertainty_mg ?? item.expandeduncertainty_mg ?? '',
+              cmcScope: item.cmc_scope_g ?? item.cmc_scope ?? item.cmcscope,
               cmc: item.cmc_taken ?? item.cmcuncertainty ?? item.cmc_uncertainty ?? item.cmc,
             }));
             setData(mappedData);
@@ -1010,7 +1037,7 @@ export default function ViewCMCCalculation() {
                   coverageFactor: `${covUpper.toFixed(2)}/${covLower.toFixed(2)}`,
                   expandedUncValue: `${expUpper.toFixed(4)}/${expLower.toFixed(4)}`,
                   expandedUncPercent: `${expPercentUpper.toFixed(4)}/${expPercentLower.toFixed(4)}`,
-                  cmcTaken: `${expPercentUpper.toFixed(4)}/${expPercentLower.toFixed(4)}`,
+                  cmcTaken: `${expPercentUpper}/${expPercentLower}`,
                   cmcScope: item.cmc_scope || item.cmcScope
                 };
               } else {
@@ -1058,68 +1085,40 @@ export default function ViewCMCCalculation() {
           } else if (instrumentSuffix === "wbn") {
             const mappedData = apiData.map((item) => {
               const testpoint = parseFloat(item.calibration_point || item.point || 0);
-              const uucValues = item.uucr || item.uuc || [item.uuc_0, item.uuc_1, item.uuc_2, item.uuc_3, item.uuc_4];
 
-              const uuc0 = parseFloat(uucValues[0] || 0);
-              const uuc1 = parseFloat(uucValues[1] || 0);
-              const uuc2 = parseFloat(uucValues[2] || 0);
-              const uuc3 = parseFloat(uucValues[3] || 0);
-              const uuc4 = parseFloat(uucValues[4] || 0);
-
-              const averageuuc = parseFloat(item.averageuuc || item.averageuucr || 0);
-              const repeatability = parseFloat(item.repeatability || item.std_deviation || 0);
-              const typea = repeatability / Math.sqrt(5);
-
-              const eccentricity = parseFloat(item.eccentricity || 0);
-              const eccentricityfactor = eccentricity * (2 / 3);
-
-              const leastcount = parseFloat(item.leastcount || item.least_count || 0);
-              const masterunc = parseFloat(item.master_uncertainty || item.masterunc || 0);
-              const drift = masterunc / 10;
-
-              const comuncer = Math.sqrt(
-                Math.pow(typea, 2) +
-                Math.pow(drift / Math.sqrt(3), 2) +
-                Math.pow(eccentricityfactor / 2 / Math.sqrt(3), 2) +
-                Math.pow(masterunc / 2, 2) +
-                Math.pow(leastcount / 2 / Math.sqrt(3), 2)
-              );
-
-              let dof = "-";
-              if (repeatability !== 0 && typea > 0) {
-                const com4 = Math.pow(comuncer, 4);
-                const typeap4 = Math.pow(typea, 4);
-                dof = (com4 / (typeap4 / 4));
-              }
-
-              const coverageFactor = 2;
-              const expandedUncertainty = comuncer * coverageFactor;
-              const expandedUncertaintymg = expandedUncertainty * 1000;
-
-              const cmcScope = parseFloat(item.cmcscope || item.cmc_scope || 0);
-              const cmcTaken = Math.max(expandedUncertainty, cmcScope);
+              const values = [
+                item.reading_1 ?? item.uucr?.[0] ?? item.uuc?.[0] ?? item.uuc_0 ?? "",
+                item.reading_2 ?? item.uucr?.[1] ?? item.uuc?.[1] ?? item.uuc_1 ?? "",
+                item.reading_3 ?? item.uucr?.[2] ?? item.uuc?.[2] ?? item.uuc_2 ?? "",
+                item.reading_4 ?? item.uucr?.[3] ?? item.uuc?.[3] ?? item.uuc_3 ?? "",
+                item.reading_5 ?? item.uucr?.[4] ?? item.uuc?.[4] ?? item.uuc_4 ?? "",
+              ];
 
               return {
                 srNo: item.sr_no || item.srNo || 1,
                 unit: item.unit || item.unit_desc,
                 calibrationPoint: testpoint,
-                values: [uuc0, uuc1, uuc2, uuc3, uuc4],
-                average: averageuuc,
-                stdDeviation: repeatability,
-                typeA: typea,
-                drift: drift,
-                eccentricityfactor: eccentricityfactor,
-                masterunc: masterunc,
-                leastcount: leastcount,
-                comuncer: comuncer,
-                dof: dof,
-                coveragefactor: coverageFactor,
-                expandeduncertainty: expandedUncertainty,
-                expandeduncertaintymg: expandedUncertaintymg,
-                cmcuncertainty: cmcTaken,
+                values,
+                reading_1: values[0],
+                average: item.average_g ?? 0,
+                stdDeviation: item.std_deviation ?? 0,
+                typeA: item.type_a ?? 0,
+                drift: item.drift_in_mass_g ?? 0,
+                eccentricityfactor: item.eccentricity_g ?? 0,
+                masterunc: item.uncertainty_of_master_g ?? 0,
+                leastcount: item.least_count_of_uuc_g ?? 0,
+                comuncer: item.combined_uncertainty ?? 0,
+                dof: item.degree_of_freedom ?? "-",
+                coveragefactor: item.coverage_factor ?? 2,
+                expandeduncertainty: item.expanded_uncertainty_g ?? 0,
+                expandeduncertaintymg: item.expanded_uncertainty_mg ?? 0,
+                cmcuncertainty: item.cmc_taken ?? 0,
               };
             });
             setData(mappedData);
+          } else if (instrumentSuffix === "uc") {
+            // Backend returns every column already calculated (uncertainty.original.data)
+            setData(mapUcCmcRows(apiData));
           } else if (instrumentSuffix === "observationuc") {
             const mappedData = apiData.map((item) => {
               const testpoint = parseFloat(item.calibration_point || item.point || 0);
@@ -1229,75 +1228,65 @@ export default function ViewCMCCalculation() {
             });
             setData(mappedData);
           } else if (instrumentSuffix === "utm") {
-            const mappedData = apiData.map((item) => {
-              const setpoint = parseFloat(item.calibration_point || item.point || 0);
-              const uuc0 = parseFloat(item.uuc0 || item.uuc_0 || 0);
-              const master0 = parseFloat(item.master0 || item.master_0 || 0);
-              const master1 = parseFloat(item.master1 || item.master_1 || 0);
-              const master2 = parseFloat(item.master2 || item.master_2 || 0);
+            const mappedData = apiData.map((item, index) => {
+              const setpoint = parseFloat(item.calibration_point ?? item.force ?? item.point ?? 0);
 
-              const leastcount = parseFloat(item.leastcount || item.least_count || item.least_count_uuc || 0);
-              const maxzeroerror = parseFloat(item.maxzeroerror || item.max_zero_error || 0);
-              const masterunc = parseFloat(item.masterunc || item.master_uncertainty || item.master_unc || 0);
-
-              const q1Error = uuc0 !== 0 ? ((master0 - uuc0) / uuc0) * 100 : 0;
-              const q2Error = uuc0 !== 0 ? ((master1 - uuc0) / uuc0) * 100 : 0;
-              const q3Error = uuc0 !== 0 ? ((master2 - uuc0) / uuc0) * 100 : 0;
-
-              const avgQError = (q1Error + q2Error + q3Error) / 3;
-              const qErrors = [q1Error, q2Error, q3Error];
-              const diffQError = Math.max(...qErrors) - Math.min(...qErrors);
-
-              const a1 = Math.pow(q1Error - avgQError, 2);
-              const a2 = Math.pow(q2Error - avgQError, 2);
-              const a3 = Math.pow(q3Error - avgQError, 2);
-              const urep = Math.sqrt(((1 / 3) * 2) * (a1 + a2 + a3)) / Math.sqrt(3);
-
-              const af = setpoint !== 0 ? (leastcount / setpoint) * 100 : 0;
-              const az = setpoint !== 0 ? (maxzeroerror / setpoint) * 100 : 0;
-
-              const ures = Math.sqrt(Math.pow(af / (2 * Math.sqrt(3)), 2) + Math.pow(maxzeroerror / (2 * Math.sqrt(3)), 2));
-
-              const ustd = Math.sqrt(Math.pow(masterunc / 2, 2) + 0);
-
-              const combinedUncertainty = Math.sqrt(urep * urep + ures * ures + ustd * ustd);
-              const kfactor = 2;
-              const expandedUncertainty = kfactor * combinedUncertainty;
+              // The API already returns every computed figure; read them rather than recomputing
+              const obs = item.observations || {};
+              const rie = item.relative_indicative_error || {};
+              const rep = item.repeatability || {};
+              const res = item.relative_resolution || {};
 
               return {
-                srNo: item.sr_no || item.srNo,
-                force: setpoint,
+                srNo: item.sr_no ?? item.srNo ?? index + 1,
+                force: item.force ?? setpoint,
                 mode: item.mode,
                 unit: item.unit_desc || item.unit,
-                calibrationPoint: setpoint,
-                calculateduuc: item.calculateduuc || item.calculated_uuc,
-                uuc0: uuc0,
-                master0: master0,
-                master1: master1,
-                master2: master2,
-                averagemaster: (master0 + master1 + master2) / 3,
-                q1Error: q1Error,
-                q2Error: q2Error,
-                q3Error: q3Error,
-                avgQError: avgQError,
-                diffQError: diffQError,
-                urep: urep,
-                leastcount: leastcount,
-                maxzeroerror: maxzeroerror,
-                af: af,
-                az: az,
-                ures: ures,
-                masterunc: masterunc,
-                drift: 0,
-                ustd: ustd,
-                combinedUncertainty: combinedUncertainty,
-                kfactor: kfactor,
-                expandedUncertainty: expandedUncertainty,
-                cmcScope: item.cmcscope || item.cmc_scope || 0,
-                cmcTaken: Math.max(expandedUncertainty, parseFloat(item.cmcscope || item.cmc_scope || 0))
+                calibrationPoint: item.calibration_point ?? setpoint,
+                calculateduuc: item.std_at_24 ?? item.calculateduuc ?? item.calculated_uuc,
+                uuc0: item.standard_division_room_temp ?? item.uuc0 ?? item.uuc_0,
+                master0: obs.reading_1 ?? item.master0 ?? item.master_0,
+                master1: obs.reading_2 ?? item.master1 ?? item.master_1,
+                master2: obs.reading_3 ?? item.master2 ?? item.master_2,
+                averagemaster: obs.average,
+                q1Error: rie.q1,
+                q2Error: rie.q2,
+                q3Error: rie.q3,
+                avgQError: rie.avg_q,
+                diffQError: rep.b_percent,
+                urep: rep.urep_percent,
+                leastcount: item.least_count ?? item.leastcount,
+                maxzeroerror: item.relative_zero_error ?? item.maxzeroerror ?? item.max_zero_error,
+                af: res.af_percent,
+                az: res.az_percent,
+                ures: item.resolution_uncertainty,
+                masterunc: item.master_uncertainty ?? item.masterunc ?? item.master_unc,
+                drift: item.drift ?? 0,
+                ustd: item.master_unc_ustd,
+                combinedUncertainty: item.combined_uncertainty,
+                kfactor: item.k_factor ?? item.coverage_factor ?? 2,
+                expandedUncertainty: item.expanded_uncertainty,
+                cmcScope: item.cmc_scope ?? item.cmcscope ?? 0,
+                cmcTaken: item.cmc_taken,
               };
             });
             setData(mappedData);
+          } else if (instrumentSuffix === "vht") {
+            // The VHT endpoint already returns every computed figure under the
+            // names VhtCmcTable reads, so pass the rows straight through.
+            setData(Array.isArray(apiData) ? apiData : []);
+          } else if (instrumentSuffix === "vol") {
+            // The VOL endpoint already returns every computed figure under the
+            // names VolCmcTable reads, so pass the rows straight through.
+            setData(Array.isArray(apiData) ? apiData : []);
+          } else if (instrumentSuffix === "volnl") {
+            // The VOLNL endpoint already returns every computed figure under the
+            // names VolnlCmcTable reads, so pass the rows straight through.
+            setData(Array.isArray(apiData) ? apiData : []);
+          } else if (instrumentSuffix === "autm") {
+            // The AUTM endpoint already returns every computed figure under the
+            // names AutmCmcTable reads, so pass the rows straight through.
+            setData(Array.isArray(apiData) ? apiData : []);
           } else if (instrumentSuffix === "tm") {
             const mappedData = apiData.map((item) => {
               const testpoint = parseFloat(item.calibration_point || item.point || 0);
@@ -1433,6 +1422,7 @@ export default function ViewCMCCalculation() {
               coverageFactor: item.coveragefactor ?? item.coverage_factor ?? 2,
               expandedUnc: item.expandeduncertainty ?? item.expanded_uncertainty ?? "",
               cmc: item.cmcuncertainty ?? item.cmc_uncertainty ?? item.cmc_taken ?? item.cmc ?? "",
+              cmcScope: item.cmcscope ?? item.cmc_scope ?? "",
             }));
             setData(mappedData);
           } else if (instrumentSuffix === "ts") {

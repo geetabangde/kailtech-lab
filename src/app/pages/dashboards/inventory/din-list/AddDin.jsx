@@ -301,9 +301,15 @@ export default function AddDin() {
 
     if (name === "basis") {
       fetchReturnData(value);
+      setInwardItems([]);
+      setInwardGlobalChecks({ checked_instrument: false, checked_certificate: false, checked_invoice: false });
+      setInwardGlobalRemark("");
     }
 
     if (name === "purpose") {
+      setInwardItems([]);
+      setInwardGlobalChecks({ checked_instrument: false, checked_certificate: false, checked_invoice: false });
+      setInwardGlobalRemark("");
       fetchCustomerVendorData(value);
       if (["6", "8", "10"].includes(String(value))) {
         setIsTrfLoading(true);
@@ -444,7 +450,12 @@ export default function AddDin() {
 
   const handleInwardGlobalCheck = (field, checked) => {
     setInwardGlobalChecks(prev => ({ ...prev, [field]: checked }));
-    setInwardItems(prev => prev.map(item => ({ ...item, [field]: checked })));
+    setInwardItems(prev => prev.map(item => {
+      if (field === "checked_instrument" && !item.show_instrument) return item;
+      if (field === "checked_certificate" && !item.show_certificate) return item;
+      if (field === "checked_invoice" && !item.show_invoice) return item;
+      return { ...item, [field]: checked };
+    }));
   };
 
   const handleInwardGlobalRemark = (e) => {
@@ -620,8 +631,27 @@ export default function AddDin() {
       errors.push("No Item is Added");
     }
 
-    if ([7, 9].includes(pval) && inwardItems.length === 0) {
-      errors.push("No Inward Item is Added");
+    if ([7, 9].includes(pval)) {
+      if (inwardItems.length === 0) {
+        errors.push("No Inward Item is Added");
+      } else {
+        const hasUncheckedItem = inwardItems.some(item => {
+          const hasOption = item.show_instrument || item.show_certificate || item.show_invoice;
+          if (!hasOption) return false;
+          return !(
+            (item.show_instrument && item.checked_instrument) ||
+            (item.show_certificate && item.checked_certificate) ||
+            (item.show_invoice && item.checked_invoice)
+          );
+        });
+        if (hasUncheckedItem) {
+          errors.push("Please Check Atleast One Box for each item");
+        }
+
+        if (inwardItems.some(item => !item.user_remark || !item.user_remark.trim())) {
+          errors.push("Please enter Remark for all items in Inward Material Details");
+        }
+      }
     }
 
     if ([6, 8, 10].includes(pval)) {
@@ -749,9 +779,9 @@ export default function AddDin() {
 
         inwardItems.forEach(i => {
           const itemid = i.item_id;
-          if (i.checked_instrument) payload[`instrument${itemid}`] = "Yes";
-          if (i.checked_certificate) payload[`certificate${itemid}`] = "Yes";
-          if (i.checked_invoice) payload[`invoice${itemid}`] = "Yes";
+          if (i.show_instrument && i.checked_instrument) payload[`instrument${itemid}`] = "Yes";
+          if (i.show_certificate && i.checked_certificate) payload[`certificate${itemid}`] = "Yes";
+          if (i.show_invoice && i.checked_invoice) payload[`invoice${itemid}`] = "Yes";
         });
       }
 
@@ -1406,7 +1436,7 @@ export default function AddDin() {
                   </div>
                   <div className="flex-1">
                     <label className="font-semibold text-gray-700 dark:text-dark-200 text-sm">Global Remark</label>
-                    <input type="text" placeholder="Remark for all" value={inwardGlobalRemark} onChange={handleInwardGlobalRemark} className="form-input w-full rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-900" />
+                    <input type="text" placeholder="Remark For all" value={inwardGlobalRemark} onChange={handleInwardGlobalRemark} className="form-input w-full rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-900" />
                   </div>
                 </div>
 

@@ -13,6 +13,9 @@ import { MgCmcTable } from './MgCmcTable';
 import { VcCmcTable } from './VcCmcTable';
 import { ExmCmcTable } from './ExmCmcTable';
 import { RtdwiCmcTable } from './RtdwiCmcTable';
+import { TswoiCmcTable } from './TswoiCmcTable';
+import { TswiCmcTable } from './TswiCmcTable';
+import { SutmCmcTable } from './SutmCmcTable';
 import { PpgCmcTable } from './PpgCmcTable';
 import { GtmCmcTable } from './GtmCmcTable';
 import { TmCmcTable } from './TmCmcTable';
@@ -26,6 +29,14 @@ import { BiomedicalCmcTable } from './BiomedicalCmcTable';
 import { WbnCmcTable } from './WbnCmcTable';
 import { ThCmcTable } from './ThCmcTable';
 import { TsCmcTable } from './TsCmcTable';
+import { UtmCmcTable } from './UtmCmcTable';
+import { AutmCmcTable } from './AutmCmcTable';
+import { VolnlCmcTable } from './VolnlCmcTable';
+import { VolCmcTable } from './VolCmcTable';
+import { VhtCmcTable } from './VhtCmcTable';
+import { StdfCmcTable } from './StdfCmcTable';
+import { RhtCmcTable } from './RhtCmcTable';
+import { SrfCmcTable } from './SrfCmcTable';
 
 export const CmcTableRenderer = ({ suffix, customLayout, data, electricSafetyData }) => {
   if (customLayout && suffix !== "biomedical") {
@@ -62,6 +73,12 @@ export const CmcTableRenderer = ({ suffix, customLayout, data, electricSafetyDat
       return <ExmCmcTable data={data} />;
     case "rtdwi":
       return <RtdwiCmcTable data={data} />;
+    case "tswoi":
+      return <TswoiCmcTable data={data} />;
+    case "tswi":
+      return <TswiCmcTable data={data} />;
+    case "sutm":
+      return <SutmCmcTable data={data} />;
     case "ppg":
       return <PpgCmcTable data={data} />;
     case "gtm":
@@ -79,6 +96,7 @@ export const CmcTableRenderer = ({ suffix, customLayout, data, electricSafetyDat
     case "es":
       return <EsCmcTable data={data} />;
     case "observationuc":
+    case "uc":
       return <UcCmcTable data={data} />;
     case "biomedical":
       return <BiomedicalCmcTable data={data} electricSafetyData={electricSafetyData} />;
@@ -88,6 +106,25 @@ export const CmcTableRenderer = ({ suffix, customLayout, data, electricSafetyDat
       return <ThCmcTable data={data} />;
     case "ts":
       return <TsCmcTable data={data} />;
+    case "utm":
+      return <UtmCmcTable data={data} />;
+    case "autm":
+      return <AutmCmcTable data={data} />;
+    case "volnl":
+      return <VolnlCmcTable data={data} />;
+    case "vol":
+      return <VolCmcTable data={data} />;
+    case "vht":
+      return <VhtCmcTable data={data} />;
+    case "stdf":
+    case "observationstdf":
+      return <StdfCmcTable data={data} />;
+    case "srf":
+    case "observationsrf":
+      return <SrfCmcTable data={data} />;
+    case "rht":
+    case "observationrht":
+      return <RhtCmcTable data={data} />;
     default:
       return (
         <div className="text-center py-8 text-gray-500">

@@ -3,9 +3,9 @@ import { safeGetArray, safeGetValue, formatValueByLc } from './viewRawDataUtils'
 /**
  * Table configuration for Glass Thermometer (GTM)
  * Matches the header structure of rawdatagtm.php:
- * - Single Headers: Sr. No., Set Point (°C), Range, Value Of, Unit, Sensitivity Coefficient
+ * - Single Headers: Sr. No., Set Point (°C), Range, Value Of, Unit
  * - Sub Headers: Observation () with readings 1, 2, 3, 4, 5
- * - Remaining Headers: Average (Ω), Average (°C), Deviation (°C)
+ * - Remaining Headers: Average (°C), Deviation (°C)
  */
 export const gtmTableConfig = {
   id: 'observationgtm',
@@ -18,12 +18,11 @@ export const gtmTableConfig = {
       'Range',
       'Value Of',
       'Unit',
-      'Sensitivity Coefficient',
     ],
     subHeaders: {
       'Observation': ['1', '2', '3', '4', '5'],
     },
-    remainingHeaders: ['Average (Ω)', 'Average (UUC Unit)', 'Deviation (UUC Unit)'],
+    remainingHeaders: ['Average (UUC Unit)', 'Deviation (UUC Unit)'],
   },
 };
 
@@ -77,6 +76,52 @@ export const getEffectiveDecimals = (point, readings = [], type = 'master') => {
 };
 
 /**
+ * Master unit -> multiplier that brings a master reading to plain ohms.
+ * Returns null when the unit is not a resistance unit (no conversion needed).
+ */
+export const getOhmScale = (unitSymbol) => {
+  // Compared against lowercase text, so the unit symbol arrives as lowercase omega
+  const sym = String(unitSymbol ?? '').trim().toLowerCase();
+  if (!sym) return null;
+  if (sym.includes('mega') || sym.startsWith('mω') || sym === 'mohm') return 1e6;
+  if (sym.includes('kilo') || sym.startsWith('kω') || sym === 'kohm') return 1e3;
+  if (sym.includes('ohm') || sym.includes('ω') || sym.includes('Ω')) return 1;
+  return null;
+};
+
+
+export const pt100ResistanceToTemp = (resistance) => {
+  const R = parseFloat(resistance);
+  if (isNaN(R) || R <= 0) return NaN;
+  const R0 = 100;
+  const A = 3.9083e-3;
+  const B = -5.775e-7;
+  const disc = A * A - 4 * B * (1 - R / R0);
+  if (disc < 0) return NaN;
+  return (-A + Math.sqrt(disc)) / (2 * B);
+};
+
+/**
+ * Converted Master Average: master average expressed in the UUC unit.
+ * Resistance master units are converted through the PT100 curve; when the master
+ * already reads in the UUC unit the average passes through unchanged.
+ */
+export const convertMasterAverage = (avgMaster, masterUnitSymbol, decimals) => {
+  if (avgMaster === undefined || avgMaster === null || String(avgMaster).trim() === '') return '';
+  const num = parseFloat(avgMaster);
+  if (isNaN(num)) return '';
+
+  const scale = getOhmScale(masterUnitSymbol);
+  if (scale === null) {
+    // Same unit as the UUC - nothing to convert
+    return num.toFixed(decimals);
+  }
+
+  const temp = pt100ResistanceToTemp(num * scale);
+  return isNaN(temp) ? '' : temp.toFixed(decimals);
+};
+
+/**
  * Create GTM table rows matching rawdatagtm.php logic:
  * Two rows per calibration point:
  * Row 1 (UUC):
@@ -85,9 +130,7 @@ export const getEffectiveDecimals = (point, readings = [], type = 'master') => {
  *   - Range
  *   - "UUC"
  *   - UUC Unit description (e.g., °C)
- *   - "-" (Sensitivity Coefficient N/A for UUC)
  *   - Observations 1..5 (UUC readings formatted with lc)
- *   - "-" (Average in Ω N/A for UUC)
  *   - Average UUC (in °C)
  *   - Deviation / Error (in °C, spanned)
  *
@@ -97,9 +140,7 @@ export const getEffectiveDecimals = (point, readings = [], type = 'master') => {
  *   - "-" (Range spanned)
  *   - "Master"
  *   - Master Unit description (e.g., Ω)
- *   - Sensitivity Coefficient
  *   - Observations 1..5 (Master readings formatted with mlc)
- *   - Average Master (in Ω)
  *   - Converted Average Master (caveragemaster in °C)
  *   - "-" (Deviation spanned)
  */
@@ -116,10 +157,8 @@ export const createGTMRows = (dataArray, currentRawdata = {}) => {
     const masterUnit = safeGetValue(
       point.master_unit_description ??
       (isNaN(Number(point.master_unit)) && point.master_unit ? point.master_unit : null) ??
-      'Ω'
+      uucUnit
     );
-    const sensCoeff = safeGetValue(point.sensitivity_coefficient ?? point.sensitivitycoefficient ?? '');
-
     // Readings extraction (5 readings each)
     const uucReadings = safeGetArray(point.uuc_values ?? point.uuc_observations ?? point.observations, 5);
     const masterReadings = safeGetArray(point.master_values ?? point.master_observations, 5);
@@ -133,33 +172,15 @@ export const createGTMRows = (dataArray, currentRawdata = {}) => {
     const rawSetPoint = point.set_point ?? point.point ?? point.test_point;
     const formattedSetPoint = formatValueByLc(rawSetPoint, lc, point.least_count);
 
-    // Average UUC calculation & formatting
-    let rawAvgUuc = point.average_uuc ?? point.averageuuc;
-    if (rawAvgUuc === undefined || rawAvgUuc === null || rawAvgUuc === '') {
-      const validUuc = uucReadings
-        .map((v) => (v !== undefined && v !== null && String(v).trim() !== '' ? parseFloat(v) : NaN))
-        .filter((v) => !isNaN(v));
-      if (validUuc.length > 0) {
-        rawAvgUuc = (validUuc.reduce((sum, v) => sum + v, 0) / validUuc.length).toFixed(lc);
-      }
-    }
-    const formattedAvgUuc = formatValueByLc(rawAvgUuc, lc, point.least_count);
+    // Average UUC: use the pre-computed value from the API as-is
+    let formattedAvgUuc = point.average_uuc ?? point.averageuuc ?? '';
+    if (formattedAvgUuc === undefined || formattedAvgUuc === null) formattedAvgUuc = '';
+    formattedAvgUuc = String(formattedAvgUuc);
 
-    // Average Master calculation & formatting
-    let rawAvgMaster = point.average_master ?? point.averagemaster;
-    if (rawAvgMaster === undefined || rawAvgMaster === null || rawAvgMaster === '') {
-      const validMaster = masterReadings
-        .map((v) => (v !== undefined && v !== null && String(v).trim() !== '' ? parseFloat(v) : NaN))
-        .filter((v) => !isNaN(v));
-      if (validMaster.length > 0) {
-        rawAvgMaster = (validMaster.reduce((sum, v) => sum + v, 0) / validMaster.length).toFixed(mlc);
-      }
-    }
-    const formattedAvgMaster = formatValueByLc(rawAvgMaster, mlc, point.master_least_count);
-
-    // Converted Average Master formatting (preserve full errorLc precision e.g. 10.017)
-    const rawCAvgMaster = point.converted_average_master ?? point.caveragemaster;
-    const formattedCAvgMaster = formatValueByLc(rawCAvgMaster, errorLc);
+    // Average Master: use the pre-computed value from the API as-is
+    let formattedCAvgMaster = point.average_master ?? point.averagemaster ?? '';
+    if (formattedCAvgMaster === undefined || formattedCAvgMaster === null) formattedCAvgMaster = '';
+    formattedCAvgMaster = String(formattedCAvgMaster);
 
     // Error / Deviation calculation & formatting
     let rawError = point.error ?? point.deviation;
@@ -177,31 +198,27 @@ export const createGTMRows = (dataArray, currentRawdata = {}) => {
     }
     const formattedError = formatValueByLc(rawError, errorLc);
 
-    // Row 1: UUC Row (14 columns)
+    // Row 1: UUC Row (12 columns)
     const uucRow = [
       srNo,
       formattedSetPoint,
       rangeVal,
       'UUC',
       uucUnit,
-      '-',
       ...uucReadings.slice(0, 5).map((val) => formatValueByLc(val, lc, point.least_count)),
-      formattedAvgMaster,
       formattedAvgUuc,
       formattedError,
     ];
     rows.push(uucRow);
 
-    // Row 2: Master Row (14 columns)
+    // Row 2: Master Row (12 columns)
     const masterRow = [
       '-',
       '-',
       '-',
       'Master',
       masterUnit,
-      sensCoeff,
       ...masterReadings.slice(0, 5).map((val) => formatValueByLc(val, mlc, point.master_least_count)),
-      formattedAvgMaster,
       formattedCAvgMaster,
       '-',
     ];

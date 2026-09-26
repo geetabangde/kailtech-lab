@@ -25,7 +25,7 @@ export const createITRows = (dataArray) => {
   dataArray.forEach((point) => {
     if (!point) return;
     const observations = safeGetArray(point.observations, 5);
-    const lc = point.least_count_uuc || '0.01';
+    const lc = point.least_count_value || point.least_count_uuc ;
     const row = [
       point.sequence_number?.toString() || point.sr_no?.toString() || '',
       safeGetValue(point.nominal_value || point.test_point),
@@ -42,8 +42,12 @@ export const createITRows = (dataArray) => {
 };
 
 export const parseITDynamicData = (observationData, setThermalCoeff) => {
-  const itData = observationData.data || observationData;
-  if (itData.calibration_points) {
+
+  const itData =
+    observationData?.data?.data || ''       // most common case
+  observationData?.data || ''
+  observationData;
+  if (itData?.calibration_points) {
     if (itData.thermal_coefficients && setThermalCoeff) {
       setThermalCoeff((prev) => ({
         uuc: itData.thermal_coefficients.uuc_coefficient || '',
@@ -55,3 +59,4 @@ export const parseITDynamicData = (observationData, setThermalCoeff) => {
   }
   return [];
 };
+

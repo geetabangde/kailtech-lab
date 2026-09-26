@@ -11,7 +11,7 @@ export const WbCmcTable = ({ data }) => {
             <th colSpan="3" className="border border-gray-300 px-2 py-2 bg-gray-200 font-semibold text-center">
               Type B Factor
             </th>
-            <th colSpan="6" className="border border-gray-300 px-2 py-2 bg-gray-200 font-semibold text-center">
+            <th colSpan="7" className="border border-gray-300 px-2 py-2 bg-gray-200 font-semibold text-center">
               Uncertainty Measurement
             </th>
           </tr>
@@ -40,6 +40,7 @@ export const WbCmcTable = ({ data }) => {
             <th className="border border-gray-300 px-2 py-2">Degree of Freedom</th>
             <th className="border border-gray-300 px-2 py-2">Coverage Factor (k)</th>
             <th className="border border-gray-300 px-2 py-2">Expanded Uncertainty (g)</th>
+            <th className="border border-gray-300 px-2 py-2">CMC Scope</th>
             <th className="border border-gray-300 px-2 py-2">CMC Taken</th>
           </tr>
         </thead>
@@ -93,7 +94,10 @@ export const WbCmcTable = ({ data }) => {
                 )}
               </td>
               <td className="border border-gray-300 px-2 py-3">
-                {typeof row.cmc === 'number' ? row.cmc.toFixed(8) : (row.cmc ?? '-')}
+                {typeof row.cmcScope === 'number' ? row.cmcScope: (row.cmcScope ?? '-')}
+              </td>
+              <td className="border border-gray-300 px-2 py-3">
+                {typeof row.cmc === 'number' ? row.cmc: (row.cmc ?? '-')}
               </td>
             </tr>
           ))}

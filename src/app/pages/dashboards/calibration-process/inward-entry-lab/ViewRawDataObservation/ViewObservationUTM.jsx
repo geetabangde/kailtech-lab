@@ -37,7 +37,7 @@ const getVal = (point, type, repeatable = 0) => {
 
     // Typed field aliases
     const aliases = {
-        setpoint: point.point ?? point.setpoint ?? point.set_point ?? point.test_point,
+        setpoint: point.force ?? point.point ?? point.setpoint ?? point.set_point ?? point.test_point,
         calculateduuc: point.calculateduuc ?? point.calculated_uuc ?? point.std_at_reference_temp,
         uuc: point.uuc ?? point.uuc0 ?? point.std_room_temp,
         averagemaster: point.averagemaster ?? point.average_master ?? point.mean,
@@ -139,6 +139,7 @@ export const ViewObservationUTM = ({ rawdata, currentRawdata, dynamicObservation
 
     // Helper: get removal force value from matrix group
     const getRemovalForce = (matrix, pn) =>
+        matrix.zeroErrorData?.removal_forces?.[pn] ??
         matrix.raw?.removalforce?.[pn] ??
         matrix.removalForce?.[pn] ??
         getVal(matrix.raw, 'removalforce', pn) ??
@@ -146,6 +147,10 @@ export const ViewObservationUTM = ({ rawdata, currentRawdata, dynamicObservation
 
     // Helper: get zero error value from matrix group
     const getZeroError = (matrix, pn, maxPoint) => {
+        const storedZeroError = matrix.zeroErrorData?.zero_errors?.[pn];
+        if (storedZeroError !== undefined && storedZeroError !== null && storedZeroError !== '') {
+            return storedZeroError;
+        }
         const removalVal = getRemovalForce(matrix, pn);
         if (maxPoint && removalVal !== '' && !isNaN(parseFloat(removalVal))) {
             return ((parseFloat(removalVal) / parseFloat(maxPoint)) * 100).toFixed(2);
@@ -184,14 +189,14 @@ export const ViewObservationUTM = ({ rawdata, currentRawdata, dynamicObservation
             {/* ── Each Matrix Group ── */}
             {matrixGroups.map((matrix, mIdx) => {
                 const firstPoint = matrix.calibrationPoints?.[0] || {};
-                const uucUnit = firstPoint?.unit || 'kN';
+                const uucUnit = matrix.raw?.metadata?.unit || firstPoint?.unit || 'kN';
 
                 // PHP: master instrument name determines std temp reference (23 vs 24)
-                const masterInstrumentName = matrix.raw?.master_instrument_name ?? matrix.masterInstrumentName ?? '';
+                const masterInstrumentName = matrix.raw?.metadata?.master_instrument ?? matrix.raw?.master_instrument_name ?? matrix.masterInstrumentName ?? '';
                 const stdTempRef = (masterInstrumentName === 'Force Proving Ring') ? '23' : '24';
 
                 const numericPoints = matrix.calibrationPoints
-                    .map((p) => parseFloat(p?.point ?? p?.setpoint))
+                    .map((p) => parseFloat(p?.force ?? p?.point ?? p?.setpoint))
                     .filter((p) => !isNaN(p));
 
                 const minPoint = matrix.minPoint ?? (numericPoints.length ? Math.min(...numericPoints) : '');
@@ -276,7 +281,7 @@ export const ViewObservationUTM = ({ rawdata, currentRawdata, dynamicObservation
                                             const setpoint = getVal(point, 'setpoint', 0);
                                             const calculateduuc = getVal(point, 'calculateduuc', 0);
 
-                                            // Std at Room Temp (uuc0)
+                                            // Std at Room Temp (uuc0) — always display with 1 decimal (PHP: uuc0.toFixed(1))
                                             let uuc0 = getVal(point, 'uuc', 0);
                                             if (!uuc0 && calculateduuc) {
                                                 const numCalc = parseFloat(calculateduuc);
@@ -286,7 +291,9 @@ export const ViewObservationUTM = ({ rawdata, currentRawdata, dynamicObservation
                                                 }
                                             }
                                             if (!uuc0) uuc0 = setpoint;
+                                            // Round to 1 decimal for display regardless of stored precision
                                             const numUuc0 = parseFloat(uuc0);
+                                            const uuc0Display = !isNaN(numUuc0) ? numUuc0.toFixed(1) : uuc0;
 
                                             // 3 master observed readings
                                             const masterValues = [0, 1, 2].map((pn) => getVal(point, 'master', pn));
@@ -321,7 +328,7 @@ export const ViewObservationUTM = ({ rawdata, currentRawdata, dynamicObservation
                                                     <td className="border border-gray-300 px-3 py-2 text-center">{srNo}</td>
                                                     <td className="border border-gray-300 px-3 py-2 text-right font-mono">{setpoint}</td>
                                                     <td className="border border-gray-300 px-3 py-2 text-right font-mono">{calculateduuc}</td>
-                                                    <td className="border border-gray-300 px-3 py-2 text-right font-mono">{uuc0}</td>
+                                                    <td className="border border-gray-300 px-3 py-2 text-right font-mono">{uuc0Display}</td>
                                                     {masterValues.map((val, idx) => (
                                                         <td key={idx} className="border border-gray-300 px-2 py-1 text-right font-mono">
                                                             {val}
@@ -479,6 +486,9 @@ export const ViewObservationUTM = ({ rawdata, currentRawdata, dynamicObservation
                                                 }
                                             }
                                             if (!uuc0) uuc0 = setpoint;
+                                            // Round to 1 decimal for display regardless of stored precision
+                                            const numUuc0Legacy = parseFloat(uuc0);
+                                            const uuc0DisplayLegacy = !isNaN(numUuc0Legacy) ? numUuc0Legacy.toFixed(1) : uuc0;
 
                                             const masterValues = [0, 1, 2].map((pn) => getVal(point, 'master', pn));
                                             const meanVal = getVal(point, 'averagemaster', 0);
@@ -494,7 +504,7 @@ export const ViewObservationUTM = ({ rawdata, currentRawdata, dynamicObservation
                                                     <td className="border border-gray-300 px-3 py-2 text-center">{srNo}</td>
                                                     <td className="border border-gray-300 px-3 py-2 text-right font-mono">{setpoint}</td>
                                                     <td className="border border-gray-300 px-3 py-2 text-right font-mono">{calculateduuc}</td>
-                                                    <td className="border border-gray-300 px-3 py-2 text-right font-mono">{uuc0}</td>
+                                                    <td className="border border-gray-300 px-3 py-2 text-right font-mono">{uuc0DisplayLegacy}</td>
                                                     {masterValues.map((val, idx) => (
                                                         <td key={idx} className="border border-gray-300 px-2 py-1 text-right font-mono">
                                                             {val}

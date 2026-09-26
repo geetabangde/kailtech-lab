@@ -59,10 +59,10 @@ export const createTSRows = (dataArray, hiddenInputs) => {
 
         const numericReadings = extractedValues.slice(0, 8).map((v) => parseFloat(v)).filter((n) => !isNaN(n));
         let calculatedAvg = '';
-        if (numericReadings.length > 0) {
-          calculatedAvg = (numericReadings.reduce((sum, n) => sum + n, 0) / numericReadings.length).toFixed(2);
-        } else if (reading.average !== undefined && reading.average !== null && reading.average !== '') {
+        if (reading.average !== undefined && reading.average !== null && reading.average !== '') {
           calculatedAvg = formatValueByLc(reading.average, null, leastCount);
+        } else if (numericReadings.length > 0) {
+          calculatedAvg = formatValueByLc(numericReadings.reduce((sum, n) => sum + n, 0) / numericReadings.length, null, leastCount);
         }
 
         const row = [
@@ -90,16 +90,13 @@ export const createTSRows = (dataArray, hiddenInputs) => {
 
         const numericReadings = rowValues.map((v) => parseFloat(v)).filter((n) => !isNaN(n));
         let calculatedAvg = '';
-        if (numericReadings.length > 0) {
-          calculatedAvg = (numericReadings.reduce((sum, n) => sum + n, 0) / numericReadings.length).toFixed(2);
+        if (pointData.readings && Array.isArray(pointData.readings) && pointData.readings[rc]?.average != null && pointData.readings[rc].average !== '') {
+          calculatedAvg = formatValueByLc(pointData.readings[rc].average, null, leastCount);
         } else if (pointData.averages && Array.isArray(pointData.averages)) {
           const avg = pointData.averages.find((a) => a != null && String(a.repeatable) === `${rc}`);
           if (avg) calculatedAvg = formatValueByLc(avg.value, null, leastCount);
-        } else if (pointData.readings && Array.isArray(pointData.readings)) {
-          const reading = pointData.readings[rc];
-          if (reading && reading.average !== undefined && reading.average !== null && reading.average !== '') {
-            calculatedAvg = formatValueByLc(reading.average, null, leastCount);
-          }
+        } else if (numericReadings.length > 0) {
+          calculatedAvg = formatValueByLc(numericReadings.reduce((sum, n) => sum + n, 0) / numericReadings.length, null, leastCount);
         }
 
         const row = [
