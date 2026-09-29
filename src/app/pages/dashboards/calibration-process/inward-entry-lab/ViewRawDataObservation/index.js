@@ -36,13 +36,15 @@ import { dwTableConfig, createDWRows, parseDWDynamicData } from './ViewObservati
 import { tsTableConfig, createTSRows, parseTSDynamicData } from './ViewObservationTS';
 import { wbTableConfig, wbnTableConfig, createWBRows, parseWBDynamicData } from './ViewObservationWB';
 import { ViewObservationWBN } from './ViewObservationWBN';
-import { dgTableConfig, createDGRows, parseDGDynamicData } from './ViewObservationDG';
+import { dgTableConfig, createDGRows, parseDGDynamicData, getDGViewStructure } from './ViewObservationDG';
 import { biomedicalTableConfig, createBiomedicalRows, parseBiomedicalDynamicData } from './ViewObservationBiomedical';
 import { getObservationCustomStructure, createCustomRows, parseCustomDynamicData } from './ViewObservationCustom';
 import { gtmTableConfig, createGTMRows, parseGTMDynamicData } from './ViewObservationGTM';
 import { ViewObservationAUTM, autmTableConfig, createAUTMRows, parseAUTMDynamicData } from './ViewObservationAUTM';
 import { prTableConfig, createPRRows, ViewObservationPR } from './ViewObservationPR';
 import { ViewObservationUTM } from './ViewObservationUTM';
+import { lmsTableConfig, createLMSRows, parseLMSDynamicData, ViewObservationLMS } from './ViewObservationLMS';
+import { lsTableConfig, createLSRows, parseLSDynamicData, ViewObservationLS } from './ViewObservationLS';
 
 export {
   dpgTableConfig, createDPGRows,
@@ -63,7 +65,7 @@ export {
   swTableConfig, createSWViewRows, parseSWDynamicData, SW_ROWSPAN_COLUMNS,
   apgTableConfig, createAPGRows,
   dwTableConfig, createDWRows,
-  dgTableConfig, createDGRows, parseDGDynamicData,
+  dgTableConfig, createDGRows, parseDGDynamicData, getDGViewStructure,
   tsTableConfig, createTSRows,
   wbTableConfig, wbnTableConfig, createWBRows, ViewObservationWBN,
   biomedicalTableConfig, createBiomedicalRows,
@@ -72,6 +74,8 @@ export {
   ViewObservationAUTM, autmTableConfig, createAUTMRows, parseAUTMDynamicData,
   prTableConfig, createPRRows, ViewObservationPR,
   ViewObservationUTM,
+  lmsTableConfig, createLMSRows, parseLMSDynamicData, ViewObservationLMS,
+  lsTableConfig, createLSRows, parseLSDynamicData, ViewObservationLS,
 };
 
 /**
@@ -263,6 +267,8 @@ export const getViewObservationTables = (rawdata) => [
   autmTableConfig,
   dgTableConfig,
   prTableConfig,
+  lmsTableConfig,
+  lsTableConfig,
   tsTableConfig,
   swTableConfig,
   wbTableConfig,
@@ -618,6 +624,10 @@ export const createViewObservationRows = (observationData, template, currentRawd
     });
   } else if (template === 'observationautm') {
     rows = createAUTMRows(dataArray, currentRawdata);
+  } else if (template === 'observationls') {
+    return { rows: createLSRows(dataArray).rows, matrixGroups: [], unitTypes: [], modes: [] };
+  } else if (template === 'observationlms') {
+    return { rows: createLMSRows(dataArray).rows, matrixGroups: [], unitTypes: [], modes: [] };
   } else if (template === 'observationpr') {
     const prRes = createPRRows(dataArray, currentRawdata);
     rows = prRes.rows;
@@ -683,6 +693,10 @@ export const parseDynamicObservation = (
     return parseTMDynamicData(observationData);
   } else if (template === 'observationuc') {
     return parseUCDynamicData(observationData);
+  } else if (template === 'observationls') {
+    return parseLSDynamicData(observationData);
+  } else if (template === 'observationlms') {
+    return parseLMSDynamicData(observationData);
   } else if (template === 'observationmm') {
     return parseMMDynamicData(observationData);
   } else if (template === 'observationrtdwi') {

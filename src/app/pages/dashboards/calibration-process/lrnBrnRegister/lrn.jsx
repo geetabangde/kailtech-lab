@@ -191,6 +191,7 @@ const LrnBrnRegister = () => {
       'Party Name',
       'Contact Person',
       'Sample Details',
+      'Instrument Name',
       'ID No',
       'Serial No',
       'Quantity',
@@ -200,6 +201,7 @@ const LrnBrnRegister = () => {
       'Reporting Date',
       'TAT',
       'Remarks',
+      'Location',
       'Status',
       'Accreditation'
     ];
@@ -213,6 +215,7 @@ const LrnBrnRegister = () => {
       `"${String(record.customername ?? '').replace(/"/g, '""')}"`,
       `"${String(record.concernpersonname ?? '').replace(/"/g, '""')}"`,
       `"${String(record.sample_details ?? '').replace(/"/g, '""')}"`,
+      `"${String(record.instrument_name ?? '').replace(/"/g, '""')}"`,
       `"${String(record.idno ?? '').replace(/"/g, '""')}"`,
       `"${String(record.serialno ?? '').replace(/"/g, '""')}"`,
       record.quantity,
@@ -222,6 +225,7 @@ const LrnBrnRegister = () => {
       formatDateForDisplay(record.reporting_date),
       `"${String(record.tat ?? '').replace(/"/g, '""')}"`,
       `"${String(record.remarks ?? '').replace(/"/g, '""')}"`,
+      `"${String(record.location ?? '').replace(/"/g, '""')}"`,
       record.is_lrn_canceled ? 'LRN Canceled' : 'Active',
       `"${String(record.accreditation ?? '').replace(/"/g, '""')}"`
     ]);
@@ -467,6 +471,7 @@ const LrnBrnRegister = () => {
                       <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 border border-gray-300 whitespace-nowrap">Party name</th>
                       <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 border border-gray-300 whitespace-nowrap">Contact Person</th>
                       <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 border border-gray-300 whitespace-nowrap">Sample Details</th>
+                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 border border-gray-300 whitespace-nowrap">Instrument Name</th>
                       <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 border border-gray-300 whitespace-nowrap">Id no</th>
                       <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 border border-gray-300 whitespace-nowrap">Serial no</th>
                       <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 border border-gray-300 whitespace-nowrap">Quantity</th>
@@ -476,6 +481,7 @@ const LrnBrnRegister = () => {
                       <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 border border-gray-300 whitespace-nowrap">Reporting Date</th>
                       <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 border border-gray-300 whitespace-nowrap">TAT</th>
                       <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 border border-gray-300 whitespace-nowrap">Remarks</th>
+                      <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 border border-gray-300 whitespace-nowrap">Location</th>
                       <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 border border-gray-300 whitespace-nowrap">Status</th>
                       <th className="px-3 py-3 text-left text-xs font-medium text-gray-700 border border-gray-300 whitespace-nowrap">Action</th>
                     </tr>
@@ -483,13 +489,13 @@ const LrnBrnRegister = () => {
                   <tbody>
                     {loading ? (
                       <tr>
-                        <td colSpan="19" className="p-8 text-center text-gray-500">
+                        <td colSpan="21" className="p-8 text-center text-gray-500">
                           <div className="text-sm">Loading...</div>
                         </td>
                       </tr>
                     ) : registerData.length === 0 ? (
                       <tr>
-                        <td colSpan="19" className="p-8 text-center text-gray-500">
+                        <td colSpan="21" className="p-8 text-center text-gray-500">
                           <div className="text-sm">
                             No records found for the selected criteria.
                           </div>
@@ -503,9 +509,10 @@ const LrnBrnRegister = () => {
                           <td className="px-3 py-2 text-xs border border-gray-300">{record.brn}</td>
                           <td className="px-3 py-2 text-xs border border-gray-300">{record.lrn}</td>
                           <td className="px-3 py-2 text-xs border border-gray-300">{record.inward_id}</td>
-                          <td className="px-3 py-2 text-xs border border-gray-300">{record.customername}</td>
+                          <td className="px-3 py-2 text-xs border border-gray-300 max-w-[250px] whitespace-normal break-words">{record.customername}</td>
                           <td className="px-3 py-2 text-xs border border-gray-300">{record.concernpersonname}</td>
-                          <td className="px-3 py-2 text-xs border border-gray-300">{record.sample_details}</td>
+                          <td className="px-3 py-2 text-xs border border-gray-300 max-w-[250px] whitespace-normal break-words">{record.sample_details}</td>
+                          <td className="px-3 py-2 text-xs border border-gray-300 max-w-[250px] whitespace-normal break-words">{record.instrument_name}</td>
                           <td className="px-3 py-2 text-xs border border-gray-300">{record.idno}</td>
                           <td className="px-3 py-2 text-xs border border-gray-300">{record.serialno}</td>
                           <td className="px-3 py-2 text-xs border border-gray-300">{record.quantity}</td>
@@ -515,6 +522,7 @@ const LrnBrnRegister = () => {
                           <td className="px-3 py-2 text-xs border border-gray-300">{formatDateForDisplay(record.reporting_date)}</td>
                           <td className="px-3 py-2 text-xs border border-gray-300">{record.tat}</td>
                           <td className="px-3 py-2 text-xs border border-gray-300">{record.remarks}</td>
+                          <td className="px-3 py-2 text-xs border border-gray-300">{record.location}</td>
                           <td className="px-3 py-2 text-xs border border-gray-300">
                             {record.is_lrn_canceled ? (
                               <span className="px-2 py-1 rounded text-xs bg-red-100 text-red-700 font-medium">

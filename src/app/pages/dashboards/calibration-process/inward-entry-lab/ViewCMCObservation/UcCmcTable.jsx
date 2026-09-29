@@ -1,12 +1,13 @@
 import { formatUncertaintyValue } from "./viewCmcUtils";
 
-/**
- * Maps the "uc" suffix uncertainty rows (uncertainty.original.data) to table rows.
- * The backend already calculates every column for this suffix, so values are shown
- * as returned rather than recalculated.
- */
-export const mapUcCmcRows = (apiData) => (Array.isArray(apiData) ? apiData : []).map((item, index) => ({
+const SINGLE_MASTER = "single_master";
+const DUAL_MASTER = "dual_master";
+
+const fixed = (value, decimals = 6) => (typeof value === "number" ? value.toFixed(decimals) : value);
+
+const mapUcRow = (item, index, tableType) => ({
   srNo: item.sr_no ?? index + 1,
+  tableType,
   unitType: item.unit_type ?? "",
   mode: item.mode ?? "",
   values: Array.isArray(item.readings)
@@ -17,8 +18,10 @@ export const mapUcCmcRows = (apiData) => (Array.isArray(apiData) ? apiData : [])
   average: item.average ?? "",
   stdDeviation: item.std_deviation ?? "",
   typeA: item.type_a ?? "",
-  accuracyCalibrator: item.accuracy_of_calibrator ?? "",
-  uncertaintyMaster: item.uncertainty_of_master ?? "",
+  accuracyCalibrator: item.accuracy_of_master_1 ?? item.accuracy_of_calibrator ?? "",
+  uncertaintyMaster: item.uncertainty_of_master_1 ?? item.uncertainty_of_master ?? "",
+  accuracyMaster2: item.accuracy_of_master_2 ?? "",
+  uncertaintyMaster2: item.uncertainty_of_master_2 ?? "",
   leastCount: item.least_count ?? "",
   combinedUnc: item.combined_uncertainty ?? "",
   dof: item.degree_of_freedom ?? "-",
@@ -27,9 +30,40 @@ export const mapUcCmcRows = (apiData) => (Array.isArray(apiData) ? apiData : [])
   expandedUncPercent: item.expanded_uncertainty_percent ?? "",
   cmcTaken: item.cmc_taken ?? "",
   cmcScope: item.cmc_scope ?? "",
-}));
+});
 
-export const UcCmcTable = ({ data }) => (
+/**
+ * Maps the "uc" suffix uncertainty rows to table rows, tagging each row as single or dual master.
+ * The backend already calculates every column for this suffix, so values are shown as returned.
+ *
+ * Prefers the pre-partitioned `original.tables` (or the `*_table` aliases), whose sr_no restarts
+ * per table; falls back to splitting the flat `original.data` on is_dual_master / table_type.
+ */
+export const mapUcCmcRows = (apiData, original) => {
+  const singleRows = original?.tables?.single_master ?? original?.single_master_table;
+  const dualRows = original?.tables?.dual_master ?? original?.dual_master_table;
+
+  if (Array.isArray(singleRows) || Array.isArray(dualRows)) {
+    return [
+      ...(singleRows ?? []).map((item, i) => mapUcRow(item, i, SINGLE_MASTER)),
+      ...(dualRows ?? []).map((item, i) => mapUcRow(item, i, DUAL_MASTER)),
+    ];
+  }
+
+  const rows = Array.isArray(apiData) ? apiData : [];
+  const isDual = (item) => item.is_dual_master === true || item.table_type === DUAL_MASTER;
+  const flatSingle = rows.filter((item) => !isDual(item));
+  const flatDual = rows.filter(isDual);
+
+  // Flat data numbers rows 1..N across both groups, so renumber per table when splitting
+  if (flatDual.length === 0) return rows.map((item, i) => mapUcRow(item, i, SINGLE_MASTER));
+  return [
+    ...flatSingle.map((item, i) => mapUcRow({ ...item, sr_no: i + 1 }, i, SINGLE_MASTER)),
+    ...flatDual.map((item, i) => mapUcRow({ ...item, sr_no: i + 1 }, i, DUAL_MASTER)),
+  ];
+};
+
+const UcTable = ({ data, showMaster2 }) => (
   <div className="overflow-x-auto">
     <table className="w-full border-collapse text-[12px] text-gray-700 min-w-max">
       <thead>
@@ -37,7 +71,7 @@ export const UcCmcTable = ({ data }) => (
           <th colSpan="13" className="border border-gray-300 px-2 py-2 bg-gray-200 font-semibold text-center">
             Type A Factor
           </th>
-          <th colSpan="3" className="border border-gray-300 px-2 py-2 bg-gray-200 font-semibold text-center">
+          <th colSpan={showMaster2 ? 5 : 3} className="border border-gray-300 px-2 py-2 bg-gray-200 font-semibold text-center">
             Type B Factor
           </th>
           <th colSpan="7" className="border border-gray-300 px-2 py-2 bg-gray-200 font-semibold text-center">
@@ -58,8 +92,14 @@ export const UcCmcTable = ({ data }) => (
           <th className="border border-gray-300 px-2 py-2">Average</th>
           <th className="border border-gray-300 px-2 py-2">Std Deviation</th>
           <th className="border border-gray-300 px-2 py-2">Type A</th>
-          <th className="border border-gray-300 px-2 py-2">Accuracy Of Calibrator in Value</th>
-          <th className="border border-gray-300 px-2 py-2">Uncertainty of master in %</th>
+          <th className="border border-gray-300 px-2 py-2">{showMaster2 ? "Accuracy Of Master 1" : "Accuracy Of Calibrator in Value"}</th>
+          <th className="border border-gray-300 px-2 py-2">{showMaster2 ? "Uncertainty of Master 1 in %" : "Uncertainty of master in %"}</th>
+          {showMaster2 && (
+            <>
+              <th className="border border-gray-300 px-2 py-2">Accuracy Of Master 2</th>
+              <th className="border border-gray-300 px-2 py-2">Uncertainty of Master 2</th>
+            </>
+          )}
           <th className="border border-gray-300 px-2 py-2">Least Count</th>
           <th className="border border-gray-300 px-2 py-2">Combined Uncertainty</th>
           <th className="border border-gray-300 px-2 py-2">Degree of Freedom</th>
@@ -81,26 +121,61 @@ export const UcCmcTable = ({ data }) => (
             ))}
             <td className="border border-gray-300 px-2 py-2">{row.unitDesc}</td>
             <td className="border border-gray-300 px-2 py-2">{row.calibrationPoint}</td>
-            <td className="border border-gray-300 px-2 py-2">{typeof row.average === 'number' ? row.average.toFixed(6) : row.average}</td>
-            <td className="border border-gray-300 px-2 py-2">{typeof row.stdDeviation === 'number' ? formatUncertaintyValue(row.stdDeviation, 6) : row.stdDeviation}</td>
+            <td className="border border-gray-300 px-2 py-2">{fixed(row.average)}</td>
+            <td className="border border-gray-300 px-2 py-2">{formatUncertaintyValue(row.stdDeviation, 6)}</td>
 
-            <td className="border border-gray-300 px-2 py-2">{typeof row.typeA === 'number' ? formatUncertaintyValue(row.typeA, 6) : row.typeA}</td>
-            <td className="border border-gray-300 px-2 py-2">{typeof row.accuracyCalibrator === 'number' ? row.accuracyCalibrator.toFixed(6) : row.accuracyCalibrator}</td>
-            <td className="border border-gray-300 px-2 py-2">{typeof row.uncertaintyMaster === 'number' ? row.uncertaintyMaster.toFixed(6) : row.uncertaintyMaster}</td>
+            <td className="border border-gray-300 px-2 py-2">{formatUncertaintyValue(row.typeA, 6)}</td>
+            <td className="border border-gray-300 px-2 py-2">{fixed(row.accuracyCalibrator)}</td>
+            <td className="border border-gray-300 px-2 py-2">{fixed(row.uncertaintyMaster)}</td>
+            {showMaster2 && (
+              <>
+                <td className="border border-gray-300 px-2 py-2">{fixed(row.accuracyMaster2)}</td>
+                <td className="border border-gray-300 px-2 py-2">{fixed(row.uncertaintyMaster2)}</td>
+              </>
+            )}
             <td className="border border-gray-300 px-2 py-2">{row.leastCount}</td>
 
-            <td className="border border-gray-300 px-2 py-2">{typeof row.combinedUnc === 'number' ? row.combinedUnc.toFixed(6) : row.combinedUnc}</td>
-            <td className="border border-gray-300 px-2 py-2">{typeof row.dof === 'number' ? row.dof.toFixed(2) : row.dof}</td>
-            <td className="border border-gray-300 px-2 py-2">{typeof row.coverageFactor === 'number' ? row.coverageFactor.toFixed(2) : row.coverageFactor}</td>
-            <td className="border border-gray-300 px-2 py-2">{typeof row.expandedUncValue === 'number' ? row.expandedUncValue.toFixed(6) : row.expandedUncValue}</td>
-            <td className="border border-gray-300 px-2 py-2">{typeof row.expandedUncPercent === 'number' ? row.expandedUncPercent.toFixed(6) : row.expandedUncPercent}</td>
-            <td className="border border-gray-300 px-2 py-2">{typeof row.cmcTaken === 'number' ? row.cmcTaken.toFixed(6) : row.cmcTaken}</td>
-            <td className="border border-gray-300 px-2 py-2">{typeof row.cmcScope === 'number' ? row.cmcScope.toFixed(6) : row.cmcScope}</td>
+            <td className="border border-gray-300 px-2 py-2">{fixed(row.combinedUnc)}</td>
+            <td className="border border-gray-300 px-2 py-2">{fixed(row.dof, 2)}</td>
+            <td className="border border-gray-300 px-2 py-2">{fixed(row.coverageFactor, 2)}</td>
+            <td className="border border-gray-300 px-2 py-2">{fixed(row.expandedUncValue)}</td>
+            <td className="border border-gray-300 px-2 py-2">{fixed(row.expandedUncPercent)}</td>
+            <td className="border border-gray-300 px-2 py-2">{fixed(row.cmcTaken)}</td>
+            <td className="border border-gray-300 px-2 py-2">{fixed(row.cmcScope)}</td>
           </tr>
         ))}
       </tbody>
     </table>
   </div>
 );
+
+const unitTypesOf = (rows) => [...new Set(rows.map((row) => row.unitType).filter(Boolean))].join(", ");
+
+export const UcCmcTable = ({ data }) => {
+  const singleRows = data.filter((row) => row.tableType !== DUAL_MASTER);
+  const dualRows = data.filter((row) => row.tableType === DUAL_MASTER);
+
+  // Only one master type (or observationuc rows without tableType): keep the single-table layout
+  if (dualRows.length === 0) return <UcTable data={singleRows} showMaster2={false} />;
+
+  return (
+    <div className="space-y-6">
+      {singleRows.length > 0 && (
+        <div>
+          <h3 className="text-base font-semibold text-gray-800 mb-2">
+            Table 1: Single Master Calibration Points{unitTypesOf(singleRows) && ` (${unitTypesOf(singleRows)})`}
+          </h3>
+          <UcTable data={singleRows} showMaster2={false} />
+        </div>
+      )}
+      <div>
+        <h3 className="text-base font-semibold text-gray-800 mb-2">
+          Table {singleRows.length > 0 ? 2 : 1}: Dual Master Calibration Points{unitTypesOf(dualRows) && ` (${unitTypesOf(dualRows)})`}
+        </h3>
+        <UcTable data={dualRows} showMaster2 />
+      </div>
+    </div>
+  );
+};
 
 export default UcCmcTable;

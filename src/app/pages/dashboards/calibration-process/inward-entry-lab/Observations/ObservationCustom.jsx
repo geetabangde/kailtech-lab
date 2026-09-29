@@ -479,9 +479,9 @@ const ObservationCustom = ({
                           id={`obs-cell-${cellKey}`}
                           data-cell-key={cellKey}
                           className={`w-full min-w-[88px] px-2 py-1 border rounded ${isEditable
-                              ? `bg-white dark:bg-gray-600 text-gray-900 dark:text-white focus:outline-none focus:ring-2 ${hasError ? 'border-red-500 focus:ring-red-500 ring-1 ring-red-400' : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500'
-                              }`
-                              : 'border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white cursor-not-allowed'
+                            ? `bg-white dark:bg-gray-600 text-gray-900 dark:text-white focus:outline-none focus:ring-2 ${hasError ? 'border-red-500 focus:ring-red-500 ring-1 ring-red-400' : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500'
+                            }`
+                            : 'border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white cursor-not-allowed'
                             }`}
                           value={tableInputValues[cellKey] ?? row[layout.setpointIdx] ?? ''}
                           readOnly={!isEditable}
@@ -596,8 +596,8 @@ export const calculateCustomValues = (rowData, instrument, point = null) => {
     );
   }
 
-  const masterDecimals = masterDecimalsParsed ?? 0;
-  const uucDecimals = uucDecimalsParsed ?? 0;
+  const masterDecimals = masterDecimalsParsed ?? errorDecimals;
+  const uucDecimals = uucDecimalsParsed ?? errorDecimals;
 
   const getCustomLayoutIndices = (inst) => {
     if (!inst) return null;

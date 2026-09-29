@@ -39,6 +39,11 @@ const SUFFIX_NAMES = {
   volnl: "Volumetric (Neck Level)",
   vol: "Volumetric",
   vht: "Hardness Tester",
+  bht: "Brinell Hardness Tester",
+  dutm: "Digital Universal Testing Machine",
+  exten: "Extensometer",
+  lms: "LMS",
+  ls: "LS",
   wbn: "Weighing Balance",
   observationuc: "Universal Calibrator",
   uc: "Universal Calibrator",
@@ -1117,8 +1122,8 @@ export default function ViewCMCCalculation() {
             });
             setData(mappedData);
           } else if (instrumentSuffix === "uc") {
-            // Backend returns every column already calculated (uncertainty.original.data)
-            setData(mapUcCmcRows(apiData));
+            // Backend returns every column already calculated, split into single/dual master tables
+            setData(mapUcCmcRows(apiData, response.data.data?.uncertainty?.original));
           } else if (instrumentSuffix === "observationuc") {
             const mappedData = apiData.map((item) => {
               const testpoint = parseFloat(item.calibration_point || item.point || 0);
@@ -1271,6 +1276,39 @@ export default function ViewCMCCalculation() {
               };
             });
             setData(mappedData);
+          } else if (instrumentSuffix === "ls") {
+            // LsCmcTable splits Electric Safety / Performance Test and derives any figure left out
+            const lsUnc = response.data.data?.uncertainty;
+            const lsSrc = lsUnc?.original?.data ?? lsUnc?.original ?? lsUnc?.data ?? lsUnc ?? {};
+            const lsInst = response.data.data?.listInstrument || response.data.data?.instrument || {};
+            setData({
+              electricSafety: lsSrc?.electric_safety ?? null,
+              performanceTest: lsSrc?.performance_test ?? null,
+              rows: Array.isArray(apiData) ? apiData : [],
+              showElectricalSafety: lsInst.showelectricalsafety,
+              showPerformanceTest: lsInst.showperformancetest,
+            });
+          } else if (instrumentSuffix === "lms") {
+            // LmsCmcTable splits Electric Safety / Performance Test and derives any figure left out
+            const lmsUnc = response.data.data?.uncertainty;
+            const lmsSrc = lmsUnc?.original?.data ?? lmsUnc?.original ?? lmsUnc?.data ?? lmsUnc ?? {};
+            const lmsInst = response.data.data?.listInstrument || response.data.data?.instrument || {};
+            setData({
+              electricSafety: lmsSrc?.electric_safety ?? null,
+              performanceTest: lmsSrc?.performance_test ?? null,
+              rows: Array.isArray(apiData) ? apiData : [],
+              showElectricalSafety: lmsInst.showelectricalsafety,
+              showPerformanceTest: lmsInst.showperformancetest,
+            });
+          } else if (instrumentSuffix === "exten") {
+            // ExtenCmcTable shows the API's computed figures and derives any it leaves out
+            setData(Array.isArray(apiData) ? apiData : []);
+          } else if (instrumentSuffix === "dutm") {
+            // DutmCmcTable shows the API's computed figures and derives any it leaves out
+            setData(Array.isArray(apiData) ? apiData : []);
+          } else if (instrumentSuffix === "bht") {
+            // BhtCmcTable shows the API's computed figures and derives any it leaves out
+            setData(Array.isArray(apiData) ? apiData : []);
           } else if (instrumentSuffix === "vht") {
             // The VHT endpoint already returns every computed figure under the
             // names VhtCmcTable reads, so pass the rows straight through.
@@ -1453,6 +1491,28 @@ export default function ViewCMCCalculation() {
               expandedUnc: item.expanded_uncertainty ?? "",
               cmc: item.cmc_taken ?? "",
               cmcScope: item.cmc_scope ?? "",
+            }));
+            setData(mappedData);
+          } else if (instrumentSuffix === "upload") {
+            const mappedData = apiData.map((item) => ({
+              srNo: item.sr_no,
+              setPressure: item.set_pressure_uuc,
+              masterObservationM1: item.master_observation_m1,
+              masterObservationM2: item.master_observation_m2,
+              meanMaster: item.mean_master,
+              error: item.error,
+              maxZeroError: item.max_zero_error,
+              hysterisis: item.hysterisis,
+              repeatability: item.repeatability,
+              leastCountUuc: item.least_count_uuc,
+              uncertaintyMaster: item.uncertainty_master,
+              combinedUncertainty: item.combined_uncertainty,
+              degreeOfFreedom: item.degree_of_freedom,
+              coverageFactor: item.coverage_factor,
+              expandedUncertainty: item.expanded_uncertainty,
+              cmcTaken: item.cmc_taken,
+              cmcScope: item.cmc_scope,
+              masterUnit: item.units?.master_unit || "bar"
             }));
             setData(mappedData);
           } else {

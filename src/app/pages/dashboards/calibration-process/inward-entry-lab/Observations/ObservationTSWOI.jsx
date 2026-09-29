@@ -237,8 +237,8 @@ export const createTSWOIRows = (dataArray) => {
       ...getReadings(uuc, point, 'uuc'),
       pick(uuc, 'average') || pick(point, 'averageuuc', 'average_uuc'),
       pick(uuc, 'ambient_mv', 'ambient') || pick(point, 'ambientuuc', 'ambient_uuc'),
-      pick(uuc, 'corrected_average') || pick(point, 'saverageuuc', 's_average_uuc'),
-      pick(uuc, 'converted_average', 'c_average') || pick(point, 'caverageuuc', 'c_average_uuc'),
+      pick(uuc, 's_average', 'saverage') || pick(point, 'saverageuuc', 's_average_uuc'),
+      pick(uuc, 'corrected_average', 'converted_average', 'c_average') || pick(point, 'caverageuuc', 'c_average_uuc'),
       pick(point, 'error', 'deviation'),
     ];
 
@@ -251,8 +251,8 @@ export const createTSWOIRows = (dataArray) => {
       ...getReadings(master, point, 'master'),
       pick(master, 'average') || pick(point, 'averagemaster', 'average_master'),
       pick(master, 'ambient_mv', 'ambient') || pick(point, 'ambientmaster', 'ambient_master'),
-      pick(master, 'corrected_average') || pick(point, 'saveragemaster', 's_average_master'),
-      pick(master, 'converted_average', 'c_average') || pick(point, 'caveragemaster', 'c_average_master'),
+      pick(master, 's_average', 'saverage') || pick(point, 'saveragemaster', 's_average_master'),
+      pick(master, 'corrected_average', 'converted_average', 'c_average') || pick(point, 'caveragemaster', 'c_average_master'),
       '-',
     ];
 

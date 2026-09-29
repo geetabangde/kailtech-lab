@@ -9,6 +9,7 @@ import {
   createViewObservationRows,
   parseDynamicObservation,
   getObservationCustomStructure,
+  getDGViewStructure,
   BiomedicalTable,
   UCTable,
   TMTable,
@@ -18,6 +19,8 @@ import {
   ViewObservationPR,
   ViewObservationWBN,
   ViewObservationUTM,
+  ViewObservationLMS,
+  ViewObservationLS,
   TSWOI_ROWSPAN_COLUMNS,
   TSWI_ROWSPAN_COLUMNS,
   SW_ROWSPAN_COLUMNS
@@ -265,10 +268,14 @@ export default function CalibrationReport() {
         console.log('✅ Processed observations set:', processedObservations.length);
 
         // Generate table structure
-        const selectedTable = observationTables.find(table => table.id === observationTemplate);
+        let selectedTable = observationTables.find(table => table.id === observationTemplate);
         if (selectedTable) {
           if (observationTemplate === 'observationcustom' && observationData.instrument_settings) {
             selectedTable.structure = getObservationCustomStructure(observationData.instrument_settings);
+          }
+          if (observationTemplate === 'observationdg') {
+            // Copy rather than mutate: dgTableConfig is a shared module object
+            selectedTable = { ...selectedTable, structure: getDGViewStructure(processedObservations) };
           }
           const units = observationData?.observation_data?.unit_info
             || observationData?.observation_data?.data?.unit_info
@@ -1112,6 +1119,10 @@ export default function CalibrationReport() {
                   observations={dynamicObservations}
                   instrument={rawdata?.listInstrument}
                 />
+              ) : observationTemplate === 'observationls' ? (
+                <ViewObservationLS observations={dynamicObservations} instrument={rawdata?.listInstrument} />
+              ) : observationTemplate === 'observationlms' ? (
+                <ViewObservationLMS observations={dynamicObservations} />
               ) : observationTemplate === 'observationutm' ? (
                 <ViewObservationUTM
                   rawdata={rawdata}
@@ -1333,7 +1344,8 @@ export default function CalibrationReport() {
                                 );
                               }
                               // NEW: ADDED Special handling for observationdg calculated/static fields (e.g., averages, errors, hysteresis are display-only, no special static text but ensure proper rendering)
-                              if (observationTemplate === 'observationdg' && [6, 7, 8, 9, 10].includes(colIndex)) {
+                              // Last five columns; the nominal columns ahead of them vary with has_conversion
+                              if (observationTemplate === 'observationdg' && colIndex >= row.length - 5) {
                                 // These are calculated fields (Average Forward/Backward, Error Forward/Backward, Hysterisis) - just display as-is
                                 return (
                                   <td key={colIndex} className="border border-gray-300 px-3 py-2 font-medium text-center">

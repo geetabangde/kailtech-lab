@@ -29,9 +29,8 @@ export default function ViewDinForm() {
   const fetchInitialData = useCallback(async () => {
     try {
       setLoading(true);
-      const [reportRes, depRes, companyRes] = await Promise.all([
+      const [reportRes, companyRes] = await Promise.all([
         axios.get(`inventory/get-din-report/${id}`),
-        axios.get("inventory/get-add-din-dependency").catch(() => ({ data: { status: false, data: null } })),
         axios.get("get-company-info").catch(() => ({ data: { status: false, data: null } }))
       ]);
 
@@ -55,12 +54,9 @@ export default function ViewDinForm() {
           setItems(reportRes.data.data.items);
         }
 
-        // Try to map the purpose string back to an ID for logic gates
-        if (depRes.data.status && depRes.data.data?.purposes) {
-          const matchedPurpose = depRes.data.data.purposes.find(p => p.name === details.dispatch_purpose);
-          if (matchedPurpose) {
-            setPurposeId(parseInt(matchedPurpose.id));
-          }
+        const pid = parseInt(details.dispatch_purpose_id);
+        if (!isNaN(pid)) {
+          setPurposeId(pid);
         }
 
       } else {
@@ -318,17 +314,17 @@ export default function ViewDinForm() {
                 <span className="flex-1 min-w-0">
                   {dinDetails.concern_person_email
                     ? (() => {
-                        const emails = dinDetails.concern_person_email
-                          .split(",")
-                          .map((email) => email.trim())
-                          .filter(Boolean);
-                        return emails.map((email, idx) => (
-                          <div key={idx} className="break-all">
-                            {email}
-                            {idx < emails.length - 1 ? "," : ""}
-                          </div>
-                        ));
-                      })()
+                      const emails = dinDetails.concern_person_email
+                        .split(",")
+                        .map((email) => email.trim())
+                        .filter(Boolean);
+                      return emails.map((email, idx) => (
+                        <div key={idx} className="break-all">
+                          {email}
+                          {idx < emails.length - 1 ? "," : ""}
+                        </div>
+                      ));
+                    })()
                     : "-"}
                 </span>
               </div>

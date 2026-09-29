@@ -3,19 +3,20 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Button, Select, Pagination, PaginationItems, PaginationNext, PaginationPrevious } from "components/ui";
 import axios from "utils/axios";
 import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable'; // ✅ CORRECT IMPORT
+import autoTable from 'jspdf-autotable';
 
 const Details = () => {
     const navigate = useNavigate();
     const { id: customerId } = useParams();
-    
+
     const [searchTerm, setSearchTerm] = useState('');
     const [pageSize, setPageSize] = useState(25);
     const [currentPage, setCurrentPage] = useState(1);
     const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
     const [printLoading, setPrintLoading] = useState(false);
     const [loading, setLoading] = useState(true);
-    
+    const [companyInfo, setCompanyInfo] = useState(null);
+
     // State for API data
     const [customerDetails, setCustomerDetails] = useState(null);
     const [instrumentData, setInstrumentData] = useState([]);
@@ -25,23 +26,23 @@ const Details = () => {
         try {
             setLoading(true);
             const response = await axios.get(`/calibrationprocess/detail-leadManagement?id=${customerId}`);
-            
+
             console.log("API response:", response.data);
 
             if (response.data && response.data.status) {
-                const { customer, addresses, calibration_details } = response.data.data;
-                
+                const { customer, addresses, mobiles, calibration_details } = response.data.data;
+
                 const primaryAddress = addresses && addresses.length > 0 ? addresses[0] : null;
-                
+
                 setCustomerDetails({
                     customerName: customer.name || 'N/A',
                     email: customer.email || 'N/A',
-                    mobile: customer.personal_mobile || 'N/A',
+                    mobile: mobiles && mobiles.length > 0 ? mobiles.join(", ") : 'N/A',
                     personalName: customer.personal_name || 'N/A',
                     personalMobile: customer.personal_mobile || 'N/A',
-                    reportingAddress: primaryAddress ? 
+                    reportingAddress: primaryAddress ?
                         `${primaryAddress.address}, ${primaryAddress.city}, ${primaryAddress.pincode}` : 'N/A',
-                    reportingBillingAddress: primaryAddress ? 
+                    reportingBillingAddress: primaryAddress ?
                         `${primaryAddress.address}, ${primaryAddress.city}, ${primaryAddress.pincode}` : 'N/A',
                     city: customer.city || 'N/A',
                     state: customer.state || 'N/A',
@@ -90,141 +91,152 @@ const Details = () => {
         }
     }, [customerId, fetchCustomerDetails]);
 
+    useEffect(() => {
+        axios.get("/get-company-info")
+            .then(res => {
+                if (res.data && res.data.status) {
+                    setCompanyInfo(res.data.data);
+                }
+            })
+            .catch(err => console.error("Error fetching company info:", err));
+    }, []);
+
     const handleDownloadDispatchReport = async (instrument) => {
-    setPrintLoading(true);
+        setPrintLoading(true);
 
-    try {
-        // ✅ Fetch JSON data
-        const response = await axios.get(
-            `/calibrationprocess/get-attachment-data?id=${instrument.id}`
-        );
+        try {
+            // ✅ Fetch JSON data
+            const response = await axios.get(
+                `/calibrationprocess/get-attachment-data?id=${instrument.id}`
+            );
 
-        if (!response.data.status) {
-            alert('Failed to fetch dispatch data');
-            setPrintLoading(false);
-            return;
-        }
-
-        const data = response.data;
-
-        // ✅ Create PDF
-        const doc = new jsPDF({
-            orientation: 'portrait',
-            unit: 'mm',
-            format: 'a4'
-        });
-
-        let yPosition = 20;
-        
-        // ✅ Try to add footer image (optional, won't break if fails)
-        if (data.letterhead_footer) {
-            try {
-                const img = new Image();
-                img.crossOrigin = 'Anonymous';
-                
-                await new Promise((resolve) => {  // ✅ Removed unused 'reject'
-                    img.onload = () => {
-                        try {
-                            doc.addImage(img, 'PNG', 10, 260, 190, 30);
-                        } catch (err) {
-                            console.warn('Image add failed:', err);
-                        }
-                        resolve();
-                    };
-                    img.onerror = () => resolve(); // Don't reject, just continue
-                    img.src = data.letterhead_footer;
-                    
-                    // Timeout after 3 seconds
-                    setTimeout(resolve, 3000);
-                });
-            } catch (err) {
-                console.warn('Could not load letterhead image:', err);
+            if (!response.data.status) {
+                alert('Failed to fetch dispatch data');
+                setPrintLoading(false);
+                return;
             }
+
+            const data = response.data;
+
+            // ✅ Create PDF
+            const doc = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: 'a4'
+            });
+
+            // ✅ Add footer image if it exists
+            if (data.letterhead_footer) {
+                try {
+                    const img = new Image();
+                    img.crossOrigin = 'Anonymous';
+                    await new Promise((resolve) => {
+                        img.onload = () => {
+                            try { doc.addImage(img, 'PNG', 10, 260, 190, 30); } catch (err) { console.warn('Error adding footer image', err); }
+                            resolve();
+                        };
+                        img.onerror = resolve; 
+                        img.src = data.letterhead_footer;
+                        setTimeout(resolve, 3000);
+                    });
+                } catch (err) { console.warn('Error fetching footer image', err); }
+            }
+
+            // ✅ Add company logo (Left)
+            try {
+                if (companyInfo?.branding?.logo) {
+                    const logoImg = new Image();
+                    logoImg.crossOrigin = 'Anonymous';
+                    logoImg.src = companyInfo.branding.logo; 
+                    await new Promise((resolve) => {
+                        logoImg.onload = () => {
+                            try { doc.addImage(logoImg, 'PNG', 15, 12, 50, 20); } catch (err) { console.warn('Error adding logo', err); }
+                            resolve();
+                        };
+                        logoImg.onerror = resolve;
+                        setTimeout(resolve, 3000);
+                    });
+                }
+            } catch (err) { console.warn('Error fetching logo', err); }
+
+            // ✅ Add Accreditation Text (Right Aligned)
+            doc.setFontSize(8);
+            doc.setFont('helvetica', 'italic');
+            doc.setTextColor(0, 0, 0);
+            doc.text('NABL Accredited as per IS/ISO/IEC 17025 (Certificate Nos. TC-7832 & CC-2348),', 195, 16, { align: 'right' });
+            doc.text('BIS Recognized & ISO 9001 Certified Test & Calibration Laboratory', 195, 20, { align: 'right' });
+
+            // ✅ Add company name (Right Aligned)
+            doc.setFontSize(16);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(0, 0, 128); // Navy blue
+            const companyName = companyInfo?.company?.name || 'Kailtech Test And Research Centre Pvt. Ltd.';
+            doc.text(companyName, 195, 30, { align: 'right' });
+
+            // ✅ Add title (Center)
+            let yPosition = 50; // Lowered the title position from 45 to 50
+            doc.setFontSize(12); // Reduced font size from 14 to 12
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(0, 0, 0);
+            doc.text('Reminder for Periodic Calibration of your Equipment', 105, yPosition, { align: 'center' });
+            
+            yPosition += 12; // Gap before table
+
+            // ✅ Add table using autoTable (Including Customer Name in row 1)
+            autoTable(doc, {
+                startY: yPosition,
+                head: [], // Use body for all rows to easily control colSpan
+                body: [
+                    [
+                        { content: 'Customer Name', colSpan: 3, styles: { halign: 'center', fontStyle: 'bold', fillColor: [255, 255, 255] } },
+                        { content: data.customer.name || '', colSpan: 6, styles: { halign: 'center', fontStyle: 'bold', fillColor: [255, 255, 255] } }
+                    ],
+                    [
+                        { content: 'Inward\nId', styles: { fontStyle: 'bold', halign: 'center', fillColor: [255, 255, 255] } },
+                        { content: 'LRN', styles: { fontStyle: 'bold', halign: 'center', fillColor: [255, 255, 255] } },
+                        { content: 'BRN', styles: { fontStyle: 'bold', halign: 'center', fillColor: [255, 255, 255] } },
+                        { content: 'Instrument\nName', styles: { fontStyle: 'bold', halign: 'center', fillColor: [255, 255, 255] } },
+                        { content: 'Make', styles: { fontStyle: 'bold', halign: 'center', fillColor: [255, 255, 255] } },
+                        { content: 'Model', styles: { fontStyle: 'bold', halign: 'center', fillColor: [255, 255, 255] } },
+                        { content: 'Serail No', styles: { fontStyle: 'bold', halign: 'center', fillColor: [255, 255, 255] } }, // "Serail No" matches your screenshot
+                        { content: 'ID\nNo', styles: { fontStyle: 'bold', halign: 'center', fillColor: [255, 255, 255] } },
+                        { content: 'Calibration\nDue Date', styles: { fontStyle: 'bold', halign: 'center', fillColor: [255, 255, 255] } }
+                    ],
+                    [
+                        data.instrument.inward_id || '',
+                        data.instrument.lrn || '',
+                        data.instrument.brn || '',
+                        data.instrument.name || '',
+                        data.instrument.make || '',
+                        data.instrument.model || '',
+                        data.instrument.serial_no || '',
+                        data.instrument.id_no || 'NA',
+                        data.calibration.due_date || ''
+                    ]
+                ],
+                theme: 'grid',
+                styles: {
+                    fontSize: 8,
+                    cellPadding: 2,
+                    halign: 'center',
+                    valign: 'middle',
+                    textColor: [0, 0, 0],
+                    lineColor: [0, 0, 0],
+                    lineWidth: 0.5
+                },
+                margin: { left: 10, right: 10 }
+            });
+
+            // ✅ Save PDF
+            doc.save(`Calibration_Reminder_${data.instrument.lrn}.pdf`);
+
+        } catch (error) {
+            console.error('Download failed:', error);
+            alert('Failed to generate dispatch report. Please try again.');
+        } finally {
+            setPrintLoading(false);
         }
-
-        // ✅ Add company name
-        doc.setFontSize(16);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(0, 0, 128); // Navy blue
-        doc.text('Kailtech Test And Research Centre Pvt. Ltd.', 105, yPosition, { align: 'center' });
-        
-        yPosition += 15;
-
-        // ✅ Add title
-        doc.setFontSize(14);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(0, 0, 0);
-        doc.text('Reminder for Periodic Calibration of your Equipment', 105, yPosition, { align: 'center' });
-        
-        yPosition += 15;
-
-        // ✅ Add customer info
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'bold');
-        doc.text(`Customer Name`, 15, yPosition);
-        doc.setFont('helvetica', 'normal');
-        doc.text(`${data.customer.name}`, 70, yPosition);
-        
-        yPosition += 10;
-
-        // ✅ Add table using autoTable - CORRECTED SYNTAX
-        autoTable(doc, {
-            startY: yPosition,
-            head: [['Inward\nId', 'LRN', 'BRN', 'Instrument\nName', 'Make', 'Model', 'Serial\nNo', 'ID No', 'Calibration\nDue Date']],
-            body: [[
-                data.instrument.inward_id || '',
-                data.instrument.lrn || '',
-                data.instrument.brn || '',
-                data.instrument.name || '',
-                data.instrument.make || '',
-                data.instrument.model || '',
-                data.instrument.serial_no || '',
-                data.instrument.id_no || '',
-                data.calibration.due_date || ''
-            ]],
-            styles: {
-                fontSize: 8,
-                cellPadding: 2,
-                halign: 'center',
-                valign: 'middle'
-            },
-            headStyles: {
-                fillColor: [255, 255, 255],
-                textColor: [0, 0, 0],
-                fontStyle: 'bold',
-                lineWidth: 0.5,
-                lineColor: [0, 0, 0],
-                halign: 'center'
-            },
-            bodyStyles: {
-                lineWidth: 0.5,
-                lineColor: [0, 0, 0]
-            },
-            columnStyles: {
-                0: { cellWidth: 15 },
-                1: { cellWidth: 25 },
-                2: { cellWidth: 28 },
-                3: { cellWidth: 25 },
-                4: { cellWidth: 20 },
-                5: { cellWidth: 20 },
-                6: { cellWidth: 20 },
-                7: { cellWidth: 22 },
-                8: { cellWidth: 20 }
-            },
-            margin: { left: 10, right: 10 },
-            theme: 'grid'
-        });
-
-        // ✅ Save PDF
-        doc.save(`Calibration_Reminder_${data.instrument.lrn}.pdf`);
-
-    } catch (error) {
-        console.error('Download failed:', error);
-        alert('Failed to generate dispatch report. Please try again.');
-    } finally {
-        setPrintLoading(false);
-    }
-};
+    };
 
     // Handle back button click
     const handleBackClick = () => {
@@ -337,7 +349,7 @@ const Details = () => {
                     <div className="bg-white shadow-sm border border-gray-200 rounded-lg mb-6">
                         <div className="flex items-center justify-between p-4 border-b border-gray-200">
                             <h1 className="text-xl font-semibold text-gray-800">Customer Detail</h1>
-                            <Button 
+                            <Button
                                 onClick={handleBackClick}
                                 className="bg-orange-400 hover:bg-orange-500 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
                             >
@@ -360,7 +372,7 @@ const Details = () => {
                 <div className="bg-white shadow-sm border border-gray-200 rounded-lg mb-6">
                     <div className="flex items-center justify-between p-4 border-b border-gray-200">
                         <h1 className="text-xl font-semibold text-gray-800">Customer Detail</h1>
-                        <Button 
+                        <Button
                             onClick={handleBackClick}
                             className="bg-orange-400 hover:bg-orange-500 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
                         >
@@ -452,7 +464,7 @@ const Details = () => {
                             <thead>
                                 <tr className="bg-gray-100">
                                     <th className="text-left p-3 font-medium text-gray-700 border border-gray-300">Id</th>
-                                    <th 
+                                    <th
                                         className="text-left p-3 font-medium text-gray-700 border border-gray-300 cursor-pointer hover:bg-gray-200"
                                         onClick={() => handleSort('inwardId')}
                                     >
@@ -461,7 +473,7 @@ const Details = () => {
                                             <SortIcon column="inwardId" />
                                         </div>
                                     </th>
-                                    <th 
+                                    <th
                                         className="text-left p-3 font-medium text-gray-700 border border-gray-300 cursor-pointer hover:bg-gray-200"
                                         onClick={() => handleSort('lrn')}
                                     >
@@ -470,7 +482,7 @@ const Details = () => {
                                             <SortIcon column="lrn" />
                                         </div>
                                     </th>
-                                    <th 
+                                    <th
                                         className="text-left p-3 font-medium text-gray-700 border border-gray-300 cursor-pointer hover:bg-gray-200"
                                         onClick={() => handleSort('brn')}
                                     >
@@ -479,7 +491,7 @@ const Details = () => {
                                             <SortIcon column="brn" />
                                         </div>
                                     </th>
-                                    <th 
+                                    <th
                                         className="text-left p-3 font-medium text-gray-700 border border-gray-300 cursor-pointer hover:bg-gray-200"
                                         onClick={() => handleSort('instrumentName')}
                                     >
@@ -488,7 +500,7 @@ const Details = () => {
                                             <SortIcon column="instrumentName" />
                                         </div>
                                     </th>
-                                    <th 
+                                    <th
                                         className="text-left p-3 font-medium text-gray-700 border border-gray-300 cursor-pointer hover:bg-gray-200"
                                         onClick={() => handleSort('make')}
                                     >
@@ -497,7 +509,7 @@ const Details = () => {
                                             <SortIcon column="make" />
                                         </div>
                                     </th>
-                                    <th 
+                                    <th
                                         className="text-left p-3 font-medium text-gray-700 border border-gray-300 cursor-pointer hover:bg-gray-200"
                                         onClick={() => handleSort('model')}
                                     >
@@ -506,7 +518,7 @@ const Details = () => {
                                             <SortIcon column="model" />
                                         </div>
                                     </th>
-                                    <th 
+                                    <th
                                         className="text-left p-3 font-medium text-gray-700 border border-gray-300 cursor-pointer hover:bg-gray-200"
                                         onClick={() => handleSort('serialNo')}
                                     >
@@ -515,7 +527,7 @@ const Details = () => {
                                             <SortIcon column="serialNo" />
                                         </div>
                                     </th>
-                                    <th 
+                                    <th
                                         className="text-left p-3 font-medium text-gray-700 border border-gray-300 cursor-pointer hover:bg-gray-200"
                                         onClick={() => handleSort('idNo')}
                                     >
@@ -524,7 +536,7 @@ const Details = () => {
                                             <SortIcon column="idNo" />
                                         </div>
                                     </th>
-                                    <th 
+                                    <th
                                         className="text-left p-3 font-medium text-gray-700 border border-gray-300 cursor-pointer hover:bg-gray-200"
                                         onClick={() => handleSort('dueDate')}
                                     >
@@ -553,9 +565,9 @@ const Details = () => {
                                             <td className="p-3 border border-gray-200">{item.idNo}</td>
                                             <td className="p-3 border border-gray-200">{item.dueDate}</td>
                                             <td className="p-3 border border-gray-200">
-                                                <Button 
-                                                    onClick={() => handleDownloadDispatchReport(item)} 
-                                                    color="success" 
+                                                <Button
+                                                    onClick={() => handleDownloadDispatchReport(item)}
+                                                    color="success"
                                                     disabled={printLoading}
                                                     className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm"
                                                 >
@@ -568,7 +580,7 @@ const Details = () => {
                                                             Preparing...
                                                         </div>
                                                     ) : (
-                                                        "Download Dispatch Report"
+                                                        "Download Attachment"
                                                     )}
                                                 </Button>
                                             </td>

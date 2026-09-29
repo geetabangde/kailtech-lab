@@ -27,7 +27,7 @@ import { PaginationSection } from "components/shared/table/PaginationSection";
 import { SelectedRowsActions } from "./SelectedRowsActions";
 import { useThemeContext } from "app/contexts/theme/context";
 import { getUserAgentBrowser } from "utils/dom/getUserAgentBrowser";
-import { addStaticDataToRecords } from "./staticData";
+
 
 
 // ----------------------------------------------------------------------
@@ -82,8 +82,7 @@ export default function OrdersDatatableV1() {
           invoice: item.invoice,
         }));
 
-        const dataWithStaticFields = addStaticDataToRecords(mappedData);
-        setOrders(dataWithStaticFields); // ✅ set data with static fields
+        setOrders(mappedData); // ✅ set data directly from API
       } else {
         console.warn("Unexpected response structure:", response.data);
         setOrders([]); // fallback
@@ -104,7 +103,7 @@ export default function OrdersDatatableV1() {
 
   const [globalFilter, setGlobalFilter] = useState("");
 
-  const [sorting, setSorting] = useState([{ id: "id", desc: true }]);
+  const [sorting, setSorting] = useState([{ id: "serialNumber", desc: true }]);
 
   const [columnVisibility, setColumnVisibility] = useLocalStorage(
     "column-visibility-lead-managements-index",

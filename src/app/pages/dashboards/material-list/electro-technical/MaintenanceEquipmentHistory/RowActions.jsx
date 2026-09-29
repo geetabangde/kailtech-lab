@@ -364,7 +364,14 @@ export function RowActions({ row, table }) {
       icon: DocumentIcon,
       onClick: () => {
         const fileUrl = row.original.file_url;
-        if (fileUrl) {
+        // Backend returns ".../public/?<timestamp>" when no file was uploaded
+        let hasFile = false;
+        try {
+          hasFile = !!fileUrl && !new URL(fileUrl, window.location.origin).pathname.endsWith("/");
+        } catch {
+          hasFile = false;
+        }
+        if (hasFile) {
           window.open(fileUrl, '_blank', 'noopener,noreferrer');
         } else {
           toast.error('Certificate file not available');

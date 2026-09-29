@@ -34,9 +34,8 @@ export default function ApproveDispatch() {
     const fetchInitialData = useCallback(async () => {
         try {
             setLoading(true);
-            const [reportRes, depRes, companyRes] = await Promise.all([
+            const [reportRes, companyRes] = await Promise.all([
                 axios.get(`inventory/get-din-report/${id}`),
-                axios.get("inventory/get-add-din-dependency").catch(() => ({ data: { status: false, data: null } })),
                 axios.get("get-company-info").catch(() => ({ data: { status: false, data: null } }))
             ]);
 
@@ -52,12 +51,6 @@ export default function ApproveDispatch() {
                 const pid = parseInt(details.dispatch_purpose_id);
                 if (!isNaN(pid)) {
                     setPurposeId(pid);
-                } else if (depRes.data.status && depRes.data.data?.purposes) {
-                    // Fallback: match by name if id not in response
-                    const matchedPurpose = depRes.data.data.purposes.find(p => p.name === details.dispatch_purpose);
-                    if (matchedPurpose) {
-                        setPurposeId(parseInt(matchedPurpose.id));
-                    }
                 }
             } else {
                 toast.error("Failed to load DIN details.");

@@ -246,29 +246,53 @@ export const createCustomRows = (dataArray, currentRawdata, observationData) => 
 
       if (layout.errorIdx !== -1) {
         let masterVal = null;
+        let masterRaw = null;
         if (summary.averagemaster?.[0]?.value !== undefined && summary.averagemaster[0].value !== '') {
-          masterVal = parseFloat(summary.averagemaster[0].value);
+          masterRaw = summary.averagemaster[0].value;
+          masterVal = parseFloat(masterRaw);
         } else if (masterVals.length > 0 && masterVals[0]?.value !== undefined && masterVals[0].value !== '') {
-          masterVal = parseFloat(masterVals[0].value);
+          masterRaw = masterVals[0].value;
+          masterVal = parseFloat(masterRaw);
         } else if (instrumentSettings?.setpoint === 'Master') {
           const raw = point.point ?? summary.setpoint?.[0]?.value;
-          if (raw !== undefined && raw !== '') masterVal = parseFloat(raw);
+          if (raw !== undefined && raw !== '') {
+            masterRaw = raw;
+            masterVal = parseFloat(raw);
+          }
         }
 
         let uucVal = null;
+        let uucRaw = null;
         if (summary.averageuuc?.[0]?.value !== undefined && summary.averageuuc[0].value !== '') {
-          uucVal = parseFloat(summary.averageuuc[0].value);
+          uucRaw = summary.averageuuc[0].value;
+          uucVal = parseFloat(uucRaw);
         } else if (uucVals.length > 0 && uucVals[0]?.value !== undefined && uucVals[0].value !== '') {
-          uucVal = parseFloat(uucVals[0].value);
+          uucRaw = uucVals[0].value;
+          uucVal = parseFloat(uucRaw);
         } else if (instrumentSettings?.setpoint === 'UUC') {
           const raw = point.point ?? summary.setpoint?.[0]?.value;
-          if (raw !== undefined && raw !== '') uucVal = parseFloat(raw);
+          if (raw !== undefined && raw !== '') {
+            uucRaw = raw;
+            uucVal = parseFloat(raw);
+          }
         }
 
         if (masterVal !== null && uucVal !== null && !isNaN(masterVal) && !isNaN(uucVal)) {
           const isStdUuc = (instrumentSettings?.error === 'stduuc' || instrumentSettings?.error_type === 'stduuc' || instrumentSettings?.custom_error === 'stduuc');
           const diff = isStdUuc ? (masterVal - uucVal) : (uucVal - masterVal);
-          row[layout.errorIdx] = diff.toFixed(errorDecimals);
+          
+          let dynamicDecimals = errorDecimals;
+          if (masterDecimals === null && uucDecimals === null) {
+            const getValDecimals = (val) => {
+              if (val === undefined || val === null) return 0;
+              const str = val.toString();
+              const p = str.split('.');
+              return p.length > 1 ? p[1].length : 0;
+            };
+            dynamicDecimals = Math.max(getValDecimals(masterRaw), getValDecimals(uucRaw), 0);
+          }
+
+          row[layout.errorIdx] = diff.toFixed(dynamicDecimals);
         } else {
           const savedErr = summary.error?.[0]?.value ?? point.error;
           row[layout.errorIdx] = formatValueByLc(savedErr, errorDecimals, uucLc);

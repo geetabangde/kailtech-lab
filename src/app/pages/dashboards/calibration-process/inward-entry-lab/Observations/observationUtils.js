@@ -117,7 +117,7 @@ export const validateLeastCount = (val, leastCount) => {
   }
 
   if (num !== 0 && !strVal.endsWith('.') && (!strVal.includes('.') || valDec >= lcDec) && lcNum > 0) {
-    if (num < lcNum) {
+    if (Math.abs(num) < lcNum) {
       return { isValid: false, error: `Please enter a value with in leastcount ${lcStr}` };
     }
     const factor = 1000000;

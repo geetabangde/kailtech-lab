@@ -34,9 +34,15 @@ import { AutmCmcTable } from './AutmCmcTable';
 import { VolnlCmcTable } from './VolnlCmcTable';
 import { VolCmcTable } from './VolCmcTable';
 import { VhtCmcTable } from './VhtCmcTable';
+import { BhtCmcTable } from './BhtCmcTable';
+import { DutmCmcTable } from './DutmCmcTable';
+import { ExtenCmcTable } from './ExtenCmcTable';
+import { LmsCmcTable } from './LmsCmcTable';
+import { LsCmcTable } from './LsCmcTable';
 import { StdfCmcTable } from './StdfCmcTable';
 import { RhtCmcTable } from './RhtCmcTable';
 import { SrfCmcTable } from './SrfCmcTable';
+import { UploadCmcTable } from './UploadCmcTable';
 
 export const CmcTableRenderer = ({ suffix, customLayout, data, electricSafetyData }) => {
   if (customLayout && suffix !== "biomedical") {
@@ -116,6 +122,21 @@ export const CmcTableRenderer = ({ suffix, customLayout, data, electricSafetyDat
       return <VolCmcTable data={data} />;
     case "vht":
       return <VhtCmcTable data={data} />;
+    case "ls":
+    case "observationls":
+      return <LsCmcTable data={data} />;
+    case "lms":
+    case "observationlms":
+      return <LmsCmcTable data={data} />;
+    case "exten":
+    case "observationexten":
+      return <ExtenCmcTable data={data} />;
+    case "dutm":
+    case "observationdutm":
+      return <DutmCmcTable data={data} />;
+    case "bht":
+    case "observationbht":
+      return <BhtCmcTable data={data} />;
     case "stdf":
     case "observationstdf":
       return <StdfCmcTable data={data} />;
@@ -125,6 +146,8 @@ export const CmcTableRenderer = ({ suffix, customLayout, data, electricSafetyDat
     case "rht":
     case "observationrht":
       return <RhtCmcTable data={data} />;
+    case "upload":
+      return <UploadCmcTable data={data} />;
     default:
       return (
         <div className="text-center py-8 text-gray-500">

@@ -136,7 +136,7 @@ export const createRHTRows = (dataArray) => {
 
     const uuc = asObject(point.uuc);
     const pointId = (point.calibration_point_id ?? point.point_id ?? point.id)?.toString() || '';
-    
+
     // In PHP, "master" holds the nominal/set value. If missing, defaults to $rowcalibpoint['point']
     const masterVal = pick(point, 'master', 'master_value', 'master_0') || pick(point, 'point', 'set_point', 'setpoint', 'nominal_value');
 
@@ -159,7 +159,7 @@ export const createRHTRows = (dataArray) => {
     ['master', 'uuc', 'uuc', 'uuc', 'uuc', 'uuc', 'averageuuc', 'error'].forEach((type, colOffset) => {
       let repeatable = '0';
       if (type === 'uuc') repeatable = String(colOffset - 1);
-      
+
       let cellVal = '';
       if (type === 'master') cellVal = row[RHT_COLS.MASTER];
       else if (type === 'uuc') cellVal = row[RHT_COLS.OBS_START + Number(repeatable)];
