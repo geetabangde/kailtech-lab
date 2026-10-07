@@ -1,24 +1,6 @@
 import { safeGetValue, getDecimalPlaces } from './observationUtils';
 
-/**
- * Speed of UTM (SUTM) Observation — one row per calibration point:
- *
- *  col | field                                   | type (repeatable)
- *  ----+-----------------------------------------+------------------
- *   0  | Sr no                                   | -
- *   1  | Set Nominal Speed On UUC, read-only     | uuc (0)
- *   2  | Set 1 Displacement (mm)                 | masterinc (0)
- *   3  | Set 1 Time (s)                          | masterdec (0)
- *   4  | Set 1 Speed (mm/min), calculated        | master (0)
- *   5  | Set 2 Displacement (mm)                 | masterinc (1)
- *   6  | Set 2 Time (s)                          | masterdec (1)
- *   7  | Set 2 Speed (mm/min), calculated        | master (1)
- *   8  | Mean Speed, calculated                  | averagemaster (0)
- *   9  | Error, calculated                       | error (0)
- *
- * PHP: speed = displacement / time * 60, rounded to the UUC least count's decimals
- * (calculatespeed with $lc); mean speed and error are unrounded ('NA').
- */
+
 
 export const SUTM_COLS = {
   SR_NO: 0,

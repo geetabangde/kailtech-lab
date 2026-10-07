@@ -82,6 +82,9 @@ export default function OrdersDatatableV1() {
           invoice: item.invoice,
         }));
 
+        // Sort by dueDate descending (latest dates first)
+        mappedData.sort((a, b) => new Date(b.dueDate) - new Date(a.dueDate));
+
         setOrders(mappedData); // ✅ set data directly from API
       } else {
         console.warn("Unexpected response structure:", response.data);
@@ -103,7 +106,7 @@ export default function OrdersDatatableV1() {
 
   const [globalFilter, setGlobalFilter] = useState("");
 
-  const [sorting, setSorting] = useState([{ id: "serialNumber", desc: true }]);
+  const [sorting, setSorting] = useState([]);
 
   const [columnVisibility, setColumnVisibility] = useLocalStorage(
     "column-visibility-lead-managements-index",

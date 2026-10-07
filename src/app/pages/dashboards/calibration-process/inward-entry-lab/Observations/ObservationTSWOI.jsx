@@ -16,7 +16,9 @@ import { safeGetValue, safeGetArray, getDecimalPlaces } from './observationUtils
  *  10  | averageuuc (calculated)         | averagemaster (calculated)
  *  11  | ambientuuc                      | ambientmaster
  *  12  | saverageuuc (calculated)        | saveragemaster (calculated)
- *  13  | caverageuuc                     | caveragemaster
+ *  13  | caverageuuc (calculated)        | caveragemaster (calculated)
+ *
+ * caverage = saverage / UUC sensitivity coefficient, for both rows.
  *  14  | error (calculated, rowspan 2)   | '-'
  *
  * PHP forces $mlc = $errorlc = "NA", so averages, corrected averages and the
@@ -50,62 +52,63 @@ const formatUnrounded = (num) => (Number.isFinite(num) ? String(Number(num.toFix
 export const getTSWOIRowType = (rowData) => (rowData?.[TSWOI_COLS.VALUE_OF] === 'Master' ? 'master' : 'uuc');
 
 /**
- * Average of the filled observations and "Average with corrected mv" (ambient + average)
- * for one row. PHP: averageavg(obs, 'average…', 'NA') and plusadd('ambient…', 'average…', 'saverage…', 'NA').
+ * Average of the filled observations, "Average with corrected mv" (ambient + average)
+ * and "Average (unit)" (corrected average / sensitivity coefficient) for one row.
+ * PHP: averageavg(obs, 'average…', 'NA') and plusadd('ambient…', 'average…', 'saverage…', 'NA').
  */
-const calculateRowAverages = (rowData) => {
+const calculateRowAverages = (rowData, sensitivity) => {
   const readings = rowData
     .slice(TSWOI_COLS.OBS_START, TSWOI_COLS.OBS_END + 1)
     .map(toNumber)
     .filter((val) => !isNaN(val));
 
-  if (!readings.length) return { average: '', correctedAverage: '' };
+  if (!readings.length) return { average: '', correctedAverage: '', convertedAverage: '' };
 
   const average = readings.reduce((sum, val) => sum + val, 0) / readings.length;
   const ambient = toNumber(rowData[TSWOI_COLS.AMBIENT]);
+  const corrected = average + (isNaN(ambient) ? 0 : ambient);
   return {
     average: formatUnrounded(average),
-    correctedAverage: formatUnrounded(average + (isNaN(ambient) ? 0 : ambient)),
+    correctedAverage: formatUnrounded(corrected),
+    convertedAverage: isNaN(sensitivity) || sensitivity === 0 ? '' : formatUnrounded(corrected / sensitivity),
   };
 };
 
 /**
- * Deviation for a point from its two "Average (unit)" cells.
+ * Deviation from the two "Average (unit)" values.
  * PHP substractminus: cusset error "stduuc" -> master - uuc, otherwise uuc - master.
  */
-export const calculateTSWOIDeviation = (uucRowData, masterRowData, cussetError) => {
-  const uuc = toNumber(uucRowData?.[TSWOI_COLS.CONVERTED_AVERAGE]);
-  const master = toNumber(masterRowData?.[TSWOI_COLS.CONVERTED_AVERAGE]);
+const calculateDeviation = (uucConverted, masterConverted, cussetError) => {
+  const uuc = toNumber(uucConverted);
+  const master = toNumber(masterConverted);
   if (isNaN(uuc) || isNaN(master)) return '';
   return formatUnrounded(cussetError === 'stduuc' ? master - uuc : uuc - master);
 };
 
 /**
+ * All calculated cells of one point (both rows) at once. Both rows' "Average (unit)"
+ * use the sensitivity coefficient entered on the UUC row.
+ * Returns { uuc: { average, correctedAverage, convertedAverage }, master: {...}, error }.
+ */
+export const calculateTSWOIPoint = (uucRowData, masterRowData, cussetError) => {
+  const sensitivity = toNumber(uucRowData?.[TSWOI_COLS.SENSITIVITY]);
+  const uuc = calculateRowAverages(uucRowData || [], sensitivity);
+  const master = calculateRowAverages(masterRowData || [], sensitivity);
+  return { uuc, master, error: calculateDeviation(uuc.convertedAverage, master.convertedAverage, cussetError) };
+};
+
+/**
  * Calculation logic for one TSWOI row.
  * pairRowData is the other row of the same point (Master for a UUC row and vice versa),
- * needed because the deviation spans both rows.
+ * needed because the sensitivity and deviation span both rows.
  */
 export const calculateTSWOIValues = (rowData, pairRowData, cussetError) => {
   if (!rowData || !Array.isArray(rowData)) return {};
 
-  const result = calculateRowAverages(rowData);
   const isUUC = getTSWOIRowType(rowData) === 'uuc';
-  const uucRow = isUUC ? rowData : pairRowData;
-  const masterRow = isUUC ? pairRowData : rowData;
-  result.error = calculateTSWOIDeviation(uucRow, masterRow, cussetError);
-
-  return result;
+  const calc = calculateTSWOIPoint(isUUC ? rowData : pairRowData, isUUC ? pairRowData : rowData, cussetError);
+  return { ...(isUUC ? calc.uuc : calc.master), error: calc.error };
 };
-
-/**
- * All calculated cells of one point (both rows) at once.
- * Returns { uuc: { average, correctedAverage }, master: { average, correctedAverage }, error }.
- */
-export const calculateTSWOIPoint = (uucRowData, masterRowData, cussetError) => ({
-  uuc: calculateRowAverages(uucRowData || []),
-  master: calculateRowAverages(masterRowData || []),
-  error: calculateTSWOIDeviation(uucRowData, masterRowData, cussetError),
-});
 
 /**
  * Summary-table type and repeatable for a cell, matching the PHP hidden inputs.
@@ -141,13 +144,13 @@ export const getTSWOIFieldType = (rowType, colIndex) => {
 };
 
 /**
- * Cells the user types into. Set Point, averages, corrected averages and the
- * deviation are read-only in PHP; the unit column is a select.
+ * Cells the user types into. Set Point, all averages and the deviation are
+ * calculated (read-only); the unit column is a select.
  */
 export const isTSWOICellEditable = (rowType, colIndex) => {
   if (colIndex === TSWOI_COLS.UNIT) return true;
   if (colIndex >= TSWOI_COLS.OBS_START && colIndex <= TSWOI_COLS.OBS_END) return true;
-  if (colIndex === TSWOI_COLS.AMBIENT || colIndex === TSWOI_COLS.CONVERTED_AVERAGE) return true;
+  if (colIndex === TSWOI_COLS.AMBIENT) return true;
   return rowType === 'uuc' && colIndex === TSWOI_COLS.SENSITIVITY;
 };
 
@@ -169,6 +172,9 @@ export const validateTSWOIRow = (rowData, rowIndex) => {
       errors[key] = 'This field is required';
     } else if (isNaN(toNumber(cell))) {
       errors[key] = 'Please enter a valid number';
+    } else if (colIndex === TSWOI_COLS.SENSITIVITY && toNumber(cell) === 0) {
+      // Average (unit) is divided by it
+      errors[key] = 'Sensitivity coefficient cannot be 0';
     }
   });
 
@@ -255,6 +261,20 @@ export const createTSWOIRows = (dataArray) => {
       pick(master, 'corrected_average', 'converted_average', 'c_average') || pick(point, 'caveragemaster', 'c_average_master'),
       '-',
     ];
+
+    // Calculated cells are read-only, so show them recalculated from the readings:
+    // the API doesn't return "Average with corrected mv", and older records hold a
+    // hand-typed Average (unit) / deviation. Stored values are kept only when
+    // nothing can be calculated.
+    const calc = calculateTSWOIPoint(uucRow, masterRow, point.cusset_error);
+    const useCalculated = (row, col, val) => { if (!isBlank(val)) row[col] = val; };
+    useCalculated(uucRow, TSWOI_COLS.AVERAGE, calc.uuc.average);
+    useCalculated(uucRow, TSWOI_COLS.CORRECTED_AVERAGE, calc.uuc.correctedAverage);
+    useCalculated(masterRow, TSWOI_COLS.AVERAGE, calc.master.average);
+    useCalculated(masterRow, TSWOI_COLS.CORRECTED_AVERAGE, calc.master.correctedAverage);
+    useCalculated(uucRow, TSWOI_COLS.CONVERTED_AVERAGE, calc.uuc.convertedAverage);
+    useCalculated(masterRow, TSWOI_COLS.CONVERTED_AVERAGE, calc.master.convertedAverage);
+    useCalculated(uucRow, TSWOI_COLS.DEVIATION, calc.error);
 
     [uucRow, masterRow].forEach((row, rowOffset) => {
       rows.push(row);

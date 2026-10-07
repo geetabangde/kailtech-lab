@@ -23,7 +23,9 @@ import {
   ViewObservationLS,
   TSWOI_ROWSPAN_COLUMNS,
   TSWI_ROWSPAN_COLUMNS,
-  SW_ROWSPAN_COLUMNS
+  SW_ROWSPAN_COLUMNS,
+  BHT_ROWSPAN_COLUMNS,
+  VHT_ROWSPAN_COLUMNS
 } from './ViewRawDataObservation';
 
 export default function CalibrationReport() {
@@ -1307,6 +1309,36 @@ export default function CalibrationReport() {
                                     key={colIndex}
                                     rowSpan={spansBothRows ? 2 : undefined}
                                     className={`border border-gray-300 px-3 py-2 align-middle ${isStatic ? 'text-center font-medium' : ''}`}
+                                  >
+                                    {cellContent || ''}
+                                  </td>
+                                );
+                              }
+                              // VHT: each point takes two rows (entered diagonals, converted HV) that share
+                              // Sr. No., Nominal, Error and % Error
+                              if (observationTemplate === 'observationvht') {
+                                const spansBothRows = VHT_ROWSPAN_COLUMNS.includes(colIndex);
+                                if (spansBothRows && row.vhtContinuation) return null;
+                                return (
+                                  <td
+                                    key={colIndex}
+                                    rowSpan={spansBothRows && row.vhtSpan ? 2 : undefined}
+                                    className={`border border-gray-300 px-3 py-2 align-middle ${spansBothRows ? 'text-center' : ''}`}
+                                  >
+                                    {cellContent || ''}
+                                  </td>
+                                );
+                              }
+                              // BHT: Brinell points take two rows (diameters, converted HBW) that share
+                              // Sr. No., Nominal, Unit, Error and Percent Error; direct-reading points take one
+                              if (observationTemplate === 'observationbht') {
+                                const spansBothRows = BHT_ROWSPAN_COLUMNS.includes(colIndex);
+                                if (spansBothRows && row.bhtContinuation) return null;
+                                return (
+                                  <td
+                                    key={colIndex}
+                                    rowSpan={spansBothRows && row.bhtSpan ? 2 : undefined}
+                                    className={`border border-gray-300 px-3 py-2 align-middle ${spansBothRows || cellContent === '-' ? 'text-center' : ''}`}
                                   >
                                     {cellContent || ''}
                                   </td>

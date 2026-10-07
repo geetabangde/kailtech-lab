@@ -43,7 +43,12 @@ const pick = (obj, ...keys) => {
   return '';
 };
 
+// Set keys of the API's object form: { set_i, set_ii }
+const SET_KEYS = ['set_i', 'set_ii'];
+
+// Reading i from an array ([v0, v1] or [{ value }]) or a { set_i, set_ii } object
 const readingAt = (list, i) => {
+  if (list && typeof list === 'object' && !Array.isArray(list)) return safeGetValue(list[SET_KEYS[i]]);
   const item = Array.isArray(list) ? list[i] : undefined;
   return safeGetValue(item && typeof item === 'object' ? item.value : item);
 };
@@ -55,9 +60,11 @@ export const getDUTMPointInfo = (point, index = 0) => {
   const pointId = (point.calibration_point_id ?? point.point_id ?? point.id ?? `dutm-${index}`).toString();
 
   const uucLc = pick(point, 'least_count', 'leastcount', 'uuc_least_count')
-    || pick(point?.precision, 'uuc_least_count', 'least_count');
+    || pick(point?.precision, 'uuc_least_count', 'least_count')
+    || pick(point?.least_counts, 'uuc');
   const masterLc = pick(point, 'master_least_count', 'masterleastcount')
-    || pick(point?.precision, 'master_least_count');
+    || pick(point?.precision, 'master_least_count')
+    || pick(point?.least_counts, 'master');
 
   const uucUnit = pick(point, 'unit', 'uuc_unit', 'unit_id');
   const masterUnit = pick(point, 'masterunit', 'master_unit', 'master_unit_id');
@@ -77,7 +84,9 @@ export const getDUTMPointInfo = (point, index = 0) => {
     nominal: pick(point, 'point', 'nominal_value', 'uuc_value', 'uuc'),
     masterLc: isNA(masterLc) ? null : String(masterLc).trim(),
     errorDecimals,
-    unitLabel: pick(point, 'unit_description', 'uuc_unit_description', 'unit_name', 'unit_label'),
+    // The API may send the unit description itself in `unit` (e.g. "mm") rather than an id
+    unitLabel: pick(point, 'unit_description', 'uuc_unit_description', 'unit_name', 'unit_label')
+      || (isNaN(Number(uucUnit)) ? uucUnit : ''),
     stored: {
       masters: Array.from({ length: DUTM_SETS }, (_, i) =>
         readingAt(masterList, i) || pick(point, `master${i}`, `master_${i}`, `set${i + 1}`)),

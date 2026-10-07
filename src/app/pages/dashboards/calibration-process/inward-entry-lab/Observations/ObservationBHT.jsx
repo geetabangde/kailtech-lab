@@ -120,6 +120,42 @@ const getMaster = (point) =>
 const getEnteredSource = (point) => point.cuuc_readings ?? point.cuuc_observations ?? point.cuuc;
 const getConvertedSource = (point) => point.uuc_readings ?? point.uuc_observations ?? point.uuc ?? point.observations;
 
+// Key of an editable reading in tableInputValues / observationErrors
+const readingKey = (pointId, direct, i) => `${pointId}-${direct ? 'uuc' : 'cuuc'}${i}`;
+
+// Editable readings of a point as shown on screen (local edits over stored values)
+const getEnteredReadings = (point, tableInputValues, pointId, direct) => {
+  const stored = safeGetArray(direct ? getConvertedSource(point) : getEnteredSource(point), BHT_MAX_REPEATABLE);
+  return Array.from({ length: BHT_MAX_REPEATABLE }, (_, i) =>
+    tableInputValues[readingKey(pointId, direct, i)] ?? valueOf(stored, i));
+};
+
+/** PHP: every UUC reading input is "required,number". */
+export const validateBHTPoints = (points, tableInputValues = {}) => {
+  const errors = {};
+  (Array.isArray(points) ? points : []).forEach((point, pointIndex) => {
+    if (!point) return;
+    const pointId = getPointId(point) || `pt-${pointIndex}`;
+    const direct = isBHTDirectUnit(getUnitId(point));
+    getEnteredReadings(point, tableInputValues, pointId, direct).forEach((v, i) => {
+      const key = readingKey(pointId, direct, i);
+      if (isBlank(v)) errors[key] = 'This field is required';
+      else if (isNaN(Number(String(v).trim()))) errors[key] = 'Please enter a valid number';
+    });
+  });
+  return errors;
+};
+
+/** Readable name for a BHT error key, for the submit toast. */
+export const describeBHTErrorKey = (key, points) => {
+  const list = Array.isArray(points) ? points : [];
+  const pointIndex = list.findIndex((p, idx) => p && String(key).startsWith(`${getPointId(p) || `pt-${idx}`}-`));
+  const match = String(key).match(/(\d+)$/);
+  if (pointIndex === -1 || !match) return String(key);
+  const point = list[pointIndex];
+  return `Sr. No. ${point.sr_no ?? point.sequence_number ?? pointIndex + 1}: Observation ${Number(match[1]) + 1}`;
+};
+
 /** Row generator for BHT. One row for direct-reading units, two rows otherwise. */
 export const createBHTRows = (dataArray) => {
   const rows = [];
@@ -212,6 +248,7 @@ const ObservationBHT = ({
   handleObservationBlur,
   observations,
   instrument,
+  observationErrors = {},
 }) => {
   if (selectedTableData?.id !== 'observationbht') return null;
 
@@ -263,15 +300,10 @@ const ObservationBHT = ({
               const errorMode = instrument?.error ?? point.cusset_error ?? selectedTableData?.error_mode;
               const srNo = point.sr_no ?? point.sequence_number ?? pointIndex + 1;
 
-              const storedEntered = safeGetArray(getEnteredSource(point), BHT_MAX_REPEATABLE);
               const storedConverted = safeGetArray(getConvertedSource(point), BHT_MAX_REPEATABLE);
 
               // Direct units: the editable cells are the uuc readings themselves
-              const entered = Array.from({ length: BHT_MAX_REPEATABLE }, (_, i) =>
-                direct
-                  ? (tableInputValues[`${pointId}-uuc${i}`] ?? valueOf(storedConverted, i))
-                  : (tableInputValues[`${pointId}-cuuc${i}`] ?? valueOf(storedEntered, i))
-              );
+              const entered = getEnteredReadings(point, tableInputValues, pointId, direct);
 
               const converted = direct
                 ? entered
@@ -287,12 +319,16 @@ const ObservationBHT = ({
 
               const derived = calculateBHTValues(entered, converted, { master, errorMode, direct });
 
-              const renderReadingInput = (reading, pn) => (
+              const renderReadingInput = (reading, pn) => {
+                const errorKey = readingKey(pointId, direct, pn);
+                const error = observationErrors[errorKey];
+                return (
                 <td key={pn} className={TD}>
                   <input
                     type="number"
                     step="any"
-                    className={EDITABLE_INPUT}
+                    data-cell-key={errorKey}
+                    className={`${EDITABLE_INPUT} ${error ? 'border-red-500' : ''}`}
                     value={reading}
                     onChange={(e) => {
                       const val = e.target.value;
@@ -327,8 +363,10 @@ const ObservationBHT = ({
                     }}
                     placeholder={`Obs ${pn + 1}`}
                   />
+                  {error && <div className="text-red-500 text-xs mt-1">{error}</div>}
                 </td>
-              );
+                );
+              };
 
               if (direct) {
                 return (

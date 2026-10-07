@@ -178,7 +178,7 @@ export default function ViewMrnItems() {
                   items.map((item, index) => (
                     <Tr key={item.id || index} className="border-b border-gray-100 dark:border-dark-700 hover:bg-gray-50/50">
                       <Td className="text-center font-medium text-gray-500 py-4">{index + 1}</Td>
-                      <Td className="font-semibold text-gray-800 dark:text-dark-50 py-4 max-w-[250px] break-words">
+                      <Td className="font-semibold text-gray-800 dark:text-dark-50 py-4 min-w-[250px] max-w-[350px] whitespace-normal break-words leading-relaxed">
                         {item.description || "—"}
                       </Td>
                       <Td className="text-center font-mono text-xs text-gray-600 dark:text-dark-200 py-4">

@@ -2,7 +2,7 @@
 
 // This is all new file jisme mene ctg and mm me validation lagaya hai ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { Page } from 'components/shared/Page';
 import { Button } from 'components/ui/Button';
@@ -27,8 +27,8 @@ import { calculateDPGValues, createDPGRows, getDPGTableConfig } from './Observat
 import { calculateTHValues, createTHRows, getTHTableConfig } from './Observations/ObservationTH';
 import ObservationVOLNL, { calculateVOLNLValues, getVOLNLTableConfig, VOLNL_COLUMNS, VOLNL_MAX_REPEATABLE } from './Observations/ObservationVOLNL';
 import ObservationVOL, { calculateVOLValues, getVOLTableConfig, VOL_COLUMNS, VOL_MAX_REPEATABLE } from './Observations/ObservationVOL';
-import ObservationVHT, { getVHTTableConfig, VHT_COLUMNS, VHT_MAX_REPEATABLE } from './Observations/ObservationVHT';
-import ObservationBHT, { getBHTTableConfig, BHT_COLUMNS, BHT_MAX_REPEATABLE } from './Observations/ObservationBHT';
+import ObservationVHT, { getVHTTableConfig, VHT_COLUMNS, VHT_MAX_REPEATABLE, validateVHTPoints, describeVHTErrorKey, convertHardness } from './Observations/ObservationVHT';
+import ObservationBHT, { getBHTTableConfig, BHT_COLUMNS, BHT_MAX_REPEATABLE, validateBHTPoints, describeBHTErrorKey } from './Observations/ObservationBHT';
 import { calculateMTValues, createMTRows, getMTTableConfig } from './Observations/ObservationMT';
 import { calculateCTGValues, createCTGRows, getCTGTableConfig } from './Observations/ObservationCTG';
 import { calculateFGValues, createFGRows, getFGTableConfig } from './Observations/ObservationFG';
@@ -127,6 +127,8 @@ const CalibrateStep3 = () => {
   const [volnlInstrumentData, setVolnlInstrumentData] = useState({});
   const [volInstrumentData, setVolInstrumentData] = useState({});
   const [tableInputValues, setTableInputValues] = useState({});
+  // Chains the per-cell observation saves so they never overlap
+  const observationSaveQueue = useRef(Promise.resolve());
   const [thermalCoeff, setThermalCoeff] = useState({
     uuc: '',
     master: '',
@@ -709,6 +711,12 @@ const CalibrateStep3 = () => {
     if (tableData.id === 'observationes') {
       return describeESErrorKey(key, tableData.calibration_points?.length ? tableData.calibration_points : observations);
     }
+    if (tableData.id === 'observationbht') {
+      return describeBHTErrorKey(key, tableData.calibration_points?.length ? tableData.calibration_points : observations);
+    }
+    if (tableData.id === 'observationvht') {
+      return describeVHTErrorKey(key, tableData.calibration_points?.length ? tableData.calibration_points : observations);
+    }
     const [rStr, cStr] = key.split('-');
     const r = parseInt(rStr, 10);
     const c = parseInt(cStr, 10);
@@ -855,6 +863,36 @@ const CalibrateStep3 = () => {
         errors: extenErrors,
         firstErrorKey: extenErrorKeys[0] || null,
         errorCount: extenErrorKeys.length,
+      };
+    }
+
+    if (selectedTableData.id === 'observationvht') {
+      const vhtErrors = validateVHTPoints(
+        selectedTableData.calibration_points?.length ? selectedTableData.calibration_points : observations,
+        tableInputValues
+      );
+      setObservationErrors(vhtErrors);
+      const vhtErrorKeys = Object.keys(vhtErrors);
+      return {
+        isValid: vhtErrorKeys.length === 0,
+        errors: vhtErrors,
+        firstErrorKey: vhtErrorKeys[0] || null,
+        errorCount: vhtErrorKeys.length,
+      };
+    }
+
+    if (selectedTableData.id === 'observationbht') {
+      const bhtErrors = validateBHTPoints(
+        selectedTableData.calibration_points?.length ? selectedTableData.calibration_points : observations,
+        tableInputValues
+      );
+      setObservationErrors(bhtErrors);
+      const bhtErrorKeys = Object.keys(bhtErrors);
+      return {
+        isValid: bhtErrorKeys.length === 0,
+        errors: bhtErrors,
+        firstErrorKey: bhtErrorKeys[0] || null,
+        errorCount: bhtErrorKeys.length,
       };
     }
 
@@ -1774,10 +1812,10 @@ const CalibrateStep3 = () => {
             }
           }
           else if (observationTemplate === 'observationtswoi') {
-            setObservations(extractTSWOIPoints(observationData) || []);
+            setObservations(extractTSWOIPoints(response.data) || []);
           }
           else if (observationTemplate === 'observationtswi') {
-            setObservations(extractTSWIPoints(observationData) || []);
+            setObservations(extractTSWIPoints(response.data) || []);
           }
           else if (observationTemplate === 'observationsw') {
             setObservations(extractSWPoints(observationData) || []);
@@ -2990,6 +3028,8 @@ const CalibrateStep3 = () => {
     values[`${uucIndex}-${TSWOI_COLS.CORRECTED_AVERAGE}`] = calc.uuc.correctedAverage;
     values[`${masterIndex}-${TSWOI_COLS.AVERAGE}`] = calc.master.average;
     values[`${masterIndex}-${TSWOI_COLS.CORRECTED_AVERAGE}`] = calc.master.correctedAverage;
+    values[`${uucIndex}-${TSWOI_COLS.CONVERTED_AVERAGE}`] = calc.uuc.convertedAverage;
+    values[`${masterIndex}-${TSWOI_COLS.CONVERTED_AVERAGE}`] = calc.master.convertedAverage;
     values[`${uucIndex}-${TSWOI_COLS.DEVIATION}`] = calc.error;
     return { uucIndex, masterIndex, calc };
   };
@@ -3002,6 +3042,7 @@ const CalibrateStep3 = () => {
     values[`${uucIndex}-${TSWI_COLS.CONVERTED_AVERAGE}`] = calc.uuc.average;
     values[`${masterIndex}-${TSWI_COLS.AVERAGE}`] = calc.master.average;
     values[`${masterIndex}-${TSWI_COLS.CORRECTED_AVERAGE}`] = calc.master.correctedAverage;
+    values[`${masterIndex}-${TSWI_COLS.CONVERTED_AVERAGE}`] = calc.master.convertedAverage;
     values[`${uucIndex}-${TSWI_COLS.DEVIATION}`] = calc.error;
     return { uucIndex, masterIndex, calc };
   };
@@ -4346,12 +4387,21 @@ const CalibrateStep3 = () => {
 
     const lcValue = parseFloat(leastCount);
 
-    // 1 Check decimal places - must not exceed decimal places in least count
-    const lcStr = String(leastCount).trim();
-    const lcDecimals = lcStr.includes('.') ? lcStr.split('.')[1].length : 0;
-    const valueStr = String(value).trim();
+    // Normalize value string to remove trailing zeros after decimal point to avoid false positives
+    let valueStr = String(value).trim();
+    if (valueStr.includes('.')) {
+      valueStr = valueStr.replace(/0+$/, '').replace(/\.$/, '');
+    }
     const valueDecimals = valueStr.includes('.') ? valueStr.split('.')[1].length : 0;
 
+    const lcStr = String(leastCount).trim();
+    let normLcStr = lcStr;
+    if (normLcStr.includes('.')) {
+      normLcStr = normLcStr.replace(/0+$/, '').replace(/\.$/, '');
+    }
+    const lcDecimals = normLcStr.includes('.') ? normLcStr.split('.')[1].length : 0;
+
+    // 1 Check decimal places - must not exceed decimal places in least count
     if (valueDecimals > lcDecimals) {
       return {
         isValid: false,
@@ -4359,9 +4409,9 @@ const CalibrateStep3 = () => {
       };
     }
 
-    // 2️⃣ Check minimum value and divisibility - value must be >= least count and a multiple of least count (floating-point safe)
+    // 2️⃣ Check minimum value and divisibility - value must be >= least count and a multiple of least count
     if (numValue !== 0 && lcValue > 0) {
-      if (!valueStr.endsWith('.')) {
+      if (!String(value).trim().endsWith('.')) {
         if (Math.abs(numValue) < lcValue) {
           return {
             isValid: false,
@@ -4369,18 +4419,16 @@ const CalibrateStep3 = () => {
           };
         }
 
-        if (!valueStr.includes('.') || valueDecimals >= lcDecimals) {
-          const factor = 1000000;
-          const scaledValue = Math.round(numValue * factor);
-          const scaledLc = Math.round(lcValue * factor);
-          const remainder = scaledValue % scaledLc;
+        const factor = 1000000;
+        const scaledValue = Math.round(numValue * factor);
+        const scaledLc = Math.round(lcValue * factor);
+        const remainder = scaledValue % scaledLc;
 
-          if (remainder !== 0) {
-            return {
-              isValid: false,
-              error: `Please Enter Value divisible by ${leastCount}`
-            };
-          }
+        if (remainder !== 0) {
+          return {
+            isValid: false,
+            error: `Please Enter Value divisible by ${leastCount}`
+          };
         }
       }
     }
@@ -6210,7 +6258,8 @@ const CalibrateStep3 = () => {
       });
 
       // UUC readings -> averageuuc and the deviation; master readings / ambient mV ->
-      // averagemaster and saveragemaster; master Average (unit) -> the deviation
+      // averagemaster, saveragemaster, caveragemaster and the deviation; master
+      // sensitivity coefficient -> caveragemaster and the deviation
       const isReading = colIndex >= TSWI_COLS.OBS_START && colIndex <= TSWI_COLS.OBS_END;
       const values = { ...tableInputValues, [`${rowIndex}-${colIndex}`]: cellValue };
       const { uucIndex, masterIndex } = applyTSWICalculations(values, rowIndex);
@@ -6219,10 +6268,15 @@ const CalibrateStep3 = () => {
         calcCells.push([uucIndex, TSWI_COLS.CONVERTED_AVERAGE], [uucIndex, TSWI_COLS.DEVIATION]);
       }
       if (rowType === 'master' && (isReading || colIndex === TSWI_COLS.AMBIENT)) {
-        calcCells.push([masterIndex, TSWI_COLS.AVERAGE], [masterIndex, TSWI_COLS.CORRECTED_AVERAGE]);
+        calcCells.push(
+          [masterIndex, TSWI_COLS.AVERAGE],
+          [masterIndex, TSWI_COLS.CORRECTED_AVERAGE],
+          [masterIndex, TSWI_COLS.CONVERTED_AVERAGE],
+          [uucIndex, TSWI_COLS.DEVIATION],
+        );
       }
-      if (rowType === 'master' && colIndex === TSWI_COLS.CONVERTED_AVERAGE) {
-        calcCells.push([uucIndex, TSWI_COLS.DEVIATION]);
+      if (rowType === 'master' && colIndex === TSWI_COLS.SENSITIVITY) {
+        calcCells.push([masterIndex, TSWI_COLS.CONVERTED_AVERAGE], [uucIndex, TSWI_COLS.DEVIATION]);
       }
 
       calcCells.forEach(([calcRow, calcCol]) => {
@@ -6262,17 +6316,27 @@ const CalibrateStep3 = () => {
         value: cellValue,
       });
 
-      // Readings and ambient mV change this row's average and corrected average;
-      // Average (unit) changes the deviation, which is stored on the UUC row
+      // Readings and ambient mV change this row's averages, Average (unit) and the
+      // deviation (stored on the UUC row); the UUC sensitivity coefficient changes
+      // both rows' Average (unit) and the deviation
       const isReading = colIndex >= TSWOI_COLS.OBS_START && colIndex <= TSWOI_COLS.OBS_END;
       const values = { ...tableInputValues, [`${rowIndex}-${colIndex}`]: cellValue };
-      const { uucIndex } = applyTSWOICalculations(values, rowIndex);
+      const { uucIndex, masterIndex } = applyTSWOICalculations(values, rowIndex);
       const calcCells = [];
       if (isReading || colIndex === TSWOI_COLS.AMBIENT) {
-        calcCells.push([rowIndex, TSWOI_COLS.AVERAGE], [rowIndex, TSWOI_COLS.CORRECTED_AVERAGE]);
+        calcCells.push(
+          [rowIndex, TSWOI_COLS.AVERAGE],
+          [rowIndex, TSWOI_COLS.CORRECTED_AVERAGE],
+          [rowIndex, TSWOI_COLS.CONVERTED_AVERAGE],
+          [uucIndex, TSWOI_COLS.DEVIATION],
+        );
       }
-      if (colIndex === TSWOI_COLS.CONVERTED_AVERAGE) {
-        calcCells.push([uucIndex, TSWOI_COLS.DEVIATION]);
+      if (colIndex === TSWOI_COLS.SENSITIVITY) {
+        calcCells.push(
+          [uucIndex, TSWOI_COLS.CONVERTED_AVERAGE],
+          [masterIndex, TSWOI_COLS.CONVERTED_AVERAGE],
+          [uucIndex, TSWOI_COLS.DEVIATION],
+        );
       }
 
       calcCells.forEach(([calcRow, calcCol]) => {
@@ -6487,9 +6551,15 @@ const CalibrateStep3 = () => {
           });
         };
 
-        pushVht('cuuc', value || '0', repeatable);
-        // The converted reading belongs to the same repeatable slot.
-        pushVht('uuc', computed?.convertedReading, repeatable);
+        // A cleared reading is not saved as '0' (blank payloads are dropped below)
+        pushVht('cuuc', value?.toString().trim() ?? '', repeatable);
+        // Every converted reading of the point, not just this slot's: points whose
+        // readings were entered before the conversion existed have none stored
+        if (Array.isArray(computed?.convertedReadings)) {
+          computed.convertedReadings.forEach((conv, i) => pushVht('uuc', conv, i.toString()));
+        } else {
+          pushVht('uuc', computed?.convertedReading, repeatable);
+        }
 
         // The component computes these from the values on screen; persist them so
         // the stored copy always matches what the operator sees.
@@ -6508,6 +6578,7 @@ const CalibrateStep3 = () => {
       if (colIndex < BHT_COLUMNS.observationStart || colIndex > obsEnd) return;
 
       const repeatable = (colIndex - BHT_COLUMNS.observationStart).toString();
+      // A cleared reading is not saved as '0' (blank payloads are dropped below)
       const pushBht = (type, val, rep = '0') => {
         if (val === undefined || val === null || val === '') return;
         payloads.push({
@@ -6521,7 +6592,7 @@ const CalibrateStep3 = () => {
       };
 
       // Direct-reading units enter uuc; the rest enter cuuc (diameter) with a converted uuc beneath
-      pushBht(computed?.readingType || 'cuuc', value || '0', repeatable);
+      pushBht(computed?.readingType || 'cuuc', value?.toString().trim() ?? '', repeatable);
       if (computed?.readingType !== 'uuc') {
         pushBht('uuc', computed?.convertedReading, repeatable);
         pushBht('caverageuuc', computed?.caverageuuc);
@@ -7766,28 +7837,35 @@ const CalibrateStep3 = () => {
     const validPayloads = payloads.filter(p => p && p.value !== undefined && p.value !== null && p.value.toString().trim() !== '');
     if (validPayloads.length === 0) return;
 
+    // Saves run one after another: two overlapping blurs on the same point would
+    // otherwise interleave their posts, and an older calculated average could land
+    // after a newer one
+    const save = async () => {
+      try {
+        for (const payload of validPayloads) {
+          await axios.post(
+            `${JWT_HOST_API}/calibrationprocess/set-observations`,
+            payload,
+            {
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+        }
 
-    try {
-      for (const payload of validPayloads) {
-        await axios.post(
-          `${JWT_HOST_API}/calibrationprocess/set-observations`,
-          payload,
-          {
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+        toast.success(`Observation and calculated values saved successfully!`);
+
+        await refetchObservations();
+      } catch (err) {
+        console.error(`Error saving observation [${rowIndex}, ${colIndex}]:`, err);
+        toast.error(err.response?.data?.message || 'Failed to save observation');
       }
-
-      toast.success(`Observation and calculated values saved successfully!`);
-
-      await refetchObservations();
-    } catch (err) {
-      console.error(`Error saving observation [${rowIndex}, ${colIndex}]:`, err);
-      toast.error(err.response?.data?.message || 'Failed to save observation');
-    }
+    };
+    const queued = observationSaveQueue.current.then(save);
+    observationSaveQueue.current = queued;
+    await queued;
   };
 
 
@@ -8009,12 +8087,12 @@ const CalibrateStep3 = () => {
         }
         else if (observationTemplate === 'observationtswoi') {
           // Keep existing data when the response has no points, as RTDWI does
-          const tswoiPoints = extractTSWOIPoints(observationData);
+          const tswoiPoints = extractTSWOIPoints(response.data);
           if (tswoiPoints) setObservations(tswoiPoints);
         }
         else if (observationTemplate === 'observationtswi') {
           // Keep existing data when the response has no points, as RTDWI does
-          const tswiPoints = extractTSWIPoints(observationData);
+          const tswiPoints = extractTSWIPoints(response.data);
           if (tswiPoints) setObservations(tswiPoints);
         }
         else if (observationTemplate === 'observationsw') {
@@ -8461,6 +8539,20 @@ const CalibrateStep3 = () => {
             allPoints = dataObj;
           }
           setObservations(allPoints);
+        }
+        // Same as the initial load; without this the else below empties the table after each save
+        else if (observationTemplate === 'observationvht' || observationTemplate === 'observationbht') {
+          const points = Array.isArray(observationData)
+            ? observationData
+            : (observationData?.data || observationData?.calibration_points || []);
+          setObservations(Array.isArray(points) ? points : []);
+        }
+        // Same as the initial load; without this the else below empties the table after each save
+        else if (observationTemplate === 'observationdutm') {
+          const points = Array.isArray(observationData)
+            ? observationData
+            : (observationData?.data || observationData?.calibration_points || observationData?.observations || []);
+          setObservations(Array.isArray(points) ? points : []);
         }
         else {
           setObservations([]);
@@ -10261,7 +10353,11 @@ const CalibrateStep3 = () => {
         const rowType = getTSWIRowType(rowData);
         const calculatedCells = rowType === 'uuc'
           ? { [TSWI_COLS.CONVERTED_AVERAGE]: calculated.average, [TSWI_COLS.DEVIATION]: calculated.error }
-          : { [TSWI_COLS.AVERAGE]: calculated.average, [TSWI_COLS.CORRECTED_AVERAGE]: calculated.correctedAverage };
+          : {
+            [TSWI_COLS.AVERAGE]: calculated.average,
+            [TSWI_COLS.CORRECTED_AVERAGE]: calculated.correctedAverage,
+            [TSWI_COLS.CONVERTED_AVERAGE]: calculated.convertedAverage,
+          };
         rowData.forEach((cell, colIndex) => {
           const field = getTSWIFieldType(rowType, colIndex);
           if (!field) return;
@@ -10278,6 +10374,7 @@ const CalibrateStep3 = () => {
         const calculatedCells = {
           [TSWOI_COLS.AVERAGE]: calculated.average,
           [TSWOI_COLS.CORRECTED_AVERAGE]: calculated.correctedAverage,
+          [TSWOI_COLS.CONVERTED_AVERAGE]: calculated.convertedAverage,
           [TSWOI_COLS.DEVIATION]: calculated.error,
         };
         rowData.forEach((cell, colIndex) => {
@@ -11775,6 +11872,8 @@ const CalibrateStep3 = () => {
                         handleObservationBlur={handleObservationBlur}
                         observations={observations}
                         instrument={instrument}
+                        observationErrors={observationErrors}
+                        convertHardness={convertHardness}
                       />
                     ) : selectedTableData.id === 'observationls' ? (
                       <ObservationLS
@@ -11833,6 +11932,7 @@ const CalibrateStep3 = () => {
                         handleObservationBlur={handleObservationBlur}
                         observations={observations}
                         instrument={instrument}
+                        observationErrors={observationErrors}
                       />
                     ) : selectedTableData.id === 'observationvol' ? (
                       <ObservationVOL

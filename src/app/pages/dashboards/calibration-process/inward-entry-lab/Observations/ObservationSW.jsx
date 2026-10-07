@@ -1,26 +1,5 @@
 import { safeGetValue, safeGetArray, getDecimalPlaces } from './observationUtils';
 
-/**
- * Stop Watch (SW) Observation
- *
- * Each calibration point renders as two rows (UUC, then Master):
- *
- *  col | UUC row                              | Master row
- *  ----+--------------------------------------+-----------------------------
- *   0  | Sr. No. (rowspan 2)                  | '-'
- *   1  | Nominal/Set Value, read-only (rs 2)  | '-'
- *   2  | 'UUC'                                | 'Master'
- *  3-7 | uuc, repeatable 0-4 (UUC LC checked) | master, repeatable 0-4 (master LC checked)
- *   8  | averageuuc                           | averagemaster
- *   9  | error (rowspan 2)                    | '-'
- *  10  | uncertainty (rowspan 2)              | '-'
- *
- * As in PHP, Average, Error and Uncertainty are editable: typing a reading
- * recalculates that row's average (averageavg) and the error (substractminus),
- * but editing an average or the error by hand recalculates nothing, and the
- * uncertainty is always entered by hand.
- */
-
 export const SW_COLS = {
   SR_NO: 0,
   SET_POINT: 1,

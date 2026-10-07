@@ -1,4 +1,4 @@
-import { useParams,useNavigate } from "react-router";
+import { useParams, useNavigate, useLocation } from "react-router";
 import { useEffect, useState } from "react";
 import { Page } from "components/shared/Page";
 import axios from "utils/axios";
@@ -8,6 +8,7 @@ export default function RegenerateCacheCopy() {
   const { id: inwardId, itemId: instId } = useParams();
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     const regenerateCacheCopy = async () => {
@@ -20,26 +21,19 @@ export default function RegenerateCacheCopy() {
           }
         );
 
-        const certificateHtml = response.data;
-
-        // ✅ Create a Blob URL from the HTML
-        const blob = new Blob([`
-           ${certificateHtml}
-        `], { type: "text/html" });
-
-        const blobUrl = URL.createObjectURL(blob);
-
-        // ✅ Create an anchor element and simulate a click — this forces new TAB
-        const link = document.createElement("a");
-        link.href = blobUrl;
-        link.target = "_blank";
-        link.rel = "noopener noreferrer";
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        if (response.data && response.data.certificate) {
+          // Replace single slashes in the path with double slashes (//) to bypass cache
+          // (matching any slash not preceded by : or / to preserve https://)
+          const bypassedUrl = response.data.certificate.replace(new RegExp("([^:/])/", "g"), "$1//");
+          
+          window.open(bypassedUrl, "_blank", "noopener,noreferrer");
+        } else {
+          toast.error(response.data?.message || "Certificate URL not found");
+        }
 
          setTimeout(() => {
-          navigate(`/dashboards/calibration-process/inward-entry-lab/perform-calibration/${inwardId}?caliblocation=Lab&calibacc=Nabl`);
+          const searchParams = location.search || "?caliblocation=Lab&calibacc=Nabl";
+          navigate(`/dashboards/calibration-process/inward-entry-lab/perform-calibration/${inwardId}${searchParams}`);
         }, 5000);
 
       } catch (error) {
@@ -51,7 +45,7 @@ export default function RegenerateCacheCopy() {
     };
 
     regenerateCacheCopy();
-  }, [inwardId, instId]);
+  }, [inwardId, instId, location.search, navigate]);
 
   if (loading) {
     return (

@@ -16,7 +16,7 @@ import { safeGetValue, safeGetArray, getDecimalPlaces } from './observationUtils
  *  10  | '-'                              | averagemaster (calculated)
  *  11  | '-'                              | ambientmaster
  *  12  | '-'                              | saveragemaster (calculated)
- *  13  | averageuuc (calculated)          | caveragemaster
+ *  13  | averageuuc (calculated)          | caveragemaster (saverage / sensitivity)
  *  14  | error (calculated, rowspan 2)    | '-'
  *
  * Rounding, as in PHP: averageuuc to the UUC least count's decimals, averagemaster
@@ -91,17 +91,22 @@ export const calculateTSWIPoint = (uucRowData, masterRowData, meta, cussetError)
   const masterMean = mean(masterRow);
   const ambient = toNumber(masterRow[TSWI_COLS.AMBIENT]);
   const masterAverage = formatUnrounded(masterMean);
-  const correctedAverage = formatUnrounded(masterMean + (isNaN(ambient) ? 0 : ambient));
+  const corrected = masterMean + (isNaN(ambient) ? 0 : ambient);
+  const correctedAverage = formatUnrounded(corrected);
+
+  // Average (unit) = corrected average (mV) / sensitivity coefficient of the Master row
+  const sensitivity = toNumber(masterRow[TSWI_COLS.SENSITIVITY]);
+  const convertedAverage = isNaN(sensitivity) || sensitivity === 0 ? '' : formatUnrounded(corrected / sensitivity);
 
   const uucAvgNum = toNumber(uucAverage);
-  const masterConverted = toNumber(masterRow[TSWI_COLS.CONVERTED_AVERAGE]);
+  const masterConverted = toNumber(convertedAverage);
   const error = isNaN(uucAvgNum) || isNaN(masterConverted)
     ? ''
     : formatDecimals(cussetError === 'stduuc' ? masterConverted - uucAvgNum : uucAvgNum - masterConverted, meta?.errorDecimals);
 
   return {
     uuc: { average: uucAverage },
-    master: { average: masterAverage, correctedAverage },
+    master: { average: masterAverage, correctedAverage, convertedAverage },
     error,
   };
 };
@@ -117,7 +122,12 @@ export const calculateTSWIValues = (rowData, pairRowData, meta, cussetError) => 
   const calc = calculateTSWIPoint(isUUC ? rowData : pairRowData, isUUC ? pairRowData : rowData, meta, cussetError);
   return isUUC
     ? { average: calc.uuc.average, correctedAverage: '', error: calc.error }
-    : { average: calc.master.average, correctedAverage: calc.master.correctedAverage, error: calc.error };
+    : {
+      average: calc.master.average,
+      correctedAverage: calc.master.correctedAverage,
+      convertedAverage: calc.master.convertedAverage,
+      error: calc.error,
+    };
 };
 
 /**
@@ -151,13 +161,13 @@ export const getTSWIFieldType = (rowType, colIndex) => {
 
 /**
  * Cells the user types into (the Master unit column is a select).
- * UUC row: only the five readings. Master row: unit, sensitivity, readings,
- * ambient mV and Average (unit).
+ * UUC row: only the five readings. Master row: unit, sensitivity, readings and
+ * ambient mV; Average (unit) is calculated from the sensitivity coefficient.
  */
 export const isTSWICellEditable = (rowType, colIndex) => {
   const isReading = colIndex >= TSWI_COLS.OBS_START && colIndex <= TSWI_COLS.OBS_END;
   if (rowType === 'uuc') return isReading;
-  return isReading || [TSWI_COLS.UNIT, TSWI_COLS.SENSITIVITY, TSWI_COLS.AMBIENT, TSWI_COLS.CONVERTED_AVERAGE].includes(colIndex);
+  return isReading || [TSWI_COLS.UNIT, TSWI_COLS.SENSITIVITY, TSWI_COLS.AMBIENT].includes(colIndex);
 };
 
 /**
@@ -192,6 +202,11 @@ export const validateTSWIRow = (rowData, rowIndex, meta, validateLeastCount) => 
     }
     if (isNaN(toNumber(cell))) {
       errors[key] = 'Please enter a valid number';
+      return;
+    }
+    if (colIndex === TSWI_COLS.SENSITIVITY && toNumber(cell) === 0) {
+      // Average (unit) is divided by it
+      errors[key] = 'Sensitivity coefficient cannot be 0';
       return;
     }
     const leastCount = getTSWIReadingLeastCount(rowType, colIndex, meta);
@@ -303,10 +318,21 @@ export const createTSWIRows = (dataArray) => {
       ...getReadings(master, point, 'master'),
       pick(master, 'average') || pick(point, 'averagemaster', 'average_master'),
       pick(master, 'ambient_mv', 'ambient') || pick(point, 'ambientmaster', 'ambient_master'),
-      pick(master, 'corrected_average') || pick(point, 'saveragemaster', 's_average_master'),
+      pick(master, 's_average', 'corrected_average') || pick(point, 'saveragemaster', 's_average_master'),
       pick(master, 'converted_average', 'c_average') || pick(point, 'caveragemaster', 'c_average_master'),
       '-',
     ];
+
+    // Calculated cells are read-only, so show them recalculated from the readings
+    // (older records hold a hand-typed Average (unit) / deviation); stored values
+    // are kept only when nothing can be calculated
+    const calc = calculateTSWIPoint(uucRow, masterRow, meta, point.cusset_error);
+    const useCalculated = (row, col, val) => { if (!isBlank(val)) row[col] = val; };
+    useCalculated(uucRow, TSWI_COLS.CONVERTED_AVERAGE, calc.uuc.average);
+    useCalculated(masterRow, TSWI_COLS.AVERAGE, calc.master.average);
+    useCalculated(masterRow, TSWI_COLS.CORRECTED_AVERAGE, calc.master.correctedAverage);
+    useCalculated(masterRow, TSWI_COLS.CONVERTED_AVERAGE, calc.master.convertedAverage);
+    useCalculated(uucRow, TSWI_COLS.DEVIATION, calc.error);
 
     [uucRow, masterRow].forEach((row, rowOffset) => {
       rows.push(row);

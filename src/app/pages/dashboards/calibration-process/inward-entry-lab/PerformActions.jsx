@@ -882,10 +882,11 @@ export function PerformActions({ item, onAction, inwardId, caliblocation, caliba
           );
 
           if (action.action === "viewApprovedCertificate" && item.fileWithFullPath) {
+            const bypassedUrl = item.fileWithFullPath.replace(new RegExp("([^:/])/", "g"), "$1//");
             return (
               <a
                 key={`${action.action}-${index}`}
-                href={item.fileWithFullPath}
+                href={bypassedUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className={btnClassName}

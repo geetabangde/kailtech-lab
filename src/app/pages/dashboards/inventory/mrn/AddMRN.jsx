@@ -180,14 +180,18 @@ export default function AddMRN() {
       if (files.rupload2) form.append("rupload2", files.rupload2);
 
       const response = await axios.post("/inventory/create-mrn", form);
-      const newMrnId = response.data?.mrn_id || response.data?.data?.mrn_id;
-
-      toast.success(response.data?.message || "MRN added successfully ✅");
       
-      if (newMrnId) {
-        navigate(`/dashboards/inventory/mrn/addMrnItemPurchase?id=${newMrnId}`);
+      if (response.data?.status === true || response.data?.status === "true") {
+        toast.success(response.data?.message || "MRN added successfully ✅");
+        const newMrnId = response.data?.insert_id || response.data?.mrn_id || response.data?.data?.mrn_id;
+        
+        if (newMrnId) {
+          navigate(`/dashboards/inventory/mrn/addMrnItemPurchase?id=${newMrnId}`);
+        } else {
+          navigate("/dashboards/inventory/mrn");
+        }
       } else {
-        navigate("/dashboards/inventory/mrn");
+        toast.error(response.data?.message || "Failed to create MRN ❌");
       }
     } catch (err) {
       console.error("Error creating MRN:", err);

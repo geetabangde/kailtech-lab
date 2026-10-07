@@ -54,6 +54,7 @@ export default function AddCreditNote() {
     total: 0,
     roundoff: 0,
     finaltotal: 0,
+    potype: "Normal",
   });
 
   const [submitting, setSubmitting] = useState(false);
@@ -138,7 +139,12 @@ export default function AddCreditNote() {
 
   // Recalculate totals whenever items or totals inputs change — mirrors sumamount()
   const recalculate = useCallback((currentTotals, currentItems) => {
-    const subtotal = currentItems.reduce((sum, item) => sum + parseFloat(item.rate || 0), 0);
+    let subtotal = 0;
+    if (currentTotals.potype === "Normal" || !currentTotals.potype) {
+      subtotal = currentItems.reduce((sum, item) => sum + parseFloat(item.rate || 0), 0);
+    } else {
+      subtotal = parseFloat(currentTotals.subtotal || 0);
+    }
 
     const { disctype, discnumber, witnesstype, witnessnumber } = currentTotals;
     const discountamount = disctype === "%" ? (subtotal / 100) * discnumber : parseFloat(discnumber || 0);
@@ -181,6 +187,7 @@ export default function AddCreditNote() {
       cgstper: invoiceMeta.cgstper ?? 0,
       sgstper: invoiceMeta.sgstper ?? 0,
       igstper: invoiceMeta.igstper ?? 0,
+      potype: invoiceMeta.potype || "Normal",
     }, items));
   }, [invoiceMeta, items, recalculate]);
 
@@ -199,6 +206,20 @@ export default function AddCreditNote() {
     const updated = items.map((item, i) =>
       i === index ? { ...item, rate: value } : item
     );
+    setItems(updated);
+    setTotals((prev) => recalculate(prev, updated));
+  };
+
+  const handleItemFieldChange = (index, field, value) => {
+    const updated = items.map((item, i) =>
+      i === index ? { ...item, [field]: value } : item
+    );
+    setItems(updated);
+  };
+
+  const handleAddItem = () => {
+    const newItem = { name: "", idno: "", serialno: "", rate: 0 };
+    const updated = [...items, newItem];
     setItems(updated);
     setTotals((prev) => recalculate(prev, updated));
   };
@@ -413,16 +434,41 @@ export default function AddCreditNote() {
                   {items.map((item, i) => (
                     <tr key={i} className="border-t border-gray-100 dark:border-dark-600">
                       <td className="p-2">{i + 1}</td>
-                      <td className="p-2">{item.name || item.itemname}</td>
-                      <td className="p-2">{item.idno || item.itemidno || "N.A"}</td>
-                      <td className="p-2">{item.serialno || item.itemserialno || "N.A"}</td>
                       <td className="p-2">
                         <input
-                          type="number"
-                          value={item.rate}
-                          onChange={(e) => handleItemRateChange(i, e.target.value)}
-                          className="w-24 rounded border border-gray-300 px-2 py-1 text-sm dark:border-dark-500 dark:bg-dark-700"
+                          type="text"
+                          value={item.name || item.itemname || ""}
+                          onChange={(e) => handleItemFieldChange(i, "name", e.target.value)}
+                          className="w-full rounded border border-gray-300 px-2 py-1 text-sm dark:border-dark-500 dark:bg-dark-700"
                         />
+                      </td>
+                      <td className="p-2">
+                        <input
+                          type="text"
+                          value={item.idno || item.itemidno || ""}
+                          onChange={(e) => handleItemFieldChange(i, "idno", e.target.value)}
+                          className="w-full rounded border border-gray-300 px-2 py-1 text-sm dark:border-dark-500 dark:bg-dark-700"
+                        />
+                      </td>
+                      <td className="p-2">
+                        <input
+                          type="text"
+                          value={item.serialno || item.itemserialno || ""}
+                          onChange={(e) => handleItemFieldChange(i, "serialno", e.target.value)}
+                          className="w-full rounded border border-gray-300 px-2 py-1 text-sm dark:border-dark-500 dark:bg-dark-700"
+                        />
+                      </td>
+                      <td className="p-2">
+                        {totals.potype === "Normal" ? (
+                          <input
+                            type="number"
+                            value={item.rate}
+                            onChange={(e) => handleItemRateChange(i, e.target.value)}
+                            className="w-24 rounded border border-gray-300 px-2 py-1 text-sm dark:border-dark-500 dark:bg-dark-700"
+                          />
+                        ) : (
+                          <span className="text-gray-500 dark:text-gray-400">N/A</span>
+                        )}
                       </td>
                       <td className="p-2">
                         <button
@@ -438,9 +484,19 @@ export default function AddCreditNote() {
                 </tbody>
               </table>
 
+              <div className="p-3 border-b border-gray-100 dark:border-dark-600">
+                <button
+                  type="button"
+                  onClick={handleAddItem}
+                  className="rounded bg-blue-500 px-3 py-1 text-xs text-white hover:bg-blue-600"
+                >
+                  + Add Item
+                </button>
+              </div>
+
               {/* Totals */}
               <div className="grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 lg:grid-cols-3">
-                <TotalField label="Subtotal" value={totals.subtotal} readOnly />
+                <TotalField label="Subtotal" name="subtotal" value={totals.subtotal} onChange={handleTotalChange} readOnly={totals.potype === "Normal"} />
                 <TotalField label="Discount Type" name="disctype" value={totals.disctype} onChange={handleTotalChange} isSelect options={["%", "Fixed"]} />
                 <TotalField label="Discount" name="discnumber" value={totals.discnumber} onChange={handleTotalChange} />
                 <TotalField label="Freight" name="freight" value={totals.freight} onChange={handleTotalChange} />
@@ -510,7 +566,7 @@ function inputClass(error) {
 function FormRow({ label, required, error, children }) {
   return (
     <div className="flex flex-col gap-1.5 px-4 py-4 sm:flex-row sm:items-start sm:px-6">
-      <label className="w-full shrink-0 pt-2 text-sm font-medium text-gray-700 dark:text-dark-200 sm:w-1/4">
+      <label className="w-full shrink-0 pt-2 text-sm font-medium text-gray-700 dark:text-dark-200 sm:w-1/4 sm:text-right sm:pr-4">
         {label}{required && <span className="ml-0.5 text-red-500">*</span>}
       </label>
       <div className="w-full sm:w-3/4">

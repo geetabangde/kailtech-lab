@@ -126,8 +126,8 @@ export default function AddDin() {
             customername: s.company || "",
             custadd: vendorAddressString,
             custcontactname: s.contact_person || "",
-            custphone: s.mobile || s.contact_phone || "",
-            custemail: s.email || s.contact_email || "",
+            custphone: s.contact_phone || "",
+            custemail: s.contact_email || "",
             gstno: s.gstno || "",
             custdesignation: s.designation || "",
             custcontact: s.id || 1
@@ -372,7 +372,8 @@ export default function AddDin() {
       }
     }
 
-    if (name === "custcontact") {
+    const isVendor = [1, 5, 6, 7, 10].includes(Number(formData.purpose)) || purpose11Type === "Vendor";
+    if (name === "custcontact" && !isVendor) {
       if (value) {
         fetchCustomerContactDetails(value);
       } else {
@@ -631,6 +632,17 @@ export default function AddDin() {
       errors.push("No Item is Added");
     }
 
+    if ([1, 2, 3, 4, 5].includes(pval) && items.some(i => !i.mloc)) {
+      errors.push("Please select Location for all items");
+    }
+
+    if ([1, 2, 3, 4, 5].includes(pval) && items.some(i => {
+      const q = Number(i.qty);
+      return !q || q < 1 || q > Number(i.maxQty);
+    })) {
+      errors.push("Quantity must be at least 1 and not more than the available quantity");
+    }
+
     if ([7, 9].includes(pval)) {
       if (inwardItems.length === 0) {
         errors.push("No Inward Item is Added");
@@ -719,6 +731,7 @@ export default function AddDin() {
         custphone: formData.custphone || "",
         custemail: formData.custemail || "",
         custdesignation: formData.custdesignation || "",
+        gstno: formData.gstno || "",
 
         dindate: formData.dindate ? dayjs(formData.dindate).format("YYYY-MM-DD") : "",
         issuedtoid: formData.issuedtoid || "",
@@ -1581,14 +1594,7 @@ export default function AddDin() {
                                     ))}
                                   </select>
                                 ) : (
-                                  <input
-                                    type="text"
-                                    value={item.mloc || ""}
-                                    placeholder="Location ID"
-                                    onChange={(e) => handleItemChange(index, "mloc", e.target.value)}
-                                    onBlur={(e) => fetchMlocQuantity(index, e.target.value)}
-                                    className="form-input w-24 rounded-lg border-gray-300 dark:border-dark-600 dark:bg-dark-900"
-                                  />
+                                  <span className="text-sm text-red-500">No location available</span>
                                 )}
                               </Td>
                               <Td className="px-4 py-2">

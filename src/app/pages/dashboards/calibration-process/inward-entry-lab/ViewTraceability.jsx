@@ -108,6 +108,46 @@ export default function ViewTraceability() {
     });
   };
 
+  const handleOpenCombinedPDF = async () => {
+    try {
+      const loadingToast = toast.loading("Generating combined PDF...");
+      
+      const headers = {};
+      if (authToken) {
+        headers.Authorization = `Bearer ${authToken}`;
+      }
+
+      const response = await axios.get(
+        `/calibrationprocess/view-tracebility-pdf?inwardid=${inwardId}&instid=${instId}`,
+        {
+          headers,
+          responseType: "blob"
+        }
+      );
+      
+      toast.dismiss(loadingToast);
+
+      if (response.status === 200) {
+        const file = new Blob([response.data], { type: "application/pdf" });
+        const fileURL = URL.createObjectURL(file);
+        window.open(fileURL, "_blank");
+      }
+    } catch (error) {
+      toast.dismiss();
+      if (error.response?.data && error.response.data instanceof Blob) {
+          try {
+              const text = await error.response.data.text();
+              const json = JSON.parse(text);
+              toast.error(json.message || "Failed to open combined PDF");
+          } catch (e) {
+              toast.error("Failed to open combined PDF",e);
+          }
+      } else {
+          toast.error(error.response?.data?.message || "Failed to open combined PDF");
+      }
+    }
+  };
+
   // ⏳ Loading State
   if (loading)
     return (
@@ -192,6 +232,17 @@ export default function ViewTraceability() {
                 >
                   <ArrowTopRightOnSquareIcon className="w-4 h-4" />
                   Open All ({pdfLinks.length})
+                </Button>
+              )}
+              {pdfLinks.length > 0 && (
+                <Button
+                  onClick={handleOpenCombinedPDF}
+                  color="primary"
+                  size="sm"
+                  className="flex items-center gap-1.5"
+                >
+                  <DocumentTextIcon className="w-4 h-4" />
+                  Open combined PDF
                 </Button>
               )}
               <Button onClick={handleBack} color="secondary" size="sm" className="flex items-center gap-1.5">

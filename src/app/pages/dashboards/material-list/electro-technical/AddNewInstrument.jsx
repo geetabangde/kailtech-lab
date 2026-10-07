@@ -265,21 +265,12 @@ const AddNewInstrument = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  // ✅ Helper function to convert date into YYYY-MM-DD format (API expects this)
+  // ✅ Send dates as YYYY-MM-DD. The create API parses them with PHP strtotime(),
+  // which reads "dd/mm/yyyy" as mm/dd (05/03 -> 3 May) or fails (26/03 -> 1970-01-01).
+  // Flatpickr's dateFormat is already "Y-m-d", so pass that value through unchanged.
   const formatDateForAPI = (dateString) => {
     if (!dateString) return '';
-    try {
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) return '';
-
-      const day = String(date.getDate()).padStart(2, '0');
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const year = date.getFullYear();
-
-      return `${day}/${month}/${year}`;
-    } catch {
-      return '';
-    }
+    return /^\d{4}-\d{2}-\d{2}$/.test(dateString) ? dateString : '';
   };
 
   const handleSubmit = async () => {

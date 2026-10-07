@@ -145,118 +145,7 @@ const PerformCalibration = () => {
     const [currentCalculateUncertaintyItem, setCurrentCalculateUncertaintyItem] = useState(null);
     const [calculatingUncertainty, setCalculatingUncertainty] = useState(false);
 
-    const downloadFilesAsZip = useCallback(async (fileUrls, zipName = 'certificates.zip') => {
-        try {
-            // Dynamic import for JSZip
-            const JSZip = (await import('jszip')).default;
-            const zip = new JSZip();
 
-            const loadingToast = toast.loading("Downloading certificates...", { duration: Infinity });
-
-            let successCount = 0;
-            let failCount = 0;
-
-            // Sequential downloads to avoid server overload
-            for (let index = 0; index < fileUrls.length; index++) {
-                const url = fileUrls[index];
-
-                try {
-                    let fullUrl = url;
-
-                    if (!url.startsWith('http')) {
-                        fullUrl = `${window.location.origin}/${url.replace(/^\/+/, '')}`;
-                    }
-
-                    console.log(`Downloading file ${index + 1}: ${fullUrl}`);
-
-                    const response = await fetch(fullUrl, {
-                        method: 'GET',
-                        headers: {
-                            'Accept': 'application/pdf,*/*',
-                        },
-                        signal: AbortSignal.timeout(30000), // 30 second timeout
-                    });
-
-                    if (response.ok && response.status === 200) {
-                        const blob = await response.blob();
-
-                        if (blob.size > 0) {
-                            let filename = url.split('/').pop() || `certificate_${index + 1}.pdf`;
-                            filename = filename.replace(/[^\w\-_.]/g, '_');
-
-                            if (!filename.toLowerCase().endsWith('.pdf')) {
-                                filename += '.pdf';
-                            }
-
-                            let finalFilename = filename;
-                            let counter = 1;
-                            while (zip.file(finalFilename)) {
-                                const nameWithoutExt = filename.substring(0, filename.lastIndexOf('.'));
-                                const ext = filename.substring(filename.lastIndexOf('.'));
-                                finalFilename = `${nameWithoutExt}_${counter}${ext}`;
-                                counter++;
-                            }
-
-                            zip.file(finalFilename, blob);
-                            successCount++;
-
-                            console.log(`Successfully added: ${finalFilename}`);
-                        } else {
-                            console.warn(`Empty file: ${url}`);
-                            failCount++;
-                        }
-                    } else {
-                        console.warn(`Failed to download: ${url} (Status: ${response.status})`);
-                        failCount++;
-                    }
-                } catch (fileError) {
-                    console.error(`Error downloading file ${url}:`, fileError);
-                    failCount++;
-                }
-
-                if (index < fileUrls.length - 1) {
-                    await new Promise(resolve => setTimeout(resolve, 500));
-                }
-            }
-
-            toast.dismiss(loadingToast);
-
-            if (successCount === 0) {
-                throw new Error('No files could be downloaded successfully. Please check if the certificate links are valid and accessible.');
-            }
-
-            if (failCount > 0) {
-                toast.warning(`Downloaded ${successCount} files successfully, ${failCount} files failed.`);
-            }
-
-            toast.info("Creating ZIP file...", { duration: 2000 });
-
-            const zipBlob = await zip.generateAsync({
-                type: 'blob',
-                compression: "DEFLATE",
-                compressionOptions: { level: 6 }
-            });
-
-            const downloadUrl = URL.createObjectURL(zipBlob);
-            const link = document.createElement('a');
-            link.href = downloadUrl;
-            link.download = zipName;
-            link.style.display = 'none';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-
-            setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
-
-            toast.success(`Successfully downloaded ${successCount} certificates as ZIP!`);
-            return successCount;
-
-        } catch (error) {
-            console.error('Error creating zip file:', error);
-            toast.error(`ZIP creation failed: ${error.message}`);
-            throw error;
-        }
-    }, []);
 
     const fetchCalibrationData = useCallback(async () => {
         if (!inwardId || !caliblocation || !calibacc) return;
@@ -655,78 +544,52 @@ const PerformCalibration = () => {
                     }
 
                     try {
+                        const token = localStorage.getItem('authToken');
                         toast.info("Preparing certificates with letterhead for download...", { duration: 2000 });
 
-                        // Fetch certificate links with letterhead from the API
-                        const response = await axios.get(`/calibrationprocess/download-Certificateswith-letterhead?inwardid=${inwardId}`);
-
-                        if (!response.data.status) {
-                            toast.error("Failed to fetch certificate links from the API.");
-                            return;
-                        }
-
-                        const allCertificateUrls = response.data.data || [];
-
-                        if (allCertificateUrls.length === 0) {
-                            toast.error("No certificates with letterhead found for this inward entry.");
-                            return;
-                        }
-
-                        // Get selected instruments
-                        const selectedInstruments = calibrationData.filter(item => selectedItems.includes(item.id));
-
-                        // Collect matching certificate URLs for selected items
-                        const certificateUrls = [];
-
-                        selectedInstruments.forEach((item) => {
-                            // Use ulrno or lrn as identifier to match filename in URL
-                            const identifier = item.ulrno || item.lrn || item.bookingrefno;
-
-                            if (identifier) {
-                                // Find the URL that includes the identifier
-                                const foundUrl = allCertificateUrls.find(url => url.includes(identifier));
-
-                                if (foundUrl) {
-                                    certificateUrls.push(foundUrl);
-                                    console.log(`Found certificate with letterhead URL for item ${item.id}: ${foundUrl}`);
-                                } else {
-                                    console.warn(`No matching certificate with letterhead found for item ${item.id} with identifier ${identifier}`);
-                                }
-                            } else {
-                                console.warn(`No identifier (ulrno/lrn/bookingrefno) found for item ${item.id}`);
-                            }
+                        const response = await axios.get('/calibrationprocess/download-certificates-zip', {
+                            params: {
+                                inwardid: inwardId,
+                                instid: selectedItems.join(','),
+                                type: 'lpdfs'
+                            },
+                            responseType: 'blob',
+                            headers: token ? { Authorization: `Bearer ${token}` } : {}
                         });
 
-                        if (certificateUrls.length === 0) {
-                            toast.error("No certificate links with letterhead found for the selected items. Please ensure certificates are available.");
-                            return;
-                        }
+                        const included = response.headers['x-certificates-included'];
+                        const missing = response.headers['x-certificates-missing'];
 
-                        console.log(`Found ${certificateUrls.length} certificate URLs with letterhead:`, certificateUrls);
-
-                        // ZIP filename with timestamp
-                        const timestamp = new Date().toISOString().slice(0, 19).replace(/[:.]/g, '-');
-                        const zipFileName = `certificates_with_letterhead_${inwardId}_${timestamp}.zip`;
-
-                        console.log(`Creating ZIP file: ${zipFileName} with ${certificateUrls.length} certificates`);
-
-                        // Create and download ZIP
-                        try {
-                            const downloadedCount = await downloadFilesAsZip(certificateUrls, zipFileName);
-
-                            if (downloadedCount > 0) {
-                                toast.success(`Successfully downloaded ${downloadedCount} certificates with letterhead as ZIP file: ${zipFileName}`);
-                            } else {
-                                throw new Error("No files downloaded successfully");
+                        const contentDisposition = response.headers['content-disposition'];
+                        let filename = `certificates_with_letterhead_${inwardId}.zip`;
+                        if (contentDisposition) {
+                            const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+                            if (filenameMatch && filenameMatch.length > 1) {
+                                filename = filenameMatch[1];
                             }
-                        } catch (zipError) {
-                            console.error("ZIP download failed:", zipError);
-                            toast.error(`Failed to create ZIP file: ${zipError.message}`);
                         }
+
+                        const url = window.URL.createObjectURL(new Blob([response.data]));
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.setAttribute('download', filename);
+                        document.body.appendChild(link);
+                        link.click();
+                        link.remove();
+                        window.URL.revokeObjectURL(url);
+
+                        let successMessage = `Successfully downloaded certificates!`;
+                        if (included) successMessage = `Successfully downloaded ${included} certificates!`;
+                        if (missing && missing !== '0') successMessage += ` (${missing} missing)`;
+                        toast.success(successMessage);
 
                     } catch (error) {
-                        console.error('Download certificates with letterhead error:', error);
-                        toast.error(`Failed to download certificates with letterhead: ${error.message || 'Unknown error'}`);
+                        if (error.response && error.response.status === 404) {
+                            toast.error("No certificate files found");
+                        } else {
+                            console.error('Download certificates with letterhead error:', error);
+                            toast.error("Failed to download certificates with letterhead");
+                        }
                     }
                     break;
                 }
@@ -737,92 +600,52 @@ const PerformCalibration = () => {
                     }
 
                     try {
+                        const token = localStorage.getItem('authToken');
                         toast.info("Preparing certificates for download...", { duration: 2000 });
 
-                        // Fetch certificate links from the API for the inwardId
-                        const response = await axios.get(`/calibrationprocess/download-certificates?inwardid=${inwardId}`);
-
-                        if (!response.data.status) {
-                            toast.error("Failed to fetch certificate links from the API.");
-                            return;
-                        }
-
-                        const allCertificateUrls = response.data.data || [];
-
-                        // Get selected instruments
-                        const selectedInstruments = calibrationData.filter(item => selectedItems.includes(item.id));
-
-                        // Collect matching certificate URLs for selected items
-                        const certificateUrls = [];
-
-                        selectedInstruments.forEach((item) => {
-                            // Use ulrno or lrn as identifier to match filename in URL
-                            const identifier = item.ulrno || item.lrn || item.bookingrefno;
-
-                            if (identifier) {
-                                // Find the URL that includes the identifier (e.g., matches the filename part)
-                                const foundUrl = allCertificateUrls.find(url => url.includes(identifier));
-
-                                if (foundUrl) {
-                                    certificateUrls.push(foundUrl);
-                                    console.log(`Found certificate URL for item ${item.id}: ${foundUrl}`);
-                                } else {
-                                    console.warn(`No matching certificate URL found for item ${item.id} with identifier ${identifier}`);
-                                }
-                            } else {
-                                console.warn(`No identifier (ulrno/lrn/bookingrefno) found for item ${item.id}`);
-                            }
+                        const response = await axios.get('/calibrationprocess/download-certificates-zip', {
+                            params: {
+                                inwardid: inwardId,
+                                instid: selectedItems.join(','),
+                                type: 'pdfs'
+                            },
+                            responseType: 'blob',
+                            headers: token ? { Authorization: `Bearer ${token}` } : {}
                         });
 
-                        if (certificateUrls.length === 0) {
-                            toast.error("No certificate links found for the selected items. Please ensure certificates are available.");
-                            return;
-                        }
+                        const included = response.headers['x-certificates-included'];
+                        const missing = response.headers['x-certificates-missing'];
 
-                        console.log(`Found ${certificateUrls.length} certificate URLs:`, certificateUrls);
-
-                        // ZIP filename with timestamp
-                        const timestamp = new Date().toISOString().slice(0, 19).replace(/[:.]/g, '-');
-                        const zipFileName = `certificates_${inwardId}_${timestamp}.zip`;
-
-                        // Create and download ZIP
-                        try {
-                            const downloadedCount = await downloadFilesAsZip(certificateUrls, zipFileName);
-
-                            if (downloadedCount > 0) {
-                                toast.success(`Successfully downloaded ${downloadedCount} certificates as ZIP file!`);
-                            } else {
-                                throw new Error("No files downloaded successfully");
+                        const contentDisposition = response.headers['content-disposition'];
+                        let filename = `certificates_${inwardId}.zip`;
+                        if (contentDisposition) {
+                            const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+                            if (filenameMatch && filenameMatch.length > 1) {
+                                filename = filenameMatch[1];
                             }
-                        } catch (zipError) {
-                            console.error("ZIP download failed:", zipError);
-
-                            // Fallback: individual downloads
-                            toast.info("ZIP creation failed. Trying individual downloads...", { duration: 2000 });
-
-                            certificateUrls.forEach((url, index) => {
-                                setTimeout(() => {
-                                    try {
-                                        const link = document.createElement('a');
-                                        link.href = url;
-                                        link.download = `certificate_${index + 1}.pdf`;
-                                        link.target = '_blank';
-                                        link.style.display = 'none';
-                                        document.body.appendChild(link);
-                                        link.click();
-                                        document.body.removeChild(link);
-                                    } catch (linkError) {
-                                        console.error(`Failed to download certificate ${index + 1}:`, linkError);
-                                    }
-                                }, index * 1000);
-                            });
-
-                            toast.success(`Initiated individual downloads for ${certificateUrls.length} certificates`);
                         }
+
+                        const url = window.URL.createObjectURL(new Blob([response.data]));
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.setAttribute('download', filename);
+                        document.body.appendChild(link);
+                        link.click();
+                        link.remove();
+                        window.URL.revokeObjectURL(url);
+
+                        let successMessage = `Successfully downloaded certificates!`;
+                        if (included) successMessage = `Successfully downloaded ${included} certificates!`;
+                        if (missing && missing !== '0') successMessage += ` (${missing} missing)`;
+                        toast.success(successMessage);
 
                     } catch (error) {
-                        console.error('Download certificates error:', error);
-                        toast.error(`Failed to download certificates: ${error.message || 'Unknown error'}`);
+                        if (error.response && error.response.status === 404) {
+                            toast.error("No certificate files found");
+                        } else {
+                            console.error('Download certificates error:', error);
+                            toast.error("Failed to download certificates");
+                        }
                     }
                     break;
                 }
@@ -1570,7 +1393,7 @@ const PerformCalibration = () => {
                                                                     <strong>LRN:</strong> {item.lrn}
                                                                 </span>
                                                             )}
-                                                            {item.ulrno && item.ulrno !== 'N.A' && (
+                                                            {item.ulrno && (
                                                                 <span className="text-xs">
                                                                     <strong>ULR NO.:</strong> {item.ulrno}
                                                                 </span>

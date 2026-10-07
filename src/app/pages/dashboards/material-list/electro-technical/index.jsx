@@ -207,13 +207,18 @@ export default function OrdersDatatableV2() {
     }
   }, [selectedDepartment, selectedCategory]);
 
+  // ✅ Sync department with the lab selected in the sidebar. The component is
+  // reused across labs (only the URL changes), so useState's initial value alone
+  // would keep the first lab.
+  useEffect(() => {
+    setSelectedDepartment(labId || "");
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  }, [labId]);
+
   // ✅ Fetch instruments when lab or category changes
   useEffect(() => {
-    if (labId && selectedDepartment !== labId && !selectedDepartment) {
-      setSelectedDepartment(labId);
-    }
     fetchInstruments();
-  }, [fetchInstruments, labId, selectedDepartment]);
+  }, [fetchInstruments]);
 
   const handleAddNewInstrument = () => {
     if (!labSlug || !labId) {
@@ -326,7 +331,7 @@ export default function OrdersDatatableV2() {
           <Select
             styles={customSelectStyles}
             options={departmentOptions}
-            value={departmentOptions.find(d => d.value === selectedDepartment) || { value: "", label: "All Departments" }}
+            value={departmentOptions.find(d => String(d.value) === String(selectedDepartment)) || { value: "", label: "All Departments" }}
             onChange={(selectedOption) => {
               setSelectedDepartment(selectedOption?.value || "");
               setPagination(prev => ({ ...prev, pageIndex: 0 })); // Reset to first page

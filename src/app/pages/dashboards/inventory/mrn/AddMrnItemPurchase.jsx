@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { Card, Button, Table, THead, TBody, Tr, Th, Td } from "components/ui";
 import { Page } from "components/shared/Page";
 import axios from "utils/axios";
@@ -8,7 +8,8 @@ import { TrashIcon } from "@heroicons/react/24/outline";
 import AsyncSelect from "react-select/async";
 
 export default function AddMrnItemPurchase() {
-  const { id } = useParams(); // mrnid
+  const [searchParams] = useSearchParams();
+  const id = searchParams.get("id"); // mrnid
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [fetchingData, setFetchingData] = useState(false);
@@ -221,9 +222,14 @@ export default function AddMrnItemPurchase() {
         totaltaxamount: parseFloat(totals.totaltaxamount) || 0,
         totalinvoiceamount: parseFloat(totals.totalinvoiceamount) || 0
       };
-      await axios.post("/inventory/add-mrn-items-wopo", payload).catch(() => null);
-
-      toast.success("MRN Items saved successfully!");
+      const response = await axios.post("/inventory/add-mrn-items-wopo", payload);
+      
+      if (response.data?.status === true || response.data?.status === "true") {
+        toast.success(response.data?.message || "MRN Items saved successfully!");
+        navigate("/dashboards/inventory/mrn");
+      } else {
+        toast.error(response.data?.message || "Failed to save items");
+      }
 
     } catch (err) {
       console.error(err);

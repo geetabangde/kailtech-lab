@@ -1,5 +1,5 @@
 import { Fragment } from 'react';
-import { safeGetValue, safeGetArray, getDecimalPlaces, formatValueByLc } from './observationUtils';
+import { safeGetValue, safeGetArray, getDecimalPlaces } from './observationUtils';
 
 /**
  * VHT (Hardness Tester) observation.
@@ -44,6 +44,17 @@ const toNum = (val) => {
 const mean = (values) =>
   values.reduce((sum, v) => sum + v, 0) / values.length;
 
+const isNA = (lc) => lc === undefined || lc === null || String(lc).trim() === '' || String(lc).trim().toUpperCase() === 'NA';
+
+// Only a literal "NA": PHP treats a blank least count as 0 decimals, not as "NA"
+const isNAStrict = (lc) => String(lc ?? '').trim().toUpperCase() === 'NA';
+
+// PHP averageavg(…, $lc): rounded to the least count's decimal places (not to a
+// multiple of the least count), unrounded when the least count is "NA"
+const formatAverage = (num, uucLc) => (isNA(uucLc)
+  ? String(Number(num.toFixed(10)))
+  : num.toFixed(getDecimalPlaces(uucLc)));
+
 /**
  * Derived values for one calibration point.
  * Mirrors the averageavg / substractminus / percenterror chain the PHP wires
@@ -54,19 +65,21 @@ export const calculateVHTValues = (enteredReadings, convertedReadings, point = {
 
   const masterLc = point.master_least_count ?? point.masterleastcount ?? 'NA';
   const uucLc = point.least_count ?? point.leastcount ?? 'NA';
-  const lc = getDecimalPlaces(uucLc);
-  const mlc = getDecimalPlaces(masterLc);
-  const errorLc = Math.max(mlc, lc);
+  // PHP $errorlc = max($mlc, $lc), but it stays "NA" (unrounded) when either
+  // least count is "NA"
+  const errorLc = isNAStrict(uucLc) || isNAStrict(masterLc)
+    ? null
+    : Math.max(getDecimalPlaces(masterLc), getDecimalPlaces(uucLc));
 
   const entered = (enteredReadings || []).map(toNum).filter((v) => !isNaN(v));
   const converted = (convertedReadings || []).map(toNum).filter((v) => !isNaN(v));
 
   // Both averages use the UUC least count, as the PHP passes $lc to each.
   if (entered.length > 0) {
-    result.caverageuuc = formatValueByLc(mean(entered), lc, uucLc);
+    result.caverageuuc = formatAverage(mean(entered), uucLc);
   }
   if (converted.length > 0) {
-    result.averageuuc = formatValueByLc(mean(converted), lc, uucLc);
+    result.averageuuc = formatAverage(mean(converted), uucLc);
   }
 
   const master = toNum(context.master);
@@ -74,14 +87,70 @@ export const calculateVHTValues = (enteredReadings, convertedReadings, point = {
 
   if (!isNaN(master) && !isNaN(avgUuc)) {
     const diff = context.errorMode === 'stduuc' ? master - avgUuc : avgUuc - master;
-    result.error = diff.toFixed(errorLc);
+    result.error = errorLc === null ? String(Number(diff.toFixed(10))) : diff.toFixed(errorLc);
 
+    // PHP percenterror() reads the rounded error field, not the raw difference
     if (master !== 0) {
-      result.percentError = ((diff / master) * 100).toFixed(2);
+      result.percentError = ((parseFloat(result.error) / master) * 100).toFixed(2);
     }
   }
 
   return result;
+};
+
+const getVHTPointId = (point, index) => point.id ?? point.point_id ?? point.calibration_point_id ?? `pt-${index}`;
+
+const getVHTEnteredReadings = (point, tableInputValues, pointId) => {
+  const stored = safeGetArray(
+    point.cuuc_readings ?? point.cuuc_observations ?? point.observations ?? point.cuuc,
+    VHT_MAX_REPEATABLE
+  );
+  return Array.from({ length: VHT_MAX_REPEATABLE }, (_, i) => {
+    const obs = stored[i];
+    return tableInputValues[`${pointId}-cuuc${i}`] ?? safeGetValue(obs && obs.value !== undefined ? obs.value : obs);
+  });
+};
+
+// Test load (kgf) per master unit id, as in the legacy converthardness(); default 10
+const VHT_LOADS = { 96: 10, 97: 30, 131: 5, 132: 20, 133: 50 };
+
+/**
+ * Legacy converthardness(value, master, masterunit, target, lc):
+ *   HV = 1.854 * load / d^2   (d = indentation diagonal entered in row 1)
+ * Rounded to lc decimals, unrounded when lc is "NA".
+ */
+export const convertHardness = (value, master, masterUnit, lc) => {
+  if (value === undefined || value === null || String(value).trim() === '') return '';
+  const d = Number(String(value).trim());
+  if (!Number.isFinite(d) || d === 0) return '';
+  const load = VHT_LOADS[String(masterUnit ?? '').trim()] ?? 10;
+  const result = (1.854 * load) / (d * d);
+  if (isNA(lc)) return String(Number(result.toFixed(10)));
+  return result.toFixed(Number(lc));
+};
+
+/** PHP: every entered (cuuc) reading is "required,number". */
+export const validateVHTPoints = (points, tableInputValues = {}) => {
+  const errors = {};
+  (Array.isArray(points) ? points : []).forEach((point, index) => {
+    if (!point) return;
+    const pointId = getVHTPointId(point, index);
+    getVHTEnteredReadings(point, tableInputValues, pointId).forEach((v, i) => {
+      const key = `${pointId}-cuuc${i}`;
+      if (v === undefined || v === null || String(v).trim() === '') errors[key] = 'This field is required';
+      else if (isNaN(Number(String(v).trim()))) errors[key] = 'Please enter a valid number';
+    });
+  });
+  return errors;
+};
+
+/** Readable name for a VHT error key, for the submit toast. */
+export const describeVHTErrorKey = (key, points) => {
+  const list = Array.isArray(points) ? points : [];
+  const index = list.findIndex((p, i) => p && String(key).startsWith(`${getVHTPointId(p, i)}-`));
+  const match = String(key).match(/(\d+)$/);
+  if (index === -1 || !match) return String(key);
+  return `Sr. No. ${list[index].sr_no ?? index + 1}: Observation ${Number(match[1]) + 1}`;
 };
 
 /** Row generator for VHT. Two rows per calibration point. */
@@ -177,6 +246,7 @@ const ObservationVHT = ({
   observations,
   instrument,
   convertHardness,
+  observationErrors = {},
 }) => {
   if (selectedTableData?.id !== 'observationvht') return null;
 
@@ -192,7 +262,7 @@ const ObservationVHT = ({
     );
   }
 
-  const errorMode = instrument?.error ?? selectedTableData?.error_mode;
+  const errorMode = instrument?.error ?? points.find(Boolean)?.cusset_error ?? selectedTableData?.error_mode;
 
   return (
     <div className="mb-8 space-y-4">
@@ -224,7 +294,8 @@ const ObservationVHT = ({
               const pointId = point.id ?? point.point_id ?? point.calibration_point_id ?? `pt-${pointIndex}`;
               const masterLc = point.master_least_count ?? point.masterleastcount ?? 'NA';
               const uucLc = point.least_count ?? point.leastcount ?? 'NA';
-              const lc = getDecimalPlaces(uucLc);
+              // converthardness gets $lc: decimal places, or "NA" for no rounding
+              const lc = isNA(uucLc) ? 'NA' : getDecimalPlaces(uucLc);
               const masterUnit = point.master_unit ?? point.masterunit ?? '';
 
               // Nominal/Set Value: stored master reading, falling back to the
@@ -277,7 +348,7 @@ const ObservationVHT = ({
                         type="text"
                         readOnly
                         className={READONLY_INPUT}
-                        value={formatValueByLc(master, lc, uucLc)}
+                        value={master}
                       />
                     </td>
 
@@ -286,7 +357,8 @@ const ObservationVHT = ({
                         <input
                           type="number"
                           step="any"
-                          className={EDITABLE_INPUT}
+                          data-cell-key={`${pointId}-cuuc${pn}`}
+                          className={`${EDITABLE_INPUT} ${observationErrors[`${pointId}-cuuc${pn}`] ? 'border-red-500' : ''}`}
                           value={reading}
                           onChange={(e) => {
                             const val = e.target.value;
@@ -313,6 +385,7 @@ const ObservationVHT = ({
                                 pointId,
                                 {
                                   convertedReading: converted[pn],
+                                  convertedReadings: converted,
                                   caverageuuc: derived.caverageuuc,
                                   averageuuc: derived.averageuuc,
                                   error: derived.error,
@@ -324,6 +397,9 @@ const ObservationVHT = ({
                           }}
                           placeholder={`Obs ${pn + 1}`}
                         />
+                        {observationErrors[`${pointId}-cuuc${pn}`] && (
+                          <div className="text-red-500 text-xs mt-1">{observationErrors[`${pointId}-cuuc${pn}`]}</div>
+                        )}
                       </td>
                     ))}
 

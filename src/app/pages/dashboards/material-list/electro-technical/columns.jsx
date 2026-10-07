@@ -59,8 +59,9 @@ export const columns = [
     cell: (info) => info.getValue() || "-",
   }),
 
-  // ✅ Location - FIXED
-  columnHelper.accessor("instrumentlocation", {
+  // ✅ Location - API returns stocked lab names as "locations" (comma-separated);
+  // fall back to "instrumentlocation" in case the backend field is renamed.
+  columnHelper.accessor((row) => row.locations || row.instrumentlocation, {
     id: "location",
     header: "Location",
     cell: (info) => info.getValue() || "-",

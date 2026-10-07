@@ -45,6 +45,10 @@ import { prTableConfig, createPRRows, ViewObservationPR } from './ViewObservatio
 import { ViewObservationUTM } from './ViewObservationUTM';
 import { lmsTableConfig, createLMSRows, parseLMSDynamicData, ViewObservationLMS } from './ViewObservationLMS';
 import { lsTableConfig, createLSRows, parseLSDynamicData, ViewObservationLS } from './ViewObservationLS';
+import { bhtTableConfig, createBHTViewRows, BHT_ROWSPAN_COLUMNS } from './ViewObservationBHT';
+import { vhtTableConfig, createVHTViewRows, VHT_ROWSPAN_COLUMNS } from './ViewObservationVHT';
+import { dutmTableConfig, createDUTMViewRows, parseDUTMDynamicData } from './ViewObservationDUTM';
+import { sutmTableConfig, createSUTMViewRows, parseSUTMDynamicData } from './ViewObservationSUTM';
 
 export {
   dpgTableConfig, createDPGRows,
@@ -76,6 +80,10 @@ export {
   ViewObservationUTM,
   lmsTableConfig, createLMSRows, parseLMSDynamicData, ViewObservationLMS,
   lsTableConfig, createLSRows, parseLSDynamicData, ViewObservationLS,
+  bhtTableConfig, createBHTViewRows, BHT_ROWSPAN_COLUMNS,
+  vhtTableConfig, createVHTViewRows, VHT_ROWSPAN_COLUMNS,
+  dutmTableConfig, createDUTMViewRows, parseDUTMDynamicData,
+  sutmTableConfig, createSUTMViewRows, parseSUTMDynamicData,
 };
 
 /**
@@ -272,6 +280,10 @@ export const getViewObservationTables = (rawdata) => [
   tsTableConfig,
   swTableConfig,
   wbTableConfig,
+  bhtTableConfig,
+  vhtTableConfig,
+  sutmTableConfig,
+  dutmTableConfig,
 ];
 
 /**
@@ -622,6 +634,8 @@ export const createViewObservationRows = (observationData, template, currentRawd
         rows.push(row);
       });
     });
+  } else if (template === 'observationsutm') {
+    rows = createSUTMViewRows(dataArray);
   } else if (template === 'observationautm') {
     rows = createAUTMRows(dataArray, currentRawdata);
   } else if (template === 'observationls') {
@@ -645,6 +659,12 @@ export const createViewObservationRows = (observationData, template, currentRawd
     rows = createDGRows(dataArray, currentRawdata);
   } else if (template === 'observationsw') {
     rows = createSWViewRows(dataArray);
+  } else if (template === 'observationbht') {
+    rows = createBHTViewRows(dataArray);
+  } else if (template === 'observationvht') {
+    rows = createVHTViewRows(dataArray);
+  } else if (template === 'observationdutm') {
+    rows = createDUTMViewRows(dataArray);
   }
 
   return {
@@ -715,6 +735,8 @@ export const parseDynamicObservation = (
     return parseWBDynamicData(observationData);
   } else if (template === 'observationts') {
     return parseTSDynamicData(observationData, response, setThermalCoeff);
+  } else if (template === 'observationsutm') {
+    return parseSUTMDynamicData(observationData);
   } else if (template === 'observationsw') {
     return parseSWDynamicData(observationData);
   } else if (template === 'observationvc') {
@@ -795,6 +817,8 @@ export const parseDynamicObservation = (
     return [];
   } else if (template === 'observationgtm') {
     return parseGTMDynamicData(observationData);
+  } else if (template === 'observationdutm') {
+    return parseDUTMDynamicData(observationData);
   } else if (template === 'observationautm') {
     return parseAUTMDynamicData(observationData);
   } else if (template === 'observationdg') {
